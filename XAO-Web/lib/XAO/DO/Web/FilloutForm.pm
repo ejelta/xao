@@ -62,7 +62,7 @@ use XAO::Errors qw(XAO::DO::Web::FilloutForm);
 use base XAO::Objects->load(objname => 'Web::Page');
 
 use vars qw($VERSION);
-$VERSION=(0+sprintf('%u.%03u',(q$Id: FilloutForm.pm,v 2.2 2005/02/24 01:58:49 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
+$VERSION=(0+sprintf('%u.%03u',(q$Id: FilloutForm.pm,v 2.3 2005/03/23 11:03:25 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
 
 sub setup ($%);
 sub field_desc ($$);
@@ -1167,15 +1167,34 @@ Diner's Club
 END_OF_LIST
 }
 
-##
-# Returns error text if card number is invalid, only checksum and
-# consistence with card type is checked.
-#
+###############################################################################
+
+=item cc_validate (%)
+
+Returns error text if card number is invalid. Only checksum and
+consistence with card type is checked.
+
+Card number is taken from 'number' argument and card type from 'type'
+argument (optionally).
+
+Will store card number into a scalar reference given by 'validated'
+argument, if it exists and the card validates. Will store card type code
+into scalar reference given by 'typecode' argument if it exists and the
+card validates. Codes are:
+
+ VI -- Visa
+ AE -- American Express
+ MC -- Mastercard
+ DC -- Discover
+
+=cut
+
 sub cc_validate ($%) {
     my $self=shift;
     my $args=get_args(\@_);
-    my $number=$args->{number};
-    my $type=$args->{type};
+
+    my $number=$args->{'number'};
+    my $type=$args->{'type'};
 
     ##
     # General corrections and checks first.
@@ -1198,31 +1217,43 @@ sub cc_validate ($%) {
     }
 
     ##
-    # Checking card type now
+    # Guessing card type.
     #
-    if($type) {
-        my $realtype='';
-        if($number =~ /^37/) {
-            $realtype='american express';
-        }
-        elsif($number =~ /^4/) {
-            $realtype='visa';
-        }
-        elsif($number =~ /^5/) {
-            $realtype='master\s?card';
-        }
-        elsif($number =~ /^6/) {
-            $realtype='discover';
-        }
-        else {
-            return $self->Tx('Unknown card type!');
-        }
-        if(lc($type) !~ $realtype) {
-            return $self->Tx('Number does not match card type!');
-        }
+    my $typecode;
+    my $realtype='';
+    if($number =~ /^37/) {
+        $realtype='american express';
+        $typecode='AE';
+    }
+    elsif($number =~ /^4/) {
+        $realtype='visa';
+        $typecode='VI';
+    }
+    elsif($number =~ /^5/) {
+        $realtype='master\s?card';
+        $typecode='MC';
+    }
+    elsif($number =~ /^6/) {
+        $realtype='discover';
+        $typecode='DC';
+    }
+    else {
+        return $self->Tx('Unknown card type!');
     }
 
-    ${$args->{validated}}=$number if $args->{validated};
+    ##
+    # Checking guessed type against the given type.
+    #
+    if($type && lc($type) !~ $realtype) {
+        return $self->Tx('Number does not match card type!');
+    }
+
+    ##
+    # Storing values if we were given these references.
+    #
+    ${$args->{'validated'}}=$number if $args->{'validated'};
+    ${$args->{'typecode'}}=$typecode if $args->{'typecode'};
+
     return '';
 }
 
