@@ -592,13 +592,15 @@ sub view_order_details {
             @line{qw(type line_number item_code entry_date
                      ord_qty inv_qty canc_qty
                      ut_price ut_size
-                     disposition disposition_desc)}=@arr;
+                     disposition disposition_desc
+                     ship_loc
+                     req_date)}=@arr;
         }
         elsif($arr[0] eq 'INVOICE') {
             @arr==8 ||
                 throw XAO::E::P21 "view_order_details - wrong INVOICE ($str)";
             @line{qw(type ship_number ord_date inv_date ship_date
-                     total_stax_amt out_freight cust_code)}=@arr;
+                     total_stax_amt out_freight cust_code ship_inst1)}=@arr;
         }
         elsif($arr[0] eq 'ITEM') {
             @arr==5 ||
