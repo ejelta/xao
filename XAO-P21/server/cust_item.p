@@ -13,6 +13,7 @@ FOR EACH cust_item.
         cust_item.cust_code             d_d
         cust_item.item_code             d_d
         cust_item.part_number           d_d
-        price                           skip
+        price                           d_d
+        cust_item.int_desc              skip
     .
 END.
