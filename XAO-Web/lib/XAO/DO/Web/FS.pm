@@ -180,7 +180,7 @@ use XAO::Errors qw(XAO::DO::Web::FS);
 use base XAO::Objects->load(objname => 'Web::Action');
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: FS.pm,v 1.20 2002/02/21 01:57:57 alves Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: FS.pm,v 1.21 2002/03/21 21:43:40 am Exp $ =~ /(\d+\.\d+)/);
 
 ###############################################################################
 
@@ -654,9 +654,11 @@ sub search ($;%) {
             );
             if ($args->{fields}) {
                 my $item = $list->get($id);
+		my %v;
+		@v{@fields}=$item->get(@fields);
                 foreach (@fields) {
                     my $uckey = uc($_);
-                    $pass{$uckey} = $item->get($_) unless $pass{$uckey};
+                    $pass{$uckey} = $v{$_} unless defined $pass{$uckey};
                     $pass{$uckey} = '' unless defined $pass{$uckey};
                 }
             }
