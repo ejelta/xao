@@ -169,7 +169,7 @@ sub map_category ($$$$) {
             my $dst_cat=$self->normalize_category_path($obj->get('dst_cat'));
             push(@{$category_cache->{$src_cat}},$dst_cat);
         }
-        keys %{$category_cache} || eprint "Empty CategoryMap table";
+        keys %{$category_cache} || dprint "Empty CategoryMap table";
     }
 
     dprint "path=$path";
