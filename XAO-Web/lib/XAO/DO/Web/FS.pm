@@ -184,7 +184,7 @@ use XAO::Errors qw(XAO::DO::Web::FS);
 use base XAO::Objects->load(objname => 'Web::Action');
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: FS.pm,v 1.33 2003/01/07 00:45:04 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: FS.pm,v 1.34 2003/01/07 01:10:21 am Exp $ =~ /(\d+\.\d+)/);
 
 ###############################################################################
 
@@ -523,8 +523,9 @@ sub search ($;%) {
     # Add default arguments as specified in configuration
     # unless there are input arguments to override them.
     #
+    my $uri             = $args->{uri} || 'no_uri';
     my $rh_defaults     = $rh_conf->{default_search_args};
-    my $rh_default_args = $rh_defaults->{$args->{uri}};
+    my $rh_default_args = $rh_defaults->{$uri};
     if (ref($rh_default_args) eq 'HASH') {
         $args=merge_refs($rh_default_args,$args);
     }
