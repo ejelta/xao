@@ -107,7 +107,7 @@ WriteMakefile(
         'DBD::mysql'    => '2.0414',
         'DBI'           => '1.13',
         'Error'         => '0.14',
-        'Pod::Usage'    => '1.14',
+        'Pod::Usage'    => '1.12',
         'Test::Unit'    => '0.14',
         'XAO::Base'     => '0.1',
     },
