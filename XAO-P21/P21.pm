@@ -482,7 +482,7 @@ sub order {
         $_[0];
     };
 
-    my @order_array=map {
+    my @order_array=map { uc } map {
         $_->{reference_number},             #  1 |  1
         $_->{customer},                     #  2 |  2
         $_->{date},                         #  3 |  3
