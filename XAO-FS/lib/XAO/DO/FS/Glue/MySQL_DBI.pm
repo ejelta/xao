@@ -29,12 +29,13 @@ package XAO::DO::FS::Glue::MySQL_DBI;
 use strict;
 use XAO::Utils qw(:debug :args :keys);
 use XAO::Objects;
-use XAO::Errors qw(XAO::DO::FS::Glue::MySQL_DBI);
 use DBI;
 use DBD::mysql;
 
+use base XAO::Objects->load(objname => 'Atom');
+
 use vars qw($VERSION);
-($VERSION)=(q$Id: MySQL_DBI.pm,v 1.7 2002/02/06 02:22:19 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: MySQL_DBI.pm,v 1.8 2002/02/12 21:04:40 am Exp $ =~ /(\d+\.\d+)/);
 
 ###############################################################################
 
@@ -55,33 +56,22 @@ Example:
 sub new ($%) {
     my $proto=shift;
     my $args=get_args(\@_);
-    my $class=ref($proto) || $proto;
 
-    ##
-    # Our object
-    #
-    my $user=$args->{user};
-    my $password=$args->{password};
-    my $dsn=$args->{dsn};
-    my $self={
-        class => $class,
-        objname => $args->{objname},
-        dsn => $dsn,
-        user => $user,
-        password => $password
-    };
-    bless $self, $class;
+    my $self=$proto->SUPER::new($args);
 
     ##
     # Connecting to the database
     #
+    my $user=$args->{user};
+    my $password=$args->{password};
+    my $dsn=$args->{dsn};
     $dsn || $self->throw("new - required parameter missed 'dsn'");
     $dsn=~/^OS:(\w+):(\w+)(;.*)?$/ || $self->throw("new - bad format of 'dsn' ($dsn)");
     $1 eq 'MySQL_DBI' || $self->throw("new - driver type is not MySQL_DBI");
     my $dbname=$2;
     my $dbopts=$3 || '';
     my $dbh=DBI->connect("DBI:mysql:$dbname$dbopts",$user,$password) ||
-            $self->throw("new - can't connect to the database ($dsn,$user,$password)");
+            $self->throw("new - can't connect to the database ($dsn,$user,***)");
     $self->{dbh}=$dbh;
     my $v=$dbh->{mysql_serverinfo} || $dbh->{serverinfo};
     if(!$v || $v !~ /^(\d+)\.(\d+)(\.(\d+))?$/ || $1<3 || $2<23) {
@@ -944,13 +934,10 @@ sub unlock_tables ($) {
         die 'unlock_tables - failed';
 }
 
-##
-# Throwing an error
-#
 sub throw ($@) {
     my $self=shift;
     $self->unlock_tables();
-    throw XAO::E::DO::FS::Glue::MySQL_DBI join('',@_);
+    $self->SUPER::throw(@_);
 }
 
 sub throw_sql ($$) {

@@ -46,10 +46,11 @@ package XAO::DO::FS::Glue;
 use strict;
 use XAO::Utils;
 use XAO::Objects;
-use XAO::Errors qw(XAO::DO::FS::Glue);
+
+use base XAO::Objects->load(objname => 'Atom');
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: Glue.pm,v 1.10 2002/02/06 02:22:18 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: Glue.pm,v 1.11 2002/02/12 21:04:40 am Exp $ =~ /(\d+\.\d+)/);
 
 ###############################################################################
 
@@ -274,7 +275,8 @@ database.
 
 sub disconnect () {
     my $self=shift;
-    $$self->{glue} && $self->throw("disconnect - only makes sense on database handler (did you mean 'detach'?)");
+    $$self->{glue} &&
+        throw $self "disconnect - only makes sense on database handler (did you mean 'detach'?)";
     if($$self->{driver}) {
         $$self->{driver}->disconnect();
         delete $$self->{driver};
@@ -303,7 +305,7 @@ sub fetch ($$) {
     # Normalizing and checking path
     #
     $path=$self->normalize_path($path);
-    substr($path,0,1) eq '/' || $self->throw("fetch - bad path ($path)");
+    substr($path,0,1) eq '/' || throw $self "fetch - bad path ($path)";
 
     ##
     # Going through the path and retrieving every element. Could be a
@@ -333,7 +335,7 @@ Returns relative object name that XAO::Objects would accept.
 
 sub objname ($) {
     my $self=shift;
-    $$self->{objname} || $self->throw("objname - must have an objname");
+    $$self->{objname} || throw $self "objname - must have an objname";
 }
 
 ###############################################################################
@@ -1671,11 +1673,6 @@ sub normalize_path ($$) {
     $path=~s/\s//g;
     $path=~s/\/{2,}/\//g;
     $path;
-}
-
-sub throw {
-    my $self=shift;
-    throw Error::Simple ref($self)."::".join('',@_,"\n");
 }
 
 ###############################################################################

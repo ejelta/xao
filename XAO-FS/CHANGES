@@ -1,4 +1,5 @@
 1.03 - XXX
+    * Base class changed to Atom to make error throwing uniform
     * MAJOR: a bug fixed in escaping special characters when searching
       using 'wq' or 'ws'
     * MAJOR: fixed bug in relations generation in deep search
