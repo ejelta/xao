@@ -161,13 +161,13 @@ sub display ($%) {
         my $file=$parser->find_module_file($args->{'module'});
         if(!$file) {
             return $self->display_error($args,{
-                ERRSTR      => q(Can't find module file for '$args->{module}'),
+                ERRSTR      => qq(Can't find module file for '$args->{module}'),
             });
         }
         $ih=IO::File->new;
         if(!$ih->open($file)) {
             return $self->display_error($args,{
-                ERRSTR      => q(Can't open module file: $!),
+                ERRSTR      => qq(Can't open module file: $!),
             });
         }
     }
