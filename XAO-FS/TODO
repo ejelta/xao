@@ -1,3 +1,17 @@
+BUG (am, 3/31/2003): If we're searching on:
+
+ [ 'Sub/name','cs','test' ],
+ 'or',
+ [ 'title','cs','test' ]
+
+and there are no entries at all in Sub for some element where 'title'
+matches 'test' that element won't be shown. We need outer join or
+something similar to deal with it. We need to track if a specific
+sub-table is required or not and join accordingly. Looks damn
+complicated if I'm right.
+
+===============
+
 Multiple read-servers, read_pool argument to odb. For better chance
 of returning in-sync data it is probably worth keeping track of last
 update issued to the main server and querying the main server for a
