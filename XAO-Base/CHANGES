@@ -1,3 +1,6 @@
+1.03 - XXX
+    * XAO::Errors - added support for throwing by known class name
+
 1.02 - 3-Jan-2002
     * minor fixes
     * line counter in Objects.pm fixed, was off by one line in

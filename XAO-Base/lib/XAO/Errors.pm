@@ -31,32 +31,30 @@ would always go into XAO::E namespace.
 ###############################################################################
 package XAO::Errors;
 use strict;
-use vars qw(%errors_cache);
 use Error;
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: Errors.pm,v 1.5 2002/01/04 02:00:15 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: Errors.pm,v 1.6 2002/02/04 07:38:40 am Exp $ =~ /(\d+\.\d+)/);
 
-sub import {
-    my $class=shift;
-    my @list=@_;
+use vars qw(%errors_cache);
 
-    foreach my $module (@list) {
-        my $em;
-        if($module=~/^XAO::E((::\w+)+)$/) {
-            $em=$module;
-            $module='XAO' . $1;
-        }
-        elsif($module=~/^XAO((::\w+)+)$/) {
-            $em='XAO::E' . $1;
-        }
-        else {
-            throw Error::Simple "Can't import error module for $module";
-        }
+sub load_e_class ($) {
+    my $module=shift;
+    my $em;
+    if($module=~/^XAO::E((::\w+)+)$/) {
+        $em=$module;
+        $module='XAO' . $1;
+    }
+    elsif($module=~/^XAO((::\w+)+)$/) {
+        $em='XAO::E' . $1;
+    }
+    else {
+        throw Error::Simple "Can't import error module for $module";
+    }
 
-        next if $errors_cache{$em};
+    return $em if $errors_cache{$em};
 
-        eval <<END;
+    eval <<END;
 
 package $em;
 use strict;
@@ -72,9 +70,38 @@ sub throw {
 
 1;
 END
-        throw Error::Simple $@ if $@;
-        $errors_cache{$em}=1;
+    throw Error::Simple $@ if $@;
+    $errors_cache{$em}=1;
+
+    return $em;
+}
+
+sub import {
+    my $class=shift;
+    my @list=@_;
+
+    foreach my $module (@list) {
+        load_e_class($module);
     }
+}
+
+sub throw_by_class ($$$) {
+
+    @_==2 || @_==3 ||
+        throw Error::Simple "throw_by_class - number of arguments is not 2 or 3";
+
+    my $self=(@_==3) ? shift : 'XAO::Errors';
+    my $class=shift;
+    $class=ref($class) if ref($class);
+    my $text=shift;
+
+    my $em=load_e_class($class);
+
+    ##
+    # Most probably will screw up stack trace, need to check and fix!
+    #
+    no strict 'refs';
+    $em->throw($text);
 }
 
 ###############################################################################
