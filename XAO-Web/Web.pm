@@ -322,14 +322,14 @@ sub expand ($%) {
     #
     my $active_url;
     if(defined($CGI::VERSION) && $CGI::VERSION>=2.80) {
-        $active_url=$cgi->url(-base => 1);
+        $active_url=$cgi->url(-base => 1, -full => 0);
         my $pinfo=$ENV{PATH_INFO} || '';
         my $uri=$ENV{REQUEST_URI} || '';
         $uri=~s/^(.*?)\?.*$/$1/;
         if($pinfo =~ /^\/\Q$sitename\E(\/.+)?\Q$uri\E/) {
             # mod_rewrite
         }
-        elsif($uri =~ /^(.*)\Q$pinfo\E$/) {
+        elsif($pinfo && $uri =~ /^(.*)\Q$pinfo\E$/) {
             # cgi
             $active_url.=$1;
         }

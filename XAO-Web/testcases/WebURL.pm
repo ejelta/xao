@@ -15,13 +15,16 @@ sub test_all {
     $ENV{GATEWAY_INTERFACE}='CGI/1.1';
     $ENV{HTTP_HOST}='www.xao.com';
     $ENV{HTTP_USER_AGENT}='Mozilla/5.0';
+    $ENV{PATH_INFO}='/test/WebURL.html';
     $ENV{QUERY_STRING}='a=1&b=2';
     $ENV{REMOTE_ADDR}='127.0.0.1';
     $ENV{REMOTE_PORT}='12345';
     $ENV{REQUEST_METHOD}='GET';
     $ENV{REQUEST_URI}='/WebURL.html';
-    $ENV{SCRIPT_FILENAME}='/WebURL.html';
-    $ENV{SCRIPT_NAME}='/WebURL.html';
+    $ENV{SCRIPT_FILENAME}='/usr/local/xao/handlers/xao-apache.pl';
+    $ENV{SCRIPT_NAME}='';
+    $ENV{SCRIPT_URI}='http://www.xao.com/WebURL.html';
+    $ENV{SCRIPT_URL}='/WebURL.html';
     $ENV{SERVER_ADDR}='127.0.0.1';
     $ENV{SERVER_ADMIN}='am@xao.com';
     $ENV{SERVER_NAME}='xao.com';
