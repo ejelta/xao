@@ -31,7 +31,7 @@ use XAO::Objects;
 use base XAO::Objects->load(objname => 'FS::Glue');
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: Collection.pm,v 1.2 2002/01/04 01:47:37 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: Collection.pm,v 1.3 2002/12/19 01:00:42 am Exp $ =~ /(\d+\.\d+)/);
 
 ###############################################################################
 
@@ -105,7 +105,10 @@ sub get ($$) {
     $self->throw("get - at least one ID required") unless @_;
 
     my @results=map {
-        $_ || $self->throw("get - no object ID given");
+        $_ ||
+            throw $self "get - no object ID given";
+        ref($_) &&
+            throw $self "get - should be a scalar, not a ".ref($_);
         XAO::Objects->new(objname => $$self->{class_name},
                           glue => $self->_glue,
                           unique_id => $_,

@@ -1,4 +1,5 @@
 1.05 -
+    * minor bug in Collection fixed
     * name restrictions are now enforced in List according to
       documentation
 
