@@ -35,7 +35,7 @@ sub new ($%);
 # Module version.
 #
 use vars qw($VERSION);
-($VERSION)=(q$Id: Objects.pm,v 1.6 2002/02/04 03:43:55 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: Objects.pm,v 1.7 2002/02/05 03:26:29 am Exp $ =~ /(\d+\.\d+)/);
 
 ##
 # Loads object into memory.
@@ -78,7 +78,9 @@ sub load (@) {
             throw XAO::E::Objects "load - no sitename given for Config object";
     }
     else {
-        $sitename=XAO::Projects::get_current_project_name() || '';
+        $sitename=XAO::Projects::get_current_project_name() ||
+                  $args->{sitename} ||
+                  '';
     }
 
     ##
