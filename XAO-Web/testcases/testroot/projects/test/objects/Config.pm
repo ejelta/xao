@@ -11,6 +11,7 @@ sub init {
     my $self=shift;
 
     my $hash=XAO::SimpleHash->new();
+    $hash->put(base_url => 'http://xao.com');
 
     my $webconfig=XAO::Objects->new(objname => 'Web::Config');
 

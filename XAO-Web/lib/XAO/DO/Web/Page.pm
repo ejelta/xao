@@ -399,7 +399,7 @@ use Error qw(:try);
 use base XAO::Objects->load(objname => 'Atom');
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: Page.pm,v 1.22 2002/10/29 09:42:31 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: Page.pm,v 1.23 2003/01/08 21:04:16 am Exp $ =~ /(\d+\.\d+)/);
 
 ##
 # Prototypes
@@ -981,6 +981,12 @@ sub siteconfig ($) {
 Returns base_url for secure or normal connection. Depends on parameter
 "secure" if it is set, or current state if it is not.
 
+If 'active' parameter is set then will return active URL, not the base
+one. In most practical cases active URL is the same as base URL except
+when your server is set up to answer for many domains. Base will stay
+at what is set in the site configuration and active will be the one
+taken from the Host: header.
+
 Examples:
 
  # Returns secure url in secure mode and normal
@@ -996,24 +1002,31 @@ Examples:
  #
  my $url=$self->base_url(secure => 0);
 
+ # Return secure equivalent of the current active URL
+ #
+ my $url=$self->base_url(secure => 1, active => 1);
+
 =cut
 
 sub base_url ($;%) {
     my $self=shift;
     my $args=get_args(\@_);
-    my $url;
+
     my $secure=$args->{secure};
     $secure=$self->is_secure unless defined $secure;
+
+    my $active=$args->{active};
+
+    my $url;
     if($secure) {
-        $url=$self->siteconfig->get('base_url_secure');
-        if(!$url) {
-            $url=$self->siteconfig->get('base_url');
-            $url=~s/^http:/https:/i;
-        }
+        $url=$active ? $self->clipboard->get('active_url_secure')
+                     : $self->siteconfig->get('base_url_secure');
     } else {
-        $url=$self->siteconfig->get('base_url');
+        $url=$active ? $self->clipboard->get('active_url')
+                     : $self->siteconfig->get('base_url');
     }
-    $url;
+
+    return $url;
 }
 
 ###############################################################################
@@ -1041,10 +1054,15 @@ arguments as base_url() method.
 
 sub pageurl ($;%) {
     my $self=shift;
+
+    my $pagedesc=$self->clipboard->get('pagedesc') ||
+        throw $self "pageurl - no Web context, needs clipboard->'pagedesc'";
+
     my $url=$self->base_url(@_);
-    my $url_path=$self->clipboard->get('pagedesc')->{fullpath};
-    $url_path="/".$url_path unless $url_path=~ /^\//;
-    $url.$url_path;
+    my $uri=$pagedesc->{fullpath} || '/';
+    $uri="/".$uri unless substr($uri,0,1) eq '/';
+
+    return $url.$uri;
 }
 
 ###############################################################################

@@ -15,9 +15,9 @@ PageSupport/PageSupport.xs
 lib/XAO/DO/Web/Action.pm
 lib/XAO/DO/Web/CgiParam.pm
 lib/XAO/DO/Web/Clipboard.pm
-lib/XAO/DO/Web/Cookie.pm
 lib/XAO/DO/Web/Condition.pm
 lib/XAO/DO/Web/Config.pm
+lib/XAO/DO/Web/Cookie.pm
 lib/XAO/DO/Web/Date.pm
 lib/XAO/DO/Web/Debug.pm
 lib/XAO/DO/Web/Default.pm
@@ -36,6 +36,7 @@ lib/XAO/DO/Web/Search.pm
 lib/XAO/DO/Web/SetArg.pm
 lib/XAO/DO/Web/Styler.pm
 lib/XAO/DO/Web/TextTable.pm
+lib/XAO/DO/Web/URL.pm
 lib/XAO/DO/Web/Utility.pm
 lib/XAO/PluginUtils.pm
 lib/XAO/Templates.pm
@@ -73,6 +74,7 @@ testcases/WebUtility.pm
 testcases/Web.pm
 testcases/WebSetArg.pm
 testcases/WebTextTable.pm
+testcases/WebURL.pm
  --------------------------------- Test installation tree
 testcases/testroot/projects/test/objects/Config.pm
 testcases/testroot/projects/test/objects/Web/MyAction.pm

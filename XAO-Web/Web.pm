@@ -309,58 +309,74 @@ sub expand ($%) {
     XAO::PageSupport::reset();
 
     ##
-    # Checking if we have base_url. Guessing it if not.
-    # Ensuring that URL does not end with '/'.
+    # Figuring out current active URL. It might be the same as base_url
+    # and in most cases it is, but it just as well might be different.
     #
-    if(! $siteconfig->defined("base_url")) {
-
-        ##
-        # Base URL should be full path to the start point -
-        # http://host.com in case of rewrite and something like
-        # http://host.com/cgi-bin/xao-apache.pl/sitename in case of
-        # plain CGI usage.
-        #
-        my $url;
-        if(defined($CGI::VERSION) && $CGI::VERSION>=2.80) {
-            $url=$cgi->url(-base => 1);
-            my $pinfo=$ENV{PATH_INFO};
-            my $uri=$ENV{REQUEST_URI};
-            $uri=~s/^(.*?)\?.*$/$1/;
-            if($pinfo =~ /^\/$sitename(\/.+)?$uri/) {
-                # mod_rewrite
-            }
-            elsif($uri =~ /^(.*)$pinfo$/) {
-                # cgi
-                $url.=$1;
-            }
+    # The URL should be full path to the start point -
+    # http://host.com in case of rewrite and something like
+    # http://host.com/cgi-bin/xao-apache.pl/sitename in case of plain
+    # CGI usage.
+    #
+    my $active_url;
+    if(defined($CGI::VERSION) && $CGI::VERSION>=2.80) {
+        $active_url=$cgi->url(-base => 1);
+        my $pinfo=$ENV{PATH_INFO};
+        my $uri=$ENV{REQUEST_URI};
+        $uri=~s/^(.*?)\?.*$/$1/;
+        if($pinfo =~ /^\/$sitename(\/.+)?$uri/) {
+            # mod_rewrite
         }
-        else {
-            $url=$cgi->url(-full => 1, -path_info => 0);
-            $url=$1 if $url=~/^(.*)($path)$/;
+        elsif($uri =~ /^(.*)$pinfo$/) {
+            # cgi
+            $active_url.=$1;
         }
-
-        ##
-        # Trying to understand if rewrite module was used or not. If not
-        # - adding sitename to the end of guessed URL.
-        #
-        if($url =~ /cgi-bin/ || $url =~ /xao-[\w-]+\.pl/) {
-            $url.="/$sitename";
-        }
-
-        ##
-        # Eating extra slashes
-        #
-        chop($url) while $url =~ /\/$/;
-        $url=~s/(?<!:)\/\//\//g;
-
-        ##
-        # Storing
-        #
-        $siteconfig->put(base_url => $url);
-        $siteconfig->put(base_url_secure => $url);
-        dprint "No base_url defined, sitename=$sitename; assuming base_url=$url";
     }
     else {
+        $active_url=$cgi->url(-full => 1, -path_info => 0);
+        $active_url=$1 if $active_url=~/^(.*)($path)$/;
+    }
+
+    ##
+    # Trying to understand if rewrite module was used or not. If not
+    # - adding sitename to the end of guessed URL.
+    #
+    if($active_url =~ /cgi-bin/ || $active_url =~ /xao-[\w-]+\.pl/) {
+        $active_url.="/$sitename";
+    }
+
+    ##
+    # Eating extra slashes
+    #
+    chop($active_url) while $active_url =~ /\/$/;
+    $active_url=~s/(?<!:)\/\//\//g;
+
+    ##
+    # Figuring out secure URL
+    #
+    my $active_url_secure;
+    if($active_url =~ /^http:(\/\/.*)$/) {
+        $active_url_secure='https:' . $1;
+    }
+    elsif($active_url =~ /^https:(\/\/.*)$/) {
+        $active_url_secure=$active_url;
+        $active_url='http:' . $1;
+    }
+    else {
+        dprint "Wrong active URL ($active_url)";
+        $active_url_secure=$active_url;
+    }
+
+    ##
+    # Storing active URLs
+    #
+    $siteconfig->clipboard->put(active_url => $active_url);
+    $siteconfig->clipboard->put(active_url_secure => $active_url_secure);
+
+    ##
+    # Checking if we have base_url, assuming active_url if not.
+    # Ensuring that URL does not end with '/'.
+    #
+    if($siteconfig->defined("base_url")) {
         my $url=$siteconfig->get('base_url');
         $url=~/^http:/i ||
             throw XAO::E::Web "expand - bad base_url ($url) for sitename=$sitename";
@@ -375,7 +391,12 @@ sub expand ($%) {
         }
         $nu=$url;
         chop($nu) while $nu =~ /\/$/;
-        $siteconfig->put(base_url_secure => $nu) if $nu ne $url;
+        $siteconfig->put(base_url_secure => $nu);
+    }
+    else {
+        $siteconfig->put(base_url => $active_url);
+        $siteconfig->put(base_url_secure => $active_url_secure);
+        dprint "No base_url for sitename '$sitename'; assuming base_url=$active_url, base_url_secure=$active_url_secure";
     }
   
     ##
