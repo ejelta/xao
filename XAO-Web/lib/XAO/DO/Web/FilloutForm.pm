@@ -62,7 +62,7 @@ use XAO::Errors qw(XAO::DO::Web::FilloutForm);
 use base XAO::Objects->load(objname => 'Web::Page');
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: FilloutForm.pm,v 1.13 2003/09/11 17:41:17 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: FilloutForm.pm,v 1.14 2003/09/18 16:48:17 am Exp $ =~ /(\d+\.\d+)/);
 
 sub setup ($%);
 sub field_desc ($$);
@@ -465,6 +465,7 @@ sub display ($;%) {
 
         # Generating HTML for some field styles.
         #
+        my $param=$fdata->{param} || uc($name);
         if($style eq 'country') {
             my @cl=$self->countries_list();
             my $html='';
@@ -483,6 +484,7 @@ sub display ($;%) {
                 my $sel=(lc(substr($c,0,2)) eq $stv) ? " SELECTED" : "";
                 $html.="<OPTION$sel>".t2ht($c)."</OPTION>\n";
             }
+            $formparams{"$param.HTML_OPTIONS"}=$html;
             $fdata->{html}=qq(<SELECT NAME=$name><OPTION VALUE="">Select State</OPTION>$html</SELECT>);
         }
         elsif($style eq 'cctype') {
@@ -604,11 +606,11 @@ sub display ($;%) {
         ##
         # Filling formparams hash
         #
-        my $param=$fdata->{param} || uc($name);
         $formparams{"$param.VALUE"}=defined($value) ? $value : "";
         $formparams{"$param.TEXT"}=$fdata->{text} || $name;
         $formparams{"$param.NAME"}=$name;
         $formparams{"$param.HTML"}=$fdata->{html} || "";
+        $formparams{"$param.SIZE"}=$fdata->{size} || 30;
         $formparams{"$param.MAXLENGTH"}=$fdata->{maxlength} || 0;
         $formparams{"$param.MINLENGTH"}=$fdata->{minlength} || 0;
         $formparams{"$param.ERRSTR"}=$fdata->{errstr} || '';

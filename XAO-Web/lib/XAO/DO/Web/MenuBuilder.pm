@@ -76,7 +76,7 @@ sub display ($;%) {
             %grayed=map { $_ => 1 } values %items;
         }
         else {
-            %grayed=map { $_ => 1 } split(/,/,$args->{grayed});
+            %grayed=map { $_ => 1 } split(/[,;\s]+/,$args->{grayed});
         }
     }
     else {
@@ -88,16 +88,18 @@ sub display ($;%) {
     ##
     # And finally displaying items.
     #
-    my $obj=$self->object;
-    $obj->display(path => "$base/header")
-        if XAO::Templates::filename("$base/header");
+    my $page=$self->object;
+    $page->display($args,{
+        path => "$base/header",
+    }) if XAO::Templates::filename("$base/header");
+
     my $first=1;
     my $sepexists=XAO::Templates::filename("$base/separator");
     foreach my $item (sort { ($a =~ /^\d+$/ && $b =~ /^\d+$/)
                                 ? $a <=> $b
                                 : $a cmp $b } keys %items) {
         my $name=$items{$item};
-        $obj->display(path => "$base/separator") if !$first && $sepexists;
+        $page->display(path => "$base/separator") if !$first && $sepexists;
         $first=0;
 
         my %params=(
@@ -120,10 +122,12 @@ sub display ($;%) {
         }
         $params{path}="$base/item-$name-$subpath";
 
-        $obj->display(\%params);
+        $page->display($args,\%params);
     }
-    $obj->display(path => "$base/footer")
-        if XAO::Templates::filename("$base/footer");
+
+    $page->display($args,{
+        path => "$base/footer",
+    }) if XAO::Templates::filename("$base/footer");
 }
 
 ###############################################################################
