@@ -35,12 +35,12 @@ use XAO::IndexerSupport;
 use Digest::MD5 qw(md5_base64);
 use base XAO::Objects->load(objname => 'Atom');
 
-use Data::Dumper;
+### use Data::Dumper;
 
 ###############################################################################
 
 use vars qw($VERSION);
-$VERSION='1.0';
+$VERSION='1.01';
 
 ###############################################################################
 
@@ -230,8 +230,8 @@ sub search ($%) {
             $_;
         }
     } @{$self->analyze_text_split(0,$str)});
-    
-    #dprint Dumper(\@multi),Dumper(\@simple);
+
+    ### dprint Dumper(\@multi),Dumper(\@simple);
 
     ##
     # First we search for multi-words sequences in the assumption that
@@ -241,7 +241,7 @@ sub search ($%) {
     my $data_list=$index_object->get('Data');
     foreach my $marr (sort { scalar(@$b) <=> scalar(@$a) } @multi) {
         my $res=$self->search_multi($data_list,$ordering_seq,$marr);
-        #dprint "Multi Results: ",Dumper($marr),Dumper($res);
+        ### dprint "Multi Results: ",Dumper($marr),Dumper($res);
         if(!@$res) {
             return [ ];
         }
@@ -253,7 +253,7 @@ sub search ($%) {
     #
     foreach my $kw (sort { length($b) <=> length($a) } @simple) {
         my $res=$self->search_simple($data_list,$ordering_seq,$kw);
-        #dprint "Simple Results: '$kw' ",Dumper($res);
+        ### dprint "Simple Results: '$kw' ",Dumper($res);
         if(!@$res) {
             return [ ];
         }
@@ -272,96 +272,18 @@ sub search_multi ($$$$) {
     my ($self,$data_list,$oseq,$marr)=@_;
 
     ##
-    # Converting array into a hash for easier access
+    # Getting results starting from the longest set of words in the hope
+    # that we get no match at all. On null results exit immediately.
     #
-    my $i=0;
-    my %mhash=map { $i++; defined($_) ? ($i => $_) : () } @$marr;
-
-    ##
-    # Getting results. On null results exit immediately.
-    #
-    my %reshash;
-    my $short_data;
-    my $short_wnum;
-    foreach my $wnum (sort { length($mhash{$b}) <=> length($mhash{$a}) } keys %mhash) {
-        my $kw=$mhash{$wnum};
+    my %rawdata;
+    foreach my $kw (sort { length($b || '') <=> length($a || '') } @$marr) {
+        last unless defined $kw;
         my $sr=$data_list->search('keyword','eq',$kw);
         return [ ] unless @$sr;
-        my $posdata=$data_list->get($sr->[0])->get("idpos_$oseq");
-        my $posdec=$self->decode_posdata($posdata);
-        if(!$short_data || scalar(@$short_data)>scalar(@$posdec)) {
-            $short_data=$posdec;
-            $short_wnum=$wnum;
-        }
-        $reshash{$wnum}=$posdec;
+        $rawdata{$kw}=$data_list->get($sr->[0])->get("idpos_$oseq");
     }
 
-    ##
-    # Joining results using word position data
-    #
-    my %cursors;
-    my @final;
-
-    SHORT_ID:
-    foreach my $short_iddata (@$short_data) {
-        my ($short_id,$short_posdata)=@$short_iddata;
-
-        ##
-        # First we find IDs where all words at least exist in some
-        # positions
-        #
-        my %found;
-        foreach my $wnum (keys %reshash) {
-            next if $wnum == $short_wnum;
-            my $data=$reshash{$wnum};
-
-            my ($id,$posdata);
-            my $i=$cursors{$wnum} || 0;
-            for(; $i<@$data; $i++) {
-                ($id,$posdata)=@{$data->[$i]};
-                last if $id == $short_id;
-            }
-            if($i>=@$data) {
-                next SHORT_ID;
-            }
-            $cursors{$wnum}=$i+1;
-            $found{$wnum}=$posdata;
-        }
-
-        ##
-        # Now, we check if there are any correct sequences of these
-        # words in the same source field.
-        #
-        # Finding a field that is present in all found references.
-        #
-        SHORT_FNUM:
-        foreach my $fnum (keys %$short_posdata) {
-            my $short_fdata=$short_posdata->{$fnum};
-
-            my %fdhash;
-            foreach my $wnum (keys %found) {
-                my $posdata=$found{$wnum};
-                my $fdata=$posdata->{$fnum};
-                next SHORT_FNUM unless $fdata;
-                $fdhash{$wnum}=$fdata;
-            }
-
-            SHORT_POS:
-            foreach my $short_pos (@$short_fdata) {
-                foreach my $wnum (keys %fdhash) {
-                    my $reqpos=$short_pos+$wnum-$short_wnum;
-                    next SHORT_POS if $reqpos<=0;
-                    if(! grep { $_ == $reqpos } @{$fdhash{$wnum}}) {
-                        next SHORT_POS;
-                    }
-                }
-                push(@final,$short_id);
-                next SHORT_ID;
-            }
-        }
-    }
-
-    return \@final;
+    return XAO::IndexerSupport::sorted_intersection_pos($marr,\%rawdata);
 }
 
 ###############################################################################
@@ -510,7 +432,7 @@ sub update ($%) {
                 throw $self "update - manual sorting is not implemented for partial updates";
             }
             else {
-                dprint "Manual sorting is slow, please provide 'sortall' routine";
+                dprint "Manual sorting is slow, consider providing 'sortall' routine";
                 my $sortsub=$o_data->{sortsub};
                 if($o_data->{sortprepare}) {
                     &{$o_data->{sortprepare}}($self,$index_object,\%kw_data);
@@ -716,37 +638,6 @@ sub analyze_object ($%) {
     my $self=shift;
     throw $self "analyze_object - pure virtual method called";
 }
-
-###############################################################################
-
-sub decode_posdata ($$) {
-    my ($self,$posdata)=@_;
-
-    my @dstr=unpack('w*',$posdata);
-
-    my @d;
-    my $i=0;
-    while($i<@dstr) {
-        my $id=$dstr[$i++];
-        last unless $id;
-        my %wd;
-        while($i<@dstr) {
-            my $fnum=$dstr[$i++];
-            last unless $fnum;
-            my @poslist;
-            while($i<@dstr) {
-                my $pos=$dstr[$i++];
-                last unless $pos;
-                push(@poslist,$pos);
-            }
-            $wd{$fnum}=\@poslist;
-        }
-        push(@d,[ $id, \%wd ]);
-    }
-
-    return \@d;
-}
-
 
 ###############################################################################
 

@@ -259,7 +259,6 @@ sorted_intersection_go(U8 list_num, U32 **lists, U32 *sizes) {
             U32 *p=lists[pos];
             lists[pos]=lists[i8];
             lists[i8]=p;
-            sz=sizes[pos];
             sizes[pos]=sizes[i8];
             sizes[i8]=sz;
         }
@@ -305,6 +304,202 @@ sorted_intersection_go(U8 list_num, U32 **lists, U32 *sizes) {
     }
     sizes[0]=res_size;
     //// printset("Intersection",list_num,lists,sizes);
+}
+
+/************************************************************************/
+
+static
+void
+printset_pos(char const *str, U8 list_num, U8 *wnums, U32 **lists, U32 *sizes) {
+    U8 i;
+    fprintf(stderr,"%s:\n",str);
+    for(i=0; i<list_num; ++i) {
+        U32 j;
+        fprintf(stderr,"wnums[%u]=%u sizes[%u]=%lu lists[%u]={",i,wnums[i],i,sizes[i],i);
+        for(j=0; j<sizes[i]; ++j) {
+            fprintf(stderr,"%lu,",lists[i][j]);
+        }
+        fprintf(stderr,"}\n");
+    }
+}
+
+/************************************************************************/
+
+static
+void
+sorted_intersection_pos_go(U8 list_num, U8 *wnums, U32 **lists, U32 *sizes) {
+    U8 i8;
+    U32 i;
+    U32 base_size;
+    U32 *base_list;
+    U32 res_size;
+    U32 cursors[MAX_ISECT];
+
+    //printset_pos("Initial",list_num,wnums,lists,sizes);
+
+    // There is a hard-coded limit on the maximum number of lists.
+    //
+    if(list_num > MAX_ISECT) {
+        list_num=MAX_ISECT;
+    }
+
+    // First sorting lists so that the shortest is first. For positions
+    // lists the length only gives a rough estimate, but it's better then
+    // nothing.
+    //
+    for(i8=0; i8<list_num-1; ++i8) {
+        U32 sz=sizes[i8];
+        U8 pos=i8;
+        U8 j;
+        cursors[i8]=0;
+        for(j=i8+1; j<list_num; ++j) {
+            U32 jsz=sizes[j];
+            if(sz>jsz) {
+                sz=jsz;
+                pos=j;
+            }
+        }
+        if(pos!=i8) {
+            U32 *p=lists[pos];
+            lists[pos]=lists[i8];
+            lists[i8]=p;
+            sizes[pos]=sizes[i8];
+            sizes[i8]=sz;
+            j=wnums[pos];
+            wnums[pos]=wnums[i8];
+            wnums[i8]=j;
+        }
+    }
+    cursors[list_num-1]=0;
+
+    //printset_pos("Sorted",list_num,wnums,lists,sizes);
+
+    // Now keeping positions in the lists and going through them
+    // building resulting set in-place in the first position -- both for
+    // size and data.
+    //
+    base_size=sizes[0];
+    base_list=lists[0];
+    res_size=0;
+    for(i=0; i<base_size; ++i) {
+        U32 base_val=base_list[i];
+        U8 j;
+        //printf("working on base_val=%lu, i=%lu, res_size=%lu\n",base_val,i,res_size);
+        for(j=1; j<list_num; ++j) {
+            U32 *list=lists[j];
+            U32 list_size=sizes[j];
+            U32 k;
+            //printf("..against j=%u, list_size=%lu, cursors[j]=%lu\n",j,list_size,cursors[j]);
+            for(k=cursors[j]; k<list_size; ++k) {
+                //printf("...k=%lu, list[k]=%lu\n",k,list[k]);
+                if(base_val == list[k]) {
+                    //printf("....match!\n");
+                    cursors[j]=k;
+                    break;
+                }
+
+                ////
+                // Skipping position data until end of list or double 0
+                //
+                while(k<list_size && (list[k] || !k || list[k-1])) ++k;
+            }
+            if(k>=list_size) {
+                //printf("....no match!\n");
+                break;
+            }
+        }
+
+        ////
+        // If we made it through all lists then all cursors point at the
+        // data in each list and there is that ID in every list.
+        // Searching for words in sequence all in the same field.
+        //
+        if(j>=list_num) {
+            U8 base_wnum=wnums[0]-1;
+            //printf("MATCH: base_wnum=%u\n",base_wnum);
+
+            for(++i; i<base_size && base_list[i]; ++i) {
+                U32 base_fn=base_list[i++];
+                //printf(".checking i=%lu, base_fn=%lu\n",i,base_fn);
+                for(j=1; j<list_num; ++j) {
+                    U32 *list=lists[j];
+                    U32 list_size=sizes[j];
+                    U8 wnum=wnums[j]-1;
+                    U32 k;
+                    U32 fn=0;
+                    //printf("..j=%u, wnum=%u\n",j,wnum);
+                    for(k=cursors[j]+1; k<list_size; ++k) {
+                        fn=list[k++];
+                        if(!fn) break;
+                        //printf("...k=%lu, fn=%lu\n",k,fn);
+                        if(fn==base_fn) {
+                            U32 pi;
+                            U32 base_pos=0;
+                            for(pi=i; pi<base_size; ++pi) {
+                                U32 pk;
+                                U32 pos=0;
+                                base_pos=base_list[pi];
+                                if(!base_pos) break;
+                                //printf("....pi=%lu, base_pos=%lu\n",pi,base_pos);
+                                for(pk=k; pk<list_size; ++pk) {
+                                    pos=list[pk];
+                                    if(!pos) break;
+                                    //printf(".....pk=%lu, pos=%lu\n",pk,pos);
+                                    if(base_pos-base_wnum == pos-wnum) {
+                                        //printf("......found!\n");
+                                        goto FOUND;
+                                    }
+                                }
+                            }
+                        }
+                        else {
+                            while(k<list_size && list[k]) ++k;
+                        }
+                    }
+
+                    if(k>=list_size || !fn) {
+                        //printf("..NOT FOUND: k=%lu, fn=%lu\n",k,fn);
+                        break;
+                    }
+
+                    // We end up here only if we found a match in this list
+                    //
+                    FOUND:
+                    //printf("..found: j=%u, k=%lu, list[k]=%lu\n",j,k,list[k]);
+                }
+
+                ////
+                // If all other lists were scanned and matched, then
+                // it's a match and we store it and advance cursors to the
+                // next ID position. If we hit end on any cursors --
+                // that's it, no more data -- returning what we got.
+                //
+                if(j>=list_num) {
+                    //printf(".final found, base_val=%lu!\n",base_val);
+                    base_list[res_size++]=base_val;
+                    for(j=1; j<list_num; ++j) {
+                        U32 k=cursors[j];
+                        while(k<sizes[j] && (lists[j][k] || lists[j][k-1])) ++k;
+                        if(k<sizes[j]) ++k;
+                        if(k>=sizes[j]) {
+                            //printf("No point in looking beyond that\n");
+                            goto FINAL;
+                        }
+                        //printf("Adjusting cursors[%u] from %lu(%lu) to %lu(%lu)\n",j,cursors[j],lists[j][cursors[j]],k,lists[j][k]);
+                        cursors[j]=k;
+                    }
+                }
+            }
+        }
+        
+        while(i<base_size && (lists[0][i]  || !i || lists[0][i-1])) ++i;
+        //printf("Moved i to %lu, l0[i]=%lu\n",i,lists[0][i]);
+    }
+
+    FINAL:
+    sizes[0]=res_size;
+
+    //printset_pos("Sorted",list_num,wnums,lists,sizes);
 }
 
 /************************************************************************/
@@ -391,6 +586,35 @@ sorted_intersection_do(av_ref)
             sizes[i]=slen/sizeof(U32);
         }
         sorted_intersection_go(avl,lists,sizes);
+        RETVAL=newSVpvn((const char *)lists[0],sizes[0]*sizeof(U32));
+    OUTPUT:
+        RETVAL
+
+SV*
+sorted_intersection_pos_do(wnums_ref,data_ref)
+        SV* wnums_ref;
+        SV* data_ref;
+    INIT:
+        AV*     wnums_av=(AV*)SvRV(wnums_ref);
+        U32     wnums_l=av_len(wnums_av)+1;
+        AV*     data=(AV*)SvRV(data_ref);
+        U8      i;
+        U8      wnums[MAX_ISECT];
+        U32*    lists[MAX_ISECT];
+        U32     sizes[MAX_ISECT];
+    CODE:
+        if(wnums_l>MAX_ISECT) {
+            fprintf(stderr,"sorted_intersection_pos - to many words (>%u)",MAX_ISECT);
+            wnums_l=MAX_ISECT;
+        }
+        for(i=0; i<wnums_l; ++i) {
+            STRLEN slen;
+            SV** p_list_sv=av_fetch(data,i,0);
+            lists[i]=(U32 *)SvPV(*p_list_sv,slen);
+            sizes[i]=slen/sizeof(U32);
+            wnums[i]=SvUV(*av_fetch(wnums_av,i,0));
+        }
+        sorted_intersection_pos_go(wnums_l,wnums,lists,sizes);
         RETVAL=newSVpvn((const char *)lists[0],sizes[0]*sizeof(U32));
     OUTPUT:
         RETVAL

@@ -9,18 +9,12 @@ use Getopt::Long;
 
 my @saved_argv=@ARGV;
 
-my $full_count=10000;
-my $part_count=5000;
-my $word_count=5;
-my $run_count=300;
+my $run_count=8000;
 my $no_sysinfo;
 my $with_perl;
 GetOptions(
     'debug'             => sub { XAO::Utils::set_debug(1) },
-    'full-count=i'      => \$full_count,
-    'part-count=i'      => \$part_count,
     'run-count=i'       => \$run_count,
-    'word-count=i'      => \$word_count,
     'no-system-info'    => \$no_sysinfo,
     'with-perl'         => \$with_perl,
 );
@@ -28,15 +22,13 @@ if(@ARGV<1 || $ARGV[0] ne 'yes') {
     print <<EOT;
 Usage: $0 \\
     [--debug] \\
-    [--full-count $full_count] \\
-    [--part-count $part_count] \\
-    [--word-count $word_count] \\
     [--run-count $run_count] \\
     [--no-system-info] \\
     [--with-perl] \\
     yes
 
-Benchmarks XAO::IndexerSupport sorted list intersection implementation.
+Benchmarks XAO::IndexerSupport word-position sorted list intersection
+implementation.
 
 EOT
     exit 1;
@@ -54,9 +46,6 @@ if(!$no_sysinfo) {
     system '/usr/bin/uptime';
     print "============= args\n";
     print "$0 ",join(' ',@saved_argv),"\n";
-    print "full-count $full_count\n";
-    print "part-count $part_count\n";
-    print "word-count $word_count\n";
     print "run-count $run_count\n";
     print "============= date\n";
     print scalar(localtime),"\n";
@@ -66,40 +55,6 @@ if(!$no_sysinfo) {
 ##
 # Partial subset is always a subset of the full set, it is guaranteed.
 #
-dprint "Building full dataset ($full_count)";
-my @full_data=(0..$full_count-1);
-for(my $i=0; $i<$full_count; ++$i) {
-    my $n=int(rand($full_count));
-    next if $n==$i;
-    ($full_data[$i],$full_data[$n])=($full_data[$n],$full_data[$i]);
-}
-### dprint "FULL   : ",join(',',@full_data);
-dprint "Building word sets ($word_count/$part_count)";
-my @wsets;
-XAO::IndexerSupport::template_sort_prepare(\@full_data);
-for(my $i=0; $i<$word_count; ++$i) {
-    my %part_hash;
-    my @part_data;
-    my $part_num=int($part_count-rand(1)*rand(1)*rand($part_count*0.8));
-    while(scalar(@part_data) < $part_num) {
-        my $n=$full_data[int(rand($full_count))];
-        next if $part_hash{$n};
-        $part_hash{$n}=1;
-        push(@part_data,$n);
-    }
-    my $part_sorted=XAO::IndexerSupport::template_sort(\@part_data);
-    ### dprint "PART($i): ".join(',',@$part_sorted);
-    push(@wsets,$part_sorted);
-}
-XAO::IndexerSupport::template_sort_free();
-
-my $final=XAO::IndexerSupport::sorted_intersection(@wsets);
-my $final_num=@$final;
-print "Final set includes $final_num elements (c)\n";
-$final=XAO::IndexerSupport::sorted_intersection_perl(@wsets);
-$final_num=@$final;
-print "Final set includes $final_num elements (perl)\n";
-
 my %rdarr=(
     should  => [ 83,4,31,0,0,93,4,1,0,0,66,3,9,0,0,91,4,468,0,0,14,4,129,0,0,33,4,347,0,0,97,2,51,0,0,133,3,5,0,0,132,4,247,385,0,0,28,4,21,0,0,129,2,34,0,0,17,1,1,0,0,68,4,74,0,0,84,4,170,0,0,62,4,111,0,0,120,4,61,0,0,82,4,10,0,0,46,2,44,0,0,88,2,51,0,0,142,4,50,0,0,63,4,270,0,0,111,1,1 ],
     work    => [ 98,4,294,0,0,71,4,161,0,0,57,2,33,0,0,83,3,30,0,4,94,0,0,105,2,44,68,0,0,2,2,28,82,0,0,93,4,89,0,0,90,4,21,0,0,51,4,337,0,0,66,2,87,0,4,93,122,232,0,0,85,4,91,280,410,0,0,131,4,73,0,0,125,4,86,0,0,67,4,66,72,75,114,207,0,0,5,2,16,0,4,66,0,0,14,4,16,0,0,33,2,3,0,4,241,0,0,139,1,7,0,0,20,4,128,0,0,124,2,50,0,0,11,2,33,64,0,4,112,159,0,0,32,4,174,424,0,0,87,3,15,0,4,174,0,0,97,4,69,0,0,115,4,255,371,0,0,12,4,28,37,64,0,0,119,1,7,0,2,75,0,0,77,1,2,0,4,11,51,168,0,0,75,2,2,0,0,112,4,294,0,0,133,4,240,307,0,0,55,4,44,63,0,0,48,2,36,0,0,103,4,168,0,0,34,2,32,0,0,132,4,22,174,0,0,28,2,34,88,0,0,40,4,256,0,0,127,4,65,105,0,0,22,3,32,0,4,140,0,0,72,2,1,0,0,50,4,155,232,240,0,0,95,4,260,0,0,137,4,308,0,0,129,2,40,0,4,100,0,0,35,4,42,0,0,3,2,3,0,0,138,4,211,0,0,110,3,5,0,4,156,0,0,58,4,289,308,475,0,0,42,4,82,318,0,0,147,3,36,0,4,355,0,0,27,2,30,33,0,0,44,4,168,206,0,0,53,3,4,0,4,3,5,0,0,17,1,2,0,4,136,178,0,0,68,2,23,0,0,4,1,7,0,4,16,0,0,6,1,6,0,3,16,0,4,245,0,0,84,4,277,0,0,70,2,34,0,0,143,4,423,0,0,120,2,69,0,4,170,0,0,26,3,18,32,0,4,250,0,0,126,2,21,60,0,0,69,2,3,0,4,116,0,0,82,3,29,0,4,215,0,0,106,4,27,179,375,401,0,0,118,2,63,0,0,23,4,302,0,0,24,2,43,0,4,318,472,0,0,100,2,86,0,0,46,2,53,0,0,111,4,38,0,0,81,3,13,0,4,2,27,257,0,0,88,3,7,0,4,274,0,0,30,4,58,0,0,59,4,230,309,0,0,144,4,61,0,0,142,4,100,0,0,37,4,15,0,0,56,2,36,0,0,29,2,22,0,0,130,4,55,110,0,0,1,2,50,0,0,111,1,2 ],
@@ -111,7 +66,7 @@ my %rawdata;
 my @marr_full=('should','work','with','alien');
 my @marr_undef=('should',undef,undef,'alien');
 
-$final=XAO::IndexerSupport::sorted_intersection_pos(\@marr_full,\%rawdata);
+my $final=XAO::IndexerSupport::sorted_intersection_pos(\@marr_full,\%rawdata);
 dprint "Pos(normal,full): ".join(',',@$final);
 $final=XAO::IndexerSupport::sorted_intersection_pos_perl(\@marr_full,\%rawdata);
 dprint "Pos(perl,full): ".join(',',@$final);
@@ -122,28 +77,18 @@ dprint "Pos(perl,undef): ".join(',',@$final);
 
 print "============= benchmarking\n";
 my %results;
-$results{id_c}=timethis($run_count,\&do_c);
+$results{pos_c_1}=timethis($run_count,\&do_c_pos_full,'pos_c_1');
+$results{pos_c_2}=timethis($run_count,\&do_c_pos_undef,'pos_c_2');
 if($with_perl) {
     my $prc=int($run_count/10);
-    $prc=10 if $prc<10;
-    $results{id_perl}=timethis($prc,\&do_perl);
+    $prc=10 if $prc<100;
+    $results{pos_perl_1}=timethis($prc,\&do_perl_pos_full,'pos_perl_1');
+    $results{pos_perl_2}=timethis($prc,\&do_perl_pos_undef,'pos_perl_2');
 }
-$results{pos_c_1}=timethis($run_count,\&do_c_pos_full);
-$results{pos_c_2}=timethis($run_count,\&do_c_pos_undef);
 Benchmark::cmpthese(\%results);
 exit 0;
 
 ###############################################################################
-
-sub do_perl {
-   XAO::IndexerSupport::sorted_intersection_perl(@wsets);
-   return undef;
-}
-
-sub do_c {
-   XAO::IndexerSupport::sorted_intersection(@wsets);
-   return undef;
-}
 
 sub do_perl_pos_full {
    XAO::IndexerSupport::sorted_intersection_pos_perl(\@marr_full,\%rawdata);

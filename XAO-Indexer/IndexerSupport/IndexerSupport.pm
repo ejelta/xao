@@ -28,9 +28,138 @@ use vars qw(@ISA $VERSION);
 
 @ISA = qw(DynaLoader);
 
-($VERSION)=(q$Id: IndexerSupport.pm,v 1.2 2004/02/29 20:02:18 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: IndexerSupport.pm,v 1.3 2004/03/04 03:26:44 am Exp $ =~ /(\d+\.\d+)/);
 
 bootstrap XAO::IndexerSupport $VERSION;
+
+###############################################################################
+
+sub sorted_intersection_pos_perl ($$) {
+    my ($marr,$rawdata)=@_;
+
+    ##
+    # Converting array into a hash for easier access
+    #
+    my $i=0;
+    my %mhash=map { $i++; defined($_) ? ($i => $_) : () } @$marr;
+
+    ##
+    # Decoding raw data
+    #
+    my %reshash;
+    my $short_data;
+    my $short_wnum;
+    foreach my $wnum (keys %mhash) {
+        my $kw=$mhash{$wnum};
+        my @dstr=unpack('w*',$rawdata->{$kw});
+
+        my @posdata;
+        my $i=0;
+        while($i<@dstr) {
+            my $id=$dstr[$i++];
+            last unless $id;
+            my %wd;
+            while($i<@dstr) {
+                my $fnum=$dstr[$i++];
+                last unless $fnum;
+                my @poslist;
+                while($i<@dstr) {
+                    my $pos=$dstr[$i++];
+                    last unless $pos;
+                    push(@poslist,$pos);
+                }
+                $wd{$fnum}=\@poslist;
+            }
+            push(@posdata,[ $id, \%wd ]);
+        }
+
+        if(!$short_data || scalar(@$short_data)>scalar(@posdata)) {
+            $short_data=\@posdata;
+            $short_wnum=$wnum;
+        }
+        $reshash{$wnum}=\@posdata;
+    }
+
+    ##
+    # Joining results using word position data
+    #
+    my %cursors;
+    my @final;
+
+    SHORT_ID:
+    foreach my $short_iddata (@$short_data) {
+        my ($short_id,$short_posdata)=@$short_iddata;
+
+        ##
+        # First we find IDs where all words at least exist in some
+        # positions
+        #
+        my %found;
+        foreach my $wnum (keys %reshash) {
+            next if $wnum == $short_wnum;
+            my $data=$reshash{$wnum};
+
+            my ($id,$posdata);
+            my $i=$cursors{$wnum} || 0;
+            for(; $i<@$data; $i++) {
+                ($id,$posdata)=@{$data->[$i]};
+                last if $id == $short_id;
+            }
+            if($i>=@$data) {
+                next SHORT_ID;
+            }
+            $cursors{$wnum}=$i+1;
+            $found{$wnum}=$posdata;
+        }
+
+        ##
+        # Now, we check if there are any correct sequences of these
+        # words in the same source field.
+        #
+        # Finding a field that is present in all found references.
+        #
+        SHORT_FNUM:
+        foreach my $fnum (keys %$short_posdata) {
+            my $short_fdata=$short_posdata->{$fnum};
+
+            my %fdhash;
+            foreach my $wnum (keys %found) {
+                my $posdata=$found{$wnum};
+                my $fdata=$posdata->{$fnum};
+                next SHORT_FNUM unless $fdata;
+                $fdhash{$wnum}=$fdata;
+            }
+
+            SHORT_POS:
+            foreach my $short_pos (@$short_fdata) {
+                foreach my $wnum (keys %fdhash) {
+                    my $reqpos=$short_pos+$wnum-$short_wnum;
+                    next SHORT_POS if $reqpos<=0;
+                    if(! grep { $_ == $reqpos } @{$fdhash{$wnum}}) {
+                        next SHORT_POS;
+                    }
+                }
+                push(@final,$short_id);
+                next SHORT_ID;
+            }
+        }
+    }
+
+    return \@final;
+}
+
+###############################################################################
+
+sub sorted_intersection_pos ($$) {
+    my ($marr,$rawdata)=@_;
+
+    my @wnums=map { defined($marr->[$_-1]) ? ($_) : () } (1..scalar(@$marr));
+    my @lists=map { pack('L*',unpack('w*',$rawdata->{$marr->[$_-1]})) } @wnums;
+
+    my $res=sorted_intersection_pos_do(\@wnums,\@lists);
+
+    return [ unpack('L*',$res) ];
+}
 
 ###############################################################################
 
