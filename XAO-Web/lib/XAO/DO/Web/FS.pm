@@ -174,12 +174,13 @@ XAO::FS data.
 ###############################################################################
 package XAO::DO::Web::FS;
 use strict;
+use Digest::MD5 qw(md5_base64);
 use XAO::Utils;
 use XAO::Errors qw(XAO::DO::Web::FS);
 use base XAO::Objects->load(objname => 'Web::Action');
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: FS.pm,v 1.17 2002/02/14 00:18:54 alves Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: FS.pm,v 1.18 2002/02/15 18:32:51 alves Exp $ =~ /(\d+\.\d+)/);
 
 ###############################################################################
 
@@ -265,21 +266,13 @@ sub check_mode ($%) {
     my $args=get_args(\@_);
     my $mode=$args->{mode} || 'show-property';
 
-    if($mode eq 'search') {
-        $self->search($args);
-    }
-    elsif($mode eq 'delete-property') {
-        $self->delete_property($args);
-    }
-    elsif($mode eq 'show-hash') {
-        $self->show_hash($args);
-    }
-    elsif($mode eq 'show-list') {
-        $self->show_list($args);
-    }
-    elsif($mode eq 'show-property') {
-        $self->show_property($args);
-    }
+    if   ($mode eq 'search')          { $self->search($args); }
+    elsif($mode eq 'delete-property') { $self->delete_property($args); }
+    elsif($mode eq 'show-hash')       { $self->show_hash($args); }
+    elsif($mode eq 'show-list')       { $self->show_list($args); }
+    elsif($mode eq 'show-property')   { $self->show_property($args); }
+    elsif($mode eq 'delete-object')   { $self->delete_object($args); }
+    elsif($mode eq 'edit-object')     { $self->edit_object($args); }
     else {
         throw $self "check_mode - unknown mode '$mode'";
     }
@@ -917,6 +910,99 @@ sub _searcharray2str() {
     $str .= ']';
     $str .= ',' if $indent;
     $str;
+}
+###############################################################################
+sub delete_object ($%) {
+    my $self=shift;
+    my $args=get_args(\@_);
+    my $list=$self->get_object($args);
+    my $id=$args->{id} || throw XAO::E::DO::Web::Account "delete_object - no 'id'";
+    $list->delete($id);
+}
+###############################################################################
+sub edit_object ($%) {
+    my $self=shift;
+    my $args=get_args(\@_);
+
+    my $list   = $self->get_object($args);
+    my @fields = @{$self->form_fields};
+
+    ##
+    # If we have ID then we're editing this object
+    # otherwise we're creating a new one.
+    #
+    my $id = $args->{id};
+    my %values;
+    if ($id) {
+        my @fnames_to_get;
+        foreach my $fdata (@fields) {
+          next if $fdata->{style} eq 'password';
+          push @fnames_to_get, $fdata->{name};
+        }
+        my $object=$list->get($id);
+        @values{@fnames_to_get}=$object->get(@fnames_to_get);
+    }
+
+    my @unique_fields;
+    foreach my $fdata (@fields) {
+        push @unique_fields, $fdata->{name} if exists($fdata->{unique})
+                                            && $fdata->{unique};
+    }
+
+    my $form = $self->object(objname => 'Web::FilloutForm');
+    $form->setup(
+        fields      => \@fields,
+        values      => \%values,
+        submit_name => $id ? 'done' : undef,
+        check_form  => sub {
+                           my $form = shift;
+                           foreach my $fieldname (@unique_fields) {
+                               my $results = $list->search(
+                                                 $fieldname,
+                                                 'eq',
+                                                 $form->field_desc($fieldname)->{value}
+                                             );
+                               if(($id && @$results>1) || (!$id && @$results)) {
+                                   my $field_text = 'Unique Identifier';
+                                   foreach my $fdata (@fields) {
+                                       if ($fdata->{name} eq $fieldname) {
+                                           $field_text = $fdata->{text};
+                                           last;
+                                       }
+                                   }
+                                   return "This '$field_text' is already taken";
+                               }
+                           }
+                           return '';
+                       },
+        form_ok     => sub {
+                           my $form   = shift;
+                           my $object = $list->get_new();
+                           foreach my $name (map { $_->{name} } @fields) {
+                               my $fdata = $form->field_desc($name);
+                               my $value = $fdata->{value};
+                               if ($fdata->{style} eq 'password') {
+                                   next unless $fdata->{pair};
+                                   $object->put($name => md5_base64($value));
+                               }
+                               else {
+                                   $object->put($name => $value);
+                               }
+                           }
+                           $id ? $list->put($id => $object) : $list->put($object);
+                           $self->object->display(path => $args->{'success.path'});
+                       },
+    );
+    $form->display('form.path' => $args->{'form.path'});
+}
+###############################################################################
+#
+# This method should be overwritten to include form specs
+# since they depend on data structure.
+#
+sub form_fields {
+    my $self=shift;
+    return [ ];
 }
 ###############################################################################
 1;
