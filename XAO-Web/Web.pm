@@ -323,8 +323,8 @@ sub expand ($%) {
     my $active_url;
     if(defined($CGI::VERSION) && $CGI::VERSION>=2.80) {
         $active_url=$cgi->url(-base => 1);
-        my $pinfo=$ENV{PATH_INFO};
-        my $uri=$ENV{REQUEST_URI};
+        my $pinfo=$ENV{PATH_INFO} || '';
+        my $uri=$ENV{REQUEST_URI} || '';
         $uri=~s/^(.*?)\?.*$/$1/;
         if($pinfo =~ /^\/\Q$sitename\E(\/.+)?\Q$uri\E/) {
             # mod_rewrite
