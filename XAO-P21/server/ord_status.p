@@ -1,57 +1,45 @@
-DEF VAR d_d AS CHAR.
-DEF VAR open_qty AS DECIMAL.
-DEF VAR net_price AS DECIMAL.
 DEF VAR onum AS INTEGER.
-DEF VAR total_stax_amt LIKE dyn1.wbw_head.total_stax_amt.
-DEF VAR out_freight LIKE dyn1.wbw_head.out_freight.
 
-/* Separator
-*/
-d_d=chr(1).
-
-/* Order ID is in the first and only argument.
-*/
 ASSIGN onum=INTEGER(OS-GETENV("P0")).
 
-/* Tax and freight amount for the order if available
+/* First we display general line item information and statuses.
 */
-
-FIND FIRST dyn1.wbw_head WHERE dyn1.wbw_head.ord_number = onum
-                         NO-LOCK NO-ERROR.
-IF available(dyn1.wbw_head) THEN
-    ASSIGN 
-        total_stax_amt=dyn1.wbw_head.total_stax_amt
-        out_freight=dyn1.wbw_head.out_freight
-    .
-ELSE
-    ASSIGN
-        total_stax_amt=0
-        out_freight=0
-    .
-
-/* Line items and their status and open quantities.
-   We duplicate tax on every line.
-*/
-FOR EACH p21.ord_line WHERE p21.ord_line.ord_number = onum NO-LOCK:
-    ASSIGN
-        open_qty = (p21.ord_line.ord_qty -
-                    p21.ord_line.inv_qty -
-                    p21.ord_line.canc_qty)
-        net_price = (p21.ord_line.ut_price *
-                     p21.ord_line.multiplier)
-    .
-
+FOR EACH p21.ord_line WHERE ord_line.ord_number = onum NO-LOCK:
     PUT UNFORMATTED
-        p21.ord_line.item_code			d_d
-        p21.ord_line.ord_qty			d_d
-        open_qty				d_d
-        net_price				d_d
-        total_stax_amt				d_d
-	out_freight				d_d
-        p21.ord_line.unit			d_d
-        p21.ord_line.ut_size			d_d
-        p21.ord_line.last_shipment		d_d
-        p21.ord_line.disposition		d_d
-        p21.ord_line.disposition_desc		skip
+        "LINE\t"
+        ord_line.item_code		"\t"
+        ord_line.entry_date		"\t"
+        ord_line.ord_qty		"\t"
+        ord_line.inv_qty		"\t"
+        ord_line.canc_qty		"\t"
+        ord_line.disposition		"\t"
+        ord_line.disposition_desc	"\n"
+    .
+END.
+
+/* And now shipping information and invoices
+*/
+FOR EACH wbw_head WHERE wbw_head.ord_number = onum NO-LOCK:
+    PUT UNFORMATTED
+	"INVOICE\t"
+        wbw_head.ship_number	"\t"
+        wbw_head.ord_date	"\t"
+        wbw_head.inv_date	"\t"
+	wbw_head.ship_date	"\t"
+        wbw_head.total_stax_amt	"\t"
+        wbw_head.out_freight	"\t"
+        wbw_head.cust_code	"\n"
+    .
+
+END.
+
+/* And finally content of each invoice
+*/
+FOR EACH wbw_line WHERE wbw_line.ord_number = onum NO-LOCK:
+    PUT UNFORMATTED
+        "ITEM\t"
+        wbw_line.ship_number	"\t"
+        wbw_line.item_code	"\t"
+        wbw_line.inv_qty	"\n"
     .
 END.

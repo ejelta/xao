@@ -436,7 +436,9 @@ The hash contains following attributes:
  line_number      => the row number for this entry, first row being 1 (one)
  qty              => quantity ordered for this item
  itemcode         => a valid P21 itemcode (not a customer itemcode!)
- price            => the unit price, not the total price
+ price            => base unit price (unit_price/unit_size)
+ unit_name        => unit name
+ unit_size        => unit size
  email            => email address for further notification
  stax_exemp       => order line sales tax exemption status
 
@@ -460,35 +462,39 @@ sub order {
     };
 
     my @order_array=map {
-        $_->{reference_number},
-        $_->{customer},
-        $_->{date},
-        $_->{po},
-        $_->{credit_card},
-        $_->{card_exp_month},
-        $_->{card_exp_year},
-        $_->{name},
-        $_->{address1},
-        $_->{address2},
-        $_->{city},
-        $_->{state},
-        $_->{zip},
-        $_->{inst1},
-        $_->{inst2},
-        $_->{line_number},
-        $_->{itemcode},
-        $_->{qty},
-        $_->{price},
-        $_->{email},
-        '',
-        '',
-        '',
-        '',
-        '',
-        '',
-        '',
-        $_->{stax_exemp},
-        $_->{stax_exemp} ? 'N' : 'Y',
+        $_->{reference_number},             #  1
+        $_->{customer},                     #  2
+        $_->{date},                         #  3
+        $_->{po},                           #  4
+        $_->{credit_card},                  #  5
+        $_->{card_exp_month},               #  6
+        $_->{card_exp_year},                #  7
+        $_->{name},                         #  8
+        $_->{address1},                     #  9
+        $_->{address2},                     # 10
+        $_->{city},                         # 11
+        $_->{state},                        # 12
+        $_->{zip},                          #  1
+        $_->{inst1},                        #  2
+        $_->{inst2},                        #  3
+        $_->{line_number},                  #  4
+        $_->{itemcode},                     #  5
+        $_->{qty},                          #  6
+        $_->{price},                        #  7
+        $_->{email},                        #  8
+        '',                                 #  9
+        '',                                 # 10
+        '',                                 # 11
+        '',                                 # 12
+        '',                                 #  1
+        '',                                 #  2
+        '',                                 #  3
+        $_->{stax_exemp},                   #  4
+        $_->{stax_exemp} ? 'N' : 'Y',       #  5
+        '',                                 #  6
+        $_->{unit_name} || '',              #  7
+        $_->{unit_size} || 1,               #  8
+        $_->{account_number} || '',         #  9
     } @$order_list;
 
     $self->call($constr,$callback, 'order_entry', @order_array);
@@ -535,147 +541,65 @@ sub price {
                 $quantity);
 }
 
-
 ###############################################################################
 
-=item list_all_open_orders
+=item view_order_details
 
-The server returns list of all open orders for given customer.
-Each line contains order number and shipment number.
+Returns full information about the given order. Example:
 
-=cut
-
-sub list_all_open_orders {
-    my ($self, %param) = @_ ;
-    $self->call( sub {
-                     my (
-                         $cust_po,
-                         $ord_number,
-                         $ord_date,
-                         $req_date,
-                         $total,
-                         $open
-                        ) = split /\t/, $_[0];
-                     {
-                         cust_po        => $cust_po,
-                         ord_number     => $ord_number,
-                         ord_date       => $ord_date,
-                         req_date       => $req_date,
-                         totalqty       => $total,
-                         openqty        => $open,
-                     }
-                     }, $param{callback},
-                     'list_all_open_orders',
-                     $param{customer} || '?' ); # XXX
-}
-
-###############################################################################
-
-=item view_open_order_details
-
-Returns info about given order of given customer. Example:
-
-    my $res=$cl->view_open_order_details(order => 1234567);
+    my $res=$cl->view_order_details(order_id => 1234567);
 
 Returns array of hash references with order line infos.
 
 Another example:
 
-    my $res=$cl->view_open_order_details(order => 1234567,
-                                         callback => \&print_each_line);
+    my $res=$cl->view_order_details(order_id => 1234567,
+                                    callback => \&print_each_line);
 
 =cut
 
-sub view_open_order_details {
+sub view_order_details {
     my $self=shift;
     my $args=get_args(\@_);
 
+    my $order_id=$args->{order_id} ||
+        throw XAO::E::P21 "view_order_details - no 'order_id' given";
+
     my $build=sub {
+        my $str=shift;
+        chomp($str);
+        my @arr=split(/\t/,$_[0]);
+
         my %line;
-        @line{qw(item ord_qty open_qty net_price sales_tax shipping_charge
-                 ut_name ut_size last_shipment disposition disposition_code)
-             }=split /\t/, $_[0];
+        if($arr[0] eq 'LINE') {
+            @arr==8 ||
+                throw XAO::E::P21 "view_order_details - wrong LINE ($str)";
+            @line{qw(type item_code entry_date
+                     ord_qty inv_qty canc_qty
+                     disposition disposition_desc)}=@arr;
+        }
+        elsif($arr[0] eq 'INVOICE') {
+            @arr==8 ||
+                throw XAO::E::P21 "view_order_details - wrong INVOICE ($str)";
+            @line{qw(type ship_number ord_date inv_date ship_date
+                     total_stax_amt out_freight cust_code)=@arr;
+        }
+        elsif($arr[0] eq 'ITEM') {
+            @arr==4 ||
+                throw XAO::E::P21 "view_order_details - wrong ITEM ($str)";
+            @line{qw(type ship_number item_code inv_qty)=@arr;
+        }
+        else {
+            throw XAO::E::P21 "view_order_details - unknown line ($str)";
+        }
+
         return \%line;
     };
 
     $self->call($build,
                 $args->{callback},
-                'view_open_order_details',
-                $args->{order});
-}
-
-###############################################################################
-
-=item list_all_invoices
-
-Lists all invoices for given customer.
-
-=cut
-
-sub list_all_invoices {
-    my ($self, %param) = @_ ;
-    $self->call( sub {
-                     my ( $order, $shipment ) = split /\t/, $_[0];
-                     { order => $order, shipment => $shipment }
-                     }, $param{callback}, 
-                     'list_all_invoices', $param{customer} || '?' );
-}
-
-###############################################################################
-
-=item invoice_recall
-
-Returns preformatted invoice text for given pair order-shipment. If callback is
-provided, then it is called for each chomped line, otherwise the method returns
-reference to list of all lines without trailing "\n".
-
-=cut
-
-sub invoice_recall {
-    my ($self, %param) = @_;
-    $self->call( sub { chomp $_[0]; $_[0] },
-                 $param{callback}, 'invoice_recall',
-                 $param{customer} || '?',
-                 $param{order}, $param{shipment} );
-}
-
-###############################################################################
-
-=item list_open_ar
-
-list_open_ar (Open Accounts Receivable).
-Required input: customer_code
-Output: Invoice/Order Number, Invoice Date, Customer PO, Amount,
-Open Amount, part of invoice number before "-',
-part of invoice number after "-', Discount Date, Due Date.
-
-=cut
-
-sub list_open_ar {
-    my ($self, %param) = @_ ;
-    $self->call( sub {
-                     my ( $invnumber,
-                          $invdate,
-                          $cust_po,
-                          $amount,
-                          $amount_open,
-                          $order,
-                          $invoice,
-                          $disc_date,
-                          $due_date ) = split /\t/, $_[0];
-                     {
-                     invnumber  => $invnumber,
-                     invdate    => $invdate,
-                     cust_po    => $cust_po,
-                     amount     => $amount,
-                     amount_open        => $amount_open,
-                     order      => $order,
-                     invoice    => $invoice,
-                     disc_date  => $disc_date,
-                     due_date   => $due_date,
-                     }
-                     }, $param{callback}, 
-                     'list_open_ar', $param{customer} || '?' );
+                'view_order_details',
+                $order_id);
 }
 
 ###############################################################################

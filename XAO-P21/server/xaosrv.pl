@@ -9,7 +9,7 @@ use Errno qw/EINTR EAGAIN/;
 use POSIX qw(:sys_wait_h setsid);
 
 $VERSION='0.05';
-$REVISION='$Id: xaosrv.pl,v 1.6 2002/05/25 01:27:16 am Exp $';
+$REVISION='$Id: xaosrv.pl,v 1.7 2002/06/13 03:31:19 am Exp $';
 
 my $spooldir='/tmp/p21ec';
 
@@ -284,7 +284,7 @@ Placing order into spool. Input data is:
                 open(PROC_OUT,">>$fname~") or die "$!";
                 while( @args > 0 ) {
                     my (@line, @rest);
-                    ( @line[0..28], @rest ) = @args ;
+                    ( @line[0..32], @rest ) = @args ;
                     foreach(@line) {
                         $_='' unless defined $_;
                     }
@@ -300,54 +300,16 @@ Placing order into spool. Input data is:
             } else {
                 printsock "0\t$basename\n";
             }
-
-=head1 list_all_open_orders
- 
-=cut
-
-        } elsif ($opcode eq "list_all_open_orders") {
-            $answer->('ord_cust', $args[0]);
+        }
 
 =head1 view_open_order_details
 
 =cut
 
-        } elsif ($opcode eq "view_open_order_details") {
+	elsif ($opcode eq "view_order_details") {
             $answer_local->('ord_status', @args);
+        }
 
-=head1 list_all_invoices
-
-=cut
-
-        } elsif ($opcode eq "list_all_invoices") {
-            $answer->('ir_cust', $args[0]);
-
-=head1 invoice_recall BROKEN
-
-=cut
-
-        } elsif ($opcode eq "invoice_recall") {
-            my ($customer, $order, $shipment) = @args ;
-            $ENV{PROCNAME} = 'ir_inv';
-            $ENV{ORIGIN} = 'P21';
-            $ENV{P0} = $customer;
-            $ENV{P1} = $order;
-            $ENV{P2} = $shipment;
-            my $open = "/usr/lpp/p21/bin/pqlalog -s 0 -r \"invrecall_xr(" . int($order) . "," . int($shipment) . ").invoice\"|/usr/lpp/p21/bin/despool|";
-            open (IN, $open) or die "$!";
-            while(<IN>) {
-                printsock $_;
-            }
-            printsock "\n";
-            close IN;
-            
-=head1 list_open_ar
-
-=cut
-
-        } elsif ($opcode eq "list_open_ar") {
-            $answer->('ar_cust', $args[0]);
-            
 =head1 price
 
 Asks for price. Input data is: customer code or "?", item code, quantity.
@@ -355,7 +317,7 @@ Output: price for one unit, multiplier.
 
 =cut  
 
-        } elsif ($opcode eq "price") {
+        elsif ($opcode eq "price") {
             $ENV{P0} = $args[0] eq '?' ? "" : $args[0];
             $ENV{P1} = $args[1];
             $ENV{P2} = 99;   #   XXX
@@ -364,15 +326,14 @@ Output: price for one unit, multiplier.
             my $in = open_stream "price";
             my $line = <$in>;
             printsock $line;
+        }
 
 =head1 find_match
 
 =cut
 
-        } elsif ($opcode eq 'find_match') {
+        elsif ($opcode eq 'find_match') {
             opendir DH, "$spooldir" or die "$!";
-#my %files =
-#              map { /([A-Za-z_]+)\.[^.]+\.(\d+)/ && ( $1 => [ $_, $2 ] ) } readdir DH;
             my %files ;
             foreach (readdir DH) {
                 if (/([A-Za-z0-9_]+)\.[^.]+\.(\d+)/) {
@@ -383,41 +344,48 @@ Output: price for one unit, multiplier.
             foreach (@args) {
                 printsock "$_\t$files{$_}->[0]\t$files{$_}->[1]\n" if defined $files{$_};
             }
+        }
 
 =head1 show_spool
 
 =cut
 
-        } elsif ($opcode eq 'show_spool') {
+        elsif ($opcode eq 'show_spool') {
             opendir DH, "$spooldir" or die $!;
             foreach (readdir DH) {
                 printsock "$_\n" unless /^\./;
             }
             closedir DH;
+        }
 
 =head1 cleanup_spool
 
 =cut
 
-        } elsif ($opcode eq 'cleanup_spool') {
-            unlink("$spooldir/$_") || $!{ENOENT} || die "$!" foreach (@args);
+        elsif ($opcode eq 'cleanup_spool') {
+            foreach my $file (@args) {
+            	next unless $file =~ /^\w+[\w\.-]*$/;
+            	unlink("$spooldir/$_");
+            }
+        }
 
 =head1 mod_custinfo
 
 =cut
 
-        } elsif ($opcode eq 'mod_custinfo') {
+        elsif ($opcode eq 'mod_custinfo') {
             foreach (0..12) {
                 print STDERR "export P$_=\'$args[$_]\'\n";
                 $ENV{"P$_"} = $args[$_];
             }
             system q(/usr/lpp/p21pro/bin/p21pro -d /usr/lpp/p21pro/src:/usr/lpp/p21pro/src/include -p "-p /home/amaltsev/current/modcust.p -b" >/dev/null) or die $!; # XXX FIXME
+        }
 
 =head1 undefined command
 
 =cut  
 
-        } else {
+        else {
             printsock "undefined command\n";
         }
     printsock ".\n";
