@@ -4,6 +4,7 @@ use XAO::Utils;
 use XAO::SimpleHash;
 use XAO::Projects;
 use XAO::Objects;
+use Error qw(:try);
 
 use base qw(testcases::base);
 
@@ -74,6 +75,30 @@ sub test_double {
     $self->assert(ref($c2),
                   "Can't get c2");
     $c2->embed('hash' => XAO::SimpleHash->new);
+}
+
+sub test_error {
+    my $self=shift;
+
+    use XAO::Errors qw(XAO::E::DO::Config);
+
+    my $c=XAO::Objects->new(objname => 'Config', baseobj => 1);
+
+    my $errstr;
+    try {
+        $c->embedded('foo');
+        $errstr="Not failed where it should";
+    }
+    catch XAO::E::DO::Config with {
+        $errstr='';
+    }
+    otherwise {
+        my $e=shift;
+        $errstr="Unexpected error ($e)";
+    };
+
+    $self->assert($errstr eq '',
+                  $errstr);
 }
 
 1;

@@ -47,10 +47,12 @@ XAO::DO::Config provides the following methods:
 package XAO::DO::Config;
 use strict;
 use XAO::Utils;
-use XAO::Errors qw(XAO::DO::Config);
+use XAO::Objects;
+
+use base XAO::Objects->load(objname => 'Atom');
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: Config.pm,v 1.5 2002/01/04 02:00:15 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: Config.pm,v 1.6 2002/02/12 20:25:49 am Exp $ =~ /(\d+\.\d+)/);
 
 ###############################################################################
 # Prototypes
@@ -119,13 +121,12 @@ sub embed ($%) {
 
     foreach my $name (keys %$args) {
 
-        throw XAO::E::DO::Config "embed - object with that name ($name) was already embedded before"
+        throw $self "embed - object with that name ($name) was already embedded before"
             if $self->{$name};
 
         my $obj=$args->{$name};
         $obj->can('embeddable_methods') ||
-            throw XAO::E::DO::Config
-                  "embed - object (".ref($obj).") does not have embeddable_methods() method";
+            throw $self "embed - object (".ref($obj).") does not have embeddable_methods() method";
 
         ##
         # Building perl code for proxy methods definitions
@@ -134,12 +135,10 @@ sub embed ($%) {
         my $code='';
         foreach my $mn (@list) {
             $obj->can($mn) ||
-                throw XAO::E::DO::Config
-                      "embed - object (".ref($obj).") doesn't have embeddable method $mn()";
+                throw $self "embed - object (".ref($obj).") doesn't have embeddable method $mn()";
 
             $self->{methods}->{$mn} &&
-                throw XAO::E::DO::Config
-                      "embed - method with such name ($mn) already exists, can't be embedded from ".ref($obj);
+                throw $self "embed - method with such name ($mn) already exists, can't be embedded from ".ref($obj);
 
             $self->{methods}->{$mn}=$obj;
 
@@ -159,8 +158,7 @@ sub embed ($%) {
         #
         if($code) {
             eval $code;
-            $@ && throw XAO::E::DO::Config
-                        "embed - internal error; name=$name, obj=".ref($obj);
+            $@ && throw $self "embed - internal error; name=$name, obj=".ref($obj);
         }
 
         ##
@@ -185,7 +183,7 @@ sub embedded ($$) {
     my $name=shift;
 
     my $desc=$self->{names}->{$name} ||
-        throw XAO::E::DO::Config "embedded - no configuration with such name ($name)";
+        throw $self "embedded - no configuration with such name ($name)";
     $desc->{obj};
 }
 
@@ -218,7 +216,8 @@ Creates new instance of abstract Config.
 
 sub new ($) {
     my $proto=shift;
-    bless {
+    my $args=get_args(\@_);
+    $proto->SUPER::new(merge_refs($args,{
         methods => {
             embed => 1,
             embedded => 1,
@@ -228,7 +227,7 @@ sub new ($) {
             DESTROY => 1,
             AUTOLOAD => 1,
         },
-    },ref($proto) || $proto;
+    }));
 }
 
 ###############################################################################

@@ -64,4 +64,47 @@ sub test_everything {
                   "Got wrong value for d1 (expected '304-d1-', got '$d1')");
 }
 
+sub test_size {
+    my $self=shift;
+
+    my $counter=0;
+    my $cache=XAO::Cache->new(
+        retrieve    => sub {
+            my $args=get_args(\@_);
+            return $args->{name} . '-' . $counter++;
+        },
+        expire      => 10,
+        size        => 0.04,
+        coords      => 'name',
+    );
+
+    my @matrix=(
+        aaaa    => 'aaaa-0',
+        aaaa    => 'aaaa-0',
+        bbbb    => 'bbbb-1',
+        aaaa    => 'aaaa-0',
+        bbbb    => 'bbbb-1',
+        cccc    => 'cccc-2',
+        bbbb    => 'bbbb-1',
+        dddd    => 'dddd-3',
+        aaaa    => 'aaaa-0',
+        bbbb    => 'bbbb-1',
+        cccc    => 'cccc-2',
+        dddd    => 'dddd-3',
+        eeee    => 'eeee-4',
+        aaaa    => 'aaaa-5',
+        bbbb    => 'bbbb-6',
+        cccc    => 'cccc-7',
+        dddd    => 'dddd-8',
+        eeee    => 'eeee-9',
+    );
+
+    for(my $i=0; $i!=@matrix; $i+=2) {
+        my $expect=$matrix[$i+1];
+        my $got=$cache->get(name => $matrix[$i]);
+        $self->assert($got eq $expect,
+                      "Test ".($i/2)." failed (expected '$expect', got '$got')");
+    }
+}
+
 1;

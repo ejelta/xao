@@ -31,7 +31,7 @@ use XAO::Objects;
 use base XAO::Objects->load(objname => 'Atom');
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: Memory.pm,v 1.2 2002/02/12 17:39:10 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: Memory.pm,v 1.3 2002/02/12 20:25:49 am Exp $ =~ /(\d+\.\d+)/);
 
 ###############################################################################
 
@@ -89,13 +89,8 @@ sub exists ($$) {
 
     my $key=$self->make_key($_[0]);
     my $ed=$self->{data}->{$key};
-    return '' unless $ed;
-    if($ed->{access_time} + $self->{expire} <= time) {
-        delete $self->{data}->{$key};
-        return '';
-    }
 
-    return 1;
+    return $ed && $ed->{access_time} + $self->{expire} > time;
 }
 
 ###############################################################################
@@ -113,7 +108,9 @@ sub get ($$) {
     my $key=$self->make_key($_[0]);
     my $ed=$self->{data}->{$key} ||
         throw $self "get - no such element in the cache ($key), internal error";
-    $ed->{access_time}=time;
+
+    $self->touch($key,$ed);
+
     return $ed->{element};
 }
 
@@ -151,27 +148,34 @@ sub put ($$$) {
     my $size=$self->{size};
     my $nsz=$size ? $self->calculate_size($element) : 0;
 
-    my @list=sort {
-        $data->{$a}->{access_time} <=> $data->{$b}->{access_time}
-    } keys %$data;
-
-    my $csz=$self->{current_size};
+    my $lr=$self->{least_recent};
     my $expire=$self->{expire};
     my $now=time;
-    for(my $i=0; $i!=@list; $i++) {
-        my $k=$list[$i];
-        last unless ($size && $csz+$nsz>$size) ||
-                    $data->{$k}->{access_time}+$expire < $now;
-        $csz-=$data->{$k}->{size};
-        delete $data->{$k};
+    my $count=5;
+    while(defined($lr)) {
+        my $lred=$data->{$lr};
+        last unless $count--;
+        last unless ($size && $self->{current_size}+$nsz>$size) ||
+                    $lred->{access_time}+$expire < $now;
+        $lr=$self->drop_oldest($lr,$lred);
     }
-    $self->{current_size}=$csz+$nsz;
 
     $data->{$key}={
         size        => $nsz,
         element     => $element,
         access_time => time,
+        previous    => undef,
+        next        => $self->{most_recent},
     };
+
+    $data->{$self->{most_recent}}->{previous}=$key
+        if defined($self->{most_recent});
+
+    $self->{most_recent}=$key;
+    $self->{least_recent}=$key unless defined($self->{least_recent});
+    $self->{current_size}+=$nsz;
+
+    # $self->print_chain;
 
     undef;
 }
@@ -195,8 +199,110 @@ sub setup ($%) {
 }
 
 ###############################################################################
+
+=back
+
+=head1 PRIVATE METHODS
+
+=over
+
+###############################################################################
+
+=item drop_oldest ($)
+
+Drops oldest element from the cache using supplied key and element.
+
+=cut
+
+sub drop_oldest ($$$) {
+    my ($self,$key,$ed)=@_;
+
+    $self->{most_recent}=undef if defined($self->{most_recent}) &&
+                                  $self->{most_recent} eq $key;
+
+    my $previous=$ed->{previous};
+    $self->{least_recent}=$previous;
+
+    $self->{current_size}-=$ed->{size};
+
+    my $data=$self->{data};
+
+    $data->{$previous}->{next}=undef if defined($previous);
+
+    delete $data->{$key};
+
+    # $self->print_chain();
+
+    return $previous;
+}
+
+###############################################################################
+
+=item print_chain ()
+
+Prints cache as a chain from the most recent to the least recent.
+
+=cut
+
+sub print_chain ($) {
+    my $self=shift;
+    my $data=$self->{data};
+
+    print STDERR "CHAIN: mr=$self->{most_recent} lr=$self->{least_recent} csz=$self->{current_size} size=$self->{size}\n";
+    my $id=$self->{most_recent};
+    while(defined($id)) {
+        my $ed=$data->{$id};
+        print STDERR "->" if $id ne $self->{most_recent};
+        print STDERR "[$id/$ed->{access_time}/".($ed->{previous} || '')."]";
+        $id=$ed->{next};
+    }
+    print STDERR "\n";
+}
+
+###############################################################################
+
+=item touch ($)
+
+Private method that updates access time and moves an element to the most
+recent position.
+
+=cut
+
+sub touch ($$$) {
+    my ($self,$key,$ed)=@_;
+
+    $ed->{access_time}=time;
+
+    my $previous=$ed->{previous};
+    if(defined $previous) {
+        my $next=$ed->{next};
+
+        my $data=$self->{data};
+
+        my $ped=$data->{$previous};
+        $ped->{next}=$next;
+
+        $self->{least_recent}=$previous if $self->{least_recent} eq $key;
+
+        if(defined($next)) {
+            my $ned=$data->{$next};
+            $ned->{previous}=$previous;
+        }
+
+        $ed->{next}=$self->{most_recent};
+        $ed->{previous}=undef;
+
+        $self->{most_recent}=$data->{$ed->{next}}->{previous}=$key;
+    }
+
+    # $self->print_chain;
+}
+
+###############################################################################
 1;
 __END__
+
+=back
 
 =head1 AUTHORS
 

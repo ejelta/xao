@@ -20,6 +20,7 @@ lib/XAO/DO/Config.pm
 lib/XAO/DO/Cache/Memory.pm
  ------------------------------------------- testcases
 testcases/base.pm
+testcases/Cache.pm
 testcases/DOConfig.pm
 testcases/Errors.pm
 testcases/Objects.pm
@@ -32,3 +33,7 @@ testcases/testroot/projects/test/objects/LocalConf.pm
 testcases/testroot/projects/test/objects/Test1.pm
 testcases/testroot/XAO/DO/Test1.pm
 testcases/testroot/XAO/DO/Test2.pm
+ ------------------------------------------- Miscellaneous
+misc/cache-benchmark
+misc/cache-benchmark.res-chain
+misc/cache-benchmark.res-hash
