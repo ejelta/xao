@@ -9,7 +9,7 @@ use Errno qw/EINTR EAGAIN/;
 use POSIX qw(:sys_wait_h setsid);
 
 $VERSION='0.05';
-$REVISION='$Id: xaosrv.pl,v 1.4 2002/04/10 20:52:39 am Exp $';
+$REVISION='$Id: xaosrv.pl,v 1.5 2002/05/03 17:37:47 am Exp $';
 
 my $spooldir='/tmp/p21ec';
 
@@ -170,9 +170,11 @@ while(1) {
 
 =head1 items
 
-Returns full items list from "item" table; items delimited with '\n', and each record contains:
-item code, package size, sales unit, sku, list price, alternate unit name or "?",
-alternate unit size or "?", description string 1, description string 2. All the fields delimited with "\t".
+Returns full items list from "item" table; items delimited with '\n',
+and each record contains: item code, package size, sales unit, sku,
+list price, alternate unit name or "?", alternate unit size or "?",
+description string 1, description string 2. All the fields delimited
+with "\t".
 
 =cut  
 
@@ -198,26 +200,30 @@ Returns availability info for each of given item code. The info contains lines w
                     printsock "$code\t$_" if ($stock);
                 }
             }
+        }
 
 =head1 catalog
 
-Returns full catalog items list. See "items" for data layout and attributes order.
+Returns full catalog items list. See "items" for data layout and
+attributes order.
 
 =cut  
 
-        } elsif ($opcode eq "catalog") {
+        elsif ($opcode eq "catalog") {
             my $in = open_stream "catalog";
             while(<$in>) {
                 printsock $_;
             }
+        }
 
 =head1 custinfo
 
-Returns info about customers.  
+Returns info about customers. If no customer code is given in the
+first argument then all customers list is returned.
 
 =cut  
 
-        } elsif ($opcode eq "custinfo") {
+        elsif ($opcode eq "custinfo") {
             if(@args) {
                 foreach (@args) {
                     $ENV{"P0"} = $_;
@@ -227,7 +233,8 @@ Returns info about customers.
                         printsock "$_";
                     }
                 }
-            } else {
+            }
+            else {
                 my $in=open_stream 'custinfo';
                 while(<$in>) {
                     next if /^(OK)*\s*$/;
@@ -235,6 +242,7 @@ Returns info about customers.
                     printsock "$_";
                 }
             }
+        }
 
 =head1 order
 
@@ -242,17 +250,17 @@ Placing order into spool. Input data is:
 
 =cut  
 
-        } elsif ($opcode eq "order_entry") {
-            # XXX unique filename?
-            # my $basename = "xao" . substr(time, -6) . $counter++ ;
+        elsif ($opcode eq "order_entry") {
             my $basename = $args[0];
             my $fname = "$spooldir/$basename.proc";
             eval {
                 open(PROC_OUT,">>$fname~") or die "$!";
                 while( @args > 0 ) {
                     my (@line, @rest);
-                    ( @line[0..19], @rest ) = @args ;
-                    $line[19]="" unless $line[19];
+                    ( @line[0..28], @rest ) = @args ;
+                    foreach(@line) {
+                        $_='' unless defined $_;
+                    }
                     print PROC_OUT '"', join('","', @line), qq(",\n) ;
                     @args = @rest;
                 }
@@ -323,8 +331,8 @@ Output: price for one unit, multiplier.
         } elsif ($opcode eq "price") {
             $ENV{P0} = $args[0] eq '?' ? "" : $args[0];
             $ENV{P1} = $args[1];
-            $ENV{P2} = 1;   #   XXX
-            $ENV{P3} = 1;   #   XXX
+            $ENV{P2} = 99;   #   XXX
+            $ENV{P3} = 99;   #   XXX
             $ENV{P4} = $args[2];
             my $in = open_stream "price";
             my $line = <$in>;
