@@ -128,7 +128,6 @@ sub display ($;%) {
         $mailer=MIME::Lite->new(
             From        => $from,
             To          => $to,
-            Cc          => $args->{cc},
             Subject     => $subject,
             Data        => $html,
             Type        => 'text/html',
@@ -138,7 +137,6 @@ sub display ($;%) {
         $mailer=MIME::Lite->new(
             From        => $from,
             To          => $to,
-            Cc          => $args->{cc},
             Subject     => $subject,
             Data        => $text,
         );
@@ -147,7 +145,6 @@ sub display ($;%) {
         $mailer=MIME::Lite->new(
             From        => $from,
             To          => $to,
-            Cc          => $args->{cc},
             Subject     => $subject,
             Type        => 'multipart/alternative',
         );
@@ -163,6 +160,7 @@ sub display ($;%) {
     else {
         throw $self "display - no text for either html or text part";
     }
+    $mailer->add(Cc => $args->{cc}) if $args->{cc};
 
     ##
     # Sending

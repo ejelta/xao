@@ -47,6 +47,7 @@ sub display ($;%) {
     }
 
     my $c=$cgi->cookie($name) || $args->{default} || '';
+
     $self->textout($c);
 }
 
