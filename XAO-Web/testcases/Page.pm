@@ -4,7 +4,7 @@ use XAO::Objects;
 
 use base qw(testcases::base);
 
-sub test_everything {
+sub test_expand {
     my $self=shift;
 
     my $page=XAO::Objects->new(objname => 'Web::Page');
@@ -25,8 +25,39 @@ sub test_everything {
                       "Wrong value for $template ('$got' ne '$ttt{$template}'");
     }
 
-    $self->assert(0,
-                  "Need more database and file template tests");
+    my $got=$page->expand(path => '/system.txt',
+                          TEST => 'TEST<>?');
+    $self->assert($got eq 'system:[[TEST<>?][TEST&lt;&gt;?]]',
+                  "Got wrong value for /system.txt: $got");
+
+    $got=$page->expand(path => '/local.txt',
+                       TEST => 'TEST<>?');
+    $self->assert($got eq 'system:[[TEST<>?]{TEST&lt;&gt;?}]',
+                  "Got wrong value for /local.txt: $got");
+}
+
+#sub test_odb {
+#    my $self=shift;
+#
+#    my $page=XAO::Objects->new(objname => 'Web::Page');
+#    $self->assert(ref($page),
+#                  "Can't load Page object");
+#
+#    my $odb=$page->odb;
+#    $self->assert(ref($odb),
+#                  "Can't get database reference from Page");
+#}
+
+sub test_web {
+    my $self=shift;
+
+    my $page=XAO::Objects->new(objname => 'Web::Page');
+    $self->assert(ref($page),
+                  "Can't load Page object");
+
+    my $cgi=$page->cgi;
+    $self->assert(ref($cgi),
+                  "Can't get CGI reference from Page");
 }
 
 1;

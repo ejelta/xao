@@ -1,3 +1,6 @@
+# Copyright (c) 1997-2001 XAO Inc.
+###############################################################################
+
 use ExtUtils::MakeMaker;
 
 ##
@@ -5,12 +8,86 @@ use ExtUtils::MakeMaker;
 #
 my $version='0.9';
 
+##
+# Reading configuration
+#
+my %d;
+if(open(F,'.config')) {
+    local($/);
+    my $t=<F>;
+    close(F);
+    eval $t;
+}
+while(!$d{test_dsn}) {
+    print <<EOT;
+
+XAO::Web will need access to a XAO::FS database in order to run tests.
+That database will be COMPLETELY DESTROYED AND OVERRIDEN every time you
+run `make test'.
+
+The database have to be created, but it does not matter what it contains.
+
+Please enter access information (brackets contain default values):
+
+EOT
+    my $dsn='OS:MySQL_DBI:test_os';
+    print "DSN: [$dsn] ";
+    chomp(my $str=<STDIN>);
+    if($str) {
+        if($str =~ /^\s*(OS:(\w+):(\w+)(;.*?)?)\s*$/) {
+            $dsn=$1;
+        }
+        else {
+            die "Incorrect DSN entered!\n";
+        }
+    }
+    chomp(my $user=`whoami`);
+    print "User name: [$user] ";
+    chomp($str=<STDIN>);
+    if($str && $str=~/^\s*(.*?)\s*$/) {
+        $user=$1;
+    }
+    my $pass='';
+    print "Password: [$pass] ";
+    chomp($str=<STDIN>);
+    if($str && $str=~/^\s*(.*?)\s*$/) {
+        $pass=$1;
+    }
+
+    print <<EOT;
+
+Here is what will be used to connect to the test database
+(and DESTROY it):
+   DSN:      $dsn
+   User:     $user
+   Password: $password
+
+EOT
+    $|=1;
+    print "Does it make sense ? [Y/n] y\b";
+    chomp($str=<STDIN>);
+    if(!$str || lc($str)=~/y/) {
+        open(F,">.config") || die "Can't open .config: $!\n";
+        print F <<EOT;
+## Feel free to remove or edit that file. It will be re-created on `perl
+## Makefile.PL' if removed.
+\$d{test_dsn}='$dsn';
+\$d{test_user}='$user';
+\$d{test_password}='$pass';
+EOT
+        last;
+    }
+}
+
 WriteMakefile(
+    'ABSTRACT'      => 'XAO Web Developer',
+    'AUTHOR'        => 'XAO Inc. http://xao.com/',
     'NAME'          => 'XAO::Web',
     'VERSION'       => $version,
     'PREREQ_PM'     => {
-        'Error' => '0.13',
-        'XAO::Base' => '0.1',
+        'Error'         => '0.13',
+        'XAO::Base'     => '1.0',
+        'XAO::FS'       => '1.0',
     },
 );
 

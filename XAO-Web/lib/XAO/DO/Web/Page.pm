@@ -307,7 +307,7 @@ use XAO::PageSupport;
 # Package version
 #
 use vars qw($VERSION);
-($VERSION)=(q$Id: Page.pm,v 1.1 2001/10/26 02:47:01 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: Page.pm,v 1.2 2001/11/13 01:46:47 am Exp $ =~ /(\d+\.\d+)/);
 
 ##
 # Methods prototypes
@@ -427,16 +427,16 @@ sub display ($%)
      # Executing object if not.
      #
      my $itemflag=$item->{flag};
-     if(!defined($text))
-      { my $obj;
-        try
-         { $obj=$self->object(objname => $item->{objname});
-         }
-        catch XAO::Errors::Objects with
-         { my $e=shift;
-           eprint "Object loading error while processing path='$args->{path}'";
-           $e->throw;
-         };
+     if(!defined($text)) {
+        my $obj;
+        try {
+            $obj=$self->object(objname => $item->{objname});
+        }
+        catch XAO::E::Objects with {
+            my $e=shift;
+            eprint "Object loading error while processing path='$args->{path}'";
+            $e->throw;
+        };
 
         ##
         # Preparing arguments. If argument includes object references -
@@ -549,7 +549,7 @@ sub expand ($%) {
 
 Creates new displayable object correctly tied to the current one. You
 should always get a reference to a displayable object by calling this
-method, not by using XAO::Object's new() method. Currently most
+method, not by using XAO::Objects' new() method. Currently most
 of the objects would work fine even if you do not, but this is not
 guaranteed.
 
@@ -560,7 +560,8 @@ Possible arguments are (the same as for XAO::Object's new method):
 =item objname => 'ObjectName'
 
 The name of an object you want to have an instance of. Default is
-'Page'.
+'Page'. All objects are assumed to be in XAO::DO::Web namespace,
+prepending them with 'Web::' is optional.
 
 =item baseobj => 1
 
@@ -596,9 +597,14 @@ method then you have valid object reference on hands.
 sub object ($%) {
     my $self=shift;
     my $args=get_args(@_);
-    XAO::Objects->new(objname => $args->{objname} || "Page",
-                           parent => $self
-                          );
+
+    my $objname=$args->{objname} || 'Page';
+    $objname='Web::' . $objname unless substr($objname,0,5) eq 'Web::';
+
+    XAO::Objects->new(
+        objname => $objname,
+        parent => $self,
+    );
 }
 
 ###############################################################################

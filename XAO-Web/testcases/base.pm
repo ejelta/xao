@@ -1,5 +1,6 @@
 package testcases::base;
 use strict;
+use CGI;
 use XAO::Base;
 use XAO::Objects;
 use XAO::Projects qw(:all);
@@ -18,6 +19,13 @@ sub set_up {
     create_project(name => 'test',
                    object => $config,
                    set_current => 1);
+    $config->init();
+
+    my $cgi=CGI->new('foo=bar&test=1');
+
+    $config->embedded('web')->enable_special_access();
+    $config->cgi($cgi);
+    $config->embedded('web')->disable_special_access();
 
     push @INC,$root;
 }
