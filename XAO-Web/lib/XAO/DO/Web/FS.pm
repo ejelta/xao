@@ -180,7 +180,7 @@ use XAO::Errors qw(XAO::DO::Web::FS);
 use base XAO::Objects->load(objname => 'Web::Action');
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: FS.pm,v 1.27 2002/06/24 18:14:16 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: FS.pm,v 1.28 2002/06/25 23:00:47 am Exp $ =~ /(\d+\.\d+)/);
 
 ###############################################################################
 
@@ -419,7 +419,8 @@ sub show_list ($%) {
     my @fields;
     if($args->{fields}) {
         if($args->{fields} eq '*') {
-            @fields=$list->get_new->keys;
+            my $n=$list->get_new;
+            @fields=map { $n->describe($_)->{type} eq 'list' ? () : $_ } $n->keys;
         }
         else {
             @fields=split(/\W+/,$args->{fields});
@@ -633,7 +634,8 @@ sub search ($;%) {
         my @fields;
         if($args->{fields}) {
             if($args->{fields} eq '*') {
-                @fields=$list->get_new->keys;
+                my $n=$list->get_new;
+                @fields=map { $n->describe($_)->{type} eq 'list' ? () : $_ } $n->keys;
             }
             else {
                 @fields=split(/\W+/,$args->{fields});
@@ -654,6 +656,7 @@ sub search ($;%) {
                 my $item=$list->get($id);
                 @{$pass}{@ucfields}=$item->get(@fields);
             }
+            dprint "ARGS: ",join(",",%$pass);
             $page->display($pass);
 
             ##
@@ -670,33 +673,19 @@ sub search ($;%) {
             #last if $count>10000;
         }
         continue {
+            dprint $count;
             $count++;
         }
+        dprint "Done, going to display footer";
 
-        #
-        # Display footer
-        #
-        my $footer = '';
-        if ($args->{'footer.template'}) {
-            $basetype = 'template';
-            $footer   = $args->{'footer.template'};
-        }
-        elsif ($args->{'footer.path'}) {
-            $basetype = 'path';
-            $footer   = $args->{'footer.path'};
-        }
-        $page->display(
-            merge_refs(
-                $args,
-                {
-                    $basetype      => $footer,
-                    START_ITEM     => $start_item,
-                    ITEMS_PER_PAGE => $items_per_page,
-                    TOTAL_ITEMS    => $total,
-                    LIMIT_REACHED  => $limit_reached,
-                }
-           )
-        ) if $footer;
+        $page->display(merge_refs($args, {
+            template        => $args->{'footer.template'},
+            path            => $args->{'footer.path'},
+            START_ITEM      => $start_item,
+            ITEMS_PER_PAGE  => $items_per_page,
+            TOTAL_ITEMS     => $total,
+            LIMIT_REACHED   => $limit_reached,
+        })) if $args->{'footer.path'} || $args->{'footer.template'};
     }   
 }
 ###############################################################################
