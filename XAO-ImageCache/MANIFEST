@@ -1,0 +1,9 @@
+Changes
+ImageCache.pm
+MANIFEST
+Makefile.PL
+test.pl
+img_cache.pl
+ ------------------------- tests
+testcases/base.pm
+testcases/imagecache.pm
