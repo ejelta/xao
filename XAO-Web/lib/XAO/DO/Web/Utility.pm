@@ -33,7 +33,7 @@ use XAO::Objects;
 use base XAO::Objects->load(objname => 'Web::Action');
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: Utility.pm,v 1.4 2002/01/04 03:27:25 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: Utility.pm,v 1.5 2002/02/12 20:50:48 am Exp $ =~ /(\d+\.\d+)/);
 
 sub check_mode ($$) {
     my $self=shift;
@@ -224,7 +224,7 @@ sub pass_cgi_params ($%)
         next unless length($param);
         if(index($param,'*') != -1) {
             $param=substr($param,0,index($param,'*'));
-            foreach my $p ($self->{siteconfig}->cgi->param) {
+            foreach my $p ($self->cgi->param) {
                 next unless index($p,$param) == 0;
                 $except{$p}=1;
             }
@@ -242,7 +242,7 @@ sub pass_cgi_params ($%)
      next unless length($param);
      if(index($param,'*') != -1)
       { $param=substr($param,0,index($param,'*'));
-        foreach my $p ($self->{siteconfig}->cgi->param)
+        foreach my $p ($self->cgi->param)
          { next unless index($p,$param) == 0;
            push @params,$p;
          }
@@ -258,7 +258,7 @@ sub pass_cgi_params ($%)
     foreach my $param (@params) {
         next if $except{$param};
 
-        my $value=$self->{siteconfig}->cgi->param($param);
+        my $value=$self->cgi->param($param);
         next unless defined $value;
 
         if($args->{result} eq 'form') {

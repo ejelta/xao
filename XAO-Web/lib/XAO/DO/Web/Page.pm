@@ -300,19 +300,18 @@ package XAO::DO::Web::Page;
 use strict;
 use XAO::Utils;
 use XAO::Templates;
+use XAO::Objects;
 use XAO::Projects qw(:all);
 use XAO::PageSupport;
 use Error qw(:try);
-use XAO::Errors;
 
-##
-# Package version
-#
+use base XAO::Objects->load(objname => 'Atom');
+
 use vars qw($VERSION);
-($VERSION)=(q$Id: Page.pm,v 1.11 2002/02/04 18:40:44 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: Page.pm,v 1.12 2002/02/12 20:50:48 am Exp $ =~ /(\d+\.\d+)/);
 
 ##
-# Methods prototypes
+# Prototypes
 #
 sub cgi ($);
 sub check_db ($);
@@ -321,27 +320,12 @@ sub display ($%);
 sub editable ();
 sub expand ($%);
 sub finaltextout ($%);
-sub new ($%);
 sub object ($%);
 sub odb ($);
 sub parse ($%);
 sub parse_args ($);
 sub siteconfig ($);
 sub textout ($%);
-sub throw ($@);
-
-###############################################################################
-# Creating new instance of Page.
-#
-sub new ($%) {
-    my $proto=shift;
-    my $class=ref($proto) || $proto;
-    my $self=get_args(\@_) || {};
-    bless $self,$class;
-    $self->{sitename}=get_current_project_name();
-    $self->{siteconfig}=get_current_project();
-    $self;
-}
 
 ###############################################################################
 
@@ -684,9 +668,9 @@ Example:
 sub dbh ($) {
     my $self=shift;
     return $self->{dbh} if $self->{dbh};
-    $self->{dbh}=$self->{siteconfig}->dbh;
+    $self->{dbh}=$self->siteconfig->dbh;
     return $self->{dbh} if $self->{dbh};
-    $self->throw("dbh - no database connection");
+    throw $self "dbh - no database connection";
 }
 
 ###############################################################################
@@ -711,10 +695,10 @@ sub odb ($) {
     my $self=shift;
     return $self->{odb} if $self->{odb};
 
-    $self->{odb}=$self->{siteconfig}->odb;
+    $self->{odb}=$self->siteconfig->odb;
     return $self->{odb} if $self->{odb};
 
-    $self->throw("odb - requires object database connection");
+    throw $self "odb - requires object database connection";
 }
 
 ###############################################################################
@@ -758,7 +742,9 @@ data between objects. See L<XAO::Projects> for more details.
 
 sub siteconfig ($) {
     my $self=shift;
-    $self->{siteconfig};
+    return $self->{siteconfig} if $self->{siteconfig};
+    $self->{siteconfig}=$self->{sitename} ? get_project($self->{sitename})
+                                          : get_current_project();
 }
 
 ###############################################################################
@@ -904,7 +890,7 @@ sub parse ($%) {
     }
     else {
         my $path=$args{path} ||
-            $self->throw("parse - No path given to a Page object");
+            throw $self "parse - No path given to a Page object";
 
         if($self->debug_check('show-path')) {
             dprint $self->{objname}."::parse - path='$path'";
@@ -914,7 +900,7 @@ sub parse ($%) {
 
         $template=XAO::Templates::get(path => $path);
         defined($template) ||
-            $self->throw("parse - no template found (path=$path)");
+            throw $self "parse - no template found (path=$path)";
     }
 
     ##
@@ -990,7 +976,7 @@ sub parse ($%) {
       }
    }
 
-    $in_object && $self->throw('display - not closed object in template');
+    $in_object && throw $self 'display - not closed object in template';
     foreach my $item (@page) {
         next unless defined($item->{objtext});
         if($item->{objtext} !~ /^\s*(\w[\w\.:]*)(\/(\w+))?\s*(.*)$/s) {
@@ -1157,9 +1143,11 @@ sub parse_args ($)
 
 ##
 # This is overriden in all editable objects. Default is "not editable".
+# XXX - unused.
 #
-sub editable ()
-{ return 0;
+sub editable () {
+    eprint "editable - should not be used any more";
+    return 0;
 }
 
 ##
@@ -1169,38 +1157,6 @@ sub check_db ($)
 { my $self=shift;
   eprint ref($self)."::check_db method is obsolete, use dbh() to get dbh";
   $self->dbh;
-}
-
-###############################################################################
-
-=item throw ($)
-
-Helps to write code like:
-
- sub foobar ($%) {
-    my $self=shift;
-    my $args=get_args(\@_);
-
-    my $id=$args->{id} || throw $self "foobar - no 'id' given";
-    ...
- }
-
-It is recommended to always use text maessages af the following format:
-
- "function_name - error description starting from lowercase letter"
-
-There is no need to print class name, it will be prepended to the front
-of your error message automatically.
-
-=cut
-
-sub throw ($@) {
-    my $self=shift;
-    my $text=join('',@_);
-
-    my $class=$self->{objname} ? 'XAO::DO::' . $self->{objname} : ref($self);
-
-    XAO::Errors->throw_by_class($class,$text);
 }
 
 sub debug_check ($$) {

@@ -62,7 +62,7 @@ use XAO::Errors qw(XAO::DO::Web::FilloutForm);
 use base XAO::Objects->load(objname => 'Web::Page');
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: FilloutForm.pm,v 1.4 2002/01/28 00:55:15 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: FilloutForm.pm,v 1.5 2002/02/12 20:50:48 am Exp $ =~ /(\d+\.\d+)/);
 
 sub setup ($%);
 sub field_desc ($$);
@@ -214,7 +214,7 @@ Displaying the form.
 sub display ($;%) {
     my $self=shift;
     my $args=get_args(\@_);
-    my $cgi=$self->{siteconfig}->cgi;
+    my $cgi=$self->cgi;
     my $fields=$self->{fields};
     $fields || throw XAO::E::DO::Web::FilloutForm
                      "display - has not set fields for FilloutForm";
