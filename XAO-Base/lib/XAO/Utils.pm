@@ -36,9 +36,10 @@ sub t2hf ($);
 sub t2hq ($);
 sub get_args (@);
 sub merge_refs (@);
+sub fround ($$);
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: Utils.pm,v 1.7 2003/01/23 03:25:57 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: Utils.pm,v 1.8 2003/02/06 03:54:52 am Exp $ =~ /(\d+\.\d+)/);
 
 ###############################################################################
 # Export control
@@ -52,6 +53,7 @@ require Exporter;
     debug => [qw(dprint eprint)],
     html => [qw(t2ht t2hq t2hf)],
     keys => [qw(generate_key repair_key)],
+    math => [qw(fround)],
     none => [],
 );
 @EXPORT=(
@@ -63,6 +65,7 @@ require Exporter;
     @{$EXPORT_TAGS{debug}},
     @{$EXPORT_TAGS{html}},
     @{$EXPORT_TAGS{keys}},
+    @{$EXPORT_TAGS{math}},
 );
 
 ###############################################################################
@@ -437,6 +440,45 @@ sub merge_refs (@) {
         @hash{keys %$ref}=values %$ref;
     }
     \%hash;
+}
+
+###############################################################################
+
+=back
+
+=head2 MATH
+
+Utility functions in this group can be imported by using 'math' tag:
+
+ use XAO::Utils qw(:math);
+
+Here is the list of functions available:
+
+=over
+
+=cut
+
+###############################################################################
+
+=item fround ($$)
+
+Rounds a floating point number according to the given
+precision. Works correctly only with positive numbers.
+
+Precision is given as X in 1/X, for instance to round to two digits
+after decimal point use precision 100.
+
+Examples:
+
+ fround(0.25,10)        => 0.3
+ fround(0.01234,1000)   => 0.012
+
+=cut
+
+sub fround ($$) {
+    my ($num,$prec)=@_;
+    $prec>0 || throw XAO::E::Utils "fround - no precision given";
+    return (int(($num+1/$prec/2)*$prec))/$prec;
 }
 
 ###############################################################################

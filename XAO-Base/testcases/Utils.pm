@@ -3,6 +3,54 @@ use strict;
 
 use base qw(testcases::base);
 
+sub test_fround {
+    my $self=shift;
+
+    use XAO::Utils qw(:math);
+
+    my %matrix=(
+        t1  => {
+            num         => 33.415,
+            prec        => 100,
+            expect      => 33.42,
+        },
+        t2  => {
+            num         => 33.41499,
+            prec        => 100,
+            expect      => 33.41,
+        },
+        t3  => {
+            num         => 2.5,
+            prec        => 1,
+            expect      => 3,
+        },
+        t4  => {
+            num         => 3.5,
+            prec        => 1,
+            expect      => 4,
+        },
+        t5  => {
+            num         => 3.99999,
+            prec        => 1,
+            expect      => 4,
+        },
+        t6  => {
+            num         => 3,
+            prec        => 1,
+            expect      => 3,
+        },
+    );
+
+    foreach my $test_id (keys %matrix) {
+        my $num=$matrix{$test_id}->{num};
+        my $prec=$matrix{$test_id}->{prec};
+        my $got=fround($num,$prec);
+        my $expect=$matrix{$test_id}->{expect};
+        $self->assert($got == $expect,
+                      "Wrong result for test $test_id (num=$num, prec=$prec, expect=$expect, got=$got)");
+    }
+}
+
 sub test_html {
     my $self=shift;
 
