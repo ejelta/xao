@@ -17,6 +17,15 @@ DESCRIPTION
 
     Here is the list of all List methods (alphabetically):
 
+    check_name ()
+        Object names in lists have nearly the same set of restrains as in
+        hashes with just one exception - they can start from a digit. Such
+        behavior might be extended to hashes in later versions to eliminate
+        this difference.
+
+        For example, 123ABC456 is a legal Hash id inside of a List, but is
+        not a legal property ID or List ID inside of a Hash.
+
     container_key ()
         Returns key that refers to the current List in the upper level Hash.
 

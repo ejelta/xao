@@ -33,7 +33,27 @@ use XAO::Objects;
 use base XAO::Objects->load(objname => 'FS::Glue');
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: List.pm,v 1.6 2002/05/15 18:39:45 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: List.pm,v 1.7 2002/06/18 01:36:33 am Exp $ =~ /(\d+\.\d+)/);
+
+###############################################################################
+
+=item check_name ()
+
+Object names in lists have nearly the same set of restrains as
+in hashes with just one exception - they can start from a digit.
+Such behavior might be extended to hashes in later versions to
+eliminate this difference.
+
+For example, 123ABC456 is a legal Hash id inside of a List, but
+is not a legal property ID or List ID inside of a Hash.
+
+=cut
+
+sub check_name ($$) {
+    my $self=shift;
+    my $name=shift;
+    return (defined($name) && $name =~ /^[a-z0-9_]*$/i && length($name)<=30);
+}
 
 ###############################################################################
 

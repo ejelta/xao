@@ -75,7 +75,7 @@ use XAO::Errors qw(XAO::DO::Web::Mailer);
 use base XAO::Objects->load(objname => 'Web::Page');
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: Mailer.pm,v 1.5 2002/05/07 21:32:40 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: Mailer.pm,v 1.6 2002/06/18 01:36:33 am Exp $ =~ /(\d+\.\d+)/);
 
 sub display ($;%) {
     my $self=shift;
@@ -84,7 +84,7 @@ sub display ($;%) {
     my $config=$self->siteconfig->get('/mailer') || {};
 
     my $to=$args->{to} ||
-           $self->get_to ||
+           $self->get_to($args) ||
            throw $self "display - no 'to' given";
 
     my $from=$args->{from};
@@ -185,6 +185,24 @@ sub display ($;%) {
     else {
         $mailer->send('smtp',$agent || 'localhost');
     }
+}
+
+###############################################################################
+
+sub get_to ($%) {
+    return '';
+}
+
+###############################################################################
+
+sub get_from ($%) {
+    return '';
+}
+
+###############################################################################
+
+sub get_subject ($%) {
+    return '';
 }
 
 ###############################################################################

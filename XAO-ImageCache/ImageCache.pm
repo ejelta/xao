@@ -57,7 +57,7 @@ use File::Copy;
 # Package version
 #
 
-($VERSION)=(q$Id: ImageCache.pm,v 1.3 2002/04/23 16:37:17 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: ImageCache.pm,v 1.4 2002/06/18 01:36:33 am Exp $ =~ /(\d+\.\d+)/);
 
 sub DESTROY {
     my $self = shift;
@@ -368,11 +368,12 @@ sub check($) {
                                                 );
         if ($img_cache_file) {
             $item->put($img_dest_url_key, $img_cache_url.$img_cache_file);
-            if ($thm_cache_path && $thm_dest_url_key && $thm_cache_file) {
-                $item->put($thm_dest_url_key, $thm_cache_url.$thm_cache_file);
-            }
-            $checked++;
         }
+        if ($thm_cache_path && $thm_dest_url_key && $thm_cache_file) {
+            $item->put($thm_dest_url_key, $thm_cache_url.$thm_cache_file);
+        }
+
+        $checked++ if $img_cache_file || $thm_cache_file;
     }
     return $checked;
 }
@@ -407,8 +408,8 @@ sub download ($$) {
     my $fnm_key     = $self->{filename_key} || '';
     my $base_fnm    = $fnm_key ? treat_filename($item->get($fnm_key))
                                : get_filename($img_src_url);
-    my $img_fnm     = $base_fnm.'_img.jpeg';
-    my $img_src_fnm = $base_fnm.'_src.jpeg';
+    my $img_fnm     = $img_src_url ? $base_fnm.'_img.jpeg' : '';
+    my $img_src_fnm = $img_src_url ? $base_fnm.'_src.jpeg' : '';
 
     my $user_agent     = $self->{ua};
     my $source_path    = $self->{source_path};
@@ -472,47 +473,49 @@ sub download ($$) {
     # images). Only download source image if cached image not present or
     # older than source.
     #
-    my $mtime_src = (stat($img_src_file))[9];
-    my $period = $time_now - $mtime_src;
-    if ($period > $self->{min_period}) {
-        my $response = $user_agent->head($img_src_url);
-        if ($response->is_success) {
-            my $mtime_web = convert_time($response->header('Last-Modified'));
-            if ((!-r $img_src_file) || ($mtime_src < $mtime_web) || $self->{reload}) {
-                if(! $self->download_file($img_src_url, $img_src_file)) {
-                    $self->cache_log("ERROR - download failure: $img_src_url -> $img_src_file");
-                    $img_src_file='';
+    if($img_src_url) {
+        my $mtime_src = (stat($img_src_file))[9];
+        my $period = $time_now - $mtime_src;
+        if ($period > $self->{min_period}) {
+            my $response = $user_agent->head($img_src_url);
+            if ($response->is_success) {
+                my $mtime_web = convert_time($response->header('Last-Modified'));
+                if ((!-r $img_src_file) || ($mtime_src < $mtime_web) || $self->{reload}) {
+                    if(! $self->download_file($img_src_url, $img_src_file)) {
+                        $self->cache_log("ERROR - download failure: $img_src_url -> $img_src_file");
+                        $img_src_file='';
+                    }
+                }
+                else {
+                    $self->cache_log("IMAGE SOURCE FILE CURRENT: $img_src_url");
                 }
             }
             else {
-                $self->cache_log("IMAGE SOURCE FILE CURRENT: $img_src_url");
+                $self->cache_log("ERROR - can't get header for: $img_src_url");
+                $img_src_file='';
             }
         }
-        else {
-            $self->cache_log("ERROR - can't get header for: $img_src_url");
-            $img_src_file='';
-        }
-    }
 
-    # Now checking if the source file we have is newer then what's in
-    # the cache and updating the cache in that case.
-    #
-    my $mtime_cache=(stat($img_cache_file))[9];
-    if($mtime_cache < $mtime_src) {
-        if($self->{size}) {
-            $self->resize($img_src_file, $img_cache_file);
-        }
-        else {
-            copy($img_src_file, $img_cache_file);
-        }
-    }
-
-    # Create thumbnail from the image source file if necessary
-    #
-    if($thm_cache_file && !$thm_src_url) {
-        $mtime_cache=(stat($thm_cache_file))[9];
+        # Now checking if the source file we have is newer then what's in
+        # the cache and updating the cache in that case.
+        #
+        my $mtime_cache=(stat($img_cache_file))[9];
         if($mtime_cache < $mtime_src) {
-            $self->thumbnail($img_src_file, $thm_cache_file);
+            if($self->{size}) {
+                $self->resize($img_src_file, $img_cache_file);
+            }
+            else {
+                copy($img_src_file, $img_cache_file);
+            }
+        }
+
+        # Create thumbnail from the image source file if necessary
+        #
+        if($thm_cache_file && !$thm_src_url) {
+            $mtime_cache=(stat($thm_cache_file))[9];
+            if($mtime_cache < $mtime_src) {
+                $self->thumbnail($img_src_file, $thm_cache_file);
+            }
         }
     }
 
