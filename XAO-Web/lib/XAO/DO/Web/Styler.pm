@@ -24,7 +24,7 @@ use XAO::Objects;
 use base XAO::Objects->load(objname => 'Web::Page');
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: Styler.pm,v 1.7 2003/02/06 21:08:47 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: Styler.pm,v 1.8 2003/10/03 00:58:13 am Exp $ =~ /(\d+\.\d+)/);
 
 sub display ($;%) {
     my $self=shift;
@@ -53,7 +53,9 @@ sub display ($;%) {
     # real => 1'234.78
     #
     $template='<$REAL$>' if defined($args->{real});
-    my $real=sprintf("%.2f",$args->{real} || 0);
+    my $real=$args->{format}
+             ? sprintf($args->{format},$args->{real} || 0)
+             : sprintf("%.2f",$args->{real} || 0);
     1 while $real=~s/(\d)(\d{3}($|,|\.))/$1,$2/;
 
     ##
