@@ -9,7 +9,7 @@ use Errno qw/EINTR EAGAIN/;
 use POSIX qw(:sys_wait_h setsid);
 
 $VERSION='0.05';
-$REVISION='$Id: xaosrv.pl,v 1.10 2003/07/01 03:48:55 am Exp $';
+$REVISION='$Id: xaosrv.pl,v 1.11 2003/07/01 22:11:09 am Exp $';
 
 if(@ARGV<1) {
     print "Usage: $0 SystemUnit [TCP port]\n";
@@ -22,6 +22,7 @@ my $spooldir="/tmp/webord$systemunit";
 my $p21dir="/opt/xao/p21";
 
 my $ServerName='xaosrv ' . $systemunit . ' ' . $tcpport;
+my $LockName='xaosrv-' . $systemunit . '-' . $tcpport;
 $0 = $ServerName;
 
 my $Debug = $ENV{DEBUG};
@@ -73,35 +74,10 @@ sub open_local_query {
 
 sub reopen_log {
     close STDERR;
-    open STDERR, ">/tmp/$ServerName.log";
+    open STDERR, ">/tmp/$LockName.log";
     select STDERR;
     $|=1;
 }
-
-######### Daemonizing
-chdir '/';
-close STDIN;
-open STDIN, "</dev/null" or die "$!";
-close STDOUT;
-open STDOUT, ">/dev/null" or die "$!";
-reopen_log;
-my $pid=fork;
-die "$!" unless defined $pid;
-if($pid) {
-    print "XAO P21 Server Started\n";
-    exit 0;
-}
-POSIX::setsid;
-$pid=fork;
-die "$!" unless defined $pid;
-if($pid) {
-    open STDERR, ">/tmp/$ServerName.pid" or die $!;
-    print STDERR "$pid\n";
-    close STDERR;
-    exit;
-}
-reopen_log;
-############
 
 sub chld_handler {
     while((my $rc=waitpid(-1,&WNOHANG)) > 0) {
@@ -109,20 +85,40 @@ sub chld_handler {
     }
     $SIG{CHLD}=\&chld_handler;
 }
+
+###############################################################################
+
+my $server=IO::Socket::INET->new( Proto => 'tcp',
+                                  Listen => 10,
+                                  LocalPort => $tcpport,
+                                  Reuse => 1,
+                                  LocalAddr => '127.0.0.1'
+                                );
+die "\n\n** Cannot create server: $!\n\n" unless $server;
+
+my $pid=fork;
+die "$!" unless defined $pid;
+if($pid) {
+    print STDERR "XAO P21 Server Started\n";
+    open(F,">/tmp/$LockName.pid") || die "Can't open /tmp/$LockName.pid: $!";
+    print F "$pid\n";
+    close(F);
+    exit 0;
+}
+
+chdir '/';
+close STDIN;
+open STDIN, "</dev/null" or die "$!";
+close STDOUT;
+open STDOUT, ">/dev/null" or die "$!";
+POSIX::setsid;
+reopen_log;
+
 $SIG{CHLD}=\&chld_handler;
 
 $SIG{HUP}=\&reopen_log;
 
-my $server = IO::Socket::INET->new( Proto => 'tcp',
-                                    Listen => 10,
-                                    LocalPort => $tcpport,
-                                    Reuse => 1,
-                                    LocalAddr => '127.0.0.1'
-                                  );
-die "Cannot create server: $!" unless $server;
-
 my $socket;
-
 while(1) {
     $socket=$server->accept;
 

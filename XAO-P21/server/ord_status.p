@@ -1,10 +1,11 @@
 DEF VAR d_d AS CHAR FORMAT "x(20)" NO-UNDO.
 DEF VAR onum AS INTEGER NO-UNDO.
 DEF VAR rdate AS DATE INIT ? NO-UNDO.
+DEF VAR c_price LIKE p21.ord_line.ut_price NO-UNDO.
 
 /* Field separator
 */
-ASSIGN d_d="\001".
+ASSIGN d_d=" ".
 
 /* Supplied order ID
 */
@@ -24,6 +25,7 @@ DO TRANSACTION:
     /* First we display general line item information and statuses.
     */
     FOR EACH p21.ord_line WHERE ord_line.ord_number = onum SHARE-LOCK:
+	ASSIGN c_price=ord_line.ut_price * ord_line.multiplier.
         PUT UNFORMATTED
             "LINE"                          d_d
             ord_line.line_number            d_d
@@ -32,7 +34,7 @@ DO TRANSACTION:
             ord_line.ord_qty                d_d
             ord_line.inv_qty                d_d
             ord_line.canc_qty               d_d
-            ord_line.ut_price               d_d
+            c_price                         d_d
             ord_line.ut_size                d_d
             ord_line.disposition            d_d
             ord_line.disposition_desc       d_d
