@@ -1,4 +1,6 @@
 1.03 - XXX
+    * MAJOR: a bug fixed in escaping special characters when searching
+      using 'wq' or 'ws'
     * MAJOR: fixed bug in relations generation in deep search
       subroutines; dependencies were wrong when searching for properties
       of hashes in different lists originating from the same top level

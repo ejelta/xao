@@ -49,7 +49,7 @@ use XAO::Objects;
 use XAO::Errors qw(XAO::DO::FS::Glue);
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: Glue.pm,v 1.9 2002/01/19 03:31:43 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: Glue.pm,v 1.10 2002/02/06 02:22:18 am Exp $ =~ /(\d+\.\d+)/);
 
 ###############################################################################
 
@@ -1229,10 +1229,14 @@ sub _build_search_clause ($$$$$$) {
             $self->throw("Not implemented ws on words");
         }
         else {
-            $clause=$self->_driver->search_clause_ws($field,$rha,$rha_escaped);
+            my $tf;
+            ($clause,$tf)=$self->_driver->search_clause_ws($field,$rha,$rha_escaped);
             if(!$clause) {
                 $clause="$field LIKE '" . '%' . $rha_escaped . '%' . "'";
                 $$post_process=1;
+            }
+            elsif(defined($tf)) {
+                push(@$values,$tf);
             }
         }
     }
@@ -1241,10 +1245,14 @@ sub _build_search_clause ($$$$$$) {
             $self->throw("Not implemented wq on words");
         }
         else {
-            $clause=$self->_driver->search_clause_wq($field,$rha,$rha_escaped);
+            my $tf;
+            ($clause,$tf)=$self->_driver->search_clause_wq($field,$rha,$rha_escaped);
             if(!$clause) {
                 $clause="$field LIKE '" . '%' . $rha_escaped . '%' . "'";
                 $$post_process=1;
+            }
+            elsif(defined($tf)) {
+                push(@$values,$tf);
             }
         }
     }

@@ -128,6 +128,11 @@ EOT
                             [ 'long', 'wq', 'the' ]);
     $self->assert(@$list == 233,
                   "Wrong search results, test 3 (".scalar(@$list).")");
+    $list=$custlist->search([ 'short', 'wq', 'is|not' ],
+                            'or',
+                            [ 'long', 'wq', '[aA]' ]);
+    $self->assert(@$list == 0,
+                  "Wrong search results, test 16 (".scalar(@$list).")");
 
     ##
     # Checking multiple keyword search
@@ -188,7 +193,7 @@ EOT
                                            descend => 'short' ]
                             });
     $self->assert(@$list == 61,
-                  "Wrong search results, test 6 (".scalar(@$list).")");
+                  "Wrong search results, test 15 (".scalar(@$list).")");
     $short=undef;
     $long=undef;
     foreach my $id (@$list) {
