@@ -341,7 +341,7 @@ sub content_add ($%) {
         {   name        => 'text',
             style       => 'text',
             required    => 0,
-            maxlength   => 10000,
+            maxlength   => 100000,
             param       => 'TEXT',
             text        => 'Initial Text',
         },
