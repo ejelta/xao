@@ -47,7 +47,8 @@ use XAO::Errors qw(XAO::E::Cache);
 use XAO::Objects;
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: Cache.pm,v 1.3 2002/02/20 01:03:28 am Exp $ =~ /(\d+\.\d+)/);
+$VERSION=sprintf('%u.%03u',((q$Id: Cache.pm,v 1.4 2005/01/13 22:06:14 am Exp $ =~ /\s(\d+)\.(\d+)\s/) || die "Bad VERSION"));
+# $Version$
 
 ###############################################################################
 
