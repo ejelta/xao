@@ -31,7 +31,7 @@ use XAO::Objects;
 use base XAO::Objects->load(objname => 'FS::Glue::SQL_DBI');
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: MySQL_DBI.pm,v 1.16 2003/03/14 02:50:20 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: MySQL_DBI.pm,v 1.17 2003/03/14 02:58:01 am Exp $ =~ /(\d+\.\d+)/);
 
 ###############################################################################
 
@@ -325,8 +325,8 @@ will do that for you.
 sub disconnect ($) {
     my $self=shift;
     if($self->{table_type} eq 'innodb') {
-        $self->tr_loc_rollback;
-        $self->tr_ext_rollback;
+        $self->tr_ext_rollback if $self->tr_ext_active;
+        $self->tr_loc_rollback if $self->tr_loc_active;
     }
     else {
         $self->unlock_tables;
