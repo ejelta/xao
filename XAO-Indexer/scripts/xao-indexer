@@ -9,37 +9,37 @@ use Data::Dumper;
 my $all;
 my $create;
 my $search;
+my $project;
 GetOptions(
+    'project=s'     => \$project,
     'all'           => \$all,
     'create'        => \$create,
     'debug'         => sub { XAO::Utils::set_debug(1) },
     'search'        => \$search,
 );
 
-die "Needs to be fixed, this is just a copy of CWS one";
-
-if(($all && @ARGV) ||
+if(!$project ||
+   ($all && @ARGV) ||
    ($create && @ARGV!=2) ||
-   ($search && @ARGV!=3) ||
-   (!$all && !$create && !$search && !@ARGV)) {
+   ($search && @ARGV!=3)) {
     print <<EOT;
-Usage: $0 [--debug] index_code1 index_code2 ...
+Usage: $0 [--debug] --project PROJ index_code1 index_code2 ...
 
 Updates given indexes in the database.
 
 
-Usage: $0 [--debug] --all
+Usage: $0 [--debug] --project PROJ --all
 
 Updates all existing indexes.
 
 
-Usage: $0 [--debug] --create index_name Indexer::IndexName
+Usage: $0 [--debug] --project PROJ --create index Indexer::IndexName
 
 Creates a new index with given name and using given class name to handle
 it. Does not build index data, only prepares data structures.
 
 
-Usage: $0 [--debug] --search index_name ordering 'search string'
+Usage: $0 [--debug] --project PROJ --search index ordering 'search string'
 
 Performes a search on the given index and returns found unique IDs one
 per line on standard output. Mostly useful for testing.
@@ -48,11 +48,17 @@ EOT
     exit 1;
 }
 
-my $site=XAO::Web->new(sitename => 'cws');
+my $site=XAO::Web->new(sitename => $project);
 $site->set_current();
 my $config=$site->config;
 my $odb=$config->odb();
 
+##
+# Loading top level. Name is hard-coded.
+#
+if(!$odb->fetch('/')->exists('Indexes')) {
+    die "No '/Indexes' in the project's database\n";
+}
 my $index_list=$odb->fetch('/Indexes');
 
 ##
@@ -96,6 +102,7 @@ if($create) {
 ##
 # Updating existing indexes
 #
+dprint "Updating indexes";
 foreach my $index_id ($all ? $index_list->keys : @ARGV) {
     dprint "Updating index '$index_id'";
     $index_list->get($index_id)->update;
