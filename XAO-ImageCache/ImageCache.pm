@@ -57,7 +57,7 @@ use File::Copy;
 # Package version
 #
 
-($VERSION)=(q$Id: ImageCache.pm,v 1.9 2003/08/18 21:53:58 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: ImageCache.pm,v 1.10 2003/08/19 00:41:24 am Exp $ =~ /(\d+\.\d+)/);
 
 sub DESTROY {
     my $self = shift;
@@ -514,6 +514,7 @@ sub download ($$) {
                 if(!$lfound) {
                     $self->cache_log("ERROR - seems to be a local URL and no local file ($img_src_url)");
                     $img_src_file="";
+                    $thm_src_file="";
                 }
             }
             else {
@@ -523,7 +524,8 @@ sub download ($$) {
                     if ((!-r $img_src_file) || ($mtime_src < $mtime_web) || $self->{reload}) {
                         if(! $self->download_file($img_src_url, $img_src_file)) {
                             $self->cache_log("ERROR - download failure: $img_src_url -> $img_src_file");
-                            $img_src_file='';
+                            $img_src_file="";
+                            $thm_src_file="";
                         }
                     }
                     else {
@@ -532,7 +534,8 @@ sub download ($$) {
                 }
                 else {
                     $self->cache_log("ERROR - can't get header for: $img_src_url");
-                    $img_src_file='';
+                    $img_src_file="";
+                    $thm_src_file="";
                 }
             }
             $mtime_src=(stat($img_src_file))[9] if $img_src_file;
