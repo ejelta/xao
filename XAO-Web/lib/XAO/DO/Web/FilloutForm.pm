@@ -62,7 +62,7 @@ use XAO::Errors qw(XAO::DO::Web::FilloutForm);
 use base XAO::Objects->load(objname => 'Web::Page');
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: FilloutForm.pm,v 1.10 2003/08/25 19:46:42 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: FilloutForm.pm,v 1.11 2003/08/29 01:13:19 am Exp $ =~ /(\d+\.\d+)/);
 
 sub setup ($%);
 sub field_desc ($$);
@@ -223,31 +223,35 @@ sub display ($;%) {
     #
     my $obj=$self->object;
 
+    # Special parameter named 'submit_name' contains submit button name
+    # and used for pre-filled forms - these forms usually already have
+    # valid data and we need some way to know when the form was really
+    # checked and corrected by user.
+    #
+    my $filled=$self->{submit_name} && $cgi->param($self->{submit_name}) ? 1 : 0;
+
     # First checking all parameters and collecting mistakes into errstr.
     #
     # Also creating hash with parameters for form diplaying while we are
     # going through fields anyway.
     #
     my $errstr;
-    my $filled;
     my %formparams;
     foreach my $fdata (@{$fields}) {
         my $name=$fdata->{name};
-
         my $cgivalue=$cgi->param($name);
         $filled++ if defined($cgivalue) &&
                      (!defined($fdata->{phase}) || $fdata->{phase} eq $phase);
-
-        my $value=$fdata->{newvalue};
-        $value=$cgivalue unless defined($value);
-        $value=$fdata->{value} unless defined($value);
-        $value=$fdata->{default} unless defined($value);
-        my $newerr;
 
         ##
         # Checking form phase for multi-phased forms if required.
         #
         next if defined($fdata->{phase}) && $phase<$fdata->{phase};
+
+        my $value=$fdata->{newvalue};
+        $value=$cgivalue unless defined($value);
+        $value=$fdata->{value} unless defined($value);
+        $value=$fdata->{default} unless defined($value);
 
         ##
         # Empty data is the same as undefined. Spaces are trimmed from the
@@ -259,6 +263,7 @@ sub display ($;%) {
         ##
         # Various checks depending on field style.
         #
+        my $newerr;
         my $style=$fdata->{style};
         if(!length($value) && $fdata->{required}) {
             $newerr="Required field!";
@@ -403,7 +408,20 @@ sub display ($;%) {
             }
         }
         elsif($style eq 'checkbox') {
-            $value=$value ? 1 : 0;
+
+            ##
+            # If checkbox is not checked we don't get any info about it
+            # in the cgi parameters. So we have to take a guess if the
+            # form was generally filled in, but we have an unchecked
+            # checkbox or this is the first display and form was not
+            # submitted yet.
+            #
+            if($filled) {
+                $value=$cgivalue ? 1 : 0;
+            }
+            else {
+                $value=(defined($fdata->{value}) ? $fdata->{value} : $fdata->{default}) ? 1 : 0;
+            }
         }
         elsif($style eq 'selection') {
             if(length($value)) {
@@ -483,12 +501,11 @@ sub display ($;%) {
             $fdata->{html}=$html;
         }
         elsif($style eq 'checkbox') {
-            my $c=(defined($fdata->{value}) ? $fdata->{value} : $value) ? 1 : 0;
             $fdata->{html}=$obj->expand(
-                path => '/bits/fillout-form/html-checkbox',
-                NAME => $name,
-                VALUE => $fdata->{value} || '',
-                CHECKED => $c,
+                path    => '/bits/fillout-form/html-checkbox',
+                NAME    => $name,
+                VALUE   => $fdata->{value} || '',
+                CHECKED => $value,
             );
         }
         elsif($style eq 'selection') {
@@ -580,13 +597,6 @@ sub display ($;%) {
         $formparams{"$param.MINLENGTH"}=$fdata->{minlength} || 0;
         $formparams{"$param.ERRSTR"}=$fdata->{errstr} || '';
     }
-
-    # Special parameter named 'submit_name' contains submit button name and used
-    # for pre-filled forms - these forms usually already have valid data
-    # and we need some way to know when the form was really checked and
-    # corrected by user.
-    #
-    $filled=$cgi->param($self->{submit_name}) if $filled && $self->{submit_name};
 
     # Checking content for general compatibility by overriden
     # method. Called only if data are basicly good.
