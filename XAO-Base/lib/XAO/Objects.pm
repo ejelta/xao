@@ -5,6 +5,7 @@ package XAO::Objects;
 use strict;
 use XAO::Base qw($homedir $projectsdir);
 use XAO::Utils qw(:args :debug);
+use XAO::Errors qw(XAO::Objects);
 use XAO::Projects;
 
 ##
@@ -17,7 +18,7 @@ sub new ($%);
 # Module version.
 #
 use vars qw($VERSION);
-($VERSION)=(q$Id: Objects.pm,v 1.2 2001/10/24 07:16:25 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: Objects.pm,v 1.3 2001/10/25 02:51:54 am Exp $ =~ /(\d+\.\d+)/);
 
 ##
 # Loads object into memory.
@@ -44,7 +45,7 @@ sub load (%) {
     my $class=(scalar(@_)%2 || ref($_[1]) ? shift(@_) : 'XAO::Objects');
     my $args=get_args(\@_);
     my $objname=$args->{objname} ||
-        throw XAO::Errors::Objects "load - no objname given";
+        throw XAO::E::Objects "load - no objname given";
 
     ##
     # Config object is a special case. When we load it we do not have
@@ -57,7 +58,7 @@ sub load (%) {
     }
     elsif($objname eq 'Config') {
         $sitename=$args->{sitename} ||
-            throw XAO::Errors::Objects "load - no sitename given for Config object";
+            throw XAO::E::Objects "load - no sitename given for Config object";
     }
     else {
         $sitename=XAO::Projects::get_current_project_name() || '';
@@ -88,12 +89,12 @@ sub load (%) {
             close(F);
             $text=~s{^\s*(package\s+(XAO::DO|Symphero::Objects))::($objname\s*;)}
                     {${1}::${sitename}::${3}}m;
-            $1 || throw XAO::Errors::Objects
+            $1 || throw XAO::E::Objects
                   "load - package name is not XAO::DO::$objname in $objfile";
             $2 eq 'XAO::DO' ||
                 eprint "Old style package name in $objfile - change to XAO::DO::$objname";
             eval "\n# line 1 \"$objfile\"\n" . $text;
-            throw XAO::Errors::Objects
+            throw XAO::E::Objects
                   "load - error loading $objname ($objfile) -- $@" if $@;
             $objref="XAO::DO::${sitename}::${objname}";
         }
@@ -102,7 +103,7 @@ sub load (%) {
     if(! $objref) {
         $objref="XAO::DO::${objname}";
         eval "require $objref";
-        throw XAO::Errors::Objects
+        throw XAO::E::Objects
               "load - error loading $objname ($objref) -- $@" if $@;
         $system=1;
     }
@@ -110,7 +111,7 @@ sub load (%) {
     ##
     # In case no object was found.
     #
-    $objref || throw XAO::Errors::Objects
+    $objref || throw XAO::E::Objects
                      "load - no object file found for sitename='$sitename', objname='$objname'";
 
     ##
@@ -132,13 +133,13 @@ sub new ($%) {
     # Looking up what is real object reference for that objname.
     #
     my $objref=$class->load($args) ||
-        throw XAO::Errors::Objects "new - can't load object ($args->{objname})";
+        throw XAO::E::Objects "new - can't load object ($args->{objname})";
 
     ##
     # Creating instance of that object
     #
     my $obj=eval $objref.'->new($args)' ||
-        throw XAO::Errors::Objects "new - error creating instance of $objref ($@)";
+        throw XAO::E::Objects "new - error creating instance of $objref ($@)";
 
     $obj;
 }

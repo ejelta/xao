@@ -3,7 +3,7 @@ use strict;
 use XAO::SimpleHash;
 use XAO::Utils;
 use Error qw(:try);
-use XAO::Errors qw(XAO::Errors::Projects);
+use XAO::Errors qw(XAO::Projects);
 
 use base qw(testcases::base);
 
@@ -23,7 +23,7 @@ sub test_everything {
     try {
         create_project(name => 'test',
                        object => $project);
-    } catch XAO::Errors::Projects with {
+    } catch XAO::E::Projects with {
         $rc='';
     } otherwise {
         my $e=shift;
@@ -40,7 +40,7 @@ sub test_everything {
     $rc="There should be no current project at that point";
     try {
         get_current_project();
-    } catch XAO::Errors::Projects with {
+    } catch XAO::E::Projects with {
         $rc='';
     } otherwise {
         my $e=shift;

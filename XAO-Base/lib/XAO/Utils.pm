@@ -21,6 +21,7 @@ functions.
 package XAO::Utils;
 use strict;
 require 5.6.0;
+use XAO::Errors qw(XAO::Utils);
 
 ##
 # Prototypes
@@ -37,7 +38,7 @@ sub get_args (@);
 sub merge_refs (@);
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: Utils.pm,v 1.1 2001/10/23 00:45:09 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: Utils.pm,v 1.2 2001/10/25 02:51:54 am Exp $ =~ /(\d+\.\d+)/);
 
 ###############################################################################
 # Export control
@@ -395,14 +396,14 @@ sub get_args (@) {
     if(@{$arr} == 1) {
         $args=$arr->[0];
         ref($args) eq "HASH" ||
-            throw Error::Simple "XAO::Utils::get_args - not a HASH in arguments ($arr->[0])";
+            throw XAO::E::Utils "XAO::Utils::get_args - not a HASH in arguments ($arr->[0])";
     }
     elsif(! (scalar(@{$arr}) % 2)) {
         my %a=@{$arr};
         $args=\%a;
     }
     else {
-        throw Error::Simple "XAO::Utils::get_args - unparsable arguments";
+        throw XAO::E::Utils "XAO::Utils::get_args - unparsable arguments";
     }
     $args={} unless $args;
     $args;

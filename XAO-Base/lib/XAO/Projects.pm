@@ -45,7 +45,7 @@ any configuration object context.
 package XAO::Projects;
 use strict;
 use XAO::Utils qw(:args);
-use XAO::Errors qw(XAO::Errors::Projects);
+use XAO::Errors qw(XAO::Projects);
 
 ##
 # Prototypes
@@ -78,7 +78,7 @@ use vars qw(@ISA @EXPORT_OK %EXPORT_TAGS);
 # Package version for checks and reference
 #
 use vars qw($VERSION);
-($VERSION)=(q$Id: Projects.pm,v 1.1 2001/10/24 03:18:25 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: Projects.pm,v 1.2 2001/10/25 02:51:54 am Exp $ =~ /(\d+\.\d+)/);
 
 ##
 # Cache with all active project contexts and variable with current
@@ -98,12 +98,12 @@ sub create_project (%) {
     shift if $_[0] eq 'XAO::Projects';
     my $args=get_args(\@_);
     my $name=$args->{name} ||
-        throw XAO::Errors::Projects "create_project - no 'name'";
+        throw XAO::E::Projects "create_project - no 'name'";
     my $obj=$args->{object} ||
-        throw XAO::Errors::Projects "create_project - no 'object'";
+        throw XAO::E::Projects "create_project - no 'object'";
 
     $projects_cache{$name} &&
-        throw XAO::Errors::Projects "create_project - project '$name' already exists";
+        throw XAO::E::Projects "create_project - project '$name' already exists";
 
     $projects_cache{$name}=$obj;
 
@@ -123,7 +123,7 @@ XXX
 sub drop_project ($) {
     shift if $_[0] eq 'XAO::Projects';
     my $name=shift ||
-        throw XAO::Errors::Projects "drop_project - no project name given";
+        throw XAO::E::Projects "drop_project - no project name given";
 
     delete $projects_cache{$name};
     $current_project_name=undef if defined($current_project_name) &&
@@ -140,7 +140,7 @@ XXX
 
 sub get_current_project () {
     my $name=$current_project_name || 
-        throw XAO::Errors::Projects "get_current_project - no current project";
+        throw XAO::E::Projects "get_current_project - no current project";
     get_project($name);
 }
 
@@ -181,9 +181,9 @@ to get site configuration.
 sub get_project ($) {
     shift if $_[0] eq 'XAO::Projects';
     my $name=shift ||
-        throw XAO::Errors::Projects "get_project - no project name given";
+        throw XAO::E::Projects "get_project - no project name given";
     exists $projects_cache{$name} ||
-        throw XAO::Errors::Projects "get_project - no such project ($name)";
+        throw XAO::E::Projects "get_project - no such project ($name)";
     $projects_cache{$name};
 }
 
@@ -198,9 +198,9 @@ XXX
 sub set_current_project ($) {
     shift if $_[0] eq 'XAO::Projects';
     my $name=shift ||
-        throw XAO::Errors::Projects "set_current_project - no project name given";
+        throw XAO::E::Projects "set_current_project - no project name given";
     exists $projects_cache{$name} ||
-        throw XAO::Errors::Projects "set_current_project - no such project ($name)";
+        throw XAO::E::Projects "set_current_project - no such project ($name)";
     my $old_name=$current_project_name;
     $current_project_name=$name;
     $old_name;

@@ -12,6 +12,7 @@ lib/XAO/SimpleHash.pm
 lib/XAO/Utils.pm
  ------------------------------------------- testcases
 testcases/base.pm
+testcases/Errors.pm
 testcases/Objects.pm
 testcases/Projects.pm
 testcases/SimpleHash.pm

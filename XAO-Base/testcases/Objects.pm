@@ -2,8 +2,6 @@ package testcases::Objects;
 use strict;
 use XAO::SimpleHash;
 use XAO::Utils;
-use Error qw(:try);
-use XAO::Errors qw(XAO::Errors::Objects);
 
 use base qw(testcases::base);
 
