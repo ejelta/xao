@@ -869,9 +869,27 @@ sub test_key_list {
                 },
             },
         },
-        t03     => {
+        t03a     => {
             sub_pre => sub {
                 $config->put('/identify_user/member/id_cookie_type' => 'id');
+            },
+            args => {
+                mode        => 'login',
+                type        => 'member',
+                username    => 'm001',
+                password    => '12345',
+            },
+            results => {
+                cookies     => {
+                    mid         => 'm001',
+                    mkey        => '1',
+                },
+                text        => 'V',
+            },
+        },
+        t03b     => {
+            cookies => {
+                mkey        => 0,
             },
             args => {
                 mode        => 'login',
@@ -1197,6 +1215,163 @@ sub test_key_list {
                     '/IdentifyUser/member/name'     => 3,
                     '/IdentifyUser/member/id'       => 'm001',
                 },
+            },
+        },
+        #
+        # Checking timing out of sessions
+        #
+        t17     => {
+            sub_pre => sub {
+                $config->put('/identify_user/member/vf_expire_time' => 2);
+                sleep(3);
+            },
+            args => {
+                mode        => 'check',
+                type        => 'member',
+            },
+            results => {
+                cookies     => {
+                    mid         => '3',
+                },
+                text        => 'I',
+                clipboard   => {
+                    '/IdentifyUser/member/object'   => { },
+                    '/IdentifyUser/member/verified' => undef,
+                    '/IdentifyUser/member/name'     => 3,
+                    '/IdentifyUser/member/id'       => 'm001',
+                },
+            },
+        },
+        #
+        # Switching back to name mode and checking expiration again. It
+        # should keep verification key by default and with
+        # vf_key_expired='keep'.
+        #
+        t18a    => {
+            sub_pre => sub {
+                $config->put('/identify_user/member/id_cookie_type' => 'id');
+            },
+            args => {
+                mode        => 'login',
+                type        => 'member',
+                username    => 'm002',
+                password    => '23456',
+            },
+            results => {
+                cookies     => {
+                    mid         => 'm002',
+                    mkey        => '5',
+                },
+                text        => 'V',
+            },
+        },
+        t18b     => {
+            sub_pre => sub {
+                sleep(3);
+            },
+            args => {
+                mode        => 'check',
+                type        => 'member',
+            },
+            results => {
+                cookies     => {
+                    mid         => 'm002',
+                    mkey        => '5',
+                },
+                text        => 'I',
+                clipboard   => {
+                    '/IdentifyUser/member/object'   => { },
+                    '/IdentifyUser/member/verified' => undef,
+                    '/IdentifyUser/member/name'     => 'm002',
+                },
+            },
+        },
+        t18c     => {
+            args => {
+                mode        => 'check',
+                type        => 'member',
+            },
+            results => {
+                cookies     => {
+                    mid         => 'm002',
+                    mkey        => '5',
+                },
+                text        => 'I',
+                clipboard   => {
+                    '/IdentifyUser/member/object'   => { },
+                    '/IdentifyUser/member/verified' => undef,
+                    '/IdentifyUser/member/name'     => 'm002',
+                },
+            },
+        },
+        t18d   => {
+            args => {
+                mode        => 'login',
+                type        => 'member',
+                username    => 'm002',
+                password    => '23456',
+            },
+            results => {
+                cookies     => {
+                    mid         => 'm002',
+                    mkey        => '5',
+                },
+                text        => 'V',
+            },
+        },
+        t18e => {
+            sub_pre => sub {
+                $config->put('/identify_user/member/vf_key_expired' => 'clean');
+                sleep(3);
+            },
+            args => {
+                mode        => 'check',
+                type        => 'member',
+            },
+            results => {
+                cookies     => {
+                    mid         => 'm002',
+                    mkey        => '0',
+                },
+                text        => 'I',
+                clipboard   => {
+                    '/IdentifyUser/member/object'   => { },
+                    '/IdentifyUser/member/verified' => undef,
+                    '/IdentifyUser/member/name'     => 'm002',
+                },
+            },
+        },
+        t18f     => {
+            args => {
+                mode        => 'check',
+                type        => 'member',
+            },
+            results => {
+                cookies     => {
+                    mid         => 'm002',
+                    mkey        => '0',
+                },
+                text        => 'I',
+                clipboard   => {
+                    '/IdentifyUser/member/object'   => { },
+                    '/IdentifyUser/member/verified' => undef,
+                    '/IdentifyUser/member/name'     => 'm002',
+                },
+            },
+        },
+        t18g   => {
+            args => {
+                mode        => 'login',
+                type        => 'member',
+                username    => 'm002',
+                password    => '23456',
+            },
+            results => {
+                cookies     => {
+                    mid         => 'm002',
+                    mkey        => '6',
+                },
+                text        => 'V',
             },
         },
     );

@@ -77,7 +77,7 @@ use XAO::Errors qw(XAO::DO::Web::Mailer);
 use base XAO::Objects->load(objname => 'Web::Page');
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: Mailer.pm,v 1.8 2003/03/29 01:53:51 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: Mailer.pm,v 1.9 2004/03/17 07:58:19 am Exp $ =~ /(\d+\.\d+)/);
 
 sub display ($;%) {
     my $self=shift;
@@ -104,6 +104,17 @@ sub display ($;%) {
                                           $config->{from}->{$from};
     }
     $from || throw $self "display - no 'from' given";
+
+    my $from_hdr=$from;
+    if($from =~ /^\s*.*\s+<(.*\@.*)>\s*$/) {
+        $from=$1;
+    }
+    elsif($from =~ /^\s*(.*\@.*)\s+\(.*\)\s*$/) {
+        $from=$1;
+    }
+    else {
+        $from=~s/^\s*(.*?)\s*$/$1/;
+    }
 
     my $subject=$args->{subject} || $self->get_subject() || 'No subject';
 
@@ -139,7 +150,8 @@ sub display ($;%) {
     my $mailer;
     if($html && !$text) {
         $mailer=MIME::Lite->new(
-            From        => $from,
+            From        => $from_hdr,
+            FromSender  => $from,
             To          => $to,
             Subject     => $subject,
             Data        => $html,
@@ -148,7 +160,8 @@ sub display ($;%) {
     }
     elsif($text && !$html) {
         $mailer=MIME::Lite->new(
-            From        => $from,
+            From        => $from_hdr,
+            FromSender  => $from,
             To          => $to,
             Subject     => $subject,
             Data        => $text,
@@ -156,7 +169,8 @@ sub display ($;%) {
     }
     elsif($text && $html) {
         $mailer=MIME::Lite->new(
-            From        => $from,
+            From        => $from_hdr,
+            FromSender  => $from,
             To          => $to,
             Subject     => $subject,
             Type        => 'multipart/alternative',

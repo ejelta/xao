@@ -297,7 +297,7 @@ use XAO::Objects;
 use base XAO::Objects->load(objname => 'Web::Action');
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: IdentifyUser.pm,v 1.26 2004/03/17 00:22:50 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: IdentifyUser.pm,v 1.27 2004/03/17 07:58:19 am Exp $ =~ /(\d+\.\d+)/);
 
 ###############################################################################
 
@@ -386,6 +386,9 @@ sub check {
     #
     my $cb_uri=$config->{cb_uri} || "/IdentifyUser/$type";
     my $id_cookie_type=$config->{id_cookie_type} || 'name';
+    my $key_list_uri=$config->{key_list_uri};
+    my $key_ref_prop=$config->{key_ref_prop};
+    my $key_object;
     my $user=$clipboard->get("$cb_uri/object");
     if(!$user) {
         my $id_cookie=$config->{id_cookie} ||
@@ -397,22 +400,19 @@ sub check {
         }
 
         my $data;
+        my $list_uri=$config->{list_uri} ||
+            throw $self "check - no 'list_uri' in the configuration";
         if($id_cookie_type eq 'key') {
-            my $list_uri=$config->{list_uri} ||
-                throw $self "check - no 'list_uri' in the configuration";
-            my $key_list_uri=$config->{key_list_uri} ||
-                throw $self "check - key_list_uri required";
-            my $key_ref_prop=$config->{key_ref_prop} ||
-                throw $self "check - key_ref_prop required";
+            $key_list_uri || throw $self "check - key_list_uri required";
+            $key_ref_prop || throw $self "check - key_ref_prop required";
     
             my $user_list=$self->odb->fetch($list_uri);
             my $key_list=$self->odb->fetch($key_list_uri);
-            my $key_obj;
             my $user_id;
             my $user_obj;
             try {
-                $key_obj=$key_list->get($cookie_value);
-                ($user_id,$last_vf)=$key_obj->get($key_ref_prop,$vf_time_prop);
+                $key_object=$key_list->get($cookie_value);
+                ($user_id,$last_vf)=$key_object->get($key_ref_prop,$vf_time_prop);
                 $user_obj=$user_list->get($user_id);
             }
             otherwise {
@@ -425,12 +425,10 @@ sub check {
                 object      => $user_obj,
                 id          => $user_id,
                 name        => $cookie_value,
-                key_object  => $key_obj,
+                key_object  => $key_object,
             };
         }
         elsif($id_cookie_type eq 'id' && $config->{user_prop}) {
-            my $list_uri=$config->{list_uri} ||
-                throw $self "check - no 'list_uri' in the configuration";
             my $list=$self->odb->fetch($list_uri);
 
             my $user_prop=$config->{user_prop};
@@ -489,10 +487,17 @@ sub check {
         # Updating cookie, not doing it every time -- same reason as for
         # verification cookie below.
         #
-        $last_vf=$user->get($vf_time_prop) unless defined $last_vf;
         my $id_cookie_expire=$config->{id_cookie_expire} || 4*365*24*60*60;
-        my $quant=int($id_cookie_expire/20);
-        if($current_time-$last_vf > $quant) {
+        my $set_cookie_flag;
+        if($key_list_uri) {
+            $set_cookie_flag=1;
+        }
+        else {
+            $last_vf=$user->get($vf_time_prop) unless defined $last_vf;
+            my $quant=int($id_cookie_expire/20);
+            $set_cookie_flag=($current_time-$last_vf > $quant);
+        }
+        if($set_cookie_flag) {
             $self->siteconfig->add_cookie(
                 -name    => $id_cookie,
                 -value   => $cookie_value,
@@ -512,6 +517,31 @@ sub check {
         my $vcookie;
 
         ##
+        # If we have a list of keys find the key that belongs to this
+        # browser. If there is not one, assume at most 'identified'
+        # status.
+        #
+        my $vf_key_cookie=$config->{vf_key_cookie};
+        if($key_list_uri && !$key_object) {
+            my $key_list=$self->odb->fetch($key_list_uri);
+            if($vf_key_cookie) {
+                my $key_id=$self->cgi->cookie($vf_key_cookie);
+                if($key_id) {
+                    try {
+                        $key_object=$key_list->get($key_id);
+                        if($key_object->get($key_ref_prop) ne $user->container_key) {
+                            $key_object=undef;
+                        }
+                    }
+                    otherwise {
+                        my $e=shift;
+                        dprint "IGNORED(OK): $e";
+                    };
+                }
+            }
+        }
+
+        ##
         # Checking the difference between the current time and the time
         # of last verification
         #
@@ -519,14 +549,16 @@ sub check {
             throw $self "No 'vf_expire_time' in the configuration";
         my $quant=int($vf_expire_time/20);
 
-        if(!defined $last_vf) {
-            my $key_object=$clipboard->get("$cb_uri/key_object");
+        if($key_list_uri) {
             if($key_object) {
                 $last_vf=$key_object->get($vf_time_prop);
             }
             else {
-                $last_vf=$user->get($vf_time_prop);
+                $last_vf=0;
             }
+        }
+        else {
+            $last_vf=$user->get($vf_time_prop);
         }
 
         if($last_vf && $current_time - $last_vf <= $vf_expire_time) {
@@ -536,10 +568,8 @@ sub check {
             # are present checking the content of the key cookie and
             # appropriate field in the user profile
             #
-            if(!exists $config->{key_list_uri} &&
-               ($config->{vf_key_prop} && $config->{vf_key_cookie})
-              ) {
-                my $web_key=$self->cgi->cookie($config->{vf_key_cookie}) || '';
+            if(!$key_list_uri && $config->{vf_key_prop} && $vf_key_cookie) {
+                my $web_key=$self->cgi->cookie($vf_key_cookie) || '';
                 my $db_key=$user->get($config->{vf_key_prop}) || '';
                 if($web_key && $db_key eq $web_key) {
                     $verified=1;
@@ -605,19 +635,22 @@ sub check {
     }
 
     ##
-    # If we are failed to verify and we have a verification cookie
-    # given to use, we remove that cookie. That helps better track
-    # verification from browser side applications and should not hurt
-    # anything else.
+    # If we are failed to verify and we have a configuration parameter
+    # called 'vf_key_strict' we remove 'vf_key_cookie' cookie.
+    # That might help better track verification from browser side
+    # applications and should not hurt anything else.
     #
-    if(!$verified && $self->cgi->cookie($config->{vf_key_cookie})) {
-        $self->siteconfig->add_cookie(
-            -name    => $config->{vf_key_cookie},
-            -value   => 0,
-            -path    => '/',
-            -expires => '+20m',
-            -domain  => $cookie_domain,
-        );
+    if(!$verified && $config->{vf_key_cookie}) {
+        my $vf_key_expired=$config->{vf_key_expired} || 'keep';
+        if($vf_key_expired eq 'clean') {
+            $self->siteconfig->add_cookie(
+                -name    => $config->{vf_key_cookie},
+                -value   => 0,
+                -path    => '/',
+                -expires => 'now',
+                -domain  => $cookie_domain,
+            );
+        }
     }
 
     ##
@@ -860,19 +893,47 @@ sub login ($;%) {
             throw $self "login - key_ref_prop required";
         my $key_expire_prop=$config->{key_expire_prop} ||
             throw $self "login - key_expire_prop required";
-        my $key_expire_mode=$config->{key_expire_prop} || 'auto';
         my $vf_expire_time=$config->{vf_expire_time} ||
             throw $self "login - no vf_expire_time in the configuration";
 
+        my $key_id;
+        my $vf_key_cookie=$config->{vf_key_cookie};
+        if($id_cookie_type eq 'key') {
+            $key_id=$self->cgi->cookie($id_cookie);
+        }
+        elsif($vf_key_cookie) {
+            $key_id=$self->cgi->cookie($vf_key_cookie);
+        }
+        else {
+            throw $self "login - id_cookie_type!=key and there is no vf_key_cookie";
+        }
+
         my $key_list=$self->odb->fetch($key_list_uri);
-        my $key_obj=$key_list->get_new;
+        my $key_obj;
+        if($key_id) {
+            try {
+                $key_obj=$key_list->get($key_id);
+                if($key_obj->get($key_ref_prop) ne $user->container_key) {
+                    $key_obj=undef;
+                }
+            }
+            otherwise {
+                my $e=shift;
+                dprint "IGNORED(OK): $e";
+            };
+        }
+
         my $now=time;
-        $key_obj->put(
-            $key_ref_prop       => $user->container_key,
-            $key_expire_prop    => $now+$vf_expire_time,
-            $vf_time_prop       => $now,
-        );
-        my $key_id=$key_list->put($key_obj);
+        if(!$key_obj) {
+            $key_obj=$key_list->get_new;
+            $key_obj->put(
+                $key_ref_prop       => $user->container_key,
+                $key_expire_prop    => $now+$vf_expire_time,
+                $vf_time_prop       => $now,
+            );
+            $key_id=$key_list->put($key_obj);
+            $key_obj=$key_list->get($key_id);
+        }
 
         if($config->{vf_time_user_prop}) {
             $user->put($config->{vf_time_user_prop} => $now);
@@ -887,6 +948,7 @@ sub login ($;%) {
                 -domain  => $cookie_domain,
             );
             $data->{name}=$key_id;
+            $data->{key_object}=$key_obj;
         }
         elsif($config->{vf_key_cookie}) {
             $self->siteconfig->add_cookie(
@@ -897,8 +959,19 @@ sub login ($;%) {
                 -domain  => $cookie_domain,
             );
         }
-        else {
-            throw $self "login - id_cookie_type!=key and there is no vf_key_cookie";
+
+        ##
+        # Auto expiring some keys
+        #
+        my $key_expire_mode=$config->{key_expire_mode} || 'auto';
+        if($key_expire_mode eq 'auto') {
+            my $cutoff=time - 10*$vf_expire_time;
+            $self->odb->transact_begin;
+            my $sr=$key_list->search($key_expire_prop,'lt',$cutoff,{ limit => 5 });
+            foreach my $key_id (@$sr) {
+                $key_list->delete($key_id);
+            }
+            $self->odb->transact_commit;
         }
     }
     elsif($config->{vf_key_prop} && $config->{vf_key_cookie}) {
