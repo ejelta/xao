@@ -1,3 +1,6 @@
+1.05 -
+    * aTHX_ fix from Mike Castle (perl-5.8.0 with ithread support)
+
 1.04 - 7-Nov-2002
     * XAO::Page - new 5 times faster C parser is used
     * XAO::PageSupport - new parser that supports '' and {''}

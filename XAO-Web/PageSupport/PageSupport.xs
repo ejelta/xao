@@ -400,14 +400,14 @@ pop()
             }
             text=buffer+bufpos;
         }
-		RETVAL=newSVpvn(aTHX_ text,len);
+		RETVAL=newSVpvn(text,len);
 	OUTPUT:
 	    RETVAL
 
 void
 addtext(text)
         unsigned int len=0;
-		char * text=SvPV(aTHX_ ST(0),len);
+		char * text=SvPV(ST(0),len);
 	CODE:
 		if(text && len) {
 	        if(bufpos+len >= bufsize) {
@@ -426,7 +426,7 @@ addtext(text)
 SV *
 parse(text)
         unsigned int length=0;
-        char *template=SvPV(aTHX_ ST(0),length);
+        char *template=SvPV(ST(0),length);
     CODE:
         RETVAL=parse_text(aTHX_ template, length);
     OUTPUT:
