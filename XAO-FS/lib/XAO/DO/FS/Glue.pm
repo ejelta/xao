@@ -1315,14 +1315,16 @@ sub _list_store_object ($$$) {
         $self->throw("_list_store_object - wrong objname ".$value->objname.", should be $self->{class_name}");
 
     my $desc=$value->_class_description;
-    my %fields;
+    my @flist;
     foreach my $fn (keys %{$desc->{fields}}) {
         my $type=$desc->{fields}->{$fn}->{type};
         next if $type eq 'list';
         next if $type eq 'key';
         next if $type eq 'connector';
-        $fields{$fn}=$value->get($fn);
+        push @flist, $fn;
     }
+    my %fields;
+    @fields{@flist}=$value->get(@flist);
 
     my $table=$desc->{table};
     $table || $self->throw("_list_store_object - no table");
