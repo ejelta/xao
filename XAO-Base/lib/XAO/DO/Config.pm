@@ -49,6 +49,9 @@ use strict;
 use XAO::Utils;
 use XAO::Errors qw(XAO::DO::Config);
 
+use vars qw($VERSION);
+($VERSION)=(q$Id: Config.pm,v 1.5 2002/01/04 02:00:15 am Exp $ =~ /(\d+\.\d+)/);
+
 ###############################################################################
 # Prototypes
 #

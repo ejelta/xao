@@ -34,6 +34,9 @@ use strict;
 use vars qw(%errors_cache);
 use Error;
 
+use vars qw($VERSION);
+($VERSION)=(q$Id: Errors.pm,v 1.5 2002/01/04 02:00:15 am Exp $ =~ /(\d+\.\d+)/);
+
 sub import {
     my $class=shift;
     my @list=@_;
