@@ -89,7 +89,7 @@ use XAO::Errors qw(XAO::Objects);
 use XAO::Projects;
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: Objects.pm,v 1.11 2003/07/03 05:27:21 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: Objects.pm,v 1.12 2004/06/07 17:55:01 am Exp $ =~ /(\d+\.\d+)/);
 
 ##
 # Prototypes
@@ -163,18 +163,26 @@ sub load (@) {
         (my $objfile=$objname) =~ s/::/\//sg;
         $objfile="$projectsdir/$sitename/objects/$objfile.pm";
         if(-f $objfile && open(F,$objfile)) {
-            local $/;
-            my $text=<F>;
+
+            ##
+            # Changing $/ can affect module initialization below, so
+            # making it in as small scope as possible (bug fix by Eugene
+            # Karpachov).
+            #
+            my $text=do { local $/; <F> };
             close(F);
+
             $text=~s{^\s*(package\s+(XAO::DO|Symphero::Objects))::($objname\s*;)}
                     {${1}::${sitename}::${3}}m;
             $1 || throw XAO::E::Objects
                   "load - package name is not XAO::DO::$objname in $objfile";
             $2 eq 'XAO::DO' ||
                 eprint "Old style package name in $objfile - change to XAO::DO::$objname";
+
             eval "\n#line 1 \"$objfile\"\n" . $text;
             throw XAO::E::Objects
                   "load - error loading $objname ($objfile) -- $@" if $@;
+
             $objref="XAO::DO::${sitename}::${objname}";
         }
         $system=0;
