@@ -46,7 +46,7 @@ sub new ($@);
 # Package version for checks and reference
 #
 use vars qw($VERSION);
-($VERSION)=(q$Id: Config.pm,v 1.6 2002/05/17 05:19:03 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: Config.pm,v 1.7 2003/06/26 03:13:53 am Exp $ =~ /(\d+\.\d+)/);
 
 ###############################################################################
 
@@ -338,6 +338,7 @@ sub header_args ($@) {
     my $self=shift;
     my $args=get_args(\@_);
     @{$self->{header_args}}{keys %{$args}}=values %{$args};
+    return $self->{header_args};
 }
 
 ###############################################################################

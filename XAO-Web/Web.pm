@@ -2,6 +2,7 @@
 
 package XAO::Web;
 use strict;
+use CGI;
 use XAO::Utils;
 use XAO::Projects;
 use XAO::Objects;
@@ -99,7 +100,7 @@ Methods of XAO::Web objects include:
 
 ###############################################################################
 
-sub analyze ($@);
+sub analyze ($$;$);
 sub clipboard ($);
 sub config ($);
 sub execute ($%);
@@ -109,10 +110,11 @@ sub sitename ($);
 
 ###############################################################################
 
-=item analyze (@)
+=item analyze ($)
 
-Checks how to display the given path. Always returns valid results or
-throws an error if that can't be accomplished.
+Checks how to display the given path (scalar or split up array
+reference). Always returns valid results or throws an error if that
+can't be accomplished.
 
 Returns hash reference:
 
@@ -124,22 +126,23 @@ Returns hash reference:
 
 =cut
  
-sub analyze ($@) {
-    my $self=shift;
-    my $siteconfig=$self->config;
+sub analyze ($$;$) {
+    my ($self,$patharr,$sitename)=@_;
 
-    my @path=@_;
-    shift @path while @path && !length($path[0]);
-    unshift(@path,'');
-    my $path=join('/',@path);
+    $patharr=[ split(/\/+/,$patharr) ] unless ref $patharr;
+
+    shift @$patharr while @$patharr && !length($patharr->[0]);
+    unshift(@$patharr,'');
+    my $path=join('/',@$patharr);
 
     ##
     # Looking for the object matching the path.
     #
+    my $siteconfig=$self->config;
     my $table=$siteconfig->get('path_mapping_table');
     if($table) {
-        for(my $i=@path; $i>=0; $i--) {
-            my $dir=$i ? join('/',@path[0..$i-1]) : '';
+        for(my $i=@$patharr; $i>=0; $i--) {
+            my $dir=$i ? join('/',@{$patharr}[0..$i-1]) : '';
 
             my $od=$table->{$dir} ||
                    $table->{'/'.$dir} ||
@@ -148,33 +151,43 @@ sub analyze ($@) {
             next unless defined $od;
 
             ##
-            # If $od is an empty string or an ampty array reference --
+            # If $od is an empty string or an empty array reference --
             # that means that we need to fall back to default handler
             # for that path.
             #
-            my $objname;
-            my %args;
-            if(ref($od)) {
+            my $rhash;
+            if(ref($od) eq 'HASH') {
+                $rhash=merge_refs($od);
+            }
+            elsif(ref($od) eq 'ARRAY') {
                 last unless @$od;
-                $objname=$od->[0];
+                my %args;
                 if(scalar(@{$od})%2 == 1) {
                     %args=@{$od}[1..$#{$od}];
                 }
                 else {
-                    throw XAO::E::Web "analyze - odd number of arguments in mapping table, dir=$dir, objname=$objname";
+                    throw XAO::E::Web "analyze - odd number of arguments in the mapping table, dir=$dir, objname=$od->[0]";
                 }
+                $rhash={
+                    type        => 'xaoweb',
+                    objname     => $od->[0],
+                    objargs     => \%args,
+                };
             }
             else {
                 last unless length($od);
-                $objname=$od;
+                $rhash={
+                    type        => 'xaoweb',
+                    objname     => $od,
+                    objargs     => { },
+                };
             }
-            return {
-                objname => $objname,
-                objargs => \%args,
-                path => join('/',@path[$i..$#path]),
-                prefix => $dir,
-                fullpath => $path,
-            };
+
+            $rhash->{path}=join('/',@{$patharr}[$i..$#$patharr]);
+            $rhash->{prefix}=$dir;
+            $rhash->{fullpath}=$path;
+
+            return $rhash;
         }
     }
 
@@ -182,12 +195,16 @@ sub analyze ($@) {
     # Now looking for exactly matching template and returning Page
     # object if found.
     #
-    if(XAO::Templates::check(path => $path)) {
+    my $filename=XAO::Templates::filename($path,$sitename);
+    if($filename) {
         return {
-            objname => 'Page',
-            path => $path,
-            fullpath => $path,
-            prefix => join('/',@path[0..($#path-1)])
+            type        => 'xaoweb',
+            objname     => 'Page',
+            objargs     => { },
+            path        => $path,
+            fullpath    => $path,
+            prefix      => join('/',@{$patharr}[0..($#$patharr-1)]),
+            filename    => $filename,
         };
     }
 
@@ -195,10 +212,11 @@ sub analyze ($@) {
     # Nothing was found, returning Default object
     #
     return {
-        objname => 'Default',
-        path => $path,
-        fullpath => $path,
-        prefix => ''
+        type        => 'notfound',
+        objname     => 'Default',
+        path        => $path,
+        fullpath    => $path,
+        prefix      => ''
     };
 }
 
@@ -255,18 +273,29 @@ sub execute ($%) {
     # when page includes something like Redirect object.
     #
     if(defined($header)) {
-        print $header,
-              $pagetext;
+        if(my $r=$args->{apache}) {
+            my $h=$self->config->header_args;
+            while(my ($n,$v)=each %$h) {
+                $r->header_out($n => $v);
+                $r->err_header_out($n => $v);
+            }
+            $r->send_http_header;
+            $r->print($pagetext) unless $r->header_only;
+        }
+        else {
+            print $header,
+                  $pagetext;
+        }
     }
 }
 
 ###############################################################################
 
-=item expand (%) {
+=item expand (%)
 
-Expands given `path' using given `cgi' environment. Returns just the
-text of the page in scalar context and page content plus header content
-in array context.
+Expands given `path' using given `cgi' or 'apache' environment. Returns
+just the text of the page in scalar context and page content plus header
+content in array context.
 
 This is normally used in scripts to execute only a particular template
 and get results of execution.
@@ -283,13 +312,50 @@ Example:
                              MIN_TIME    => time - 86400 * 7,
                          });
 
+See also lower level process() method.
+
 =cut
 
 sub expand ($%) {
     my $self=shift;
     my $args=get_args(\@_);
 
-    my $cgi=$args->{cgi} || throw XAO::E::Web "expand - no 'cgi' given";
+    ##
+    # Processing the page and getting its text
+    #
+    my $pagetext=$self->process($args);
+
+    ##
+    # In scalar context (normal cases) we return only the resulting page
+    # text. In array context (compatibility) we return header as well.
+    #
+    my $siteconfig=$self->config;
+    if(wantarray) {
+        my $header=$siteconfig->header;
+        $siteconfig->cleanup;
+        return ($pagetext,$header);
+    }
+    else {
+        $siteconfig->cleanup;
+        return $pagetext;
+    }
+}
+
+###############################################################################
+
+=item process (%)
+
+Takes the same arguments as the expand() method returning expanded page
+text. Does not clean the site context and should not be called directly
+-- for normal situations either expand() or execute() methods should be
+called.
+
+=cut
+
+sub process ($%) {
+    my $self=shift;
+    my $args=get_args(\@_);
+
     my $siteconfig=$self->config;
     my $sitename=$self->sitename;
 
@@ -321,32 +387,39 @@ sub expand ($%) {
     # CGI usage.
     #
     my $active_url;
-    if(defined($CGI::VERSION) && $CGI::VERSION>=2.80) {
-        $active_url=$cgi->url(-base => 1, -full => 0);
-        my $pinfo=$ENV{PATH_INFO} || '';
-        my $uri=$ENV{REQUEST_URI} || '';
-        $uri=~s/^(.*?)\?.*$/$1/;
-        if($pinfo =~ /^\/\Q$sitename\E(\/.+)?\Q$uri\E/) {
-            # mod_rewrite
-        }
-        elsif($pinfo && $uri =~ /^(.*)\Q$pinfo\E$/) {
-            # cgi
-            $active_url.=$1;
-        }
-        # dprint ">2.8 $active_url";
+    my $apache=$args->{apache};
+    my $cgi=$args->{cgi} || CGI->new;
+    if($apache) {
+        $active_url="http://" . $apache->hostname;
     }
     else {
-        $active_url=$cgi->url(-full => 1, -path_info => 0);
-        $active_url=$1 if $active_url=~/^(.*)(\Q$path\E)$/;
-        # dprint "<2.8 $active_url";
-    }
+        if(defined($CGI::VERSION) && $CGI::VERSION>=2.80) {
+            $active_url=$cgi->url(-base => 1, -full => 0);
+            my $pinfo=$ENV{PATH_INFO} || '';
+            my $uri=$ENV{REQUEST_URI} || '';
+            $uri=~s/^(.*?)\?.*$/$1/;
+            if($pinfo =~ /^\/\Q$sitename\E(\/.+)?\Q$uri\E/) {
+                # mod_rewrite
+            }
+            elsif($pinfo && $uri =~ /^(.*)\Q$pinfo\E$/) {
+                # cgi
+                $active_url.=$1;
+            }
+            # dprint ">2.8 $active_url";
+        }
+        else {
+            $active_url=$cgi->url(-full => 1, -path_info => 0);
+            $active_url=$1 if $active_url=~/^(.*)(\Q$path\E)$/;
+            # dprint "<2.8 $active_url";
+        }
 
-    ##
-    # Trying to understand if rewrite module was used or not. If not
-    # - adding sitename to the end of guessed URL.
-    #
-    if($active_url =~ /cgi-bin/ || $active_url =~ /xao-[\w-]+\.pl/) {
-        $active_url.="/$sitename";
+        ##
+        # Trying to understand if rewrite module was used or not. If not
+        # - adding sitename to the end of guessed URL.
+        #
+        if($active_url =~ /cgi-bin/ || $active_url =~ /xao-[\w-]+\.pl/) {
+            $active_url.="/$sitename";
+        }
     }
 
     ##
@@ -407,7 +480,7 @@ sub expand ($%) {
     ##
     # Checking if we're running under mod_perl
     #
-    my $mod_perl=$ENV{MOD_PERL} ? 1 : 0;
+    my $mod_perl=($apache || $ENV{MOD_PERL}) ? 1 : 0;
     $siteconfig->clipboard->put(mod_perl => $mod_perl);
 
     ##
@@ -423,25 +496,28 @@ sub expand ($%) {
     #
     my @path=split(/\//,$path);
     push(@path,"") unless @path;
-    push(@path,"index.html") if $cgi->path_info =~ /\/$/;
+    push(@path,"index.html") if $path =~ /\/$/;
     if($path[-1] !~ /\.\w+$/) {
-        my $pd=$self->analyze(@path,'index.html');
+        my $pd=$self->analyze([ @path,'index.html' ]);
+        #use Data::Dumper; dprint "pd=",Dumper($pd);
         if($pd->{objname} ne 'Default') {
-            my $newpath=$siteconfig->get('base_url') . $path . '/';# cgi->url(-full => 1, -path_info => 1)."/";
+            my $newpath=$siteconfig->get('base_url') . $path . '/';
             dprint "Redirecting $path to $newpath";
-            print $cgi->redirect(-url => $newpath),
-                  "Document is really <A HREF=\"$newpath\">here</A>.\n";
-            return;
+            $siteconfig->header_args(
+                -Location   => $newpath,
+                -Status     => 302,
+            );
+            return "Directory index redirection\n";
         }
     }
 
     ##
     # Checking existence of the page.
     #
-    my $pd=$self->analyze(@path);
+    my $pd=$args->{pagedesc} || $self->analyze(\@path);
 
     ##
-    # Separator for error_log :)
+    # Separator for the error_log :)
     #
     my @d=localtime;
     my $date=sprintf("%02u:%02u:%02u %u/%02u/%04u",$d[2],$d[1],$d[0],$d[4]+1,$d[3],$d[5]+1900);
@@ -457,7 +533,7 @@ sub expand ($%) {
     ##
     # We accumulate page content here
     #
-    my $pagetext;
+    my $pagetext='';
 
     ##
     # Do we need to run any objects before executing? A good place to
@@ -500,16 +576,9 @@ sub expand ($%) {
     $pagetext.=$obj->expand($objargs);
 
     ##
-    # Getting page header
+    # Done!
     #
-    my $header=$siteconfig->header;
-
-    ##
-    # Cleaning up the configuration
-    #
-    $siteconfig->cleanup;
-
-    return wantarray ? ($pagetext,$header) : $pagetext;
+    return $pagetext;
 }
 
 ###############################################################################

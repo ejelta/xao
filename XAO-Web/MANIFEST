@@ -12,6 +12,7 @@ PageSupport/Makefile.PL
 PageSupport/PageSupport.pm
 PageSupport/PageSupport.xs
  --------------------------------- XAO::*
+lib/Apache/XAO.pm
 lib/XAO/DO/Web/Action.pm
 lib/XAO/DO/Web/CgiParam.pm
 lib/XAO/DO/Web/Clipboard.pm
@@ -39,6 +40,7 @@ lib/XAO/DO/Web/TextTable.pm
 lib/XAO/DO/Web/URL.pm
 lib/XAO/DO/Web/Utility.pm
 lib/XAO/PluginUtils.pm
+lib/XAO/PreLoad.pm
 lib/XAO/Templates.pm
 lib/XAO/Web/Intro.pod
  --------------------------------- Handlers
@@ -73,6 +75,7 @@ testcases/WebFS.pm
 testcases/WebUtility.pm
 testcases/Web.pm
 testcases/WebSetArg.pm
+testcases/WebStyler.pm
 testcases/WebTextTable.pm
 testcases/WebURL.pm
  --------------------------------- Test installation tree
@@ -96,6 +99,7 @@ testcases/testroot/templates/system.txt
 misc/vim/HOWTO
 misc/vim/scripts.vim
 misc/vim/xaoweb.vim
+misc/web-bench.pl
  --------------------------------- Benchmarking
 bench/bench.pl
 bench/results-20020719-am-workstation.txt

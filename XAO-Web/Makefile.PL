@@ -81,10 +81,9 @@ EOT
 my %man3pods;
 foreach my $n (keys %{ExtUtils::Manifest::maniread()}) {
     next unless $n =~ '^(Web).pm$' ||
-                $n =~ '^lib/XAO/(.*)\.(pm|pod)$';
+                $n =~ '^lib/(.*)\.(pm|pod)$';
     my $man=$1;
     $man=~s/\/+/::/g;
-    $man='XAO::' . $man;
 
     open(F,$n) || die "Can't read $n: $!";
     my $pod=0;
