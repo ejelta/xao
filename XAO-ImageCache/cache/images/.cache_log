@@ -221,3 +221,15 @@
 [Apr  2 2002 16:05:10] ----- XAO Image Cache Initialization started -----
 [Apr  2 2002 16:05:10] ----- XAO Image Cache finished -----
 [Apr  2 2002 16:05:10] ----- XAO Image Cache finished -----
+[Apr 11 2002 16:56:07] ----- XAO Image Cache Initialization started -----
+[Apr 11 2002 16:56:07] Image Cache directory './cache/source/' created.
+[Apr 11 2002 16:56:07] Thumbnail Cache directory './cache/thumbnails/' created.
+[Apr 11 2002 16:56:07] ERROR - can't get header 'http://localhost/icons/apache_pb.gif' 500 (Internal Server Error) Can't connect to localhost:80 (Timeout)
+Client-Date: Thu, 11 Apr 2002 23:56:07 GMT
+
+
+
+[Apr 11 2002 16:56:07] ----- XAO Image Cache finished -----
+[Apr 11 2002 16:56:07] ----- XAO Image Cache Initialization started -----
+[Apr 11 2002 16:56:07] ----- XAO Image Cache finished -----
+[Apr 11 2002 16:56:07] ----- XAO Image Cache finished -----

@@ -1,6 +1,6 @@
 =head1 NAME
 
-XAO::ImageCache - Images Cashing by it's URL's stored in 
+XAO::ImageCache - Images Caching by it's URL's stored in 
 XAO Foundation Server
 
 =head1 SYNOPSIS
@@ -42,9 +42,9 @@ local URL of image back to data object.
 package XAO::ImageCache;
 use strict;
 use vars qw($VERSION);
-use Error qw(:try);
 use XAO::Utils;
 use XAO::FS;
+use XAO::Errors qw(XAO::ImageCache);
 use Digest::MD5 qw(md5 md5_hex md5_base64);
 use LWP::UserAgent;
 use URI;
@@ -57,7 +57,7 @@ use File::Copy;
 # Package version
 #
 
-($VERSION)=(q$Id: ImageCache.pm,v 1.1 2002/04/03 00:09:58 alves Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: ImageCache.pm,v 1.2 2002/04/13 03:20:09 am Exp $ =~ /(\d+\.\d+)/);
 
 sub DESTROY {
     my $self = shift;
@@ -345,33 +345,22 @@ sub check($) {
     my $list    = $self->{list};
     my @key     = $list->keys;
 
-    for (my $i=0;$i<@key;$i++){
+    foreach my $item_id (@key) {
 
-        my $item        = $list->get($key[$i]);
+        dprint "Checking ID='$item_id'";
+
+        my $item        = $list->get($item_id);
         my $img_src_url = $item->get($img_src_url_key);
         my $thm_src_url = $thm_src_url_key ? $item->get($thm_src_url_key) : '';
 
-        # XXX *** REMOVE THIS ONCE ANDREW FIXES IMPORT FILTER ***
-        # XXX Clear destination url key and set source url key if
-        # XXX source is empty and destination has something (presumably
-        # XXX the source url)
-        my $img_dest_url = $item->get($img_dest_url_key);
-        my $thm_dest_url = $item->get($thm_dest_url_key);
-        if (!$img_src_url && $img_dest_url) {
-            $img_src_url  = $img_dest_url;
-            $img_dest_url = '';
-            $item->put($img_src_url_key,  $img_src_url);
-            $item->put($img_dest_url_key, $img_dest_url);
-            if (!$thm_src_url && $thm_dest_url) {
-                $thm_src_url  = $thm_dest_url;
-                $thm_dest_url = '';
-                $item->put($thm_src_url_key,  $thm_src_url);
-                $item->put($thm_dest_url_key, $thm_dest_url);
-            }
-        }
-        # XXX *** REMOVAL STOPS HERE ***
+        ##
+        # Skipping products without images
+        #
+        next unless $img_src_url || $thm_src_url;
 
+        ##
         # Download source image and create cache image and thumbnail
+        #
         my ($img_cache_file, $thm_cache_file) = $self->download(
                                                     $item,
                                                     $img_src_url,
@@ -439,66 +428,92 @@ sub download ($$) {
     }
 
     #
-    # Download thumbnail if specified and resize (keep source and resized images)
+    # Download thumbnail if specified and resize (keep source and
+    # resized images). If the file is missed in the cache, but it
+    # exists in the sources and is actual -- then resizing it without
+    # downloading.
     #
     my $time_now = time;
     if ($thm_cache_path && $thm_src_url) {
-        my $response = $user_agent->head($thm_src_url);
-        if ($response->is_success) {
-            my $mtime_local = (stat($thm_src_file))[9];
-            my $period = $time_now - $mtime_local;
-            if ($period > $self->{min_period}) {
-                my $mtime_src   = convert_time($response->header('Last-Modified'));
-                if ((!-r $thm_src_file) || ($mtime_local < $mtime_src) || $self->{reload}) {
-                    if ($self->download_file($thm_src_url, $thm_src_file)) {
-                        $self->thumbnail($thm_src_file, $thm_cache_file); # resize
+        my $mtime_src = (stat($thm_src_file))[9];
+        my $period = $time_now - $mtime_src;
+        if ($period > $self->{min_period}) {
+            my $response = $user_agent->head($thm_src_url);
+            if ($response->is_success) {
+                my $mtime_web = convert_time($response->header('Last-Modified'));
+                if ((!-r $thm_src_file) || ($mtime_src < $mtime_web) || $self->{reload}) {
+                    if(!$self->download_file($thm_src_url, $thm_src_file)) {
+                        $self->cache_log("ERROR - can't get thumbnail image '$thm_src_url'");
+                        $thm_src_file='';
                     }
                 }
             }
             else {
-                $self->cache_log("THUMBNAIL SOURCE FILE CURRENT: $thm_src_url");
+                $self->cache_log("ERROR - can't get thumbnail header '$thm_src_url' ".$response->as_string);
+                $thm_src_file = '';
             }
         }
         else {
-            $self->cache_log("ERROR - can't get thumbnail header '$thm_src_url' ".$response->as_string);
-            $thm_src_file = '';
+            $self->cache_log("THUMBNAIL SOURCE FILE CURRENT: $thm_src_url");
+        }
+
+        ##
+        # Resizing if required
+        #
+        if($thm_src_file) {
+            my $mtime_cache=(stat($thm_cache_file))[9];
+            if($mtime_cache<=$mtime_src) {
+                $self->thumbnail($thm_src_file, $thm_cache_file);
+            }
         }
     }
 
+    # Download source image and resize (keep source and resized
+    # images). Only download source image if cached image not present or
+    # older than source.
     #
-    # Download source image and make resize (keep source and resized images)
-    #
-    my $response = $user_agent->head($img_src_url);
-    if ($response->is_success) {
-
-        # Download source image if cached image not present or older than source.
-        my $mtime_local = (stat($img_src_file))[9];
-        my $period = $time_now - $mtime_local;
-        if ($period > $self->{min_period}) {
-            my $mtime_src   = convert_time($response->header('Last-Modified'));
-            if ((!-r $img_src_file) || ($mtime_local < $mtime_src) || $self->{reload}) {
-                unless ($self->download_file($img_src_url, $img_src_file)) {
+    my $mtime_src = (stat($img_src_file))[9];
+    my $period = $time_now - $mtime_src;
+    if ($period > $self->{min_period}) {
+        my $response = $user_agent->head($img_src_url);
+        if ($response->is_success) {
+            my $mtime_web = convert_time($response->header('Last-Modified'));
+            if ((!-r $img_src_file) || ($mtime_src < $mtime_web) || $self->{reload}) {
+                if(! $self->download_file($img_src_url, $img_src_file)) {
                     $self->cache_log("ERROR - download failure: $img_src_url -> $img_src_file");
-                    return undef;
+                    $img_src_file='';
                 }
-                $self->{size} ? $self->resize($img_src_file, $img_cache_file)
-                              : copy($img_src_file, $img_cache_file);
             }
             else {
                 $self->cache_log("IMAGE SOURCE FILE CURRENT: $img_src_url");
             }
         }
         else {
-            $self->cache_log("IMAGE SOURCE FILE CURRENT: $img_src_url");
+            $self->cache_log("ERROR - can't get header for: $img_src_url");
+            $img_src_file='';
         }
-
-        # Create thumbnail from image cache file if necessary
-        $self->thumbnail($img_cache_file, $thm_cache_file) if $thm_cache_path
-                                                           && !$thm_src_url;
     }
-    else {
-        $self->cache_log("ERROR - can't get header '$img_src_url' ".$response->as_string);
-        return undef;
+
+    # Now checking if the source file we have is newer then what's in
+    # the cache and updating the cache in that case.
+    #
+    my $mtime_cache=(stat($img_cache_file))[9];
+    if($mtime_cache < $mtime_src) {
+        if($self->{size}) {
+            $self->resize($img_src_file, $img_cache_file);
+        }
+        else {
+            copy($img_src_file, $img_cache_file);
+        }
+    }
+
+    # Create thumbnail from the image source file if necessary
+    #
+    if($thm_cache_file && !$thm_src_url) {
+        $mtime_cache=(stat($thm_cache_file))[9];
+        if($mtime_cache < $mtime_src) {
+            $self->thumbnail($img_src_file, $thm_cache_file);
+        }
     }
 
     return ($img_fnm, $thm_fnm);
@@ -568,7 +583,8 @@ sub resize($$) {
         return;
     }
                
-    # Counting cached image width and height
+    # Getting cached image width and height
+    #
     if($self->{size}->{geometry}){
         $geometry = $self->{size}->{geometry}; # size was set as geometry string
     }
@@ -678,10 +694,11 @@ Parameter should be an error or notice message.
 sub error_log($$) {
     my $self = shift;
     my $mess = shift;
-    $self->cache_log($mess);
-    $self->cache_log("TERMINATED BY ERROR!!!");
-    dprint("ABORTED! $mess");
-    exit 1;
+    throw XAO::E::ImageCache $mess;
+    ## $self->cache_log($mess);
+    ## $self->cache_log("TERMINATED BY ERROR!!!");
+    ## dprint("ABORTED! $mess");
+    ## exit 1;
 }
 
 ###############################################################################
@@ -690,13 +707,14 @@ sub error_log($$) {
 sub cache_log($$) {
     my $self = shift;
     my $mess = shift;
-    my $log_file = $self->{log_file} || ($self->{cache_path} || "./").".cache_log";
-    my $log_mess = &UnixDate("today","[%b %e %Y %T] ");
-    $log_mess .= $mess;
-    
-    open(EL,">> $log_file") || die "Can't open log file ($log_file) for write $!";
-        print EL "$log_mess\n";
-    close(EL);
+    dprint $mess;
+    ## my $log_file = $self->{log_file} || ($self->{cache_path} || "./").".cache_log";
+    ## my $log_mess = &UnixDate("today","[%b %e %Y %T] ");
+    ## $log_mess .= $mess;
+    ## 
+    ## open(EL,">> $log_file") || die "Can't open log file ($log_file) for write $!";
+    ##     print EL "$log_mess\n";
+    ## close(EL);
 }
 
 ###############################################################################
