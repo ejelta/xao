@@ -6,6 +6,27 @@ use XAO::Objects;
 
 use base qw(XAO::testcases::FS::base);
 
+# It used to return a damaged object
+
+sub test_am_20031029_wrong_id {
+    my $self=shift;
+    my $odb=$self->get_odb;
+
+    my $coll=$odb->collection(class => 'Data::Customer');
+
+    my $c;
+    try {
+        $c=$coll->get(9876543);
+    }
+    otherwise {
+        my $e=shift;
+        dprint "Expected error: $e";
+    };
+    
+    $self->assert(!$c,
+                  "Returned non-existing object");
+}
+
 ##
 #  my $ingredients = $odb->collection('class' => 'Data::Ingredient') ;
 #  my $result = $ingredients->search(

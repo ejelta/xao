@@ -45,6 +45,9 @@ DESCRIPTION
         If an object does not exist an error will be thrown, use exists()
         method to check if you really need to.
 
+        Note: It does not check if the object still exists in the database!
+        If you need to be sure that the object does exist use
+
     get_new ()
         Convenience method that returns new empty detached object of the
         type that collection operates on.

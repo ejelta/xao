@@ -67,7 +67,7 @@ use XAO::Objects;
 use base XAO::Objects->load(objname => 'FS::Glue');
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: Hash.pm,v 1.17 2003/07/22 17:39:24 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: Hash.pm,v 1.18 2003/10/29 22:07:30 am Exp $ =~ /(\d+\.\d+)/);
 
 ###############################################################################
 
@@ -749,7 +749,8 @@ sub get ($$) {
             }
             else {
                 my $value=$self->_retrieve_data_fields($name);
-                $value=$self->_field_default($name,$field) unless defined($value);
+                defined $value ||
+                    throw $self "get('$name') - db query returned undef";
                 return $value;
             }
         }
@@ -902,7 +903,8 @@ sub new ($%) {
     else {
         $$self->{key_name}=$args->{key_name};
         defined($$self->{key_name}) || $self->throw("new - no 'key_name' passed");
-        $$self->{key_value}=$args->{key_value} || $self->get($args->{key_name});
+        $$self->{key_value}=$args->{key_value} ||
+                            $self->get($args->{key_name});
 
         $$self->{list_base_name}=$args->{list_base_name};
         $$self->{list_base_id}=$args->{list_base_id};

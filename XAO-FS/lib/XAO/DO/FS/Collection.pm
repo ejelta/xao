@@ -31,7 +31,7 @@ use XAO::Objects;
 use base XAO::Objects->load(objname => 'FS::Glue');
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: Collection.pm,v 1.6 2003/10/29 00:55:39 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: Collection.pm,v 1.7 2003/10/29 22:07:30 am Exp $ =~ /(\d+\.\d+)/);
 
 ###############################################################################
 
@@ -119,6 +119,9 @@ method to retrieve multiple Hash references at once.
 If an object does not exist an error will be thrown, use exists() method
 to check if you really need to.
 
+Note: It does not check if the object still exists in the database! If
+you need to be sure that the object does exist use
+
 =cut
 
 sub get ($$) {
@@ -131,12 +134,13 @@ sub get ($$) {
             throw $self "get - no object ID given";
         ref($_) &&
             throw $self "get - should be a scalar, not a ".ref($_)." reference";
-        XAO::Objects->new(objname => $$self->{class_name},
-                          glue => $self->_glue,
-                          unique_id => $_,
-                          key_name => $$self->{key_name},
-                          list_base_name => $$self->{base_name},
-                         );
+        XAO::Objects->new(
+            objname         => $$self->{class_name},
+            glue            => $self->_glue,
+            unique_id       => $_,
+            key_name        => $$self->{key_name},
+            list_base_name  => $$self->{base_name},
+        );
     } @_;
 
     @_==1 ? $results[0] : @results;
