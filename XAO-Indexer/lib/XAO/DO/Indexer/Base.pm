@@ -580,7 +580,7 @@ better. Going with it.
             #
             if((++$count%1000)==0) {
                 my $tstamp=time;
-                my $tstamp_end=time+int(($tstamp-$tstamp_start)/$count * $kw_total);
+                my $tstamp_end=$tstamp_start+int(($tstamp-$tstamp_start)/$count * $kw_total);
                 dprint "..$count/$kw_total (".localtime($tstamp)." - ".localtime($tstamp_end).")";
             }
 
