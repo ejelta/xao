@@ -38,7 +38,7 @@ sub get_args (@);
 sub merge_refs (@);
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: Utils.pm,v 1.4 2001/12/08 02:51:02 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: Utils.pm,v 1.5 2002/01/03 02:50:01 am Exp $ =~ /(\d+\.\d+)/);
 
 ###############################################################################
 # Export control
@@ -450,7 +450,9 @@ eprint(), dprint().
 
 =head1 AUTHORS
 
-XAO, Inc.: Andrew Maltsev, <am@xao.com>, Bil Drury <bild@xao.com>.
+Copyright (c) 2000-2001 XAO Inc.
+
+Andrew Maltsev <am@xao.com>, Bil Drury <bild@xao.com>.
 
 =head1 SEE ALSO
 

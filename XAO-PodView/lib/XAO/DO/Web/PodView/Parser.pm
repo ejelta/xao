@@ -420,12 +420,12 @@ sub find_module_file ($$) {
     $mp=~s/::/\//g;
     $mp=~s/\s//g;
     foreach my $dir (@INC) {
-        if(-r "$dir/${mp}.pm") {
-            $file="$dir/${mp}.pm";
+        if(-r "$dir/${mp}.pod") {
+            $file="$dir/${mp}.pod";
             last;
         }
-        elsif(-r "$dir/${mp}.pod") {
-            $file="$dir/${mp}.pod";
+        elsif(-r "$dir/${mp}.pm") {
+            $file="$dir/${mp}.pm";
             last;
         }
     }
