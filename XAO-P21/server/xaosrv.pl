@@ -1,6 +1,6 @@
 #!/usr/bin/perl -w
 
-use lib qw(/home/amaltsev/j /home/amaltsev/src/perl/lib/site_perl/5.005 /home/amaltsev/src/perl/lib/5.00503);
+#use lib qw(/home/amaltsev/j /home/amaltsev/src/perl/lib/site_perl/5.005 /home/amaltsev/src/perl/lib/5.00503);
 
 use vars qw($VERSION $REVISION);
 
@@ -9,11 +9,18 @@ use Errno qw/EINTR EAGAIN/;
 use POSIX qw(:sys_wait_h setsid);
 
 $VERSION='0.05';
-$REVISION='$Id: xaosrv.pl,v 1.7 2002/06/13 03:31:19 am Exp $';
+$REVISION='$Id: xaosrv.pl,v 1.8 2002/12/04 20:25:47 am Exp $';
 
-my $spooldir='/tmp/p21ec';
+if(@ARGV!=1) {
+    print "Usage: $0 SystemUnit\n";
+    exit 1;
+}
+my $systemunit=int(shift @ARGV);
 
-my $ServerName='xaosrv';
+my $spooldir="/tmp/webord$systemunit";
+my $p21dir="/opt/xao/p21";
+
+my $ServerName='xaosrv ' . $systemunit;
 $0 = $ServerName;
 
 my $Debug = $ENV{DEBUG};
@@ -29,7 +36,10 @@ $ENV{TERM}='ansi' unless $ENV{TERM};
 sub open_stream {
     local *IN;
     my $script=shift;
-    open IN, qq(/usr/lpp/p21pro/bin/p21pro -d /usr/lpp/p21pro/src:/usr/lpp/p21pro/src/include -p "-p /home/amaltsev/current/$script.p -b"|) or die $!; # XXX FIXME
+    open IN, qq(/usr/lpp/p21pro/bin/p21pro) .
+             qq( -S $systemunit) .
+             qq( -d /usr/lpp/p21pro/src:/usr/lpp/p21pro/src/include) .
+             qq( -p "-p $p21dir/$script.p -b"|) || die $!;
     *IN;  
 }
 
@@ -42,8 +52,8 @@ sub open_query {
         ++$envn;
     }
     $ENV{ORIGIN}='P21';
-    open IN, qq(/usr/lpp/p21pro/bin/p21pro -S 0 -P p21/www/query/www.p -p -b|)
-      or die $!; # XXX FIXME
+    open IN, qq(/usr/lpp/p21pro/bin/p21pro -S $systemunit -P p21/www/query/www.p -p -b|) ||
+        die $!;
     *IN;  
 }
 
@@ -56,8 +66,8 @@ sub open_local_query {
         ++$envn;
     }
     $ENV{ORIGIN}='P21';
-    open IN, qq(/usr/lpp/p21pro/bin/p21pro -S 0 -P /home/amaltsev/current/www.p -p -b|)
-      or die $!; # XXX FIXME
+    open IN, qq(/usr/lpp/p21pro/bin/p21pro -S $systemunit -P $p21dir/www.p -p -b|) ||
+        die $!;
     *IN;  
 }
 
@@ -365,7 +375,7 @@ Output: price for one unit, multiplier.
         elsif ($opcode eq 'cleanup_spool') {
             foreach my $file (@args) {
             	next unless $file =~ /^\w+[\w\.-]*$/;
-            	unlink("$spooldir/$_");
+            	unlink("$spooldir/$file");
             }
         }
 
@@ -378,7 +388,10 @@ Output: price for one unit, multiplier.
                 print STDERR "export P$_=\'$args[$_]\'\n";
                 $ENV{"P$_"} = $args[$_];
             }
-            system q(/usr/lpp/p21pro/bin/p21pro -d /usr/lpp/p21pro/src:/usr/lpp/p21pro/src/include -p "-p /home/amaltsev/current/modcust.p -b" >/dev/null) or die $!; # XXX FIXME
+            system qq(/usr/lpp/p21pro/bin/p21pro) .
+                   qq( -S $systemunit) .
+                   qq( -d /usr/lpp/p21pro/src:/usr/lpp/p21pro/src/include) .
+                   qq( -p "-p $p21dir/modcust.p -b" > /dev/null) || die $!;
         }
 
 =head1 undefined command
