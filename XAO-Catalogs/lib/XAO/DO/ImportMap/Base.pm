@@ -373,8 +373,12 @@ sub store_categories_hash ($$$) {
                 my $id;
 
                 if($i==$#path) {
-                    $cobj->put(name          => $cdesc);
-                    $cobj->put(description   => $cat->{description});
+                    my $n=substr($cdesc,0,$cobj->describe('name')->{maxlength});
+                    my $d=substr($cat->{description},0,$cobj->describe('description')->{maxlength});
+                    dprint "ln=",length($n)," ld=",length($d);
+
+                    $cobj->put(name          => $n);
+                    $cobj->put(description   => $d);
                     $cobj->put(parent_id     => $parent_id);
                     $cobj->put(image_url     => $cat->{image});
                     $cobj->put(thumbnail_url => $cat->{thumbnail});
@@ -384,7 +388,10 @@ sub store_categories_hash ($$$) {
                     push(@cpids,$id);
                 }
                 else {
-                    $cobj->put(name      => $cdesc);
+                    my $n=substr($cdesc,0,$cobj->describe('name')->{maxlength});
+                    dprint "ln=",length($n);
+
+                    $cobj->put(name      => $n);
                     $cobj->put(parent_id => $parent_id);
 
                     $id=$storage->put($cobj);

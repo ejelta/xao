@@ -180,7 +180,7 @@ use XAO::Errors qw(XAO::DO::Web::FS);
 use base XAO::Objects->load(objname => 'Web::Action');
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: FS.pm,v 1.24 2002/05/19 20:00:01 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: FS.pm,v 1.25 2002/05/24 06:38:25 am Exp $ =~ /(\d+\.\d+)/);
 
 ###############################################################################
 
@@ -326,6 +326,11 @@ described in get_object() method. Additional arguments are:
  path       path to the template that gets displayed with the
             given fields passed in all uppercase.
 
+ extra_sub  reference to a subroutine that creates additional
+            parameters for the template and returns them in
+            a hash reference. For use in derived class
+            methods.
+
 Example:
 
  <%FS mode="show-hash" uri="/Customers/c123" fields="firstname,lastname"
@@ -364,12 +369,19 @@ sub show_hash ($%) {
             $data{uc($fn)}=defined($t{$fn}) ? $t{$fn} : '';
         }
     }
-    $self->object->display(merge_refs($args,\%data));
+
+    if($args->{extra_sub}) {
+        my $extra=$args->{extra_sub}(object => $hash, data => \%data, args => $args);
+        $self->object->display(merge_refs($args,$extra,\%data));
+    }
+    else {
+        $self->object->display(merge_refs($args,\%data));
+    }
 }
 
 ###############################################################################
 
-=item show-list => show_list (%)
+=item 'show-list' => show_list (%)
 
 Displays an index for XAO::FS list. List location is the same as
 described in get_object() method. Additional arguments are:
