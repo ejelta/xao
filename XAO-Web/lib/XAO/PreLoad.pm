@@ -1,3 +1,26 @@
+=head1 NAME
+
+XAO::PreLoad - helps apache pre-load most popular XAO modules
+
+=head1 SYNOPSIS
+
+In the main httpd.conf, B<not in virtual host section>:
+
+ PerlModule XAO::PreLoad
+
+=head1 DESCRIPTION
+
+The module does not provide any useful functionality at this point, it
+simply pre-loads most of XAO modules.
+
+The idea of pre-loading is to let mod_perl compile modules before any
+childs are forked off therefore letting all childs reduce startup time
+and reduce memory usage (because most of the pre-compiled code will stay
+shared in forked childs).
+
+=cut
+
+###############################################################################
 package XAO::PreLoad;
 use strict;
 #
@@ -44,12 +67,23 @@ use XAO::DO::FS::Glue;
 use XAO::DO::FS::Hash;
 use XAO::DO::FS::List;
 
-BEGIN {
-    dprint "XAO::PreLoad::BEGIN";
-}
-
-END {
-    dprint "XAO::PreLoad::END";
-}
-
+###############################################################################
 1;
+__END__
+
+=head1 EXPORTS
+
+Nothing.
+
+=head1 AUTHOR
+
+Copyright (c) 2003 XAO, Inc.
+
+Andrew Maltsev <am@xao.com>.
+
+=head1 SEE ALSO
+
+Recommended reading:
+L<Apache::XAO>,
+L<Apache>,
+L<XAO::Web>.
