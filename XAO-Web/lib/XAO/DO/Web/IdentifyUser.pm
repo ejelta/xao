@@ -295,7 +295,7 @@ use XAO::Objects;
 use base XAO::Objects->load(objname => 'Web::Action');
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: IdentifyUser.pm,v 1.21 2003/02/06 18:29:54 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: IdentifyUser.pm,v 1.22 2003/05/28 01:42:20 am Exp $ =~ /(\d+\.\d+)/);
 
 ###############################################################################
 
@@ -915,7 +915,7 @@ sub logout{
             throw $self "logout - no 'id_cookie' in the configuration";
         $self->siteconfig->add_cookie(
             -name    => $config->{id_cookie},
-            -value   => '0'
+            -value   => '0',
             -path    => '/',
             -expires => 'now',
         );
