@@ -73,7 +73,7 @@ sub sql_do ($$;@) {
         $rc=sql_real_do($_[0],$_[1],[ @_[2..$#_] ]);
     }
 
-    $rc && $_[0]->throw("sql_do - SQL error: " . sql_error_text($_[0]));
+    $rc && $_[0]->throw("sql_do - SQL error '" . sql_error_text($_[0]) . "' for '$_[1]'");
 }
 
 sub sql_do_no_error ($$) {
@@ -107,9 +107,11 @@ __END__
 
 =head1 AUTHORS
 
-Copyright (c) 2002 XAO Inc.
+Copyright (c) 2005 Andrew Maltsev
 
-Andrew Maltsev <am@xao.com>
+Copyright (c) 2001-2004 Andrew Maltsev, XAO Inc.
+
+<am@ejelta.com> -- http://ejelta.com/xao/
 
 =head1 SEE ALSO
 

@@ -1,0 +1,14 @@
+# http://module-build.sourceforge.net/META-spec.html
+#XXXXXXX This is a prototype!!!  It will change in the future!!! XXXXX#
+name:         XAO-MySQL
+version:      1.02
+version_from: MySQL.pm
+installdirs:  site
+requires:
+    Error:                         0.15
+    Test::Unit:                    0.15
+    XAO::Base:                     1.06
+    XAO::FS:                       1.06
+
+distribution_type: module
+generated_by: ExtUtils::MakeMaker version 6.17

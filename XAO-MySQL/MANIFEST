@@ -5,6 +5,7 @@ MySQL.xs
 Makefile.PL
 MANIFEST
 MANIFEST.SKIP
+META.yml
 test.pl
  -------------------------------------------
 bench/bench.pl

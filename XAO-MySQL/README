@@ -12,14 +12,15 @@ DESCRIPTION
     substituting 'OS:MySQL_DBI:dbname' string with 'OS:MySQL:dbname' in
     connection to the database.
 
-    See the XAO::DO::FS::Glue::MySQL_DBI manpage for the description of
-    methods.
+    See XAO::DO::FS::Glue::MySQL_DBI for the description of methods.
 
 AUTHORS
-    Copyright (c) 2002 XAO Inc.
+    Copyright (c) 2005 Andrew Maltsev
 
-    Andrew Maltsev <am@xao.com>
+    Copyright (c) 2001-2004 Andrew Maltsev, XAO Inc.
+
+    <am@ejelta.com> -- http://ejelta.com/xao/
 
 SEE ALSO
-    the XAO::FS manpage, the XAO::DO::FS::Glue::MySQL_DBI manpage.
+    XAO::FS, XAO::DO::FS::Glue::MySQL_DBI.
 
