@@ -1,0 +1,14 @@
+MANIFEST
+MANIFEST.SKIP
+Makefile.PL
+Base.PL
+Base.pod
+test.pl
+ ------------------------------------------- lib/XAO
+lib/XAO/Objects.pm
+lib/XAO/SimpleHash.pm
+lib/XAO/SiteConfig.pm
+lib/XAO/Utils.pm
+ ------------------------------------------- testcases
+testcases/Utils.pm
+testcases/base.pm

@@ -1,0 +1,11 @@
+=head1 NAME
+
+XAO::Base - Set of base classes for the XAO family of products
+
+=head1 DESCRIPTION
+
+kadjf aksdjfadfkasjdkfjasfj akdsf
+
+=head1 AUTHORS
+
+XAO Inc., Copyright (C) 1997-2001
