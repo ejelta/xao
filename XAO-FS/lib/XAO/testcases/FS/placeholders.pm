@@ -294,6 +294,10 @@ sub test_build_structure {
             minvalue => 0,
             maxvalue => 100
         },
+        uns => {
+            type => 'integer',
+            minvalue => 0,
+        },
         uq => {
             type => 'real',
             minvalue => 123,
@@ -336,9 +340,18 @@ sub test_build_structure {
     };
     $cust->build_structure(\%structure);
 
-    foreach my $name (qw(newf name text integer Orders)) {
+    foreach my $name (qw(newf name text integer uns Orders)) {
         $self->assert($cust->exists($name),
                       "Field ($name) doesn't exist after build_structure()");
+        if($name eq 'uns') {
+            my $min=$cust->describe($name)->{minvalue};
+            $self->assert($min == $structure{uns}->{minvalue},
+                          "Minvalue is wrong for 'uns' ($min)");
+            my $max=$cust->describe($name)->{maxvalue};
+            $self->assert($max == 0xFFFFFFFF,
+                          "Maxvalue is wrong for 'uns' ($max)");
+        }
+
         next unless $name eq 'newf';
         $self->assert($cust->describe($name)->{index},
                       "No indication of index in the created field ($name)");

@@ -50,7 +50,7 @@ use XAO::Objects;
 use base XAO::Objects->load(objname => 'Atom');
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: Glue.pm,v 1.33 2003/07/31 02:08:10 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: Glue.pm,v 1.34 2003/08/09 02:37:49 am Exp $ =~ /(\d+\.\d+)/);
 
 ###############################################################################
 
@@ -1881,7 +1881,9 @@ sub _add_data_placeholder ($%) {
     }
     elsif ($type eq 'integer') {
         $fdesc{minvalue}=-0x80000000 unless defined($fdesc{minvalue});
-        $fdesc{maxvalue}=0x7FFFFFFF unless defined($fdesc{maxvalue});
+        if(!defined($fdesc{maxvalue})) {
+            $fdesc{maxvalue}=$fdesc{minvalue}<0 ? 0x7FFFFFFF : 0xFFFFFFFF;
+        }
         $driver->add_field_integer($table,$name,$fdesc{index},$fdesc{unique},
                                    $fdesc{minvalue},$fdesc{maxvalue},$fdesc{default},$connected);
     }
