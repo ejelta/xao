@@ -10,6 +10,7 @@ XAO::DO::Web::Date - XAO::Web date dysplayable object
 
  <%Date format="%H:%M"%>
 
+ <%Date gmtime="123456789" timezone="US/Eastern"%>
 
 =cut
 
@@ -22,7 +23,7 @@ use XAO::Objects;
 use base XAO::Objects->load(objname => 'Web::Page');
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: Date.pm,v 1.5 2002/08/09 20:34:48 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: Date.pm,v 1.6 2003/02/12 03:18:49 am Exp $ =~ /(\d+\.\d+)/);
 
 ###############################################################################
 
@@ -49,6 +50,11 @@ Display according to one of internal styles:
 
 Set custom format according to strftime C function API.
 
+=item timezone
+
+May contain a name of a time zone, which must be known to the
+system. Default is the default system timezone.
+
 =back
 
 =cut
@@ -56,6 +62,15 @@ Set custom format according to strftime C function API.
 sub display ($;%) {
     my $self=shift;
     my $args=get_args(\@_);
+
+    ##
+    # Setting timezone
+    #
+    my $tz;
+    if($args->{timezone}) {
+        $tz=$ENV{TZ};
+        $ENV{TZ}=$args->{timezone};
+    }
 
     ##
     # It can be current time or given time
@@ -94,6 +109,18 @@ sub display ($;%) {
     }
 
     $self->textout($time);
+
+    ##
+    # Restoring timezone
+    #
+    if($args->{timezone}) {
+        if(defined $tz) {
+            $ENV{TZ}=$tz;
+        }
+        else {
+            delete $ENV{TZ};
+        }
+    }
 }
 
 ###############################################################################

@@ -486,8 +486,10 @@ sub expand ($%) {
     # expiration. If that's not what the page wants -- it can override
     # these.
     #
-    $siteconfig->header_args('-expires'         => 'now',
-                             '-Cache-Control'   => 'no-cache');
+    $siteconfig->header_args(
+        -expires        => 'now',
+        -cache_control  => 'no-cache',
+    );
 
     ##
     # Loading page displaying object and executing it.
