@@ -1,4 +1,4 @@
-1.03 - XXX
+1.03 - 18-Mar-2002
     * Web::Debug - new object
     * Web::Page - printing template paths can be enabled with
       'show-path' debug parameter; debug_set() and debug_check() methods
