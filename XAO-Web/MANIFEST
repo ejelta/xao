@@ -13,8 +13,11 @@ lib/XAO/DO/Web/Date.pm
 lib/XAO/DO/Web/Default.pm
 lib/XAO/DO/Web/Footer.pm
 lib/XAO/DO/Web/Header.pm
-lib/XAO/DO/Web/Styler.pm
+lib/XAO/DO/Web/IdentifyAgent.pm
+lib/XAO/DO/Web/IdentifyUser.pm
 lib/XAO/DO/Web/Page.pm
+lib/XAO/DO/Web/Search.pm
+lib/XAO/DO/Web/Styler.pm
 lib/XAO/PluginUtils.pm
 lib/XAO/Templates.pm
  --------------------------------- Handlers
