@@ -24,7 +24,7 @@ use XAO::Utils;
 use XAO::Projects qw(get_current_project_name);
 
 use vars qw($VERSION);
-($VERSION)=('$Id: Templates.pm,v 1.4 2002/05/19 20:00:01 am Exp $' =~ /(\d+\.\d+)/);
+($VERSION)=('$Id: Templates.pm,v 1.5 2002/12/12 17:54:20 am Exp $' =~ /(\d+\.\d+)/);
 
 ##
 # Cache for templates.
@@ -67,7 +67,6 @@ sub get (%) {
     local $/;
     my $text=<F>;
     close(F);
-    dprint "Retrieving template from $tpath";
 
     ##
     # Storing into cache.

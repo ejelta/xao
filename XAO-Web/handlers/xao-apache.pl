@@ -17,7 +17,7 @@ use XAO::Errors qw(XAO::E::Handler);
 ##
 # Global debugging output. It's better to set that in site's config.
 #
-XAO::Utils::set_debug(1);
+### XAO::Utils::set_debug(1);
 
 ##
 # Some global variables.

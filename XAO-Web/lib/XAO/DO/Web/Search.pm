@@ -155,7 +155,7 @@ use XAO::Objects;
 use base XAO::Objects->load(objname => 'Web::Page');
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: Search.pm,v 1.4 2002/01/22 02:35:38 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: Search.pm,v 1.5 2002/12/12 17:54:20 am Exp $ =~ /(\d+\.\d+)/);
 
 ###############################################################################
 sub display ($;%)
@@ -164,15 +164,6 @@ sub display ($;%)
 
   my $rh_args = get_args(\@_);
   my $rh_conf = $self->siteconfig;
-
-  if ($rh_args->{debug})
-  {
-    &XAO::Utils::set_debug(1);
-    #dprint "\n\n*** XAO::ODO::Web::Search::display DEBUG MODE ***\n\n";
-    #dprint '*** Original Arguments:';
-    #foreach (sort keys %$rh_args) { dprint " arg> $_: $rh_args->{$_}\n"; }
-    #dprint '';
-  }
 
   #############
   #

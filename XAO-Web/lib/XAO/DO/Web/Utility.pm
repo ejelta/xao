@@ -34,7 +34,7 @@ use XAO::Objects;
 use base XAO::Objects->load(objname => 'Web::Action');
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: Utility.pm,v 1.9 2002/11/21 20:04:24 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: Utility.pm,v 1.10 2002/12/12 17:54:20 am Exp $ =~ /(\d+\.\d+)/);
 
 sub check_mode ($$) {
     my $self=shift;
@@ -260,13 +260,14 @@ sub pass_cgi_params ($%) {
     # Creating HTML code that will pass these parameters.
     #
     my $html;
+    my $result=$args->{result} || 'query';
     foreach my $param (@params) {
         next if $except{$param};
 
         my $value=$self->cgi->param($param);
         next unless defined $value;
 
-        if($args->{result} eq 'form') {
+        if($result eq 'form') {
             $html.='<INPUT TYPE="HIDDEN" NAME="' . t2hf($param) . '" VALUE="' . t2hf($value) . '">';
         }
         else {

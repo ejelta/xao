@@ -184,7 +184,7 @@ use XAO::Errors qw(XAO::DO::Web::FS);
 use base XAO::Objects->load(objname => 'Web::Action');
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: FS.pm,v 1.31 2002/09/13 23:36:09 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: FS.pm,v 1.32 2002/12/12 17:54:20 am Exp $ =~ /(\d+\.\d+)/);
 
 ###############################################################################
 
@@ -512,14 +512,6 @@ sub search ($;%) {
 
     my $args = get_args(\@_);
     my $rh_conf = $self->siteconfig;
-
-    if ($args->{debug}) {
-        &XAO::Utils::set_debug(1);
-        #dprint "\n\n*** XAO::DO::Web::FS::search DEBUG MODE ***\n\n";
-        #dprint '*** Original Arguments:';
-        #foreach (sort keys %$args) { dprint " arg> $_: $args->{$_}\n"; }
-        #dprint '';
-    }
 
     #############
     #
