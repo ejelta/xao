@@ -180,7 +180,7 @@ use XAO::Errors qw(XAO::DO::Web::FS);
 use base XAO::Objects->load(objname => 'Web::Action');
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: FS.pm,v 1.25 2002/05/24 06:38:25 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: FS.pm,v 1.26 2002/06/04 23:11:08 am Exp $ =~ /(\d+\.\d+)/);
 
 ###############################################################################
 
@@ -656,6 +656,8 @@ sub search ($;%) {
             }
         }
 
+        my $have_sep=($args->{'separator.path'} || $args->{'separator.template'});
+
         my $count = 1;
         $basetype = $args->{template} ? 'template' : 'path';
         #dprint "\n*** Search Results *" . scalar(@$ra_ids) . " matches*";
@@ -670,8 +672,8 @@ sub search ($;%) {
             );
             if ($args->{fields}) {
                 my $item = $list->get($id);
-		my %v;
-		@v{@fields}=$item->get(@fields);
+		        my %v;
+		        @v{@fields}=$item->get(@fields);
                 foreach (@fields) {
                     my $uckey = uc($_);
                     $pass{$uckey} = $v{$_} unless defined $pass{$uckey};
@@ -679,6 +681,18 @@ sub search ($;%) {
                 }
             }
             $page->display(merge_refs($args,\%pass));
+
+            ##
+            # Displaying separator if given.
+            #
+            if($have_sep && $count < scalar(@$ra_ids)) {
+                $page->display(merge_refs($args,\%pass,{
+                    path        => $args->{'separator.path'},
+                    template    => $args->{'separator.template'},
+                }));
+            }
+        }
+        continue {
             $count++;
         }
 
@@ -873,7 +887,7 @@ sub _create_query {
         #
         # Distinct searching
         #
-        $rh_options->{distinct} = $args->{distict} if $args->{distict};
+        $rh_options->{distinct} = $args->{distinct} if $args->{distinct};
 
         push @{$expr_ra[$i]}, $rh_options;
     }
