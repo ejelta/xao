@@ -1,7 +1,6 @@
 DEF VAR d_d AS CHAR.
 DEF VAR open_qty AS DECIMAL.
 DEF VAR net_price AS DECIMAL.
-DEF VAR snum AS CHAR.
 DEF VAR onum AS INTEGER.
 DEF VAR total_stax_amt LIKE dyn1.wbw_head.total_stax_amt.
 DEF VAR out_freight LIKE dyn1.wbw_head.out_freight.
@@ -10,9 +9,7 @@ DEF VAR out_freight LIKE dyn1.wbw_head.out_freight.
 */
 d_d=chr(1).
 
-/* Order ID
-ASSIGN snum=OS-GETENV("P0").
-onum=INTEGER(snum).
+/* Order ID is in the first and only argument.
 */
 ASSIGN onum=INTEGER(OS-GETENV("P0")).
 
