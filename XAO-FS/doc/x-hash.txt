@@ -246,6 +246,13 @@ DESCRIPTION
                  maxlength => 100
              });
 
+    collection_key ()
+        Returns the same ID of the object that would be used be a collection
+        object holding this object. See the XAO::DO::FS::Collection manpage
+        and collection() method on the glue object.
+
+        Will return undef on detached objects.
+
     container_key ()
         If current object is not on top level returns key that refers to the
         current object in the container object that contains current object.

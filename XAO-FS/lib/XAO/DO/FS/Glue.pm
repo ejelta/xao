@@ -50,7 +50,7 @@ use XAO::Objects;
 use base XAO::Objects->load(objname => 'Atom');
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: Glue.pm,v 1.23 2003/01/10 03:07:10 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: Glue.pm,v 1.24 2003/02/25 22:34:58 am Exp $ =~ /(\d+\.\d+)/);
 
 ###############################################################################
 
@@ -617,11 +617,7 @@ sub _field_default ($$) {
         $default='';
     }
     elsif($type eq 'integer' || $type eq 'real') {
-        if(!defined($desc->{minvalue}) && !defined($desc->{maxvalue})) {
-
-            # This happens only for 'real' type where we do not set any
-            # borders unless specified.
-            #
+        if(!defined $desc->{minvalue}) {
             $default=0;
         }
         elsif($desc->{minvalue} <= 0 &&

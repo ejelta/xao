@@ -1,4 +1,5 @@
 1.05 -
+    * Hash::collection_key() method added
     * fetch() can now fetch collections using
       xaofs://collection/class/Data::Product/ syntax
     * describe() method implemented for collections

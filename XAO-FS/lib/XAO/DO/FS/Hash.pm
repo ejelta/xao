@@ -67,7 +67,7 @@ use XAO::Objects;
 use base XAO::Objects->load(objname => 'FS::Glue');
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: Hash.pm,v 1.11 2003/01/10 03:07:10 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: Hash.pm,v 1.12 2003/02/25 22:34:59 am Exp $ =~ /(\d+\.\d+)/);
 
 ###############################################################################
 
@@ -347,10 +347,27 @@ sub build_structure ($%) {
         #
         if($ph{type} eq 'list' && $ph{structure}) {
             my $ro=XAO::Objects->new(objname => $ph{class},
-                                          glue => $self->_glue);
+                                     glue => $self->_glue);
             $ro->build_structure($ph{structure});
         }
     }
+}
+
+###############################################################################
+
+=item collection_key ()
+
+Returns the same ID of the object that would be used be a collection
+object holding this object. See L<XAO::DO::FS::Collection> and
+collection() method on the glue object.
+
+Will return undef on detached objects.
+
+=cut
+
+sub collection_key ($) {
+    my $self=shift;
+    return $$self->{unique_id};
 }
 
 ###############################################################################
