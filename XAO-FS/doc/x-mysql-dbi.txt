@@ -142,17 +142,13 @@ METHODS
         Looks up row unique ID by given key name and value (required) and
         connector name and value (optional for top level lists).
 
-    update_field ($$$$) {
-        Stores new value into single data field. Example:
+    update_fields ($$$;$) {
+        Stores new values. Example:
 
-         $self->_driver->update_field($table,$unique_id,$name,$value);
+         $self->_driver->update_field($table,$unique_id,{ name => 'value' });
 
-    update_row ($$$$)
-        Updates multiple fields in the row by unique id and table.
-
-        Example:
-
-         $self->_driver->update_row($table,$unique_id,\%row);
+        Optional last argument can be used to disable transactional wrapping
+        if set to a non-zero value.
 
     tr_loc_active ()
         Checks if we currently have active local or external transaction.

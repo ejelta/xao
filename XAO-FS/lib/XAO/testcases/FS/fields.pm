@@ -486,8 +486,7 @@ sub test_get_multi {
                            type => 'text'
                           );
 
-    $cust->put(name => 'foo');
-    $cust->put(xxx  => '123');
+    $cust->put(name => 'foo', xxx => '123');
 
     my ($name_1,$xxx_1)=$cust->get(qw(name xxx));
     my ($xxx_2,$name_2)=$cust->get(qw(xxx name));
@@ -508,8 +507,7 @@ sub test_get_multi {
 
 
     my $nc=$odb->fetch('/Customers')->get_new();
-    $nc->put(name => 'abc');
-    $nc->put(xxx => 'zzz');
+    $nc->put({ name => 'abc', xxx => 'zzz'});
     my ($xxx,$name)=$nc->get(qw(xxx name));
     $self->assert($name eq 'abc',
                   "test_get_multi: Got wrong name");

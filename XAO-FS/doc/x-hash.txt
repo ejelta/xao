@@ -464,7 +464,7 @@ DESCRIPTION
     objtype ()
         For all objects based on Hash returns 'Hash' string.
 
-    put ($$)
+    put (%)
         Stores new value into the Hash object. Values can currently only be
         strings and numbers, you cannot store a list.
 
@@ -481,6 +481,29 @@ DESCRIPTION
 
         Value must meet constrains set for the placeholder, otherwise error
         will be thrown and no changes will be made.
+
+        More then one name/value pair can be given on the same line. For
+        example, all three code snippets below will have the same effect,
+        but first will be slower:
+
+         # One by one, the slowest way.
+         #
+         $obj->put(first_name => 'John');
+         $obj->put(last_name => 'Silver');
+         $obj->put(age => '50');
+
+         # Hash-like array, will translate to one SQL update statement.
+         #
+         $obj->put(first_name => 'John', last_name => 'Silver', age => 50);
+
+         # Hash reference
+         #
+         my %data=(
+            first_name  => 'John',
+            last_name   => 'Silver',
+            age         => 50,
+         );
+         $obj->put(\%data);
 
     reattach ()
         The same as to call put() method on upper level container. Works

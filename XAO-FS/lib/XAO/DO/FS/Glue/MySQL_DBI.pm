@@ -31,7 +31,7 @@ use XAO::Objects;
 use base XAO::Objects->load(objname => 'FS::Glue::SQL_DBI');
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: MySQL_DBI.pm,v 1.17 2003/03/14 02:58:01 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: MySQL_DBI.pm,v 1.18 2003/03/22 01:44:16 am Exp $ =~ /(\d+\.\d+)/);
 
 ###############################################################################
 
@@ -867,7 +867,7 @@ sub store_row ($$$$$$$) {
     if($uid) {
         # Needs to be split into local version that is called from
         # underneath transactional cover and "public" one.
-        $self->___update_row($table,$uid,$row);
+        $self->update_fields($table,$uid,$row,0);
     }
     else {
         my @fn=($key_name, map { $_.'_' } keys %{$row});
@@ -929,71 +929,39 @@ sub unique_id ($$$$$$$) {
 
 ###############################################################################
 
-=item update_field ($$$$) {
+=item update_fields ($$$;$) {
 
-Stores new value into single data field. Example:
+Stores new values. Example:
 
- $self->_driver->update_field($table,$unique_id,$name,$value);
+ $self->_driver->update_field($table,$unique_id,{ name => 'value' });
+
+Optional last argument can be used to disable transactional wrapping if
+set to a non-zero value.
 
 =cut
 
-sub update_field ($$$$$) {
-    my $self=shift;
-    my ($table,$unique_id,$name,$value)=@_;
+sub update_fields ($$$$;$) {
+    my ($self,$table,$unique_id,$data,$internal)=@_;
 
     $unique_id ||
-        throw $self "update_field($table,..,$name,..) - no unique_id given";
+        throw $self "update_field($table,..) - no unique_id given";
 
-    $name.='_';
+    my @names=keys %$data;
+    return unless @names;
 
-    defined($value) ||
-        throw $self "update_field($table,..,$name,..) - undefined value given";
+    my $sql="UPDATE $table SET ";
+    $sql.=join(',',map { "${_}_=?" } @names);
+    $sql.=' WHERE unique_id=?';
 
-    if($self->{table_type} eq 'innodb') {
+    if(!$internal && $self->{table_type} eq 'innodb') {
         #dprint "store_row: transaction begin";
         $self->tr_loc_begin;
     }
 
-    $self->sql_do("UPDATE $table SET $name=? WHERE unique_id=?",
-                  ''.$value,$unique_id);
+    $self->sql_do($sql,values %$data,$unique_id);
 
-    if($self->{table_type} eq 'innodb') {
+    if(!$internal && $self->{table_type} eq 'innodb') {
         #dprint "store_row: transaction commit";
-        $self->tr_loc_commit;
-    }
-}
-
-###############################################################################
-
-=item update_row ($$$$)
-
-Updates multiple fields in the row by unique id and table.
-
-Example:
-
- $self->_driver->update_row($table,$unique_id,\%row);
-
-=cut
-
-sub ___update_row ($$$$) {
-    my $self=shift;
-    my ($table,$uid,$row)=@_;
-
-    return unless keys %$row;
-
-    my $sql="UPDATE $table SET ";
-    $sql.=join(',',map { "${_}_=?" } keys %{$row});
-    $sql.=' WHERE unique_id=?';
-
-    if($self->{table_type} eq 'innodb') {
-        #dprint "update_row: transaction begin";
-        $self->tr_loc_begin;
-    }
-
-    $self->sql_do($sql,values %$row,$uid);
-
-    if($self->{table_type} eq 'innodb') {
-        #dprint "update_row: transaction commit";
         $self->tr_loc_commit;
     }
 }

@@ -67,7 +67,7 @@ use XAO::Objects;
 use base XAO::Objects->load(objname => 'FS::Glue');
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: Hash.pm,v 1.13 2003/03/14 02:50:20 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: Hash.pm,v 1.14 2003/03/22 01:44:15 am Exp $ =~ /(\d+\.\d+)/);
 
 ###############################################################################
 
@@ -934,7 +934,7 @@ sub objtype ($) {
 
 ###############################################################################
 
-=item put ($$)
+=item put (%)
 
 Stores new value into the Hash object. Values can currently only be
 strings and numbers, you cannot store a list.
@@ -953,63 +953,92 @@ error will be thrown.
 Value must meet constrains set for the placeholder, otherwise error will
 be thrown and no changes will be made.
 
+More then one name/value pair can be given on the same line. For
+example, all three code snippets below will have the same effect, but
+first will be slower:
+
+ # One by one, the slowest way.
+ #
+ $obj->put(first_name => 'John');
+ $obj->put(last_name => 'Silver');
+ $obj->put(age => '50');
+
+ # Hash-like array, will translate to one SQL update statement.
+ #
+ $obj->put(first_name => 'John', last_name => 'Silver', age => 50);
+
+ # Hash reference
+ #
+ my %data=(
+    first_name  => 'John',
+    last_name   => 'Silver',
+    age         => 50,
+ );
+ $obj->put(\%data);
+
 =cut
 
 sub put ($$$) {
     my $self=shift;
-    my $name=shift;
-    my $value=shift;
+    my $data=get_args(\@_);
 
-    my $field=$self->_field_description($name);
-    $field || $self->throw("put($name,...) - not defined field name");
+    my $detached=$$self->{detached};
 
-    $value=$self->_field_default($name,$field) unless defined($value);
+    my @data_keys=CORE::keys %$data;
+    foreach my $name (@data_keys) {
+        my $value=$data->{$name};
 
-    my $type=$field->{type};
-    if($type eq 'list') {
-        $self->throw("put - storing lists not implemented yet");
-    }
-    elsif($type eq 'key') {
-        $self->throw("put - attempt to modify hash key");
-    }
-    elsif($name eq 'unique_id') {
-        $self->throw("put - attempt to modify unique_id");
-    }
-    elsif($type eq 'text' || $type eq 'words') {
-        length($value) <= $field->{maxlength} ||
-            $self->throw("put - value is longer then $field->{maxlength} for $name");
+        my $field=$self->_field_description($name);
+        $field || $self->throw("put($name,...) - not defined field name");
 
-        if($$self->{detached}) {
-            $$self->{data}->{$name}=$value;
+        if(!defined $value) {
+            $data->{$name}=$value=$self->_field_default($name,$field);
+        }
+
+        my $type=$field->{type};
+        if($type eq 'list') {
+            $self->throw("put - storing lists not implemented yet");
+        }
+        elsif($type eq 'key') {
+            $self->throw("put - attempt to modify hash key");
+        }
+        elsif($name eq 'unique_id') {
+            $self->throw("put - attempt to modify unique_id");
+        }
+        elsif($type eq 'text' || $type eq 'words') {
+            length($value) <= $field->{maxlength} ||
+                $self->throw("put - value is longer then $field->{maxlength} for $name");
+        }
+        elsif($type eq 'integer' || $type eq 'real') {
+            $value=$self->_field_default($name,$field) if $value eq '';
+
+            !defined($field->{minvalue}) || $value>=$field->{minvalue} ||
+                $self->throw("put - value ($value) is less then $field->{minvalue} for $name");
+
+            !defined($field->{maxvalue}) || $value<=$field->{maxvalue} ||
+                $self->throw("put - value ($value) is bigger then $field->{maxvalue} for $name");
         }
         else {
-            if($type eq 'words') {
-                $self->_store_dictionary_field($name,$value);
-            }
-            else {
-                $self->_store_data_field($name,$value);
-            }
+            throw $self "put - something is wrong";
         }
     }
-    elsif($type eq 'integer' || $type eq 'real') {
-        $value=$self->_field_default($name,$field) if $value eq '';
 
-        !defined($field->{minvalue}) || $value>=$field->{minvalue} ||
-            $self->throw("put - value ($value) is less then $field->{minvalue} for $name");
-
-        !defined($field->{maxvalue}) || $value<=$field->{maxvalue} ||
-            $self->throw("put - value ($value) is bigger then $field->{maxvalue} for $name");
-
-        if($$self->{detached}) {
-            $$self->{data}->{$name}=$value;
-        } else {
-            $self->_store_data_field($name,$value);
-        }
+    ##
+    # Storing all values at once
+    #
+    if($detached) {
+        @{$$self->{data}}{@data_keys}=values %$data;
     }
     else {
-        $self->throw("Something wrong");
+        $self->_store_data_fields($data);
     }
-    $value;
+
+    ##
+    # For multi-value put with hash reference it will return undef,
+    # but that's OK -- there is no good answer to what "the value" is
+    # anyway.
+    #
+    return $_[1];
 }
 
 ###############################################################################

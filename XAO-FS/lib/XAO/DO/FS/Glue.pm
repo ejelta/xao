@@ -50,7 +50,7 @@ use XAO::Objects;
 use base XAO::Objects->load(objname => 'Atom');
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: Glue.pm,v 1.25 2003/03/14 02:50:20 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: Glue.pm,v 1.26 2003/03/22 01:44:15 am Exp $ =~ /(\d+\.\d+)/);
 
 ###############################################################################
 
@@ -864,13 +864,13 @@ sub _retrieve_data_fields ($@) {
 ###############################################################################
 
 ##
-# Stores single value into hash object. Works only on Hash objects.
+# Stores multiple pre-checked for validity key/value pairs into hash
+# object. Works only on Hash objects.
 #
-sub _store_data_field ($$$$$) {
-    my $self=shift;
-    my ($name,$value)=@_;
+sub _store_data_fields ($$) {
+    my ($self,$data)=@_;
     my $table=$self->_class_description->{table};
-    $self->_driver->update_field($table,$$self->{unique_id},$name,$value);
+    $self->_driver->update_fields($table,$$self->{unique_id},$data);
 }
 
 ###############################################################################
