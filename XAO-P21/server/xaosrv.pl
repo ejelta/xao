@@ -9,7 +9,7 @@ use Errno qw/EINTR EAGAIN/;
 use POSIX qw(:sys_wait_h setsid);
 
 $VERSION='0.05';
-$REVISION='$Id: xaosrv.pl,v 1.2 2002/04/02 01:16:44 am Exp $';
+$REVISION='$Id: xaosrv.pl,v 1.3 2002/04/10 04:22:54 am Exp $';
 
 my $spooldir='/tmp/p21ec';
 
@@ -272,14 +272,14 @@ Placing order into spool. Input data is:
 
         } elsif ($opcode eq "list_all_open_orders") {
             $answer->('ord_cust', $args[0]);
-            
+
 =head1 view_open_order_details
 
 =cut
 
         } elsif ($opcode eq "view_open_order_details") {
-            $answer_local->('orditem1', @args);
-            
+            $answer_local->('ord_status', @args);
+
 =head1 list_all_invoices
 
 =cut
