@@ -84,7 +84,7 @@ Some of the tests may take up to a couple of minutes to run.
 Please be patient.
 
 If you see that a test failed, please run it as follows:
-   perl ta/failed_test_name.pl
+   perl -w ta/failed_test_name.pl
 
 That will show you details about failure. Send the output
 to am@xao.com along with your perl version, database driver

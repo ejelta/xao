@@ -14,7 +14,7 @@ use XAO::Errors qw(XAO::Web);
 # XAO::Web version number. Hand changed with every release!
 #
 use vars qw($VERSION);
-$VERSION='0.9';
+$VERSION='1.0';
 
 ###############################################################################
 
@@ -350,6 +350,10 @@ sub execute ($%) {
 Creates or loads a context for the named site. The only required
 argument is 'sitename' which provides the name of the site.
 
+Additionally `cgi' argument can point to a CGI object -- this is useful
+mostly in test cases when one does not want to use execute(), but new()
+comes handy.
+
 =cut
 
 sub new ($%) {
@@ -367,21 +371,9 @@ sub new ($%) {
     #
     my $siteconfig=XAO::Projects::get_project($sitename);
     if($siteconfig) {
-        #dprint "Found existing config object";
-        #foreach my $k ($siteconfig->keys) {
-        #    dprint "BEFORE CLEANUP: $k->",$siteconfig->get($k);
-        #}
         $siteconfig->cleanup;
-        #foreach my $k ($siteconfig->keys) {
-        #    dprint "AFTER CLEANUP: $k->",$siteconfig->get($k);
-        #}
-        #foreach my $k ($siteconfig->clipboard->keys) {
-        #    dprint "AFTER CBOARD: $k->",$siteconfig->clipboard->get($k);
-        #}
     }
     else {
-        #dprint "Creating new config object";
-
         ##
         # Creating configuration.
         #
@@ -408,6 +400,19 @@ sub new ($%) {
                                      );
     }
 
+    ##
+    # If we are given a CGI reference then putting it into the
+    # configuration.
+    #
+    if($args->{cgi}) {
+        $siteconfig->embedded('web')->enable_special_access;
+        $siteconfig->cgi($args->{cgi});
+        $siteconfig->embedded('web')->disable_special_access;
+    }
+
+    ##
+    # Done
+    #
     bless {
         sitename => $sitename,
         siteconfig => $siteconfig,

@@ -1,5 +1,6 @@
 MANIFEST
 MANIFEST.SKIP
+TODO
 Makefile.PL
 Web.pm
 test.pl
@@ -53,11 +54,13 @@ testcases/WebClipboard.pm
 testcases/WebCondition.pm
 testcases/WebConfig.pm
 testcases/WebFS.pm
+testcases/Web.pm
 testcases/WebSetArg.pm
  --------------------------------- Test installation tree
 testcases/testroot/projects/test/objects/Config.pm
 testcases/testroot/projects/test/templates/bits/local-test
 testcases/testroot/projects/test/templates/local.txt
+testcases/testroot/projects/test/templates/index.html
 testcases/testroot/templates/bits/system-test
 testcases/testroot/templates/bits/WebCondition/text-default
 testcases/testroot/templates/bits/WebCondition/text-v2

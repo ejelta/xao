@@ -35,22 +35,30 @@ pass "format" argument:
  <%PodView module="IO::File" format="ps"%>
 
 That will also change directory prefix for all templates internally used
-by PodView object -- you will need to provide them. And please, please,
-please -- if you're PostScript guru who can create a set of templates
+by PodView object -- you will need to provide them. And B<please, please,
+please> -- if you are a PostScript guru who can create a set of templates
 that will produce nice looking PostScript document -- do a favor for the
-Perl community and share it.
+Perl community and share it, mail it to me (am@xao.com) and I'll
+make sure it will be included in the next release with correct
+acknowledgements.
 
 The following templates are shipped with the PodView object and should
 be modified if you want. Remember, that you do not need to modify them
-in system directory - just copy them to your site and modify them there;
-you can even modify only those that you need to.
+in system directory - just copy them to your site and modify them there.
+You should actually only alter templates that you need, not all of them!
 
- bits/podview/html/command-back         =back
+ bits/podview/html/command-back-bullet  =back
+ bits/podview/html/command-back-number  =back
+ bits/podview/html/command-back-text    =back
  bits/podview/html/command-head1        =head1
  bits/podview/html/command-head2        =head2
- bits/podview/html/command-item         =item
- bits/podview/html/command-over         =over
- bits/podview/html/command-unknown      =XXX
+ bits/podview/html/command-item-bullet  =item
+ bits/podview/html/command-item-number  =item
+ bits/podview/html/command-item-text    =item
+ bits/podview/html/command-over-bullet  =over
+ bits/podview/html/command-over-number  =over
+ bits/podview/html/command-over-text    =over
+ bits/podview/html/command-unknown      unknown commands
  bits/podview/html/embed-bold           B<text>
  bits/podview/html/embed-code           C<text>
  bits/podview/html/embed-escape         E<text>
@@ -71,8 +79,8 @@ you can even modify only those that you need to.
  bits/podview/html/verbatim-text        verbatim paragraph body
 
 A little explanation is required for start and stop for textblock and
-verbatim. PodView calls start before a set of continous textblock or
-verbatim paragraphs.
+verbatim. PodView calls 'start' before a set of continous textblock or
+verbatim paragraphs and 'stop' after it.
 
 Normally start and stop for textblock are empty with <P> and </P>
 included in textblock-body. For verbatim mode start contains <PRE> and
@@ -81,7 +89,7 @@ verbatim paragraphs would not break verbatim mode as it happens with all
 pod processors I looked at.
 
 And at the same time if you do want to treat verbatim paragraphs one by
-one - you're free to do so.
+one - you're free to do so by altering templates.
 
 =head1 METHODS
 
@@ -115,7 +123,7 @@ use XAO::Utils;
 use base XAO::Objects->load(objname => 'Web::Page');
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: PodView.pm,v 1.2 2001/12/29 02:00:01 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: PodView.pm,v 1.3 2001/12/29 02:13:07 am Exp $ =~ /(\d+\.\d+)/);
 
 ##
 # List of entities from Pod::Checker. I wonder who originally wrote that
