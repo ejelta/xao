@@ -103,6 +103,9 @@ sub call {
         my $result;
         while(<$socket>) {
             chomp;
+            if(/ISAM.*file not found/i) {
+                die "Got error from P21 server ($_)";
+            }
             return $result if /^\.$/;
             $result = $callback->($build->($_));
         }
@@ -507,8 +510,8 @@ sub order {
         '',                                 #  1 | 25
         '',                                 #  2 | 26
         '',                                 #  3 | 27
-        $_->{stax_exemp},                   #  4 | 28
-        $_->{stax_exemp} ? 'N' : 'Y',       #  5 | 29
+        '',                                 #  4 | 28
+        $_->{stax_exemp} ? 'N' : '',        #  5 | 29
         $_->{suspended_order} ? 'Y' : 'N',  #  6 | 30
         $_->{unit_name} || '',              #  7 | 31
         $_->{unit_size} || 1,               #  8 | 32
