@@ -1,6 +1,6 @@
 ^.cvsignore$
-Makefile
-.*\.old
+Makefile$
+.*\.old$
 blib/
 pm_to_blib
 ^CVS/

@@ -50,9 +50,10 @@ DESCRIPTION
         to modify only templates.
 
 INSTALLATION
-    Download tarball from a CPAN server near you, from the master site
-    (http://xao.com/) or using links on http://freshmeat.net/ and then
-    install it in the usual way, just say:
+    Download tarball from a CPAN server near you, from the master site (the
+    section on "/xao.com/" in the http: manpage) or using links on the
+    section on "/freshmeat.net/" in the http: manpage and then install it in
+    the usual way, just say:
 
       perl Makefile.PL
       make
