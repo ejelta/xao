@@ -50,7 +50,7 @@ use XAO::Objects;
 use base XAO::Objects->load(objname => 'Atom');
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: Glue.pm,v 1.32 2003/07/22 17:39:24 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: Glue.pm,v 1.33 2003/07/31 02:08:10 am Exp $ =~ /(\d+\.\d+)/);
 
 ###############################################################################
 
@@ -405,6 +405,26 @@ Always returns 'Glue' string for object database handler object.
 
 sub objtype ($) {
     'Glue';
+}
+
+###############################################################################
+
+=item reset ()
+
+Useful to bring glue to a usable state after some unknown software used
+it. If there is an active transaction -- it will be rolled back, if
+there are locked tables -- they will be unlocked.
+
+=cut
+
+sub reset ($) {
+    my $self=shift;
+
+    if($self->transact_active) {
+        $self->transact_rollback;
+    }
+
+    $self->_driver->reset;
 }
 
 ###############################################################################

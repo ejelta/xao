@@ -555,7 +555,8 @@ sub process ($%) {
             }
         }
         else {
-            throw XAO::E::Web "process - don't know how to handle auto_before ($autolist), must be hash or array reference";
+            throw XAO::E::Web "process - don't know how to handle auto_before ($autolist)," .
+                              " must be a hash or an array reference";
         }
     }
 
@@ -620,10 +621,7 @@ sub new ($%) {
     # Loading or creating site configuration object.
     #
     my $siteconfig=XAO::Projects::get_project($sitename);
-    if($siteconfig) {
-        $siteconfig->cleanup;
-    }
-    else {
+    if(!$siteconfig) {
         ##
         # Creating configuration.
         #
@@ -649,6 +647,12 @@ sub new ($%) {
                                       object => $siteconfig,
                                      );
     }
+
+    ##
+    # Cleaning up the configuration. Useful even if it was just created
+    # as it will unlock tables in the database for instance.
+    #
+    $siteconfig->cleanup;
 
     ##
     # If we are given a CGI reference then putting it into the

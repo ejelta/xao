@@ -42,6 +42,7 @@ use XAO::Errors qw(XAO::DO::FS::Config);
 ##
 # Prototypes
 #
+sub cleanup ($);
 sub disable_special_access ($);
 sub embeddable_methods ($);
 sub enable_special_access ($);
@@ -52,7 +53,7 @@ sub odb ($;$);
 # Package version for checks and reference
 #
 use vars qw($VERSION);
-($VERSION)=(q$Id: Config.pm,v 1.1 2001/11/14 00:45:47 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: Config.pm,v 1.2 2003/07/31 02:08:10 am Exp $ =~ /(\d+\.\d+)/);
 
 ###############################################################################
 
@@ -61,6 +62,20 @@ use vars qw($VERSION);
 =over
 
 =cut
+
+###############################################################################
+
+=item cleanup ()
+
+Calls reset() method on the odb to clean up the handler and prepare it
+for the next session.
+
+=cut
+
+sub cleanup ($) {
+    my $self=shift;
+    $self->{odb}->reset if $self->{odb};
+}
 
 ###############################################################################
 

@@ -129,6 +129,11 @@ PUBLIC METHODS
     objtype ()
         Always returns 'Glue' string for object database handler object.
 
+    reset ()
+        Useful to bring glue to a usable state after some unknown software
+        used it. If there is an active transaction -- it will be rolled
+        back, if there are locked tables -- they will be unlocked.
+
     transact_active ()
         Checks if a there is an active transaction at the moment. Can be
         used to avoid starting another one as transactions can't be nested.

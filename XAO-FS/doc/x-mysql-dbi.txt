@@ -104,6 +104,10 @@ METHODS
         reserved words. Could do something else in other drivers, do not
         count on the fact that there would be underscore at the end.
 
+    reset ()
+        Brings driver to usable state. Unlocks tables if they were somehow
+        left in locked state.
+
     retrieve_fields ($$$@)
         Retrieves individual fields from the given table by unique ID of the
         row. Always returns array reference even if there is just one field

@@ -147,8 +147,8 @@ EOT
     # Checking if we need to worry about ExtFilesMap or ExtFiles in the
     # apache config.
     #
-    my $efm=$r->dir_config('ExtFilesMap');
-    my $ef=$r->dir_config('ExtFiles');
+    my $efm=$r->dir_config('ExtFilesMap') || '';
+    my $ef=$r->dir_config('ExtFiles') || '';
     if($efm || $ef) {
         my $config=$web->config;
         my $pmt=$config->get('path_mapping_table');

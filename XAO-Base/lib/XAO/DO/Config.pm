@@ -52,7 +52,7 @@ use XAO::Objects;
 use base XAO::Objects->load(objname => 'Atom');
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: Config.pm,v 1.7 2003/02/19 21:54:25 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: Config.pm,v 1.8 2003/07/31 02:08:10 am Exp $ =~ /(\d+\.\d+)/);
 
 ###############################################################################
 # Prototypes
@@ -75,6 +75,7 @@ sub cleanup ($) {
     my $self=shift;
     foreach my $name (keys %{$self->{names}}) {
         my $obj=$self->{names}->{$name}->{obj};
+        dprint "Cleanup for $name: ",$obj->can('cleanup');
         $obj->cleanup() if $obj->can('cleanup');
     }
 }

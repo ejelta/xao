@@ -31,7 +31,7 @@ use XAO::Objects;
 use base XAO::Objects->load(objname => 'FS::Glue::SQL_DBI');
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: MySQL_DBI.pm,v 1.21 2003/06/13 00:42:46 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: MySQL_DBI.pm,v 1.22 2003/07/31 02:08:10 am Exp $ =~ /(\d+\.\d+)/);
 
 ###############################################################################
 
@@ -724,6 +724,25 @@ sub mangle_field_name ($$) {
 
 ###############################################################################
 
+=item reset ()
+
+Brings driver to usable state. Unlocks tables if they were somehow left
+in locked state.
+
+=cut
+
+sub reset () {
+    my $self=shift;
+    if($self->{table_type} eq 'innodb') {
+        $self->tr_loc_rollback();
+    }
+    else {
+        $self->unlock_tables();
+    }
+}
+
+###############################################################################
+
 =item retrieve_fields ($$$@)
 
 Retrieves individual fields from the given table by unique ID of the
@@ -1139,6 +1158,7 @@ sub throw ($@) {
     else {
         $self->unlock_tables();
     }
+
     $self->SUPER::throw(@_);
 }
 

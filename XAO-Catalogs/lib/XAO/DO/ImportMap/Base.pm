@@ -313,9 +313,10 @@ sub store_categories_hash ($$$) {
     #
     my %reverse_map;
     dprint "Building reverse lookup cache";
-    foreach my $cobj ($storage->values) {
-        my $path=$cobj->get('name');
-        my $parent_id=$cobj->get('parent_id');
+    foreach my $cid ($storage->keys) {
+        my $cobj=$storage->get($cid);
+        my ($path,$parent_id)=$cobj->get('name','parent_id');
+
         while(defined($parent_id) && length($parent_id)) {
             my $c=$storage->get($parent_id);
             if(!$c) {
@@ -329,7 +330,8 @@ sub store_categories_hash ($$$) {
         next unless $path;
 
         $path=$self->normalize_category_path($path);
-        $reverse_map{$path}=$cobj->container_key;
+        $reverse_map{$path}=$cid;
+        dprint "$path => $cid";
     }
 
     ##
