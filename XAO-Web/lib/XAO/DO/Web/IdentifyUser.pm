@@ -297,7 +297,7 @@ use XAO::Objects;
 use base XAO::Objects->load(objname => 'Web::Action');
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: IdentifyUser.pm,v 1.31 2004/11/06 00:04:29 am Exp $ =~ /(\d+\.\d+)/);
+$VERSION=(0+sprintf('%u.%03u',(q$Id: IdentifyUser.pm,v 2.1 2005/01/14 01:39:57 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
 
 ###############################################################################
 
@@ -1287,8 +1287,11 @@ Nothing
 
 =head1 AUTHOR
 
-Copyright (c) 2004 Ejelta LLC, http://ejelta.com/
-Copyright (c) 2001-2004 XAO, Inc.
+Copyright (c) 2005 Andrew Maltsev
+
+<am@ejelta.com> -- http://ejelta.com/xao/
+
+Copyright (c) 2001-2004 XAO Inc.
 
 Andrew Maltsev <am@ejelta.com>,
 Marcos Alves <alves@xao.com>,

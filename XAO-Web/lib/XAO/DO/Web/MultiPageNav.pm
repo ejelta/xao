@@ -222,7 +222,11 @@ Nothing
 
 =head1 AUTHOR
 
-Copyright (c) 2001 XAO, Inc.
+Copyright (c) 2003-2005 Andrew Maltsev
+
+<am@ejelta.com> -- http://ejelta.com/xao/
+
+Copyright (c) 2001-2003 Marcos Alves, XAO Inc.
 
 =head1 SEE ALSO
 
@@ -241,7 +245,7 @@ use XAO::Errors qw(XAO::DO::Web::MultiPageNav);
 use base XAO::Objects->load(objname => 'Web::Page');
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: MultiPageNav.pm,v 1.9 2004/04/06 23:36:33 am Exp $ =~ /(\d+\.\d+)/);
+$VERSION=(0+sprintf('%u.%03u',(q$Id: MultiPageNav.pm,v 2.1 2005/01/14 01:39:57 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
 
 ###############################################################################
 # Displaying multi page navigation display

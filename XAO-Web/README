@@ -40,20 +40,19 @@ DESCRIPTION
     *   If used in mod_perl mode improves performance by using caching of
         configuration, parsed templates, database handlers and so on.
 
-    *   XAO::Web is by default integrated with XAO::FS (see the XAO::FS
-        manpage) as a database layer, but this is not a requrement -- if for
-        any reason a different database must be used for a site it can be
-        easily and gracefully achieved.
+    *   XAO::Web is by default integrated with XAO::FS (see XAO::FS) as a
+        database layer, but this is not a requrement -- if for any reason a
+        different database must be used for a site it can be easily and
+        gracefully achieved.
 
     *   Hosting providers can allow their customers to build very complex
         sites without allowing them to execute arbitrary code, by allowing
         to modify only templates.
 
 INSTALLATION
-    Download tarball from a CPAN server near you, from the master site (the
-    section on "/xao.com/" in the http: manpage) or using links on the
-    section on "/freshmeat.net/" in the http: manpage and then install it in
-    the usual way, just say:
+    Download tarball from a CPAN server near you, from the master site
+    (<http://xao.com/>) or using links on <http://freshmeat.net/> and then
+    install it in the usual way, just say:
 
       perl Makefile.PL
       make
@@ -258,7 +257,7 @@ SITE DEVELOPMENT
          1;
 
         For the more detailed description of `embedding' and initialization
-        process in general please refer to the XAO::DO::Config manpage.
+        process in general please refer to XAO::DO::Config.
 
     4   At that point you should already be able to see your new site in
         your browser. Just point it to
@@ -280,15 +279,18 @@ SITE DEVELOPMENT
     directory and go to browser to check how it appears.
 
 AUTHORS
-    Copyright (c) 2000-2001 XAO Inc.
+    Copyright (c) 2005 Andrew Maltsev
 
-    XAO::Web was created and is maintained by Andrew Maltsev <am@xao.com>.
-    Creating of XAO::Web would not be possible without valuable comments and
-    ideas from everybody on our team and especially from Marcos Alves, Bil
-    Drury, Brian Despain and Jason Shupe.
+    Copyright (c) 2001-2004 Andrew Maltsev, XAO Inc.
+
+    <am@ejelta.com> -- http://ejelta.com/xao/
+
+    XAO::Web was created and is maintained by Andrew Maltsev. Creating of
+    XAO::Web would not be possible without valuable comments and ideas from
+    everybody on our team and especially from Marcos Alves, Bil Drury, Brian
+    Despain and Jason Shupe.
 
 SEE ALSO
-    Recommended reading: the XAO::Web manpage, the XAO::Objects manpage, the
-    XAO::DO::Config manpage, the XAO::FS manpage, the XAO::DO::FS::Config
-    manpage.
+    Recommended reading: XAO::Web, XAO::Objects, XAO::DO::Config, XAO::FS,
+    XAO::DO::FS::Config.
 

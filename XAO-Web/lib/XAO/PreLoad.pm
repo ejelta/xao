@@ -15,7 +15,7 @@ simply pre-loads most of XAO modules.
 
 The idea of pre-loading is to let mod_perl compile modules before any
 childs are forked off therefore letting all childs reduce startup time
-and reduce memory usage (because most of the pre-compiled code will stay
+and reduce memory usage (because most of the pre-compiled code stays
 shared in forked childs).
 
 =cut
@@ -68,6 +68,11 @@ use XAO::DO::FS::Hash;
 use XAO::DO::FS::List;
 
 ###############################################################################
+
+use vars qw($VERSION);
+$VERSION=(0+sprintf('%u.%03u',(q$Id: PreLoad.pm,v 2.1 2005/01/14 01:39:56 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
+
+###############################################################################
 1;
 __END__
 
@@ -77,9 +82,11 @@ Nothing.
 
 =head1 AUTHOR
 
-Copyright (c) 2003 XAO, Inc.
+Copyright (c) 2005 Andrew Maltsev
 
-Andrew Maltsev <am@xao.com>.
+Copyright (c) 2001-2004 Andrew Maltsev, XAO Inc.
+
+<am@ejelta.com> -- http://ejelta.com/xao/
 
 =head1 SEE ALSO
 

@@ -64,7 +64,7 @@ use XAO::Objects;
 use base XAO::Objects->load(objname => 'Web::Page');
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: IdentifyAgent.pm,v 1.3 2003/01/07 00:45:04 am Exp $ =~ /(\d+\.\d+)/);
+$VERSION=(0+sprintf('%u.%03u',(q$Id: IdentifyAgent.pm,v 2.1 2005/01/14 01:39:57 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
 
 ###############################################################################
 
@@ -174,6 +174,10 @@ __END__
 Nothing
 
 =head1 AUTHOR
+
+Copyright (c) 2003-2005 Andrew Maltsev
+
+<am@ejelta.com> -- http://ejelta.com/xao/
 
 Copyright (c) 2001,2002 XAO, Inc.
 

@@ -8,7 +8,7 @@ use vars qw(@ISA $VERSION);
 
 @ISA = qw(DynaLoader);
 
-($VERSION)=(q$Id: PageSupport.pm,v 1.2 2002/01/04 02:13:23 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: PageSupport.pm,v 2.1 2005/01/14 01:39:56 am Exp $ =~ /(\d+\.\d+)/);
 
 bootstrap XAO::PageSupport $VERSION;
 

@@ -102,8 +102,8 @@ foreach my $n (keys %{ExtUtils::Manifest::maniread()}) {
 use XAO::Base qw($homedir);
 
 WriteMakefile(
-    'ABSTRACT'      => 'XAO Web Developer',
-    'AUTHOR'        => 'Andrew Maltsev',
+    'ABSTRACT'      => 'XAO Web templating system',
+    'AUTHOR'        => 'Andrew Maltsev, http://ejelta.com/xao/',
     'NAME'          => 'XAO::Web',
     'VERSION_FROM'  => 'Web.pm',
     'PREREQ_PM'     => {
@@ -114,7 +114,6 @@ WriteMakefile(
         'XAO::Base'         => 1.06,
         'XAO::FS'           => 1.06,
         'Text::FormatTable' => 0.01,
-        'CGI'               => undef,
     },
     'INSTALLBIN'	=> $homedir . '/bin',
     'INSTALLSCRIPT'	=> $homedir . '/handlers',

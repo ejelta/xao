@@ -184,7 +184,7 @@ use XAO::Errors qw(XAO::DO::Web::FS);
 use base XAO::Objects->load(objname => 'Web::Action');
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: FS.pm,v 1.44 2004/09/29 16:37:11 am Exp $ =~ /(\d+\.\d+)/);
+$VERSION=(0+sprintf('%u.%03u',(q$Id: FS.pm,v 2.1 2005/01/14 01:39:57 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
 
 ###############################################################################
 
@@ -1028,6 +1028,10 @@ No publicly available methods except overriden display().
 Nothing.
 
 =head1 AUTHOR
+
+Copyright (c) 2003-2005 Andrew Maltsev
+
+<am@ejelta.com> -- http://ejelta.com/xao/
 
 Copyright (c) 2000-2002 XAO, Inc.
 

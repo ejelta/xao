@@ -26,7 +26,7 @@ use XAO::Errors qw(XAO::DO::Web::Clipboard);
 use base XAO::Objects->load(objname => 'Web::Action');
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: Clipboard.pm,v 1.4 2003/10/02 03:51:05 am Exp $ =~ /(\d+\.\d+)/);
+$VERSION=(0+sprintf('%u.%03u',(q$Id: Clipboard.pm,v 2.1 2005/01/14 01:39:57 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
 
 sub check_mode ($$) {
     my $self = shift;
@@ -103,6 +103,10 @@ __END__
 Nothing.
 
 =head1 AUTHOR
+
+Copyright (c) 2003-2005 Andrew Maltsev
+
+<am@ejelta.com> -- http://ejelta.com/xao/
 
 Copyright (c) 2001 XAO Inc.
 

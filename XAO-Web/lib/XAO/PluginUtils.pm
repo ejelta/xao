@@ -36,7 +36,7 @@ use vars qw(@ISA @EXPORT_OK @EXPORT $VERSION);
 @EXPORT_OK=qw(install_templates);
 @EXPORT=();
 
-($VERSION)=(q$Id: PluginUtils.pm,v 1.4 2002/01/04 03:27:25 am Exp $ =~ /(\d+\.\d+)/);
+$VERSION=(0+sprintf('%u.%03u',(q$Id: PluginUtils.pm,v 2.1 2005/01/14 01:39:56 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
 
 sub install_templates ($;$) {
     my $manifest=shift || 'MANIFEST';
@@ -73,6 +73,8 @@ __END__
 
 =head1 AUTHOR
 
-Copyright (c) 2000-2001 XAO Inc.
+Copyright (c) 2005 Andrew Maltsev
 
-The author is Andrew Maltsev <am@xao.com>.
+Copyright (c) 2001-2004 Andrew Maltsev, XAO Inc.
+
+<am@ejelta.com> -- http://ejelta.com/xao/
