@@ -22,7 +22,7 @@ The parameters for the MultiPageNav object are defined as follows:
 
 =item start_item - Count of first item of current page
 
-Note: count of first item of first page is 1
+Note: count of first item of first page is 0
 
 =item items_per_page 
 
@@ -56,9 +56,17 @@ Minimum number of pages between blocks
 
 Path to template for displaying link to previous page
 
+=item noprevious_page.path
+
+Path to template for display when there is no previous page
+
 =item next_page.path
 
 Path to template for displaying link to next page
+
+=item nonext_page.path
+
+Path to template for display when there is no next page
 
 =item current_page.path
 
@@ -233,57 +241,273 @@ use XAO::Errors qw(XAO::DO::Web::MultiPageNav);
 use base XAO::Objects->load(objname => 'Web::Page');
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: MultiPageNav.pm,v 1.3 2001/12/15 04:01:27 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: MultiPageNav.pm,v 1.4 2001/12/17 21:36:05 am Exp $ =~ /(\d+\.\d+)/);
 
 ###############################################################################
 # Displaying multi page navigation display
 #
 sub display ($;%) {
-
     #dprint "\n\n***\n***\n"
     #     . "*** XAO::DO::Web::MultiPageNav::display() START\n"
     #     . "***\n***";
+    my $self = shift;
+    my $args = $self->process_args(@_);
+    my $params      = $self->expand_nav($args);
+    $params->{path} = $args->{path};
+    $self->SUPER::display($params);
+    #dprint "***\n***\n"
+    #     . "*** XAO::DO::Web::Order::check_mode() STOP\n"
+    #     . "***\n***";
+}
+###############################################################################
+sub expand_nav {
+
+    my $self = shift;
+    my $args = shift;
+
+    $args->{total_pages}  = int($args->{total_items}/$args->{items_per_page});
+    $args->{total_pages}++  if  $args->{total_items} % $args->{items_per_page};
+    $args->{current_page} = int($args->{start_item}/$args->{items_per_page}) + 1;
+    #dprint "    %% NUMERICAL ARGS:";
+    #for (sort keys %$args){ dprint "    %% # $_ = $args->{$_}" unless /path$/; }
+
+    my (%strt, %stop, $page, $type, $pgstart);
+    my $obj    = $self->object;
+    my $params = {};
+    for ('PREVIOUS',
+         'FIRSTFEW',
+         'LASTFEW',
+         'PREVIOUS_BLOCKS',
+         'NEXT_BLOCKS',
+         'PREVIOUS_ADJACENT',
+         'NEXT_ADJACENT',
+         'NEXT',
+        ) { $params->{$_} = '';}
+
+    #################
+    # Current Block #
+    #################
+
+    # PREVIOUS_ADJACENT
+    $type = 'PREVIOUS_ADJACENT';
+    #dprint "*** $type";
+    if ($args->{current_page} > 1) {
+        $strt{$type} = $args->{current_page} - $args->{n_adjacent_pages};
+        $strt{$type} = 1 if $strt{$type} < 1;
+        $stop{$type} = $args->{current_page} - 1;
+        $stop{$type} = 1 if $stop{$type} < 1;
+        $pgstart     = int(($strt{$type}-1) * $args->{items_per_page});
+        foreach $page ($strt{$type}..$stop{$type}) {
+            #dprint "     >> $page: $type";
+            $params->{$type} .= $obj->expand(
+                                    path            => $args->{'numbered_page.path'},
+                                    PAGE_START_ITEM => $pgstart,
+                                    PAGE_NUMBER     => $page,
+                                    PAGE_TYPE       => '$type',
+                                );
+            $pgstart += $args->{items_per_page};
+        }
+    }
+    else {
+        $strt{$type} = $stop{$type} = '';
+    }
+
+    # PREVIOUS
+    $type    = 'PREVIOUS';
+    #dprint "*** $type";
+    $page    = $args->{current_page} - 1;
+    my $path =  $page > 0 ? $args->{'previous_page.path'}
+                          : $args->{'noprevious_page.path'};
+    #dprint "     >> $page: $type";
+    $params->{$type} = $obj->expand(
+                           path            => $path,
+                           PAGE_START_ITEM => int(($page-1) * $args->{items_per_page}),
+                           PAGE_NUMBER     => $page,
+                           PAGE_TYPE       => $type,
+                       ) if $path;
+    # CURRENT
+    $type = 'CURRENT';
+    #dprint "*** $type";
+    #dprint "     >> $page: $type";
+    $page = $args->{current_page};
+    $params->{$type} = $obj->expand(
+                           path            => $args->{'current_page.path'},
+                           PAGE_START_ITEM => int(($page-1) * $args->{items_per_page}),
+                           PAGE_NUMBER     => $page,
+                           PAGE_TYPE       => $type,
+                       );
+
+    # NEXT
+    $type = 'NEXT';
+    $page = $args->{current_page} + 1;
+    #dprint "*** $type";
+    $path = $page < $args->{total_pages} ? $args->{'next_page.path'}
+                                         : $args->{'nonext_page.path'};
+    $params->{$type} = $obj->expand(
+                           path            => $path,
+                           PAGE_START_ITEM => int(($page-1) * $args->{items_per_page}),
+                           PAGE_NUMBER     => $page,
+                           PAGE_TYPE       => $type,
+                       ) if $path;
+
+    # NEXT_ADJACENT
+    $type = 'NEXT_ADJACENT';
+    #dprint "*** $type";
+    if ($args->{current_page} < $args->{total_pages}) {
+        $strt{$type} = $args->{current_page} + 1;
+        $strt{$type} = $args->{total_pages} if $strt{$type} > $args->{total_pages};
+        $stop{$type} = $args->{current_page} + $args->{n_adjacent_pages};
+        $stop{$type} = $args->{total_pages} if $stop{$type} > $args->{total_pages};
+        $pgstart     = int(($strt{$type}-1) * $args->{items_per_page});
+        foreach $page ($strt{$type}..$stop{$type}) {
+            #dprint "     >> $page: $type";
+            $params->{$type} .= $obj->expand(
+                                    path            => $args->{'numbered_page.path'},
+                                    PAGE_START_ITEM => $pgstart,
+                                    PAGE_NUMBER     => $page,
+                                    PAGE_TYPE       => '$type',
+                                );
+            $pgstart += $args->{items_per_page};
+        }
+    }
+    else {
+        $strt{$type} = $stop{$type} = '';
+    }
+
+    #########################
+    # First and Last Blocks #
+    #########################
+
+    # FIRSTFEW
+    $type = 'FIRSTFEW';
+    #dprint "*** $type";
+    if ($strt{PREVIOUS_ADJACENT} > 1) {
+        $strt{$type} = 1;
+        $stop{$type} = $args->{n_edge_pages};
+        $stop{$type} = $strt{PREVIOUS_ADJACENT} - 1 if $stop{FIRSTFEW} >= $strt{PREVIOUS_ADJACENT};
+        $pgstart     = 0; # because int(($strt{$type}-1) * $args->{items_per_page}) == 0
+        foreach $page ($strt{$type}..$stop{$type}) {
+            #dprint "     >> $page: $type";
+            $params->{$type} .= $obj->expand(
+                                    path            => $args->{'numbered_page.path'},
+                                    PAGE_START_ITEM => $pgstart,
+                                    PAGE_NUMBER     => $page,
+                                    PAGE_TYPE       => '$type',
+                                );
+            $pgstart += $args->{items_per_page};
+        }
+    }
+    else {
+        $strt{$type} = $stop{$type} = '';
+    }
+
+    # LASTFEW
+    $type = 'LASTFEW';
+    #dprint "*** $type";
+    if ($args->{current_page} < $args->{total_pages}) {
+        $strt{$type} = $args->{total_pages} + 1 - $args->{n_edge_pages};
+        $strt{$type} = $stop{NEXT_ADJACENT} + 1 if $stop{NEXT_ADJACENT} >= $strt{$type};
+        $stop{$type} = $args->{total_pages};
+        $pgstart     = int(($strt{$type}-1) * $args->{items_per_page});
+        foreach $page ($strt{$type}..$stop{$type}) {
+            #dprint "     >> $page: $type";
+            $params->{$type} .= $obj->expand(
+                                    path            => $args->{'numbered_page.path'},
+                                    PAGE_START_ITEM => $pgstart,
+                                    PAGE_NUMBER     => $page,
+                                    PAGE_TYPE       => $type,
+                                );
+            $pgstart += $args->{items_per_page};
+        }
+    }
+    else {
+        $strt{$type} = $stop{$type} = '';
+    }
+
+
+    #################
+    # Middle Blocks #
+    #################
+
+    # PREVIOUS_BLOCKS
+    $type         = 'PREVIOUS_BLOCKS';
+    $strt{$type}  = $stop{FIRSTFEW} + 1;
+    $stop{$type}  = $strt{PREVIOUS_ADJACENT} - 1;
+    my $last_page = $stop{FIRSTFEW};
+    #dprint "*** $type";
+    #dprint "*** $strt{PREVIOUS_ADJACENT} - $stop{FIRSTFEW} >= ".2*$args->{min_period};
+    if (($strt{PREVIOUS_ADJACENT} - $stop{FIRSTFEW}) >= int(2*$args->{min_period})) {
+        foreach $page ($self->midblock_pages(
+                           $strt{$type},
+                           $stop{$type},
+                           $args->{min_period},
+                           $args->{max_blocks},
+                           $args->{n_block_pages},
+                      )) {
+            #dprint "     >> $page: $type";
+            $params->{$type} .= $obj->expand(path => $args->{'spacer.path'})
+                                  if $page - $last_page > 1;
+            $pgstart          = int(($page-1) * $args->{items_per_page});
+            $params->{$type} .= $obj->expand(
+                                    path            => $args->{'numbered_page.path'},
+                                    PAGE_START_ITEM => $pgstart,
+                                    PAGE_NUMBER     => $page,
+                                    PAGE_TYPE       => $type,
+                                );
+            $last_page = $page;
+        }
+    }
+    $params->{$type} .= $obj->expand(path => $args->{'spacer.path'})
+                          if $strt{PREVIOUS_ADJACENT} - $last_page > 1
+                          && $strt{PREVIOUS_ADJACENT} > 2;
+
+    # NEXT_BLOCKS
+    $type        = 'NEXT_BLOCKS';
+    $strt{$type} = $stop{NEXT_ADJACENT} + 1;
+    $stop{$type} = $strt{LASTFEW} - 1;
+    $last_page   = $stop{NEXT_ADJACENT};
+    #dprint "*** $type";
+    if ($strt{LASTFEW} - $stop{NEXT_ADJACENT} >= 2*$args->{min_period}) {
+        foreach $page ($self->midblock_pages(
+                        $strt{$type},
+                        $stop{$type},
+                        $args->{min_period},
+                        $args->{max_blocks},
+                        $args->{n_block_pages},
+                 )) {
+            #dprint "     >> $page: $type";
+            $params->{$type} .= $obj->expand(path => $args->{'spacer.path'})
+                                  if $page - $last_page > 1;
+            $pgstart          = int(($page-1) * $args->{items_per_page});
+            $params->{$type} .= $obj->expand(
+                                    path            => $args->{'numbered_page.path'},
+                                    PAGE_START_ITEM => $pgstart,
+                                    PAGE_NUMBER     => $page,
+                                    PAGE_TYPE       => $type,
+                                );
+            $last_page = $page;
+        }
+    }
+    $params->{$type} .= $obj->expand(path => $args->{'spacer.path'})
+                          if $strt{LASTFEW} - $last_page > 1;
+    #for (
+    #     'FIRSTFEW',
+    #     'PREVIOUS_BLOCKS',
+    #     'PREVIOUS_ADJACENT',
+    #     'NEXT_ADJACENT',
+    #     'NEXT_BLOCKS',
+    #     'LASTFEW',
+    #    ) { dprint "    %% $_: $strt{$_}, $stop{$_}";}
+
+    return $params;
+}
+###############################################################################
+sub process_args {
 
     my $self = shift;
     my $args = get_args(\@_);
     #dprint "    %% PASSED ARGS:";
     #for (sort keys %$args){ dprint "    %% * $_ = $args->{$_}"; }
-
-    ##
-    # Check numerical arguments
-    #
-    $args->{start_item}       = exists($args->{start_item})
-                              ? int($args->{start_item})
-                              : throw XAO::E::DO::Web::MultiPageNav
-                                "display - no 'start_item' argument given";
-    $args->{items_per_page}   = exists($args->{items_per_page})
-                              ? int($args->{items_per_page})
-                              : throw XAO::E::DO::Web::MultiPageNav
-                                "display - no 'items_per_page' argument given";
-    $args->{total_items}      = exists($args->{total_items})
-                              ? int($args->{total_items})-1 # XXX start at one issue?
-                              : throw XAO::E::DO::Web::MultiPageNav
-                                "display - no 'total_items' argument given";
-    $args->{n_edge_pages}     = exists($args->{n_edge_pages})
-                              ? int($args->{n_edge_pages})
-                              : throw XAO::E::DO::Web::MultiPageNav
-                                "display - no 'n_edge_pages' argument given";
-    $args->{n_adjacent_pages} = exists($args->{n_adjacent_pages})
-                              ? int($args->{n_adjacent_pages})
-                              : throw XAO::E::DO::Web::MultiPageNav
-                                "display - no 'n_adjacent_pages' argument given";
-    $args->{n_block_pages}    = exists($args->{n_block_pages})
-                              ? int($args->{n_block_pages})
-                              : throw XAO::E::DO::Web::MultiPageNav
-                                "display - no 'n_block_pages' argument given";
-    $args->{max_blocks}       = exists($args->{max_blocks})
-                              ? int($args->{max_blocks})
-                              : throw XAO::E::DO::Web::MultiPageNav
-                                "display - no 'max_blocks' argument given";
-    $args->{min_period}       = exists($args->{min_period})
-                              ? int($args->{min_period})
-                              : throw XAO::E::DO::Web::MultiPageNav
-                                "display - no 'min_period' argument given";
 
     ##
     # Check template arguments
@@ -292,269 +516,92 @@ sub display ($;%) {
                                      "display - no 'path' template argument given";
     $args->{'previous_page.path'} || throw XAO::E::DO::Web::MultiPageNav
                                      "display - no 'previous_page' template argument given";
-    $args->{'next_page.path'}     || throw XAO::E::DO::Web::MultiPageNav
-                                     "display - no 'next_page' template argument given";
     $args->{'current_page.path'}  || throw XAO::E::DO::Web::MultiPageNav
                                      "display - no  'current_page' template argument given";
+    $args->{'next_page.path'}     || throw XAO::E::DO::Web::MultiPageNav
+                                     "display - no 'next_page' template argument given";
     $args->{'numbered_page.path'} || throw XAO::E::DO::Web::MultiPageNav
                                      "display - no 'numbered_page' template argument given";
     $args->{'spacer.path'}        || throw XAO::E::DO::Web::MultiPageNav
-                                     "display - no 'spacer' template argument given";
-    
+    $args->{'nonext_page.path'}     = '' unless exists($args->{'nonext_page.path'});
+    $args->{'noprevious_page.path'} = '' unless exists($args->{'noprevious_page.path'});
+
+    ##
+    # Check numerical arguments
+    #
+    $args->{start_item}     = exists($args->{start_item})
+                            ? int($args->{start_item})
+                            : throw XAO::E::DO::Web::MultiPageNav
+                              "display - no 'start_item' argument given";
+    $args->{items_per_page} = exists($args->{items_per_page})
+                            ? int($args->{items_per_page})
+                            : throw XAO::E::DO::Web::MultiPageNav
+                              "display - no 'items_per_page' argument given";
+    $args->{total_items}    = exists($args->{total_items})
+                            ? int($args->{total_items})-1 # XXX start at one issue?
+                            : throw XAO::E::DO::Web::MultiPageNav
+                              "display - no 'total_items' argument given";
+
+    ##
+    # Set defaults if necessary
+    #
+    $args->{n_edge_pages}     = exists($args->{n_edge_pages})     ? int($args->{n_edge_pages})
+                                                                  : 2;
+    $args->{n_adjacent_pages} = exists($args->{n_adjacent_pages}) ? int($args->{n_adjacent_pages})
+                                                                  : 3;
+    $args->{n_block_pages}    = exists($args->{n_block_pages})    ? int($args->{n_block_pages})
+                                                                  : 1;
+    $args->{max_blocks}       = exists($args->{max_blocks})       ? int($args->{max_blocks})
+                                                                  : 3;
+    $args->{min_period}       = exists($args->{min_period})       ? int($args->{min_period})
+                                                                  : 3;
+
     ##
     # Validate arguments
     #
-    $args->{start_item} = 1 unless $args->{start_item} > 0;
-    #throw XAO::E::DO::Web::MultiPageNav "display - 'start_item' has to be greater than 1"
-    #    if $args->{start_item} < 1;
-    #throw XAO::E::DO::Web::MultiPageNav "display - 'start_item' has to less than 'total_items'"
-    #    if $args->{start_item} >= $args->{total_items};
-    
-    ##
-    # Calculate total page number and number of current page
-    #
-    $args->{total_pages}  = int($args->{total_items}/$args->{items_per_page});
-    $args->{total_pages}++  if  $args->{total_items} % $args->{items_per_page};
-    $args->{current_page} = int($args->{start_item}/$args->{items_per_page});
-    $args->{current_page}++ if  $args->{start_item}  % $args->{items_per_page};
-    #dprint "    %% NUMERICAL ARGS:";
-    #for (sort keys %$args){ dprint "    %% # $_ = $args->{$_}" unless /path$/; }
+    $args->{start_item} = 0                    if $args->{start_item} < 0;
+    $args->{start_item} = $args->{total_items} if $args->{start_item} > $args->{total_items};
 
-    ##
-    # Initialize for loop
-    #
-    my $spacer_type = '';
-    my $count       = 0;
-    my $obj         = $self->object;
-    my $params      = {};
-    for ('PREVIOUS',
-         'NEXT',
-         'FIRSTFEW',
-         'LASTFEW',
-         'PREVIOUS_BLOCKS',
-         'NEXT_BLOCKS',
-         'PREVIOUS_ADJACENT',
-         'NEXT_ADJACENT',
-        ) { $params->{$_} = '';}
-
-    ##
-    # Loop through pages
-    #
-    for ($self->get_page_types($args)) {
-
-        my $pgstart = int(($count-1) * $args->{items_per_page} + 1);
-
-        if (/^PREVIOUS$/) {
-           $pgstart = $args->{current_page} <= 1 ? 1 : $args->{current_page}-1;
-           $params->{PREVIOUS} = $obj->expand(
-                                     path            => $args->{'previous_page.path'},
-                                     PAGE_START_ITEM => (($pgstart-1)*$args->{items_per_page}+1),
-                                     PAGE_NUMBER     => $pgstart,
-                                     PAGE_TYPE       => $_,
-                                 );
-        }
-        elsif (/^FIRSTFEW$/) {
-            $params->{FIRSTFEW} .= $obj->expand( 
-                                       path            => $args->{'numbered_page.path'},
-                                       PAGE_START_ITEM => $pgstart,
-                                       PAGE_NUMBER     => $count,
-                                       PAGE_TYPE       => $_,
-                                   );
-            $spacer_type = 'prev';
-        }
-        elsif (/^PREVIOUS_BLOCKS$/) {
-            $params->{PREVIOUS_BLOCKS} .= $obj->expand(
-                                              path            => $args->{'numbered_page.path'},
-                                              PAGE_START_ITEM => $pgstart,
-                                              PAGE_NUMBER     => $count,
-                                              PAGE_TYPE       => $_,
-                                          );
-            $spacer_type = 'prev'; 
-        }
-        elsif (/^PREVIOUS_ADJACENT$/) {
-            $params->{PREVIOUS_ADJACENT} .= $obj->expand(
-                                                path            =>$args->{'numbered_page.path'},
-                                                PAGE_START_ITEM => $pgstart,
-                                                PAGE_NUMBER     => $count,
-                                                PAGE_TYPE       => $_,
-                                            );
-        }
-        elsif (/^CURRENT$/) {
-            $params->{CURRENT} = $obj->expand( 
-                                     path            => $args->{'current_page.path'},
-                                     PAGE_START_ITEM => $pgstart,
-                                     PAGE_NUMBER     => $count,
-                                     PAGE_TYPE       => $_,
-                                 );
-        }
-        elsif (/^NEXT_ADJACENT$/) {
-            $params->{NEXT_ADJACENT} .= $obj->expand(
-                                            path            =>$args->{'numbered_page.path'},
-                                            PAGE_START_ITEM => $pgstart,
-                                            PAGE_NUMBER     => $count,
-                                            PAGE_TYPE       => $_,
-                                        );
-            $spacer_type = 'next';
-        }
-        elsif (/^NEXT_BLOCKS$/) {
-            $params->{NEXT_BLOCKS} .= $obj->expand(
-                                          path            =>$args->{'numbered_page.path'},
-                                          PAGE_START_ITEM => $pgstart,
-                                          PAGE_NUMBER     => $count,
-                                          PAGE_TYPE       => $_,
-                                      );
-            $spacer_type = 'next';
-        }
-        elsif (/^LASTFEW$/) {
-            $params->{LASTFEW} .= $obj->expand(
-                                      path            => $args->{'numbered_page.path'},
-                                      PAGE_START_ITEM => $pgstart,
-                                      PAGE_NUMBER     => $count,
-                                      PAGE_TYPE       => $_,
-                                  );
-        }
-        elsif (/^NEXT$/) {
-            $pgstart = ($args->{current_page}==$args->{total_pages})
-                     ? $args->{total_pages}
-                     : $args->{current_page}+1;
-            $params->{NEXT} = $obj->expand(
-                                  path            => $args->{'next_page.path'},
-                                  PAGE_START_ITEM => (($pgstart-1)*$args->{items_per_page}+1),
-                                  PAGE_NUMBER     => $pgstart,
-                                  PAGE_TYPE       => $_,
-                              );
-        }
-        else {
-            my $spacer_text = $obj->expand(path => $args->{'spacer.path'});
-            if    ($spacer_type eq 'prev') { $params->{PREVIOUS_BLOCKS} .= $spacer_text; }
-            elsif ($spacer_type eq 'next') { $params->{NEXT_BLOCKS}     .= $spacer_text; }
-            $spacer_type = '';
-        }
-        $count++;
-    }
-
-    $params->{path} = $args->{path};
-    $self->SUPER::display($params);
-
-    #dprint "***\n***\n"
-    #     . "*** XAO::DO::Web::Order::check_mode() STOP\n"
-    #     . "***\n***";
+    return $args;
 }
-
-#############################################################################
-# Method calculate model of navigation panel
-# returns array of size (total_pages+2) with types of links
-#
-sub get_page_types ($) {
+###############################################################################
+sub midblock_pages() {
 
     my $self = shift;
-    my $args = get_args(\@_);
- 
-    # Always initialize!
-    my $ra_pgtypes = [];
-    foreach (0..$args->{total_pages}+1) { $ra_pgtypes->[$_] = ''; }
-    my ($strt, $stop) = ({}, {});
+    my ($pg_strt, $pg_stop, $min_period, $max_blocks, $n_blk_pages) = @_;
 
-    ##
-    # Previous and Next pages
-    #
-
-    $ra_pgtypes->[0]                      = 'PREVIOUS';
-    $ra_pgtypes->[$args->{total_pages}+1] = 'NEXT';
-
-    $strt->{CURRENT}           = $stop->{CURRENT} = $args->{current_page};
-    $strt->{PREVIOUS_ADJACENT} = $args->{current_page} - $args->{n_adjacent_pages};
-    $strt->{PREVIOUS_ADJACENT} = 0 if $strt->{PREVIOUS_ADJACENT} < 0;
-    $stop->{PREVIOUS_ADJACENT} = $args->{current_page};
-    $strt->{NEXT_ADJACENT}     = $args->{current_page};
-    $stop->{NEXT_ADJACENT}     = $args->{current_page} + $args->{n_adjacent_pages};
-    $stop->{NEXT_ADJACENT}     = $args->{total_pages}
-                                   if $stop->{NEXT_ADJACENT} > $args->{total_pages};
-    $strt->{FIRSTFEW}          = 1;
-    $stop->{FIRSTFEW}          = $args->{n_edge_pages} > $args->{current_page}
-                               ? $args->{current_page} : $args->{n_edge_pages};
-    $strt->{LASTFEW}           = 1 + $args->{total_pages} - $args->{n_edge_pages};
-    $strt->{LASTFEW}           = $args->{current_page}
-                                   if $strt->{LASTFEW} < $args->{current_page};
-    $stop->{LASTFEW}           = $args->{total_pages};
-    $strt->{PREVIOUS_BLOCKS}   = $args->{n_edge_pages};
-    $stop->{PREVIOUS_BLOCKS}   = $args->{current_page} - $args->{n_adjacent_pages};
-    $strt->{NEXT_BLOCKS}       = $args->{current_page} + $args->{n_adjacent_pages};
-    $stop->{NEXT_BLOCKS}       = $args->{total_pages}  - $args->{n_edge_pages};
-
-    if ($strt->{PREVIOUS_ADJACENT} - $stop->{FIRSTFEW} > $args->{min_period}) {
-        for ($strt->{FIRSTFEW}..$stop->{FIRSTFEW}){
-            $ra_pgtypes->[int($_)] = 'FIRSTFEW' unless $ra_pgtypes->[$_];
-        }
-    }
-    $self->get_blocks(
-        'PREVIOUS_BLOCKS',
-        $ra_pgtypes,
-        $strt->{PREVIOUS_BLOCKS},
-        $stop->{PREVIOUS_BLOCKS},
-        $args->{min_period},
-        $args->{max_blocks},
-        $args->{n_block_pages},
-    );
-    for ($strt->{PREVIOUS_ADJACENT}..$stop->{PREVIOUS_ADJACENT}){
-        $ra_pgtypes->[int($_)] = 'PREVIOUS_ADJACENT' unless $ra_pgtypes->[$_];
-    }
-    $ra_pgtypes->[$args->{current_page}]  = 'CURRENT';
-    for ($strt->{NEXT_ADJACENT}..$stop->{NEXT_ADJACENT}){
-        $ra_pgtypes->[int($_)] = 'NEXT_ADJACENT' unless $ra_pgtypes->[$_];
-    }
-    $self->get_blocks(
-        'NEXT_BLOCKS',
-        $ra_pgtypes,
-        $strt->{NEXT_BLOCKS},
-        $stop->{NEXT_BLOCKS},
-        $args->{min_period},
-        $args->{max_blocks},
-        $args->{n_block_pages},
-    );
-    if ($strt->{LASTFEW} - $stop->{NEXT_ADJACENT} > $args->{min_period}) {
-        for ($strt->{LASTFEW}..$stop->{LASTFEW}){
-            $ra_pgtypes->[int($_)] = 'LASTFEW' unless $ra_pgtypes->[$_];
-        }
-    }
-
-    return @$ra_pgtypes;
-}
-#############################################################################
-# Separating sequence of numbers to blocks
-#
-sub get_blocks() {
-
-    my $self = shift;
-    my ($type, $ra_pgtypes, $pg_strt, $pg_stop, $min_period, $max_blocks, $n_pages_show,) = @_;
-
-    my $tot_pages = $pg_stop-$pg_strt;
+    my $tot_pages      = $pg_stop - $pg_strt;
     return if $tot_pages <= 1;
-    my $n_blks   = int($tot_pages/$min_period) || return;
-    $n_blks      = $n_blks > $max_blocks ? $max_blocks : $n_blks;
-    my $period   = int($tot_pages/$n_blks) || 1;
-    my $mid_page = int($tot_pages/2);
+    my $n_blks         = int($tot_pages/$min_period) || return;
+    $n_blks            = $n_blks > $max_blocks ? $max_blocks : $n_blks;
+    my $period         = int($tot_pages/$n_blks) || 1;
+    #my $half_blk_pages = int($n_blk_pages/2);
+    #my $min = $pg_strt + int($tot_pages/($n_blks+1));
+    #$min   -= $half_blk_pages;
+    #$min-- if $n_blk_pages%2;
+    my $min            = $pg_strt + int($tot_pages/($n_blks+1));
+    $min              -= int(($min-$pg_strt)/2);
+    my $half_blk_pages = int($n_blk_pages/2);
 #dprint "\n\n";
-#dprint "    ** tot_pages    = $tot_pages";
-#dprint "    ** n_pages_show = $n_pages_show";
-#dprint "    ** pg_strt      = $pg_strt";
-#dprint "    ** pg_stop      = $pg_stop";
-#dprint "    ** n_blks       = $n_blks";
-#dprint "    ** period       = $period";
-    my $min      = $pg_strt + $mid_page - int($n_blks/2);
-    for my $blk (0..$n_blks-1) {
+#dprint "    ** tot_pages   = $tot_pages";
+#dprint "    ** n_blk_pages = $n_blk_pages";
+#dprint "    ** n_blks      = $n_blks";
+#dprint "    ** period      = $period";
+#dprint "    ** pg_strt     = $pg_strt";
+#dprint "    ** pg_stop     = $pg_stop";
+#dprint "    ** min         = $min";
+    my @pages = ();
+    foreach my $blk (0..$n_blks-1) {
+#dprint "    ** blk $blk ($min < $pg_stop ?)";
         last if $min >= $pg_stop;
-#dprint "    ** blk $blk";
-        my $max = $min + $n_pages_show;
+        my $max = $min + $n_blk_pages;
         $max    = $pg_stop if $max > $pg_stop;
         $max--;
-#dprint "       >> $min..$max:";
-        for my $page ($min..$max){
-#dprint "          %% $page = [$ra_pgtypes->[$page]] or [$type]";
-            $ra_pgtypes->[$page] ||= $type;
-        }
-        $min += ($period+$n_pages_show);
+#dprint "       ^ $min..$max";
+        foreach ($min..$max) { push @pages, $_; }
+        $min += $period + $half_blk_pages;
     }
+    @pages;
 }
 ###############################################################################
 1;
