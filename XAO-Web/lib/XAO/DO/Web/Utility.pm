@@ -33,7 +33,7 @@ use XAO::Objects;
 use base XAO::Objects->load(objname => 'Web::Action');
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: Utility.pm,v 1.3 2002/01/04 02:13:23 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: Utility.pm,v 1.4 2002/01/04 03:27:25 am Exp $ =~ /(\d+\.\d+)/);
 
 sub check_mode ($$) {
     my $self=shift;
@@ -61,7 +61,7 @@ sub check_mode ($$) {
         $self->show_pagedesc($args);
     }
     else {
-        throw Symphero::Errors::Page ref($self)."::check_mode - Unknown mode '$mode'";
+        $self->throw("check_mode - Unknown mode '$mode'");
     }
 }
 
@@ -305,7 +305,7 @@ sub show_base_url ($;%)
 
 =item 'show-pagedesc' => show_pagedesc (%)
 
-Displays value of pagedesc structure (see L<symphero.pl>) with the given
+Displays value of pagedesc structure (see L<XAO::Web>) with the given
 "name". Default name is "fullpath". Useful for processing tree-to-object
 mapped documents.
 
@@ -385,7 +385,7 @@ sub select_time_range ($%)
          }
       }
      if(!$year)
-      { $year=2000;	# Kind of birthday of Symphero :)
+      { $year=2000;	# Kind of birthday of XAO::Web :)
         $quarter=1;
       }
      my $lastyear;

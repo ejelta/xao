@@ -44,7 +44,7 @@ sub new ($@);
 # Package version for checks and reference
 #
 use vars qw($VERSION);
-($VERSION)=(q$Id: Config.pm,v 1.4 2001/12/18 02:30:56 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: Config.pm,v 1.5 2002/01/04 03:27:25 am Exp $ =~ /(\d+\.\d+)/);
 
 ###############################################################################
 
@@ -67,7 +67,7 @@ to add_cookie() then it gets replaced. This check is only performed if
 you pass a hash of arguments, not already prepared cookie.
 
 Think of it as if you are adding cookies to you final HTTP response as
-symphero.pl handler will get all the cookies collected during template
+XAO::Web handler will get all the cookies collected during template
 processing and send them out for you.
 
 Examples:

@@ -119,8 +119,8 @@ You are almost there. Now is the time to try it!
 
 Configure your Apache server so that it would execute
 /usr/local/xao/handlers/xao-apache.pl when someone types URL like
-http://test.company.com/cgi-bin/symphero.pl. Here is an example of a virtual
-host configuration for that (or you can simply sym-link symphero.pl to
+http://test.company.com/cgi-bin/xao-apache.pl. Here is an example of a virtual
+host configuration for that (or you can simply sym-link xao-apache.pl to
 your existing cgi-bin directory if you have one):
 
  <VirtualHost 10.0.0.1:80>

@@ -7,7 +7,7 @@ XAO::PluginUtils - utilities for plug-ins installation
  Makefile.PL:
  ....
  install::
-        \$(PERL) -MSymphero::PluginUtils=install_templates \\
+        \$(PERL) -MXAO::PluginUtils=install_templates \\
                  -e'install_templates("MANIFEST",1)'
 
 =head1 DESCRIPTION
@@ -36,7 +36,7 @@ use vars qw(@ISA @EXPORT_OK @EXPORT $VERSION);
 @EXPORT_OK=qw(install_templates);
 @EXPORT=();
 
-($VERSION)=(q$Id: PluginUtils.pm,v 1.3 2002/01/04 02:13:23 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: PluginUtils.pm,v 1.4 2002/01/04 03:27:25 am Exp $ =~ /(\d+\.\d+)/);
 
 sub install_templates ($;$) {
     my $manifest=shift || 'MANIFEST';

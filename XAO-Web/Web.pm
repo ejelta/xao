@@ -14,7 +14,7 @@ use XAO::Errors qw(XAO::Web);
 # XAO::Web version number. Hand changed with every release!
 #
 use vars qw($VERSION);
-$VERSION='1.01';
+$VERSION='1.02';
 
 ###############################################################################
 
@@ -246,7 +246,7 @@ sub execute ($%) {
         ##
         # Base URL should be full path to the start point -
         # http://host.com in case of rewrite and something like
-        # http://host.com/cgi-bin/symphero.pl/sitename in case of
+        # http://host.com/cgi-bin/xao-apache.pl/sitename in case of
         # plain CGI usage.
         #
         my $url=$cgi->url(-full => 1, -path_info => 0);
@@ -351,7 +351,7 @@ sub execute ($%) {
     my $autolist=$siteconfig->get('auto_before');
     if($autolist) {
         foreach my $objname (keys %{$autolist}) {
-            my $obj=Symphero::Objects->new(objname => $objname);
+            my $obj=XAO::Objects->new(objname => $objname);
             $pagetext.=$obj->expand($autolist->{$objname});
         }
     }

@@ -54,7 +54,7 @@ use XAO::Objects;
 use base XAO::Objects->load(objname => 'Web::Page');
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: SetArg.pm,v 1.2 2002/01/04 02:13:23 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: SetArg.pm,v 1.3 2002/01/04 03:27:25 am Exp $ =~ /(\d+\.\d+)/);
 
 ##
 # Setting arguments. Actual merging is done in Page object. We just set
@@ -70,7 +70,7 @@ sub display ($;%) {
 
     my $value=defined($args->{value}) ? $args->{value} : "on";
     my $parent=$self->{parent};
-    $parent || throw Symphero::Errors::Page "SetArg is pointless when orphan";
+    $parent || $self->throw("display - SetArg is pointless when orphan");
     $parent->{merge_args}->{$name}=$value if !defined($parent->{args}->{$name}) || $args->{override};
 }
 

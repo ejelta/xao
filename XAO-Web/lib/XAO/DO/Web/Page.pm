@@ -4,7 +4,14 @@ XAO::DO::Web::Page - core object of XAO::Web rendering system
 
 =head1 SYNOPSIS
 
-Currently is only useful in XAO::Web site context.
+Outside web environment:
+
+ my $page=XAO::Objects->new(objname => 'Page');
+ my $date=$page->expand(template => '<%Date%>');
+
+Inside XAO::Web template:
+
+ <%Page path="/bits/some-path" ARG={<%SomeObject/f%>}%>
 
 =head1 DESCRIPTION
 
@@ -301,7 +308,7 @@ use XAO::PageSupport;
 # Package version
 #
 use vars qw($VERSION);
-($VERSION)=(q$Id: Page.pm,v 1.6 2002/01/04 03:12:18 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: Page.pm,v 1.7 2002/01/04 03:27:25 am Exp $ =~ /(\d+\.\d+)/);
 
 ##
 # Methods prototypes

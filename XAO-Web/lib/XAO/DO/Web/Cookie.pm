@@ -29,14 +29,14 @@ use XAO::Utils;
 use base XAO::Objects->load(objname => 'Web::Page');
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: Cookie.pm,v 1.3 2002/01/04 02:13:23 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: Cookie.pm,v 1.4 2002/01/04 03:27:25 am Exp $ =~ /(\d+\.\d+)/);
 
 sub display ($;%) {
     my $self=shift;
     my $args=get_args(\@_);
     my $cgi=$self->{siteconfig}->cgi;
     my $name=$args->{name};
-    defined($name) || throw Symphero::Errors::Page ref($self)."::display - no name given";
+    defined($name) || $self->throw("display - no name given");
     if(defined($args->{value})) {
         my $value=$args->{value};
         my $c=$cgi->cookie(-name => $name,
