@@ -78,7 +78,7 @@ my $index_list=$odb->fetch('/Indexes');
 if($search) {
     my ($i_name,$ordering,$str)=@ARGV;
     my $index=$index_list->get($i_name);
-    my $sr=$index->search_indexer($ordering,$str);
+    my $sr=$index->search_by_string($ordering,$str);
     print join("\n",@$sr),"\n";
     exit 0;
 }
