@@ -31,7 +31,7 @@ use XAO::Objects;
 use base XAO::Objects->load(objname => 'Atom');
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: Memory.pm,v 1.1 2002/02/12 03:46:00 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: Memory.pm,v 1.2 2002/02/12 17:39:10 am Exp $ =~ /(\d+\.\d+)/);
 
 ###############################################################################
 
@@ -42,7 +42,36 @@ Calculates size in bytes of the given reference.
 =cut
 
 sub calculate_size ($$) {
-    return 0;
+    my $self=shift;
+    my $d=shift;
+    my $r=ref($d);
+    my $sz=0;
+    while($r eq 'REF') {
+        $d=$$d;
+        $r=ref($d);
+        $sz+=4;
+    }
+    if($r eq 'ARRAY') {
+        foreach my $dd (@$d) {
+            $sz+=$self->calculate_size($dd);
+        }
+    }
+    elsif($r eq 'HASH') {
+        foreach my $dk (keys %$d) {
+            # very rough estimate
+            $sz+=length($dk) + $self->calculate_size($d->{$dk});
+        }
+    }
+    elsif($r eq 'SCALAR') {
+        $sz=length($$d) + 4;
+    }
+    elsif($r eq '') {
+        $sz=length($d) + 4;
+    }
+    else {
+        $sz+=200;
+    }
+    return $sz;
 }
 
 ###############################################################################
@@ -65,7 +94,7 @@ sub exists ($$) {
         delete $self->{data}->{$key};
         return '';
     }
-    
+
     return 1;
 }
 
@@ -98,7 +127,7 @@ Makes a key from the given list of coordinates.
 
 sub make_key ($$) {
     my $self=shift;
-    return join("\001",@{$_[0]});
+    return join("\001",map { defined($_) ? $_ : '' } @{$_[0]});
 }
 
 ###############################################################################
@@ -111,6 +140,8 @@ depends on when an element was accessed last.
 
 =cut
 
+# XXX - not the most efficient way, should be done differently!
+
 sub put ($$$) {
     my $self=shift;
     my $key=$self->make_key(shift);
@@ -118,32 +149,29 @@ sub put ($$$) {
 
     my $data=$self->{data};
     my $size=$self->{size};
-    my $nsz=0;
-    if($size) {
-        $nsz=$self->calculate_size($element);
+    my $nsz=$size ? $self->calculate_size($element) : 0;
 
-        if($self->{current_size}+$nsz > $size) {
+    my @list=sort {
+        $data->{$a}->{access_time} <=> $data->{$b}->{access_time}
+    } keys %$data;
 
-            my @list=sort {
-                $data->{$a}->{access_time} <=> $data->{$b}->{access_time}
-            } keys %$data;
-
-            my $csz=$self->{current_size};
-            for(my $i=0; $i!=@list && $csz+$nsz>$size; $i++) {
-                my $k=$list[$i];
-                $csz-=$data->{$k}->{size};
-                delete $data->{$k};
-            }
-        }
+    my $csz=$self->{current_size};
+    my $expire=$self->{expire};
+    my $now=time;
+    for(my $i=0; $i!=@list; $i++) {
+        my $k=$list[$i];
+        last unless ($size && $csz+$nsz>$size) ||
+                    $data->{$k}->{access_time}+$expire < $now;
+        $csz-=$data->{$k}->{size};
+        delete $data->{$k};
     }
+    $self->{current_size}=$csz+$nsz;
 
-    my $ed={
+    $data->{$key}={
         size        => $nsz,
-        data        => $element,
+        element     => $element,
         access_time => time,
     };
-
-    $data->{$key}=$ed;
 
     undef;
 }

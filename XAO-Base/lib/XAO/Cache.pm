@@ -47,7 +47,7 @@ use XAO::Errors qw(XAO::E::Cache);
 use XAO::Objects;
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: Cache.pm,v 1.1 2002/02/12 03:46:00 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: Cache.pm,v 1.2 2002/02/12 17:39:10 am Exp $ =~ /(\d+\.\d+)/);
 
 ###############################################################################
 
@@ -83,7 +83,7 @@ sub get ($@) {
     defined($c[0]) ||
         throw XAO::E::Cache "get - no first coordinate ($args->{coords}->[0])";
 
-    if($backend->exists(\@c)) {
+    if($backend->exists([ @c ])) {
         return ${$backend->get(\@c)};
     }
 
@@ -146,7 +146,7 @@ instead of returning undef or other indicator of failure.
 
 =item size
 
-Optional maximum size of the cache in bytes. If not specified then only
+Optional maximum size of the cache in Kbytes. If not specified then only
 expiration time will be used as a criteria to throw a data element out
 of cache.
 
@@ -186,7 +186,7 @@ sub new ($%) {
         coords      => $coords,
         expire      => $args->{expire} || 60,
         retrieve    => $retrieve,
-        size        => $args->{size} || 0,
+        size        => ($args->{size} || 0)*1024,
     };
 
     ##
