@@ -38,7 +38,7 @@ sub get_args (@);
 sub merge_refs (@);
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: Utils.pm,v 1.3 2001/10/26 02:47:33 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: Utils.pm,v 1.4 2001/12/08 02:51:02 am Exp $ =~ /(\d+\.\d+)/);
 
 ###############################################################################
 # Export control
@@ -399,14 +399,14 @@ sub get_args (@) {
     if(@{$arr} == 1) {
         $args=$arr->[0];
         ref($args) eq "HASH" ||
-            throw XAO::E::Utils "XAO::Utils::get_args - not a HASH in arguments ($arr->[0])";
+            throw XAO::E::Utils "get_args - not a HASH in arguments ($arr->[0])";
     }
     elsif(! (scalar(@{$arr}) % 2)) {
         my %a=@{$arr};
         $args=\%a;
     }
     else {
-        throw XAO::E::Utils "XAO::Utils::get_args - unparsable arguments";
+        throw XAO::E::Utils "get_args - unparsable arguments";
     }
     $args={} unless $args;
     $args;
