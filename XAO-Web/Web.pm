@@ -248,7 +248,7 @@ sub execute ($%) {
 
 ###############################################################################
 
-=cut expand (%) {
+=item expand (%) {
 
 Expands given `path' using given `cgi' environment. Returns just the
 text of the page in scalar context and page content plus header content

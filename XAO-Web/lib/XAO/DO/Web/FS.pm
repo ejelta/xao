@@ -184,7 +184,7 @@ use XAO::Errors qw(XAO::DO::Web::FS);
 use base XAO::Objects->load(objname => 'Web::Action');
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: FS.pm,v 1.30 2002/08/15 00:47:03 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: FS.pm,v 1.31 2002/09/13 23:36:09 am Exp $ =~ /(\d+\.\d+)/);
 
 ###############################################################################
 
@@ -924,7 +924,9 @@ sub delete_object ($%) {
     my $id=$args->{id} || throw $self "delete_object - no 'id'";
     $list->delete($id);
 }
+
 ###############################################################################
+
 sub edit_object ($%) {
     my $self=shift;
     my $args=get_args(\@_);
@@ -960,44 +962,50 @@ sub edit_object ($%) {
         values      => \%values,
         submit_name => $id ? 'done' : undef,
         check_form  => sub {
-                           my $form = shift;
-                           foreach my $fieldname (@unique_fields) {
-                               my $results = $list->search(
-                                                 $fieldname,
-                                                 'eq',
-                                                 $form->field_desc($fieldname)->{value}
-                                             );
-                               if(($id && @$results>1) || (!$id && @$results)) {
-                                   my $field_text = 'Unique Identifier';
-                                   foreach my $fdata (@fields) {
-                                       if ($fdata->{name} eq $fieldname) {
-                                           $field_text = $fdata->{text};
-                                           last;
-                                       }
-                                   }
-                                   return "This '$field_text' is already taken";
-                               }
-                           }
-                           return '';
-                       },
+            my $form = shift;
+            foreach my $fieldname (@unique_fields) {
+                my $results = $list->search(
+                                    $fieldname,
+                                    'eq',
+                                    $form->field_desc($fieldname)->{value}
+                              );
+                if(($id && @$results>1) || (!$id && @$results)) {
+                    my $field_text = 'Unique Identifier';
+                    foreach my $fdata (@fields) {
+                        if ($fdata->{name} eq $fieldname) {
+                            $field_text = $fdata->{text};
+                            last;
+                        }
+                    }
+                    return "This '$field_text' is already taken";
+                }
+            }
+            return '';
+        },
         form_ok     => sub {
-                           my $form   = shift;
-                           my $object = $id ? $list->get($id) : $list->get_new();
-                           foreach my $name (map { $_->{name} } @fields) {
-                              #next if (field not in form)
-                               my $fdata = $form->field_desc($name);
-                               my $value = $fdata->{value};
-                               if ($fdata->{style} eq 'password') {
-                                   next unless $fdata->{pair};
-                                   $object->put($name => md5_base64($value));
-                               }
-                               else {
-                                   $object->put($name => $value);
-                               }
-                           }
-                           $id ? $list->put($id => $object) : $list->put($object);
-                           $self->object->display(path => $args->{'success.path'});
-                       },
+            my $form   = shift;
+            my $object = $id ? $list->get($id) : $list->get_new();
+            foreach my $name (map { $_->{name} } @fields) {
+                #next if (field not in form)
+                my $fdata = $form->field_desc($name);
+                my $value = $fdata->{value};
+                if ($fdata->{style} eq 'password') {
+                    next unless $fdata->{pair};
+                    if(!$fdata->{encrypt} || $fdata->{encrypt} eq 'md5') {
+                        $value=md5_base64($value);
+                    }
+                    elsif($fdata->{encrypt} eq 'plaintext') {
+                        # nothing
+                    }
+                    else {
+                        throw $self "edit_object - unknown encryption '$fdata->{encrypt}'";
+                    }
+                }
+                $object->put($name => $value);
+            }
+            $id ? $list->put($id => $object) : $list->put($object);
+            $self->object->display(path => $args->{'success.path'});
+        },
     );
     $form->display('form.path' => $args->{'form.path'});
 }
