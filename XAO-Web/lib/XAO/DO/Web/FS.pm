@@ -180,7 +180,7 @@ use XAO::Errors qw(XAO::DO::Web::FS);
 use base XAO::Objects->load(objname => 'Web::Action');
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: FS.pm,v 1.18 2002/02/15 18:32:51 alves Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: FS.pm,v 1.19 2002/02/15 19:23:25 alves Exp $ =~ /(\d+\.\d+)/);
 
 ###############################################################################
 
@@ -927,11 +927,11 @@ sub edit_object ($%) {
     my $list   = $self->get_object($args);
     my @fields = @{$self->form_fields};
 
-    ##
+    #
     # If we have ID then we're editing this object
     # otherwise we're creating a new one.
     #
-    my $id = $args->{id};
+    my $id = $args->{id} || '';
     my %values;
     if ($id) {
         my @fnames_to_get;
@@ -977,8 +977,9 @@ sub edit_object ($%) {
                        },
         form_ok     => sub {
                            my $form   = shift;
-                           my $object = $list->get_new();
+                           my $object = $id ? $list->get($id) : $list->get_new();
                            foreach my $name (map { $_->{name} } @fields) {
+                              #next if (field not in form)
                                my $fdata = $form->field_desc($name);
                                my $value = $fdata->{value};
                                if ($fdata->{style} eq 'password') {
