@@ -189,4 +189,27 @@ sub test_exists {
                   "Exists() returned wrong value fro 'nonexistent'");
 }
 
+sub test_list_describe {
+    my $self=shift;
+    
+    my $odb = $self->{odb};
+    
+    my $list=$odb->fetch('/Customers');
+
+    $self->assert($list, "Can't fetch List object");
+    
+    $self->assert(defined($list->can('describe')),
+                  "Can't call function 'describe()' on Data::System::List object!");
+
+    my $desc=$list->describe();
+    $self->assert(ref($desc) eq 'HASH',
+                  "List description is not a hash reference");
+    $self->assert($desc->{type} eq 'list',
+                  "Type of Customers is not 'list'");
+    $self->assert($desc->{class} eq 'Data::Customer',
+                  "Class of Customers is not 'Data::Customer'");
+    $self->assert($desc->{key} => 'customer_id',
+                  "Key for Customers is not 'customer_id'");
+}
+
 1;

@@ -106,6 +106,17 @@ sub delete ($$) {
 
 ###############################################################################
 
+sub describe {
+    my $self=shift;
+    return {
+        type => 'list',
+        class => $$self->{class_name},
+        key => $$self->{key_name},
+    };
+}
+
+###############################################################################
+
 =item detach ()
 
 Detaches current object from the database. Not implemented, but safe to
