@@ -1,4 +1,9 @@
 1.03 - XXX
+    * MAJOR: fixed bug in relations generation in deep search
+      subroutines; dependencies were wrong when searching for properties
+      of hashes in different lists originating from the same top level
+      object
+    * Added test case for the bug above
     * check_name method is now available on all FS objects
 
 1.02 - 3-Jan-2002

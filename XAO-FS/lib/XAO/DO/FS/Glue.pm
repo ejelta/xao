@@ -49,7 +49,7 @@ use XAO::Objects;
 use XAO::Errors qw(XAO::DO::FS::Glue);
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: Glue.pm,v 1.8 2002/01/17 19:29:03 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: Glue.pm,v 1.9 2002/01/19 03:31:43 am Exp $ =~ /(\d+\.\d+)/);
 
 ###############################################################################
 
@@ -971,14 +971,15 @@ sub _build_search_query ($%) {
                 $wrapped=1;
             }
 
-            my $base_name=$glue->upper_class($cn);
-            my $conn=$glue->_connector_name($cn,$base_name);
+            my $upper_class=$glue->upper_class($cn);
+            my $conn=$glue->_connector_name($cn,$upper_class);
             $conn=$classes{$cn} . '.' .
                   $self->_driver->mangle_field_name($conn);
+
             $clause.=" AND " if $clause;
-            $clause.="$previous->{index}.unique_id=$conn";
+            $clause.="$classes{$upper_class}.unique_id=$conn";
         }
-        $previous=$item;
+        $previous=1;
     }
 
     ##
