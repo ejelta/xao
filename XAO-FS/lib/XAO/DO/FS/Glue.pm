@@ -50,7 +50,7 @@ use XAO::Objects;
 use base XAO::Objects->load(objname => 'Atom');
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: Glue.pm,v 1.31 2003/06/12 22:34:00 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: Glue.pm,v 1.32 2003/07/22 17:39:24 am Exp $ =~ /(\d+\.\d+)/);
 
 ###############################################################################
 
@@ -1309,7 +1309,9 @@ sub _build_search_query ($%) {
         }
     }
 
-    ### dprint "SQL: $sql";
+    ##
+    # To aid in debugging..
+    #
     print STDERR "SEARCH SQL: $sql\n" if $debug;
 
     ##

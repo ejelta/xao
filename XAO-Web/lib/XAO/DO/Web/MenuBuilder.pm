@@ -89,9 +89,10 @@ sub display ($;%) {
     # And finally displaying items.
     #
     my $obj=$self->object;
-    $obj->display(path => "$base/header") if XAO::Templates::check(path => "$base/header");
+    $obj->display(path => "$base/header")
+        if XAO::Templates::filename("$base/header");
     my $first=1;
-    my $sepexists=XAO::Templates::check(path => "$base/separator");
+    my $sepexists=XAO::Templates::filename("$base/separator");
     foreach my $item (sort { ($a =~ /^\d+$/ && $b =~ /^\d+$/)
                                 ? $a <=> $b
                                 : $a cmp $b } keys %items) {
@@ -111,7 +112,8 @@ sub display ($;%) {
         $path="$base/item-$name-$path";
         $obj->display(path => $path);
     }
-    $obj->display(path => "$base/footer") if XAO::Templates::check(path => "$base/footer");
+    $obj->display(path => "$base/footer")
+        if XAO::Templates::filename("$base/footer");
 }
 
 ###############################################################################

@@ -541,9 +541,21 @@ sub process ($%) {
     #
     my $autolist=$siteconfig->get('auto_before');
     if($autolist) {
-        foreach my $objname (keys %{$autolist}) {
-            my $obj=XAO::Objects->new(objname => $objname);
-            $pagetext.=$obj->expand($autolist->{$objname});
+        if(ref($autolist) eq 'ARRAY') {
+            for(my $i=0; $i<@$autolist; $i+=2) {
+                my ($objname,$objargs)=@{$autolist}[$i,$i+1];
+                my $obj=XAO::Objects->new(objname => $objname);
+                $pagetext.=$obj->expand($objargs);
+            }
+        }
+        elsif(ref($autolist) eq 'HASH') {
+            foreach my $objname (keys %{$autolist}) {
+                my $obj=XAO::Objects->new(objname => $objname);
+                $pagetext.=$obj->expand($autolist->{$objname});
+            }
+        }
+        else {
+            throw XAO::E::Web "process - don't know how to handle auto_before ($autolist), must be hash or array reference";
         }
     }
 

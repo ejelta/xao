@@ -404,7 +404,7 @@ use Error qw(:try);
 use base XAO::Objects->load(objname => 'Atom');
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: Page.pm,v 1.24 2003/01/10 23:02:05 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: Page.pm,v 1.25 2003/07/22 17:39:42 am Exp $ =~ /(\d+\.\d+)/);
 
 ##
 # Prototypes
@@ -688,7 +688,7 @@ It will return a reference to the array of the following structure:
 Templates from disk files are cached for the lifetime of the process and
 are never re-parsed.
 
-Always returns with the correct array or throws an error.
+Always returns with a correct array or throws an error.
 
 =cut
 
@@ -739,6 +739,19 @@ sub parse ($%) {
     ##
     # Parsing. If a scalar is returned it is an indicator of an error.
     #
+    if($self->debug_check('show-parse')) {
+        if($path) {
+            dprint $self->{objname}."::parse - parsing path='$path'"
+        }
+        else {
+            my $te=substr($template,0,20);
+            $te=~s/\r/\\r/sg;
+            $te=~s/\n/\\n/sg;
+            $te=~s/\t/\\t/sg;
+            $te.='...' if length($template)>20;
+            dprint $self->{objname}."::parse - parsing inline template ($te)";
+        }
+    }
     my $page=XAO::PageSupport::parse($template);
     ref $page ||
         throw $self "parse - $page";

@@ -67,7 +67,7 @@ use XAO::Objects;
 use base XAO::Objects->load(objname => 'FS::Glue');
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: Hash.pm,v 1.16 2003/06/13 00:42:46 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: Hash.pm,v 1.17 2003/07/22 17:39:24 am Exp $ =~ /(\d+\.\d+)/);
 
 ###############################################################################
 
@@ -140,11 +140,6 @@ keys for a single argument put() method on Lists (L<XAO::DO::FS::List>).
 Key format consists of normal alpha-numeric characters and may include
 several special sequences:
 
-=item key_length
-
-Maximum allowed key length, default is 30 (the same as maximum field
-name length in Hashes for consistency reasons).
-
 =over
 
 =item <$RANDOM$>
@@ -186,6 +181,11 @@ Examples:
  V<$AUTOINC$>        - V1, V2, V3, ..., V12345
  <$DATE$>_<$RANDOM$> - 200210282218_QWERT123
  NUM<$AUTOINC/12$>   - NUM000000000001, ..., NUM000000012345
+
+=item key_length
+
+Maximum allowed key length, default is 30 (the same as maximum field
+name length in Hashes for consistency reasons).
 
 =item maxlength
 

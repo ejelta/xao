@@ -80,7 +80,7 @@ Supported comparison operators are:
 
     gele True if greater than or equal to 'a' and less than or equal to 'b'
     
-    wq  (word equal)True if contains given word completely.
+    wq  (word equal) True if contains given word completely.
     
     ws  (word start) True if contains word that starts with the given string.
 
@@ -184,7 +184,7 @@ use XAO::Errors qw(XAO::DO::Web::FS);
 use base XAO::Objects->load(objname => 'Web::Action');
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: FS.pm,v 1.39 2003/03/26 03:07:10 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: FS.pm,v 1.40 2003/07/22 17:40:43 am Exp $ =~ /(\d+\.\d+)/);
 
 ###############################################################################
 
@@ -708,11 +708,12 @@ sub _create_query {
         #
         my @indexes = split(/\|/, $index);
         if ($compare_op eq 'wq' || $compare_op eq 'ws') {
-            #if ($value =~ /\|/) {
-            #    my @value_list = split(/\|/, $value);
-            #    $value         = \@value_list;
-            #}
-            $expr_ra[$i]   = $self->_create_expression(\@indexes, $compare_op, $value);
+            if ($value =~ /\s/) {
+                my @value_list=split(/\s+/, $value);
+                shift(@value_list) if @value_list && length($value_list[0])==0;
+                $value=\@value_list;
+            }
+            $expr_ra[$i]=$self->_create_expression(\@indexes, $compare_op, $value);
         }
         elsif ($compare_op =~ /^(g[et])(l[et])$/) {
             my ($lo, $hi) = split(/\|/, $value);
