@@ -1,3 +1,9 @@
+Optimization for keys() and values() called in scalar context to issue
+count(*) instead of returning actual array. Probably a special method
+like count(search_args) too for more complex conditions.
+
+===============
+
 (!) Locking and/or transactions support. Safe adding of a new item with
 pre-defined ID using checks that no such item already exists. Somehow
 must deal with race condition if two attempts to add the same item are

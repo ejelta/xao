@@ -50,7 +50,7 @@ use XAO::Objects;
 use base XAO::Objects->load(objname => 'Atom');
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: Glue.pm,v 1.20 2002/09/10 20:20:40 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: Glue.pm,v 1.21 2002/10/04 01:47:49 am Exp $ =~ /(\d+\.\d+)/);
 
 ###############################################################################
 
@@ -904,7 +904,7 @@ sub _build_search_query ($%) {
     my %fields_map;
     my $post_process=0;
     my $clause;
-    if($condition) {
+    if($condition && (ref($condition) ne 'ARRAY' || @$condition)) {
         $clause=$self->_build_search_clause(\%classes,
                                             \@values,
                                             \%fields_map,
