@@ -65,7 +65,6 @@ sub finish_collection ($%) {
 
     my $coll=$cinfo->{collection};
     foreach my $id (@{$cinfo->{ids}}) {
-        dprint ".marking $id as indexed";
         $coll->get($id)->put(indexed => 1);
     }
 }

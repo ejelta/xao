@@ -12,6 +12,7 @@ my $drop;
 my $project;
 my $search;
 my $update;
+my $complete;
 GetOptions(
     'all'           => \$all,
     'create'        => \$create,
@@ -20,6 +21,7 @@ GetOptions(
     'project=s'     => \$project,
     'search'        => \$search,
     'update'        => \$update,
+    'complete'      => \$complete,
 );
 
 if(!$project ||
@@ -29,12 +31,12 @@ if(!$project ||
    ($search && @ARGV!=3) ||
    ($update && !$all && !@ARGV)) {
     print <<EOT;
-Usage: $0 [--debug] --project PROJ --update index_code1 index_code2 ...
+Usage: $0 [--debug] [--complete] --project PROJ --update index1 index2 ...
 
 Updates given indexes in the database.
 
 
-Usage: $0 [--debug] --project PROJ --update --all
+Usage: $0 [--debug] [--complete] --project PROJ --update --all
 
 Updates all existing indexes.
 
@@ -130,7 +132,11 @@ if($update) {
     dprint "Updating indexes";
     foreach my $index_id ($all ? $index_list->keys : @ARGV) {
         dprint "Updating index '$index_id'";
-        $index_list->get($index_id)->update;
+        my $ucount;
+        do {
+            $ucount=$index_list->get($index_id)->update;
+            dprint ".updated $ucount IDs";
+        } while($complete && $ucount);
     }
     exit 0;
 }

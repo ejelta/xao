@@ -571,10 +571,18 @@ better. Going with it.
         my $sorted_ids_total=scalar(@$sorted_ids);
 
         $count=0;
+        my $tstamp_start=time;
         foreach my $kw (keys %{$kw_data{keywords}}) {
             my $kwd=$kw_data{keywords}->{$kw};
 
-            dprint "..$count/$kw_total" if (++$count%1000)==0;
+            ##
+            # Estimate of when we're going to finish.
+            #
+            if((++$count%1000)==0) {
+                my $tstamp=time;
+                my $tstamp_end=time+int(($tstamp-$tstamp_start)/$count * $kw_total);
+                dprint "..$count/$kw_total (".localtime($tstamp)." - ".localtime($tstamp_end).")";
+            }
 
             ##
             # Using md5 based IDs
