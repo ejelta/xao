@@ -31,7 +31,7 @@ use XAO::Objects;
 use base XAO::Objects->load(objname => 'Atom');
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: Memory.pm,v 1.4 2002/02/20 01:03:28 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: Memory.pm,v 1.5 2004/02/23 21:44:43 am Exp $ =~ /(\d+\.\d+)/);
 
 ###############################################################################
 
@@ -132,7 +132,7 @@ sub exists ($$) {
 =item get (\@)
 
 Retrieves an element from the cache. Does not check if it is expired or
-not, that is done in exists() method, but update access time.
+not, that is done in exists() method and does not update access time.
 
 =cut
 
@@ -142,12 +142,6 @@ sub get ($$) {
     my $key=$self->make_key($_[0]);
     my $ed=$self->{data}->{$key} ||
         throw $self "get - no such element in the cache ($key), internal error";
-
-    ##
-    # It is a bad idea to touch elements every time, they need to expire
-    # when expiration time passes.
-    #
-    ### $self->touch($key,$ed);
 
     return $ed->{element};
 }

@@ -33,7 +33,17 @@ sub test_everything {
     $self->assert($d2 eq '1-d2-s2',
                   "Got wrong value for d2 (expected '1-d2-s2', got '$d2')");
     $d2=$cache->get($self, name => 'd2', subname => 's3', foo => 123);
+    $self->assert($d2 eq '2-d2-s3',
+                  "Got wrong value for d2 (expected '1-d2-s3', got '$d2')");
     $d2=$cache->get($self, name => 'd2', subname => 's2', foo => 123);
+    $self->assert($d2 eq '1-d2-s2',
+                  "Got wrong value for d2 (expected '1-d2-s2', got '$d2')");
+    $d2=$cache->get($self, name => 'd2', subname => 's3', foo => 123);
+    $self->assert($d2 eq '2-d2-s3',
+                  "Got wrong value for d2 (expected '1-d2-s3', got '$d2')");
+    $d2=$cache->get($self, name => 'd2', subname => 's2', foo => 123);
+    $self->assert($d2 eq '1-d2-s2',
+                  "Got wrong value for d2 (expected '1-d2-s2', got '$d2')");
 
     ##
     # Checking if it is expired
@@ -61,6 +71,25 @@ sub test_everything {
     $d1=$cache->get(name => 'd1', bar => 234);
     $self->assert($d1 eq '304-d1-',
                   "Got wrong value for d1 (expected '304-d1-', got '$d1')");
+
+    ##
+    # Rechecking that after removals the cache still works fine.
+    #
+    $d2=$cache->get($self, name => 'd2', subname => 's2', foo => 123);
+    $self->assert($d2 eq '305-d2-s2',
+                  "Got wrong value for d2 (expected '305-d2-s2', got '$d2')");
+    $d2=$cache->get($self, name => 'd2', subname => 's3', foo => 123);
+    $self->assert($d2 eq '306-d2-s3',
+                  "Got wrong value for d2 (expected '306-d2-s3', got '$d2')");
+    $d2=$cache->get($self, name => 'd2', subname => 's2', foo => 123);
+    $self->assert($d2 eq '305-d2-s2',
+                  "Got wrong value for d2 (expected '305-d2-s2', got '$d2')");
+    $d2=$cache->get($self, name => 'd2', subname => 's3', foo => 123);
+    $self->assert($d2 eq '306-d2-s3',
+                  "Got wrong value for d2 (expected '306-d2-s3', got '$d2')");
+    $d2=$cache->get($self, name => 'd2', subname => 's2', foo => 123);
+    $self->assert($d2 eq '305-d2-s2',
+                  "Got wrong value for d2 (expected '305-d2-s2', got '$d2')");
 }
 
 sub test_size {
