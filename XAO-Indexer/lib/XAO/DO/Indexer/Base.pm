@@ -57,8 +57,8 @@ sub analyze_text ($$$@) {
     my $kw_data=shift;
     my $unique_id=0+shift;
 
-    $kw_data->{keywords}||={};
-    my $kw_info=$kw_data->{keywords};
+    $kw_data->{'keywords'}||={};
+    my $kw_info=$kw_data->{'keywords'};
 
     my $field_num=0;
     foreach my $text (@_) {
@@ -430,11 +430,11 @@ sub update ($%) {
         #
         my $count_uid=$kw_data{count_uid}->{$coll_id};
         foreach my $kw (keys %$count_uid) {
-            if(++$kw_data{counts}->{$kw} > $ignore_limit) {
-                $kw_data{ignore}->{$kw}=1;
+            if(++$kw_data{'counts'}->{$kw} > $ignore_limit) {
+                $kw_data{'ignore'}->{$kw}=1;
             }
         }
-        delete $kw_data{count_uid}->{$coll_id};
+        delete $kw_data{'count_uid'}->{$coll_id};
     }
 
     ##
@@ -445,6 +445,7 @@ sub update ($%) {
 
     $index_object->glue->transact_begin;
     my $data_list=$index_object->get('Data');
+    my $max_kw_length=$data_list->get_new->describe('keyword')->{'maxlength'};
     my $ni=$ignore_list->get_new;
     $ni->put(create_time => $now);
 
@@ -473,8 +474,8 @@ sub update ($%) {
         # routine.
         #
         my $sorted_ids;
-        if($o_data->{sortall}) {
-            $sorted_ids=&{$o_data->{sortall}}($cinfo);
+        if($o_data->{'sortall'}) {
+            $sorted_ids=&{$o_data->{'sortall'}}($cinfo);
         }
         else {
             if($is_partial) {
@@ -483,12 +484,12 @@ sub update ($%) {
             else {
                 dprint "Manual sorting is slow, consider providing 'sortall' routine";
                 my $sortsub=$o_data->{sortsub};
-                if($o_data->{sortprepare}) {
-                    &{$o_data->{sortprepare}}($self,$index_object,\%kw_data);
+                if($o_data->{'sortprepare'}) {
+                    &{$o_data->{'sortprepare'}}($self,$index_object,\%kw_data);
                 }
                 $sorted_ids=[ sort { &$sortsub(\%kw_data,$a,$b) } @$coll_ids ];
-                if($o_data->{sortfinish}) {
-                    &{$o_data->{sortfinish}}($self,$index_object,\%kw_data);
+                if($o_data->{'sortfinish'}) {
+                    &{$o_data->{'sortfinish'}}($self,$index_object,\%kw_data);
                 }
             }
         }
@@ -501,8 +502,17 @@ sub update ($%) {
 
         $count=0;
         my $tstamp_start=time;
-        foreach my $kw (keys %{$kw_data{keywords}}) {
-            my $kwd=$kw_data{keywords}->{$kw};
+        foreach my $kw (keys %{$kw_data{'keywords'}}) {
+
+            ##
+            # If the keyword is longer than we can safely store we
+            # ignore it and issue a warning. Should not happen often --
+            # if it does the field length should be extended.
+            #
+            if(length($kw) > $max_kw_length) {
+                eprint "Keyword '$kw' is longer than $max_kw_length, ignored";
+                next;
+            }
 
             ##
             # Estimate of when we're going to finish.
@@ -532,10 +542,10 @@ sub update ($%) {
             # only be known after we merge data below, otherwise we know
             # instantly.
             #
-            if($kw_data{ignore}->{$kw}) {
+            if($kw_data{'ignore'}->{$kw}) {
                 $ni->put(
                     keyword => $kw,
-                    count   => $kw_data{counts}->{$kw},
+                    count   => $kw_data{'counts'}->{$kw},
                 );
                 $ignore_list->put($kwmd5 => $ni);
                 $data_list->delete($kwmd5) if $data_obj->container_key;
@@ -546,6 +556,7 @@ sub update ($%) {
             # For partial - joining with the existing data, otherwise --
             # replacing.
             #
+            my $kwd=$kw_data{'keywords'}->{$kw};
             if($is_partial && $data_obj->container_key) {
                 my $posdata=$data_obj->get("idpos_$o_seq");
                 if(length($posdata)) {
@@ -581,7 +592,7 @@ sub update ($%) {
                     }
 
                     if($o_first) {
-                        $kw_data{counts}->{$kw}=$kw_count;
+                        $kw_data{'counts'}->{$kw}=$kw_count;
                         if($kw_count > $ignore_limit) {
                             $kw_data{ignore}->{$kw}=$kw_count;
                             $ni->put(
@@ -646,8 +657,8 @@ sub update ($%) {
                 "idpos_$o_seq"  => $posdata,
             );
             if($o_first) {
-                $data_hash{create_time}=$now;
-                $data_hash{count}=$kw_data{counts}->{$kw};
+                $data_hash{'create_time'}=$now;
+                $data_hash{'count'}=$kw_data{'counts'}->{$kw};
             }
             $data_obj->put(\%data_hash);
             $data_list->put($kwmd5 => $data_obj) unless $data_obj->container_key;
