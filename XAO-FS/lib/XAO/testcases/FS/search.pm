@@ -5,6 +5,25 @@ use XAO::Objects;
 
 use base qw(XAO::testcases::FS::base);
 
+##
+# Test for a bug in MySQL_DBI driver in handling on multi-value returns
+# in search.
+#
+sub test_bug_20030505 {
+    my $self=shift;
+    my $odb=$self->get_odb();
+    my $customers=$odb->fetch('/Customers');
+    my $sr=$customers->search({distinct => 'name'});
+    my $got=join(',',sort @$sr);
+    my $expect='c1,c2';
+    $self->assert($got eq $expect,
+                  "Bug in multi-value handling - expected $expect, got $got");
+}
+
+##
+# Really deep searches that are very unlikely to ever be requested in
+# real life.
+#
 sub test_real_deep {
     my $self=shift;
 
