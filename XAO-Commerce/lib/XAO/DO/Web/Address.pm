@@ -4,6 +4,9 @@ use XAO::Errors qw(XAO::DO::Web::Address);
 
 use base XAO::Objects->load(objname => 'Web::FS');
 
+use vars qw($VERSION);
+$VERSION=(0+sprintf('%u.%03u',(q$Id: Address.pm,v 1.2 2005/01/14 02:15:53 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
+
 ###############################################################################
 sub check_mode ($%) {
     my $self=shift;

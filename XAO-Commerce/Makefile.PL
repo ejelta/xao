@@ -1,7 +1,7 @@
 use ExtUtils::MakeMaker;
 
 WriteMakefile(
-    'AUTHOR'         => 'XAO Inc. <alves@xao.com>',
+    'AUTHOR'         => 'Marcos Alves',
     'ABSTRACT'       => 'Set of templates for creating eCommerce site using XAO::Web',
     'NAME'           => 'XAO::Commerce',
     'VERSION_FROM'   => 'Commerce.pm',
@@ -20,7 +20,7 @@ sub MY::postamble {
 config::	README
 
 README:	Commerce.pm
-	pod2text Commerce.pm > README
+	\@COLUMNS=80 pod2text Commerce.pm > README
 
 install::
 	\$(PERL) -MXAO::PluginUtils=install_templates \\

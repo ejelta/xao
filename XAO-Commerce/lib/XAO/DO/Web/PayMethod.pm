@@ -1,8 +1,11 @@
 package XAO::DO::Web::PayMethod;
 use XAO::Utils;
 use XAO::Errors qw(XAO::DO::Web::PayMethod);
-
+use XAO::Objects;
 use base XAO::Objects->load(objname => 'Web::FS');
+
+use vars qw($VERSION);
+$VERSION=(0+sprintf('%u.%03u',(q$Id: PayMethod.pm,v 1.3 2005/01/14 02:15:53 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
 
 ###############################################################################
 sub check_mode ($%) {

@@ -50,7 +50,6 @@ INSTALLATION NOTES
     /usr/local/xao/projects) under templates/.
 
   SAMPLE SITE TO SEE XAO COMMERCE IN ACTION
-
     Here are the steps you need to follow to get a simple working sample
     eCommerce site that uses XAO Commerce:
 
@@ -154,6 +153,5 @@ AUTHOR
     Marcos Alves <alves@xao.com>.
 
 SEE ALSO
-    Recommended reading: the XAO::Web manpage, the XAO::DO::Web::Page
-    manpage.
+    Recommended reading: XAO::Web, XAO::DO::Web::Page.
 

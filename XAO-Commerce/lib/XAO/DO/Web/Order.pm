@@ -22,13 +22,14 @@ that reflect the actual algorithm requirements for the site.
 ###############################################################################
 
 package XAO::DO::Web::Order;
-
 use strict;
-
 use XAO::Utils;
 use XAO::Errors qw(XAO::DO::Web::Order);
 use XAO::Objects;
 use base XAO::Objects->load(objname => 'Web::FS');
+
+use vars qw($VERSION);
+$VERSION=(0+sprintf('%u.%03u',(q$Id: Order.pm,v 1.3 2005/01/14 02:15:53 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
 
 # XXX The following order parameters are hardcoded throughout:
 #       * 'Products'

@@ -1,5 +1,8 @@
 Revision history for Perl extension XAO::Commerce
 
+1.02: 13-Jan-2005
+    * License changed over to Artistic
+
 1.01: 7-Nov-2002
     * Some minor fixes
 
