@@ -8,7 +8,7 @@ use File::Copy;
 
 use vars qw($VERSION $REVISION);
 $VERSION='0.05';
-$REVISION='$Id: xao-server,v 1.4 2004/03/25 01:34:07 am Exp $';
+$REVISION='$Id: xao-server,v 1.5 2004/03/25 23:32:43 am Exp $';
 
 sub chld_handler ();
 sub dprint (@);
@@ -26,11 +26,11 @@ my $debug;
 my $tcpport=9010;
 
 GetOptions(
-    'debug'		=> \$debug,
-    'log-file=s'	=> \$log_file,
-    'no-daemon'		=> \$no_daemon,
-    'pid-file=s'	=> \$pid_file,
-    'port=i'		=> \$tcpport,
+    'debug'             => \$debug,
+    'log-file=s'        => \$log_file,
+    'no-daemon'         => \$no_daemon,
+    'pid-file=s'        => \$pid_file,
+    'port=i'            => \$tcpport,
 );
 
 if(@ARGV<1) {
@@ -70,7 +70,7 @@ if(!$no_daemon) {
     my $pid=fork;
     die "Can't fork: $!" unless defined $pid;
     if($pid) {
-	print STDERR "XAO P21 Server Started (unit=$systemunit, port=$tcpport)\n" if $debug;
+        print STDERR "XAO P21 Server Started (unit=$systemunit, port=$tcpport)\n" if $debug;
         sleep 3;
         exit 0;
     }
@@ -114,11 +114,11 @@ $SIG{INT}=\&term_handler;
 $ENV{TERM}='ansi' unless $ENV{TERM}; # P21 scripts apparently need it
 
 my $server=IO::Socket::INET->new(
-    Proto	=> 'tcp',
-    Listen	=> 10,
-    LocalPort	=> $tcpport,
-    Reuse	=> 1,
-    LocalAddr	=> '127.0.0.1',
+    Proto       => 'tcp',
+    Listen      => 10,
+    LocalPort   => $tcpport,
+    Reuse       => 1,
+    LocalAddr   => '127.0.0.1',
 );
 if(!$server) {
     dprint "*** Can't create server at $tcpport: $!";
@@ -178,7 +178,7 @@ while(1) {
         my $now=time;
         dprint "Got cmd='$opcode' args='",join('|',@args),"' now=$now";
 
-	if($pid_file && $now-(stat($pid_file))[9] > 60) {
+        if($pid_file && $now-(stat($pid_file))[9] > 60) {
             utime $now,$now,$pid_file;
         }
 
@@ -324,7 +324,7 @@ Placing order into spool. Input data is:
 
 =cut
 
-	elsif ($opcode eq "view_order_details") {
+        elsif ($opcode eq "view_order_details") {
             $answer_local->('ord_status', @args);
         }
 
@@ -371,6 +371,7 @@ Output: price for one unit, multiplier.
         elsif ($opcode eq 'show_spool') {
             opendir DH, "$spooldir" or die $!;
             foreach (readdir DH) {
+                next unless /\..*\./;
                 printsock "$_\n" unless /^\./;
             }
             closedir DH;
@@ -522,8 +523,8 @@ sub reopen_log () {
         print STDERR "===========================" .
                      " pid=$$ unit=$systemunit port=$tcpport" .
                      " time=".scalar(localtime)."\n";
-    	select STDERR;
-    	$|=1;
+        select STDERR;
+        $|=1;
     }
 }
 
