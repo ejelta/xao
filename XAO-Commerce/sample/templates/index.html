@@ -1,15 +1,16 @@
 <%Page path="/bits/header" PAGENAME="home"%>
 
+<DIV ALIGN="center">
 <H1>Welcome to <%Utility mode="config-param" name="adminable/site_name/main"%></H1>
 <P>
 
 Thanks for your interest in XAO Commerce.
+</DIV>
 
 <FORM METHOD="GET" ACTION="/order/add.html">
-<TABLE BORDER="0" WIDTH="150" CELLPADDING="2" CELLSPACING="2">
+<TABLE BGCOLOR="#eeeeee" ALIGN="center" BORDER="0" WIDTH="150" CELLPADDING="4" CELLSPACING="0">
   <TR>
-    <TD>&nbsp;</TD>
-    <TD COLSPAN="2" ALIGN="center" CLASS="header"><STRONG>INSTANT ORDER</STRONG></TD>
+    <TD COLSPAN="3" ALIGN="center" CLASS="header"><STRONG>INSTANT ORDER</STRONG></TD>
   </TR>
   <TR>
     <TD>&nbsp;</TD>
@@ -19,31 +20,34 @@ Thanks for your interest in XAO Commerce.
   <TR>
     <TD>1.</TD>
     <TD><INPUT TYPE="text" NAME="item1"></TD><INPUT TYPE="hidden" NAME="set1">
-    <TD><INPUT TYPE="text" NAME="quantity1" VALUE="1" SIZE="4" MAXLENGTH="3"></TD>
+    <TD><INPUT TYPE="text" NAME="quantity1" SIZE="4" MAXLENGTH="3"></TD>
   </TR>
   <TR>
     <TD>2.</TD>
     <TD><INPUT TYPE="text" NAME="item2"></TD><INPUT TYPE="hidden" NAME="set2">
-    <TD><INPUT TYPE="text" NAME="quantity2" VALUE="1" SIZE="4" MAXLENGTH="3"></TD>
+    <TD><INPUT TYPE="text" NAME="quantity2" SIZE="4" MAXLENGTH="3"></TD>
   </TR>
   <TR>
     <TD>3.</TD>
     <TD><INPUT TYPE="text" NAME="item3"></TD><INPUT TYPE="hidden" NAME="set3">
-    <TD><INPUT TYPE="text" NAME="quantity3" VALUE="1" SIZE="4" MAXLENGTH="3"></TD>
+    <TD><INPUT TYPE="text" NAME="quantity3" SIZE="4" MAXLENGTH="3"></TD>
   </TR>
   <TR>
     <TD>4.</TD>
     <TD><INPUT TYPE="text" NAME="item4"></TD><INPUT TYPE="hidden" NAME="set4">
-    <TD><INPUT TYPE="text" NAME="quantity4" VALUE="1" SIZE="4" MAXLENGTH="3"></TD>
+    <TD><INPUT TYPE="text" NAME="quantity4" SIZE="4" MAXLENGTH="3"></TD>
   </TR>
   <TR>
-    <TD>&nbsp;</TD>
-    <TD COLSPAN="2" ALIGN="center" CLASS="header">&nbsp;</TD>
+    <TD>5.</TD>
+    <TD><INPUT TYPE="text" NAME="item5"></TD><INPUT TYPE="hidden" NAME="set4">
+    <TD><INPUT TYPE="text" NAME="quantity5" SIZE="4" MAXLENGTH="3"></TD>
   </TR>
   <TR>
-    <TD>&nbsp;</TD>
-    <TD COLSPAN="2" ALIGN="center"><STRONG><INPUT TYPE="SUBMIT" Value="Add to Order"></STRONG></TD>
+    <TD COLSPAN="3" ALIGN="center"><STRONG><INPUT TYPE="SUBMIT" Value="Add to Order"></STRONG></TD>
   </TR>
+  <!-- TR>
+    <TD COLSPAN="3" ALIGN="center" CLASS="header">&nbsp;</TD>
+  </TR -->
 </TABLE>
 </FORM>
 <%Page path="/bits/footer"%>
