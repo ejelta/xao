@@ -22,6 +22,11 @@ sub test_html {
     $got=t2hf($str);
     $self->assert($got eq '\'&quot;!@#$%^&amp;*()_-=[]\&lt;&gt;?',
                   "Wrong value from t2hf ($got)");
+
+    $str="/a/b c/d\t.html";
+    $got=t2hu($str);
+    $self->assert($got eq '/a/b%20c/d%09.html',
+                  "Wrong value from t2hu ($got)");
 }
 
 sub test_args {

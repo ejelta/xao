@@ -32,13 +32,14 @@ sub set_debug ($);
 sub dprint (@);
 sub eprint (@);
 sub t2ht ($);
+sub t2hu ($);
 sub t2hf ($);
 sub t2hq ($);
 sub get_args (@);
 sub merge_refs (@);
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: Utils.pm,v 1.5 2002/01/03 02:50:01 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: Utils.pm,v 1.6 2003/01/10 21:33:58 am Exp $ =~ /(\d+\.\d+)/);
 
 ###############################################################################
 # Export control
@@ -50,7 +51,7 @@ require Exporter;
     all => \@EXPORT_OK,
     args => [qw(get_args merge_refs)],
     debug => [qw(dprint eprint)],
-    html => [qw(t2ht t2hq t2hf)],
+    html => [qw(t2ht t2hq t2hf t2hu)],
     keys => [qw(generate_key repair_key)],
     none => [],
 );
@@ -323,7 +324,26 @@ sub t2ht ($) {
     $text=~s/&/&amp;/sg;
     $text=~s/</&lt;/sg;
     $text=~s/>/&gt;/sg;
-    $text;
+    return $text;
+}
+
+###############################################################################
+
+=item t2hu ($)
+
+Escapes text to be be included into URLs. Examples:
+
+ a b c.html     ->> a%20b%20c.html
+
+All symbols from 0x0 to 0x20 and from 0x80 to 0xff are substituted with
+their codes in %xx format.
+
+=cut
+
+sub t2hu ($) {
+    my $text=$_[0];
+    $text=~s/([\000-\040\200-\377])/sprintf('%%%02X',ord($1))/ge;
+    return $text;
 }
 
 ###############################################################################
