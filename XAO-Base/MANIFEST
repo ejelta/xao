@@ -5,12 +5,13 @@ Base.PL
 Base.pod
 test.pl
  ------------------------------------------- lib/XAO
+lib/XAO/Errors.pm
 lib/XAO/Objects.pm
+lib/XAO/Projects.pm
 lib/XAO/SimpleHash.pm
-lib/XAO/SiteConfig.pm
 lib/XAO/Utils.pm
  ------------------------------------------- testcases
 testcases/SimpleHash.pm
-testcases/SiteConfig.pm
+testcases/Projects.pm
 testcases/Utils.pm
 testcases/base.pm
