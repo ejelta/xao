@@ -50,7 +50,7 @@ use XAO::Objects;
 use base XAO::Objects->load(objname => 'Atom');
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: Glue.pm,v 1.29 2003/05/06 01:49:59 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: Glue.pm,v 1.30 2003/06/06 18:44:39 am Exp $ =~ /(\d+\.\d+)/);
 
 ###############################################################################
 
@@ -572,9 +572,10 @@ Returns list of values for either Hash or List.
 sub values ($) {
     my $self=shift;
     my @k=$self->keys;
-    eprint ref($self)."::values - more then 100 keys, change algorithm to scanning"
-        if scalar(@k) > 100;
-    $self->get(@k);
+    my $num=scalar(@k);
+    eprint ref($self)."::values - more then 100 keys ($num), consider scanning instead"
+        if $num > 100;
+    return $self->get(@k);
 }
 
 ###############################################################################
