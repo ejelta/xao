@@ -130,18 +130,18 @@ doc/design.txt:    FS.pm
 	\@COLUMNS=80 pod2text FS.pm > doc/design.txt
 
 doc/x-list.txt:    lib/XAO/DO/FS/List.pm
-	\@COLUMNS=80 pod2text -w76 lib/XAO/DO/FS/List.pm > doc/x-list.txt
+	\@COLUMNS=80 pod2text lib/XAO/DO/FS/List.pm > doc/x-list.txt
 
 doc/x-collection.txt:    lib/XAO/DO/FS/Collection.pm
-	\@COLUMNS=80 pod2text -w76 lib/XAO/DO/FS/Collection.pm > doc/x-collection.txt
+	\@COLUMNS=80 pod2text lib/XAO/DO/FS/Collection.pm > doc/x-collection.txt
 
 doc/x-hash.txt:    lib/XAO/DO/FS/Hash.pm
-	\@COLUMNS=80 pod2text -w76 lib/XAO/DO/FS/Hash.pm > doc/x-hash.txt
+	\@COLUMNS=80 pod2text lib/XAO/DO/FS/Hash.pm > doc/x-hash.txt
 
 doc/x-glue.txt:    lib/XAO/DO/FS/Glue.pm
-	\@COLUMNS=80 pod2text -w76 lib/XAO/DO/FS/Glue.pm > doc/x-glue.txt
+	\@COLUMNS=80 pod2text lib/XAO/DO/FS/Glue.pm > doc/x-glue.txt
 
 doc/x-mysql-dbi.txt:    lib/XAO/DO/FS/Glue/MySQL_DBI.pm
-	\@COLUMNS=80 pod2text -w76 lib/XAO/DO/FS/Glue/MySQL_DBI.pm > doc/x-mysql-dbi.txt
+	\@COLUMNS=80 pod2text lib/XAO/DO/FS/Glue/MySQL_DBI.pm > doc/x-mysql-dbi.txt
 EOT
 }
