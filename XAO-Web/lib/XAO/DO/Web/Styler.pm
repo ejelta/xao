@@ -23,8 +23,14 @@ use XAO::Utils qw(:args fround);
 use XAO::Objects;
 use base XAO::Objects->load(objname => 'Web::Page');
 
+###############################################################################
+
 use vars qw($VERSION);
-($VERSION)=(q$Id: Styler.pm,v 1.8 2003/10/03 00:58:13 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: Styler.pm,v 1.9 2003/10/03 04:33:09 am Exp $ =~ /(\d+\.\d+)/);
+
+sub separate_thousands ($);
+
+###############################################################################
 
 sub display ($;%) {
     my $self=shift;
@@ -37,7 +43,7 @@ sub display ($;%) {
     #
     my $template="<%NUMBER%>" if defined($args->{number});
     my $number=int($args->{number} || 0);
-    1 while $number=~s/(\d)(\d{3}($|,))/$1,$2/;
+    $number=separate_thousands($number);
 
     ##
     # dollars => $1'234.78
@@ -46,8 +52,7 @@ sub display ($;%) {
     my $dollars=$args->{format}
                   ? sprintf($args->{format},$args->{dollars} || $args->{dollar} || 0)
                   : sprintf('%.2f',fround($args->{dollars} || $args->{dollar} || 0,100));
-    1 while $dollars=~s/(\d)(\d{3}($|,|\.))/$1,$2/;
-    $dollars='$'.$dollars;
+    $dollars='$' . separate_thousands($dollars);
 
     ##
     # real => 1'234.78
@@ -56,7 +61,7 @@ sub display ($;%) {
     my $real=$args->{format}
              ? sprintf($args->{format},$args->{real} || 0)
              : sprintf("%.2f",$args->{real} || 0);
-    1 while $real=~s/(\d)(\d{3}($|,|\.))/$1,$2/;
+    $real=separate_thousands($real);         
 
     ##
     # Percents
@@ -96,6 +101,22 @@ sub display ($;%) {
                        , PERCENT => sprintf($args->{format} || '%.2f%%',
                                             $percent*100)
                        , %{$args});
+}
+
+############################## PRIVATE ########################################
+
+sub separate_thousands ($) {
+    my $value=shift;
+
+    return $value unless $value =~ /^(\d+)(\.\d+)?$/;
+
+    my ($i,$f)=($1,$2);
+
+    1 while $i=~s/(\d)(\d{3}($|,))/$1,$2/;
+
+    $i.=$f if defined $f;
+
+    return $i;
 }
 
 ###############################################################################
