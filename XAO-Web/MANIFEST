@@ -45,6 +45,12 @@ templates/bits/fillout-form/errstr
 templates/bits/fillout-form/html-checkbox
 templates/bits/fillout-form/html-password
 templates/bits/fillout-form/html-text
+templates/bits/multipagenav/base
+templates/bits/multipagenav/current
+templates/bits/multipagenav/next
+templates/bits/multipagenav/page
+templates/bits/multipagenav/prev
+templates/bits/multipagenav/spacer
 templates/bits/page-footer
 templates/bits/page-header
 templates/bits/styler/page-title

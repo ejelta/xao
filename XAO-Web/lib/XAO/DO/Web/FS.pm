@@ -168,7 +168,7 @@ use XAO::Errors qw(XAO::DO::Web::FS);
 use base XAO::Objects->load(objname => 'Web::Action');
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: FS.pm,v 1.5 2002/01/18 22:21:03 alves Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: FS.pm,v 1.6 2002/01/22 02:35:38 am Exp $ =~ /(\d+\.\d+)/);
 
 ###############################################################################
 
@@ -412,10 +412,11 @@ sub show_list ($%) {
     }
 
     my $page=$self->object;
-    $page->display(
-        path    => $args->{'header.path'},
-        NUMBER  => scalar(@keys),
-    ) if $args->{'header.path'};
+    $page->display(merge_refs($args,{
+        path        => $args->{'header.path'},
+        template    => $args->{'header.template'},
+        NUMBER      => scalar(@keys),
+    })) if $args->{'header.path'} || $args->{'header.template'};
 
     foreach my $id (@keys) {
         my %data=(
@@ -430,13 +431,14 @@ sub show_list ($%) {
                 $data{uc($fn)}=defined($t{$fn}) ? $t{$fn} : '';
             }
         }
-        $page->display(\%data);
+        $page->display(merge_refs($args,\%data));
     }
 
-    $page->display(
-        path    => $args->{'footer.path'},
-        NUMBER  => scalar(@keys),
-    ) if $args->{'footer.path'};
+    $page->display(merge_refs($args,{
+        path        => $args->{'footer.path'},
+        template    => $args->{'footer.template'},
+        NUMBER      => scalar(@keys),
+    })) if $args->{'footer.path'} || $args->{'footer.template'};
 }
 
 ###############################################################################

@@ -155,7 +155,7 @@ use XAO::Objects;
 use base XAO::Objects->load(objname => 'Web::Page');
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: Search.pm,v 1.3 2002/01/04 02:13:23 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: Search.pm,v 1.4 2002/01/22 02:35:38 am Exp $ =~ /(\d+\.\d+)/);
 
 ###############################################################################
 sub display ($;%)
@@ -217,20 +217,22 @@ sub display ($;%)
   #dprint "*** DB:  $db";
   #dprint "*** Go Search...\n\n";
 
-  my $ra_query   = $self->_create_query($rh_args, $rh_conf);
-  my $ra_all_ids = $db->search(@$ra_query);
-  my $ra_ids     = $ra_all_ids;
-  my $total      = $#{$ra_all_ids}+1;
-  if ($rh_args->{start_item} || $rh_args->{items_per_page})
+  my $ra_query       = $self->_create_query($rh_args, $rh_conf);
+  my $ra_all_ids     = $db->search(@$ra_query);
+  my $ra_ids         = $ra_all_ids;
+  my $total          = $#{$ra_all_ids}+1;
+  my $items_per_page = $rh_args->{items_per_page} || 0;
+  my $limit_reached  = $items_per_page && $total>$items_per_page;
+  if ($rh_args->{start_item} || $items_per_page)
   {
     my $start_item = int($rh_args->{start_item}) > 1 ? $rh_args->{start_item}-1 : 0;
     my $stop_item  = $total-1;
     if (int($rh_args->{items_per_page}))
     {
       my $max    = $rh_args->{items_per_page} + $start_item;
-      $stop_item = $max unless $max > $stop_item;
+      $stop_item = $max if $stop_item > $max;
     }
-    $ra_ids = \@$ra_all_ids[$start_item..$stop_item];
+    $ra_ids = [ @{$ra_all_ids}[$start_item..$stop_item] ];
   }
 
   #############
@@ -245,23 +247,13 @@ sub display ($;%)
   #
   # Display header
   #
-
-  my $header=0;
-  if    ($rh_args->{'header.template'})
-  {
-    $basetype = 'template';
-    $header++;
-  }
-  elsif ($rh_args->{'header.path'})
-  {
-    $basetype = 'path';
-    $header++;
-  }
-  $page->display($basetype      => $rh_args->{$basetype . '.path'},
-                 START_ITEM     => $rh_args->{start_item},
-                 ITEMS_PER_PAGE => $rh_args->{items_per_page},
+  $page->display(path           => $rh_args->{'header.path'},
+                 template       => $rh_args->{'header.template'},
+                 START_ITEM     => $rh_args->{start_item} || 0,
+                 ITEMS_PER_PAGE => $rh_args->{items_per_page} || 0,
                  TOTAL_ITEMS    => $total,
-                ) if $header;
+                 LIMIT_REACHED  => $limit_reached,
+                ) if $rh_args->{'header.path'} || $rh_args->{'header.template'};
 
   #
   # Display items
@@ -285,23 +277,13 @@ sub display ($;%)
   #
   # Display footer
   #
-
-  my $footer=0;
-  if    ($rh_args->{'footer.template'})
-  {
-    $basetype = 'template';
-    $footer++;
-  }
-  elsif ($rh_args->{'footer.path'})
-  {
-    $basetype = 'path';
-    $footer++;
-  }
-  $page->display($basetype      => $rh_args->{$basetype . '.path'},
-                 START_ITEM     => $rh_args->{start_item},
-                 ITEMS_PER_PAGE => $rh_args->{items_per_page},
+  $page->display(path           => $rh_args->{'footer.path'},
+                 template       => $rh_args->{'footer.template'},
+                 START_ITEM     => $rh_args->{start_item} || 0,
+                 ITEMS_PER_PAGE => $rh_args->{items_per_page} || 0,
                  TOTAL_ITEMS    => $total,
-                ) if $footer;
+                 LIMIT_REACHED  => $limit_reached,
+                ) if $rh_args->{'footer.path'} || $rh_args->{'footer.template'};
 }
 ###############################################################################
 sub _create_query
