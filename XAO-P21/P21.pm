@@ -513,7 +513,7 @@ sub order {
         '',                                 #  2 | 26
         '',                                 #  3 | 27
         '',                                 #  4 | 28
-        $_->{stax_exemp} ? 'N' : '',        #  5 | 29
+        $_->{stax_exemp} ? 'N' : 'Y',       #  5 | 29
         $_->{suspended_order} ? 'Y' : 'N',  #  6 | 30
         $_->{unit_name} || '',              #  7 | 31
         $_->{unit_size} || 1,               #  8 | 32
