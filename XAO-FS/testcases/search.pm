@@ -45,14 +45,14 @@ sub test_search {
     # number and content of them. Do not alter!
     #
     my @words=split(/\s+/,<<'EOT');
-Just some stuff from `fortune'.
+Just some stuff from 'fortune'.
 
 live lively liver
 
 I am not a politician and my other habits are also good.
 Almost everything in life is easier to get into than out of.
 The reward of a thing well done is to have done it.
-/earth is 98% full ... please delete anyone you can.
+earth is 98% full ... please delete anyone you can.
 Hoping to goodness is not theologically sound. - Peanuts
 There is a Massachusetts law requiring all dogs to have
 their hind legs tied during the month of April.
@@ -333,7 +333,7 @@ sub test_collection_search {
 
 ##
 # See note in CHANGES for 1.03 for the bug we're testing here against.
-# First think to do if that test ever fails again is to uncomment
+# First thing to do if that test ever fails again is to uncomment
 # printing final SQL statement in Glue.pm and check if table joins are
 # correct.
 # am@xao.com, Jan/18, 2002
@@ -435,6 +435,131 @@ sub test_multiple_branches {
     $t_ids=join(",",@$ids);
     $self->assert($t_ids eq 'c1,screw',
                   "Wrong search results for multi-branch search (got '$t_ids', expect 'c1,screw')");
+}
+
+##
+# Imagine a structure like this:
+#  /Orders
+#   |-o1
+#   | |-Products
+#   | | |-p1
+#   | | | |-min => 100
+#   | | | \-max => 200
+#   | | |-p2
+#   | | | |-min => 150
+#   | | | \-max => 250
+#
+# What should be returned by:
+#  $orders->search([ 'Products/min','eq',100 ], 'and',
+#                  [ 'Products/max','eq',250 ]);
+# Should the 'o1' match? Now there is a way to resolve it (as of 1.04).
+#
+#  $orders->search([ 'Products/*/min','eq',100 ], 'and',
+#                  [ 'Products/*/max','eq',250 ]);
+# Will match, while:
+#  $orders->search([ 'Products/1/min','eq',100 ], 'and',
+#                  [ 'Products/1/max','eq',250 ]);
+# Will not as it will try both on the same product. Default should be to
+# treat as if /1/ was everywhere.
+#
+# am@xao.com, Sep/10, 2002
+#
+sub test_deep_variants {
+    my $self=shift;
+    my $odb=$self->get_odb();
+
+    my %struct=(
+        Orders => {
+            type        => 'list',
+            class       => 'Data::Order',
+            key         => 'order_id',
+            structure   => {
+                Products => {
+                    type        => 'list',
+                    class       => 'Data::Product',
+                    key         => 'order_id',
+                    structure   => {
+                        min => {
+                            type        => 'integer',
+                            minvalue    => 0,
+                        },
+                        max => {
+                            type        => 'integer',
+                            minvalue    => 0,
+                        },
+                    },
+                },
+                name => {
+                    type        => 'text',
+                    maxlength   => 200,
+                },
+            },
+        },
+    );
+
+    $odb->fetch('/')->build_structure(\%struct);
+    my $orders=$odb->fetch('/Orders');
+    $self->deep_variants($orders);
+
+    $odb->fetch('/')->drop_placeholder('Orders');
+    my $c1=$odb->fetch('/Customers/c1');
+    $c1->build_structure(\%struct);
+    $self->deep_variants($c1->get('Orders'));
+    my $c2=$odb->fetch('/Customers/c2');
+    $self->deep_variants($c2->get('Orders'));
+}
+
+sub deep_variants {
+    my $self=shift;
+    my $orders=shift;
+
+    my $on=$orders->get_new();
+    $on->put(name => 'qwerty');
+    $orders->put(o1 => $on);
+    my $products=$orders->get('o1')->get('Products');
+    my $pn=$products->get_new;
+    $pn->put(min => 100);
+    $pn->put(max => 200);
+    $products->put(p1 => $pn);
+    $pn->put(min => 150);
+    $pn->put(max => 250);
+    $products->put(p2 => $pn);
+    $pn->put(min => 250);
+    $pn->put(max => 350);
+    $products->put(p3 => $pn);
+    $pn->put(min => 350);
+    $pn->put(max => 450);
+    $products->put(p4 => $pn);
+    $pn->put(min => 450);
+    $pn->put(max => 550);
+    $products->put(p5 => $pn);
+
+    my $sr=$orders->search([ 'Products/*/min','eq',100 ], 'and',
+                           [ 'Products/*/max','eq',250 ]);
+    $self->assert(scalar(@$sr)==1 && $sr->[0] eq 'o1',
+                  "Wrong /*/ deep search in test_deep_variants");
+
+    $sr=$orders->search([ 'Products/1/min','eq',100 ], 'and',
+                        [ 'Products/1/max','eq',250 ]);
+    $self->assert(scalar(@$sr)==0,
+                  "Wrong /1/ deep search in test_deep_variants");
+
+    $sr=$orders->search([ 'Products/min','eq',100 ], 'and',
+                        [ 'Products/max','eq',250 ]);
+    $self->assert(scalar(@$sr)==0,
+                  "Wrong default deep search in test_deep_variants");
+
+    $sr=$orders->search([ 'Products/*/min','eq',100 ],
+                        'and',
+                        [ [ 'Products/*/max','gt',200 ],
+                          'and',
+                          [ [ 'Products/*/min','lt',300 ],
+                            'and',
+                            [ 'Products/*/max','eq',200 ],
+                          ],
+                        ]);
+    $self->assert(scalar(@$sr)==1 && $sr->[0] eq 'o1',
+                  "Wrong complex deep search in test_deep_variants");
 }
 
 1;

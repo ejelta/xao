@@ -50,7 +50,7 @@ use XAO::Objects;
 use base XAO::Objects->load(objname => 'Atom');
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: Glue.pm,v 1.18 2002/08/09 20:34:48 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: Glue.pm,v 1.19 2002/09/10 20:13:34 am Exp $ =~ /(\d+\.\d+)/);
 
 ###############################################################################
 
@@ -992,7 +992,7 @@ sub _build_search_query ($%) {
     my $wrapped;
     my $glue=$self->_glue;
     my %rev_classes;
-    foreach my $cn (keys %classes) {
+    foreach my $cn (reverse sort keys %classes) {
         my $ci=$classes{$cn};
         if(ref($ci)) {
             delete $ci->{max};
@@ -1004,7 +1004,8 @@ sub _build_search_query ($%) {
             $rev_classes{$ci}=$cn;
         }
     }
-    while(my ($ci,$cn)=each %rev_classes) {
+    foreach my $ci (sort keys %rev_classes) {
+        my $cn=$rev_classes{$ci};
         my $desc=$self->_class_description($cn);
         my $table=$desc->{table};
         my $item={ table => $table,
@@ -1021,11 +1022,12 @@ sub _build_search_query ($%) {
 
             my $upper_class=$glue->upper_class($cn);
             my $conn=$glue->_connector_name($cn,$upper_class);
-            $conn=$ci . '.' .
-                  $self->_driver->mangle_field_name($conn);
+            if($conn) {
+                $conn=$ci . '.' . $self->_driver->mangle_field_name($conn);
 
-            $clause.=" AND " if $clause;
-            $clause.="$classes{$upper_class}.unique_id=$conn";
+                $clause.=" AND " if $clause;
+                $clause.="$classes{$upper_class}.unique_id=$conn";
+            }
         }
         $previous=1;
     }
