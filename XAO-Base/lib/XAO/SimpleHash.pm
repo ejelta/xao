@@ -40,17 +40,13 @@ sub remove ($$);
 #
 # Creating object instance and loading initial data.
 #
-sub new ($;@)
-{ 
-  my $classname = shift;
-  my $this = {};
-  my $class = bless $this, $classname;
-
-  #print "*** SimpleHash->new: class = $class\n";
-
-  $class->fill(@_) if @_;
-  $class;
+sub new ($;@) { 
+  my $proto=shift;
+  my $this = bless {}, ref($proto) || $proto;
+  $this->fill(@_) if @_;
+  $this;
 }
+
 ###############################################################################
 #
 # Filling with values. Values may be given in any of the following
@@ -416,7 +412,7 @@ sub embeddable_methods () {
 # That's it
 #
 use vars qw($VERSION);
-($VERSION)=('$Id: SimpleHash.pm,v 1.3 2001/11/10 00:30:30 am Exp $' =~ /(\d+\.\d+)/);
+($VERSION)=('$Id: SimpleHash.pm,v 1.4 2001/11/27 05:34:30 am Exp $' =~ /(\d+\.\d+)/);
 1;
 __END__
 

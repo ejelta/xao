@@ -75,6 +75,12 @@ sub test_everything {
                   "Element still exists after deleting an URI");
     $self->assert(! $sh->exists('//test//foo/bar'),
                   "Element still exists after deleting an URI (2)");
+
+    my $clone=$sh->new(foo => 'bar');
+    $self->assert(ref($clone),
+                  "Can't clone SimpleHash object");
+    $self->assert($clone->get('foo') eq 'bar',
+                  "Passing initialization parameters does not work");
 }
 
 1;
