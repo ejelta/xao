@@ -28,12 +28,13 @@ counterparts.
 ###############################################################################
 package XAO::DO::Web::Utility;
 use strict;
+use POSIX qw(mktime);
 use XAO::Utils qw(:args :debug :html);
 use XAO::Objects;
 use base XAO::Objects->load(objname => 'Web::Action');
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: Utility.pm,v 1.5 2002/02/12 20:50:48 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: Utility.pm,v 1.6 2002/04/01 19:30:45 am Exp $ =~ /(\d+\.\d+)/);
 
 sub check_mode ($$) {
     my $self=shift;
@@ -60,6 +61,9 @@ sub check_mode ($$) {
     elsif($mode eq "show-pagedesc") {
         $self->show_pagedesc($args);
     }
+    elsif($mode eq "number-ordinal-suffix") {
+        $self->number_ordinal_suffix($args);
+    }
     else {
         $self->throw("check_mode - Unknown mode '$mode'");
     }
@@ -67,7 +71,7 @@ sub check_mode ($$) {
 
 ###############################################################################
 
-=item 'tracking-number' => tracking_number (%)
+=item 'tracking-url' => tracking_url (%)
 
 Displays tracking URL for given carrier and tracking number.
 
@@ -296,9 +300,49 @@ as Page's base_url() method and displays the same value.
 
 =cut
 
-sub show_base_url ($;%)
-{ my $self=shift;
-  $self->textout($self->base_url(@_));
+sub show_base_url ($;%) {
+    my $self=shift;
+    $self->textout($self->base_url(@_));
+}
+
+###############################################################################
+
+=item 'number-ordinal-suffix' => number_ordinal_suffix (%)
+
+Displays a two-letter suffix to make a number into an ordinal, i.e. 2
+into "2-nd", 43 into "43-rd", 1001 into "1001-st" and so on.
+
+Takes one argument -- 'number'.
+
+=cut
+
+sub number_ordinal_suffix ($%) {
+    my $self=shift;
+    my $args=get_args(\@_);
+
+    use integer;
+    my $number=int($args->{number} || 0);
+    $number=-$number if $number<0;
+    $number=$number % 100;
+    my $nl=$number%10;
+    my $suffix;
+    if(($number>10 && $number<20) || $nl==0 || $nl>3) {
+        $suffix='th';
+    }
+    elsif($nl == 1) {
+        $suffix='st';
+    }
+    elsif($nl == 2) {
+        $suffix='nd';
+    }
+    elsif($nl == 2) {
+        $suffix='nd';
+    }
+    else {
+        $suffix='rd';
+    }
+
+    $self->textout($suffix);
 }
 
 ###############################################################################
@@ -324,17 +368,28 @@ sub show_pagedesc ($)
 
 Displays a list of <OPTION ...> tags for the given time range.
 
-Exact output depends on "type" argument that can only be "quarters"
-currently.
+Exact output depends on "type" argument that can be:
 
-Two more arguments "start" and "end" set start and end date for the time
-range. The format is YYYY-Q, where YYYY is a year in four digits format
-and Q is quarter number from 1 to 4.
+=over
+
+=item "days"
+
+Lists days of month from optional "start" day (default is "1") to
+optional "end" day (default is the number of days in the current month).
+
+=item "quorters"
+
+Two optional arguments "start" and "end" set start and end date for the
+time range. The format is YYYY-Q, where YYYY is a year in four digits
+format and Q is quarter number from 1 to 4.
+
+If "end" is not set the current quorter is assumed.
+
+=over
 
 Special argument "current" will have select_time_range() add "SELECTED"
 option to the appropriate entry in the final list. The format is the
-same as for "start" and "end". If "end" is not set current date is
-assumed.
+same as for "start" and "end".
 
 Default sorting is from most recent down, but this can be changed with
 non-zero "ascend" argument.
@@ -360,97 +415,166 @@ Would produce something like:
 
 =cut
 
-sub select_time_range ($%)
-{ my $self=shift;
-  my $args=get_args(\@_);
+sub select_time_range ($%) {
+    my $self=shift;
+    my $args=get_args(\@_);
 
-  ##
-  # Checking type of range
-  #
-  my $type=$args->{type};
-  if($type eq 'quarters')
-   { ##
-     # Start date
-     #
-     my $year;
-     my $quarter;
-     if($args->{start})
-      { my ($y,$q)=($args->{start} =~ /^(\d+)\D+(\d+)$/);
-        if($y>1000 && $q>0 && $q<5)
-         { $year=$y;
-           $quarter=$q;
-         }
-        else
-         { eprint "Bad year ($y) or quarter ($q) in '$args->{start}'";
-         }
-      }
-     if(!$year)
-      { $year=2000;	# Kind of birthday of XAO::Web :)
-        $quarter=1;
-      }
-     my $lastyear;
-     my $lastquarter;
-     if($args->{end})
-      { my ($y,$q)=($args->{end} =~ /^(\d+)\D+(\d+)$/);
-        if($y>1000 && $q>0 && $q<5)
-         { $lastyear=$y;
-           $lastquarter=$q;
-         }
-        else
-         { eprint "Bad last year ($y) or quarter ($q) in '$args->{end}'";
-         }
-      }
-     if(!$lastyear)
-      { $lastyear=(gmtime)[5]+1900;
-        $lastquarter=(gmtime)[4]/3+1;
-      }
-     if($year>$lastyear || ($year == $lastyear && $quarter>$lastquarter))
-      { eprint "Start date ($year-$quarter) is after end date ($lastyear-$lastquarter)";
-        $lastyear=$year;
-        $lastquarter=$quarter;
-      }
-     my $obj=$self->object;
-     my @qq=('1-st Qtr', '2-nd Qtr', '3-rd Qtr', '4-th Qtr');
-     if($args->{ascend})
-      { while($year<$lastyear || ($year==$lastyear && $quarter<=$lastquarter))
-         { my $value="$year-$quarter";
-           $obj->display(path => $args->{path},
-                         template => '<OPTION VALUE="<%VALUE%>"<%SELECTED%>><%TEXT%>',
-                         VALUE => $value,
-                         SELECTED => $args->{current} && $args->{current} eq $value ? " SELECTED " : "",
-                         TEXT => $year . ', ' . $qq[$quarter-1],
-                         YEAR => $year,
-                         QUARTER => $quarter
-                        );
-           $quarter++;
-           if($quarter>4)
-            { $quarter=1;
-              $year++;
+    my $type=$args->{type};
+
+    ##
+    # Quorters
+    #
+    if($type eq 'quarters') {
+        ##
+        # Start date
+        #
+        my $year;
+        my $quarter;
+        if($args->{start}) {
+            my ($y,$q)=($args->{start} =~ /^(\d+)\D+(\d+)$/);
+            if($y>1000 && $q>0 && $q<5) {
+                $year=$y;
+                $quarter=$q;
             }
-         }
-      }
-     else
-      { while($lastyear>$year || ($year==$lastyear && $lastquarter>=$quarter))
-         { my $value="$lastyear-$lastquarter";
-           $obj->display(path => $args->{path},
-                         template => '<OPTION VALUE="<%VALUE%>"<%SELECTED%>><%TEXT%>',
-                         VALUE => $value,
-                         SELECTED => $args->{current} && $args->{current} eq $value ? " SELECTED " : "",
-                         TEXT => $lastyear . ', ' . $qq[$lastquarter-1],
-                         YEAR => $lastyear,
-                         QUARTER => $lastquarter
-                        );
-           $lastquarter--;
-           if($lastquarter<1)
-            { $lastquarter=4;
-              $lastyear--;
+            else {
+                eprint "Bad year ($y) or quarter ($q) in '$args->{start}'";
             }
-         }
-      }
-   }
-  else
-   { throw XAO::E::DO::Web::Utility "select_time_range - unknown range type ($type)";
-   }
+        }
+        if(!$year) {
+            $year=2000;	# Kind of birthday of XAO::Web :)
+            $quarter=1;
+        }
+        my $lastyear;
+        my $lastquarter;
+        if($args->{end}) {
+            my ($y,$q)=($args->{end} =~ /^(\d+)\D+(\d+)$/);
+            if($y>1000 && $q>0 && $q<5) {
+                $lastyear=$y;
+                $lastquarter=$q;
+            }
+            else {
+                eprint "Bad last year ($y) or quarter ($q) in '$args->{end}'";
+            }
+        }
+        if(!$lastyear) {
+            $lastyear=(gmtime)[5]+1900;
+            $lastquarter=(gmtime)[4]/3+1;
+        }
+        if($year>$lastyear || ($year == $lastyear && $quarter>$lastquarter)) {
+            eprint "Start date ($year-$quarter) is after end date ($lastyear-$lastquarter)";
+            $lastyear=$year;
+            $lastquarter=$quarter;
+        }
+        my $obj=$self->object;
+        my @qq=('1-st Qtr', '2-nd Qtr', '3-rd Qtr', '4-th Qtr');
+        if($args->{ascend}) {
+            while($year<$lastyear ||
+                  ($year==$lastyear && $quarter<=$lastquarter)) {
+                my $value="$year-$quarter";
+                $obj->display(
+                    template => '<OPTION VALUE="<%VALUE%>"<%SELECTED%>><%TEXT%>',
+                    VALUE => $value,
+                    SELECTED => $args->{current} && $args->{current} eq $value ? " SELECTED " : "",
+                    TEXT => $year . ', ' . $qq[$quarter-1],
+                    YEAR => $year,
+                    QUARTER => $quarter
+                );
+                $quarter++;
+                if($quarter>4) {
+                    $quarter=1;
+                    $year++;
+                }
+            }
+        }
+        else {
+            while($lastyear>$year ||
+                  ($year==$lastyear && $lastquarter>=$quarter)) {
+                my $value="$lastyear-$lastquarter";
+                $obj->display(
+                    template => '<OPTION VALUE="<%VALUE%>"<%SELECTED%>><%TEXT%>',
+                    VALUE => $value,
+                    SELECTED => $args->{current} && $args->{current} eq $value ? " SELECTED " : "",
+                    TEXT => $lastyear . ', ' . $qq[$lastquarter-1],
+                    YEAR => $lastyear,
+                    QUARTER => $lastquarter
+                );
+                $lastquarter--;
+                if($lastquarter<1) {
+                    $lastquarter=4;
+                    $lastyear--;
+                }
+            }
+        }
+    }
+
+    ##
+    # Days of month
+    #
+    elsif($type eq 'days') {
+        use integer;
+
+        my $start=int($args->{start} || '1');
+        my $end=$args->{end};
+
+        if(!$end) {
+            my @ct=localtime;
+            $ct[0]=30;
+            $ct[1]=$ct[2]=0;
+            $ct[3]=1;
+            $ct[4]+=1;
+            if($ct[4]>=12) {
+                $ct[4]=0;
+                $ct[5]++;
+            }
+            my $nm=mktime(@ct);
+            $end=(localtime($nm-60))[3];
+        }
+        $end=int($end);
+
+        my $cmp;
+        my $inc;
+        if($args->{ascend}) {
+            if($end<$start) {
+                my $t=$start;
+                $start=$end;
+                $end=$t;
+            }
+            $cmp=sub {
+                dprint "Comparing $_[0] <= $end";
+                return $_[0] <= $end;
+            };
+            $inc=1;
+        }
+        else {
+            if($end>$start) {
+                my $t=$start;
+                $start=$end;
+                $end=$t;
+            }
+            $cmp=sub {
+                dprint "Comparing $_[0] => $end";
+                return $_[0] >= $end;
+            };
+            $inc=-1;
+        }
+
+        my $page=$self->object;
+        for(my $day=$start; &{$cmp}($day); $day+=$inc) {
+            $page->display(
+                template    => '<OPTION VALUE="<%VALUE%>"<%SELECTED%>><%TEXT%>',
+                VALUE       => $day,
+                SELECTED    => $args->{current} && $args->{current} == $day ? " SELECTED " : "",
+                TEXT        => $day,
+            );
+        }
+    }
+
+    ##
+    # Unknown type
+    #
+    else {
+        throw $self "select_time_range - unknown range type ($type)";
+    }
 }
 
 ###############################################################################

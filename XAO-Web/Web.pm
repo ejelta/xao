@@ -100,6 +100,7 @@ Methods of XAO::Web objects include:
 ###############################################################################
 
 sub analyze ($@);
+sub clipboard ($);
 sub config ($);
 sub execute ($%);
 sub new ($%);
@@ -187,6 +188,18 @@ sub analyze ($@) {
     };
 }
 
+###############################################################################
+
+=item clipboard ()
+
+Returns site clipboard object.
+
+=cut
+
+sub clipboard ($) {
+    my $self=shift;
+    return $self->config->clipboard;
+}
 
 ###############################################################################
 
@@ -198,7 +211,8 @@ Returns site configuration object reference.
 
 sub config ($) {
     my $self=shift;
-    $self->{siteconfig} || throw XAO::E::Web "config - no configuration object";
+    return $self->{siteconfig} ||
+        throw XAO::E::Web "config - no configuration object";
 }
 
 ###############################################################################
@@ -219,14 +233,56 @@ sub execute ($%) {
     my $self=shift;
     my $args=get_args(\@_);
 
-    my $cgi=$args->{cgi} || throw XAO::E::Web "execute - no 'cgi' given";
+    my ($pagetext,$header)=$self->expand($args);
+
+    ##
+    # If we get the header then it was not printed before and we are
+    # expected to print out the page. This is almost always true except
+    # when page includes something like Redirect object.
+    #
+    if(defined($header)) {
+        print $header,
+              $pagetext;
+    }
+}
+
+###############################################################################
+
+=cut expand (%) {
+
+Expands given `path' using given `cgi' environment. Returns just the
+text of the page in scalar context and page content plus header content
+in array context.
+
+This is normally used in scripts to execute only a particular template
+and get results of execution.
+
+`Objargs' argument may refer to a hash of additional parameters to be
+passed to the template being executed.
+
+Example:
+
+ my $report=$web->expand(cgi     => CGI->new,
+                         path    => '/bits/stat-report',
+                         objargs => {
+                             CUSTOMER_ID => '123X234Z',
+                             MIN_TIME    => time - 86400 * 7,
+                         });
+
+=cut
+
+sub expand ($%) {
+    my $self=shift;
+    my $args=get_args(\@_);
+
+    my $cgi=$args->{cgi} || throw XAO::E::Web "expand - no 'cgi' given";
     my $siteconfig=$self->config;
     my $sitename=$self->sitename;
 
     ##
     # Making sure path starts from a slash
     #
-    my $path=$args->{path} || throw XAO::E::Web "execute - no 'path' given";
+    my $path=$args->{path} || throw XAO::E::Web "expand - no 'path' given";
     $path='/' . $path;
     $path=~s/\/{2,}/\//g;
 
@@ -280,7 +336,7 @@ sub execute ($%) {
     else {
         my $url=$siteconfig->get('base_url');
         $url=~/^http:/i ||
-            throw XAO::E::Web "execute - bad base_url ($url) for sitename=$sitename";
+            throw XAO::E::Web "expand - bad base_url ($url) for sitename=$sitename";
         my $nu=$url;
         chop($nu) while $nu =~ /\/$/;
         $siteconfig->put(base_url => $nu) if $nu ne $url;
@@ -349,8 +405,8 @@ sub execute ($%) {
     my $pagetext;
 
     ##
-    # Do we need to run any objects before executing? Authorization
-    # usually goes here.
+    # Do we need to run any objects before executing? A good place to
+    # turn on debug mode if required using Debug object.
     #
     my $autolist=$siteconfig->get('auto_before');
     if($autolist) {
@@ -361,28 +417,31 @@ sub execute ($%) {
     }
 
     ##
+    # Preparing object arguments out of standard ones, object specific
+    # once from template paths and supplied hash (in that order of
+    # preference).
+    #
+    my $objargs={
+        path => $pd->{path},
+        fullpath => $pd->{fullpath},
+        prefix => $pd->{prefix},
+    };
+    $objargs=merge_refs($objargs,$pd->{objargs},$args->{objargs});
+
+    ##
     # Loading page displaying object and executing it.
     #
     my $obj=XAO::Objects->new(objname => 'Web::' . $pd->{objname});
-    my %objargs=( path => $pd->{path}
-                , fullpath => $pd->{fullpath}
-                , prefix => $pd->{prefix}
-                );
-    @objargs{keys %{$pd->{objargs}}}=values %{$pd->{objargs}} if $pd->{objargs};
-    $pagetext.=$obj->expand(\%objargs);
+    $pagetext.=$obj->expand($objargs);
+    my $header=$siteconfig->header;
+
 
     ##
-    # If siteconfig returns us header then it was not printed before and we are
-    # expected to print out the page. This is almost always true except when
-    # page included something like Redirect object.
+    # Cleaning up the configuration
     #
-    my $header=$siteconfig->header;
-    if(defined($header)) {
-        print $header,
-              $pagetext;
-    }
-
     $siteconfig->cleanup;
+
+    return wantarray ? ($pagetext,$header) : $pagetext;
 }
 
 ###############################################################################
