@@ -8,6 +8,7 @@ PageSupport/Makefile.PL
 PageSupport/PageSupport.pm
 PageSupport/PageSupport.xs
  --------------------------------- XAO::*
+lib/XAO/DO/Web/Condition.pm
 lib/XAO/DO/Web/Config.pm
 lib/XAO/DO/Web/Date.pm
 lib/XAO/DO/Web/Default.pm
