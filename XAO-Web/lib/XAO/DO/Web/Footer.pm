@@ -57,7 +57,7 @@ use XAO::Objects;
 use base XAO::Objects->load(objname => 'Web::Page');
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: Footer.pm,v 1.3 2002/01/04 02:13:23 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: Footer.pm,v 1.4 2002/03/11 23:45:28 am Exp $ =~ /(\d+\.\d+)/);
 
 sub display ($;%) {
     my $self=shift;
@@ -69,8 +69,7 @@ sub display ($;%) {
         COPYRIGHT => 'Copyright (C) 2000,2001 XAO, Inc.'
     );
 
-    $self->SUPER::display($self->merge_args(oldargs => \%a,
-                                            newargs => $args));
+    $self->SUPER::display(merge_refs(\%a,$args));
 }
 
 ###############################################################################

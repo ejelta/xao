@@ -29,7 +29,7 @@ if(open(F,".config")) {
 }
 $ask=1 unless $homedir;
 while($ask) {
-    my $notes;
+    my $notes='';
     if(!$homedir) {
         eval { require XAO::Base };
         if(!$@) {
@@ -63,7 +63,7 @@ EOT
     print <<EOT;
 
 The following directory structure will be used:
-$homedir/cgi-bin   - web server handlers
+$homedir/handlers  - web server handlers
 $homedir/projects  - projects root directory
 $homedir/templates - default templates
 
@@ -111,6 +111,7 @@ WriteMakefile(
     'VERSION'       => $version,
     'PREREQ_PM'     => {
         'Error' => '0.13',
+        'Test::Unit' => '0.14',
     },
     'PL_FILES'      => {
         'Base.PL' => '$(INST_LIB)/XAO/Base.pm',

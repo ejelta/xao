@@ -94,7 +94,7 @@ sub test_error {
     }
     otherwise {
         my $e=shift;
-        $errstr="Unexpected error ($e)";
+        $errstr="Unexpected error (".ref($e)." -- $e)";
     };
 
     $self->assert($errstr eq '',

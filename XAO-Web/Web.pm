@@ -280,7 +280,7 @@ sub execute ($%) {
     else {
         my $url=$siteconfig->get('base_url');
         $url=~/^http:/i ||
-            throw XAO::E::Web "Bad base_url ($url) for sitename=$sitename";
+            throw XAO::E::Web "execute - bad base_url ($url) for sitename=$sitename";
         my $nu=$url;
         chop($nu) while $nu =~ /\/$/;
         $siteconfig->put(base_url => $nu) if $nu ne $url;

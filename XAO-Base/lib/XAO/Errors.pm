@@ -34,7 +34,7 @@ use strict;
 use Error;
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: Errors.pm,v 1.6 2002/02/04 07:38:40 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: Errors.pm,v 1.7 2002/03/11 23:45:28 am Exp $ =~ /(\d+\.\d+)/);
 
 use vars qw(%errors_cache);
 
@@ -93,6 +93,7 @@ sub throw_by_class ($$$) {
     my $self=(@_==3) ? shift : 'XAO::Errors';
     my $class=shift;
     $class=ref($class) if ref($class);
+
     my $text=shift;
 
     my $em=load_e_class($class);
