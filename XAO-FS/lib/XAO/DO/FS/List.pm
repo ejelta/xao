@@ -33,7 +33,7 @@ use XAO::Objects;
 use base XAO::Objects->load(objname => 'FS::Glue');
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: List.pm,v 1.15 2003/06/12 22:34:00 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: List.pm,v 1.16 2003/11/13 00:54:00 am Exp $ =~ /(\d+\.\d+)/);
 
 ###############################################################################
 
@@ -123,7 +123,7 @@ sub container_object ($) {
 
 =item delete ($)
 
-Deletes object from the list - first call destroy on the object to
+Deletes object from the list - first calls destroy on the object to
 recursively delete its content and then drops it from the list.
 
 =cut

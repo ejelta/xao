@@ -1,3 +1,8 @@
+Optimize $list->delete($id). It looks like it's first setting values to
+'' and only then deletes it. Very slow.
+
+===============
+
 If transactions are supported - reverse the order of action in creating
 placeholder - create a record in Global_Fields first, then add fields
 and roll-back if unsuccessful.

@@ -40,7 +40,7 @@ DESCRIPTION
         your application down if abused.
 
     delete ($)
-        Deletes object from the list - first call destroy on the object to
+        Deletes object from the list - first calls destroy on the object to
         recursively delete its content and then drops it from the list.
 
     describe ()

@@ -50,7 +50,7 @@ use XAO::Objects;
 use base XAO::Objects->load(objname => 'Atom');
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: Glue.pm,v 1.34 2003/08/09 02:37:49 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: Glue.pm,v 1.35 2003/11/13 00:54:00 am Exp $ =~ /(\d+\.\d+)/);
 
 ###############################################################################
 
@@ -253,11 +253,12 @@ Rough equivalent of:
 
 =cut
 
-sub destroy ($) {
-    my $self=shift;
+sub destroy ($;$) {
+    my ($self,$lists_only)=@_;
     foreach my $key ($self->keys) {
         my $type=$self->describe($key)->{type};
         next if $type eq 'key';
+        next if $lists_only && $type ne 'list';
         $self->delete($key);
     }
 }
@@ -1742,7 +1743,15 @@ sub _list_unlink_object ($$$) {
     my $object=$self->get($name) || $self->throw("_list_unlink_object - no object exists (name=$name)");
     my $class_desc=$object->_class_description();
 
-    $object->destroy();
+    ##
+    # Asking destroy to delete lists only, otherwise it will delete each
+    # and every field separately thus being very very slow.
+    #
+    $object->destroy(1);
+
+    ##
+    # And now dropping the row itself.
+    #
     $self->_driver->delete_row($class_desc->{table},
                                $$object->{unique_id});
 }
@@ -2070,19 +2079,18 @@ sub _drop_data_placeholder ($$) {
 # Instead of dropping each object individually we just drop entire
 # tables here. Potentially very dangerous.
 #
-sub _drop_list_placeholder ($$;$) {
-    my $self=shift;
-    my $name=shift;
-    my $recursive=shift;
+sub _drop_list_placeholder ($$;$$) {
+    my ($self,$name,$recursive,$upper_class)=@_;
 
     my $desc=$recursive || $self->_field_description($name);
     my $class=$desc->{class};
     my $glue=$self->_glue;
     my $cdesc=$$glue->{classes}->{$class};
     my $cf=$cdesc->{fields};
+
     foreach my $fname (keys %{$cf}) {
         if($cf->{$fname}->{type} eq 'list') {
-            $self->_drop_list_placeholder($fname,$cf->{$fname});
+            $self->_drop_list_placeholder($fname,$cf->{$fname},$class);
         }
     }
 
@@ -2112,7 +2120,13 @@ sub _drop_list_placeholder ($$;$) {
     delete $$glue->{classes}->{$class};
     delete $$glue->{list_keys_cache}->{$class};
     delete $$glue->{connectors_cache}->{$class};
-    delete $$glue->{classes}->{$self->objname}->{fields}->{$name};
+
+    if($recursive) {
+        delete $$glue->{classes}->{$upper_class}->{fields}->{$name};
+    }
+    else {
+        delete $$glue->{classes}->{$self->objname}->{fields}->{$name};
+    }
 
     $self->_driver->drop_table($table);
 }

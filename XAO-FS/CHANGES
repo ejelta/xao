@@ -1,4 +1,7 @@
-1.05 -
+1.05 - 12-Nov-2003
+    * SPEEDUP: significantly faster list deletes
+    * BUGFIX: same name top level lists were affected by recursive
+      drop_placeholder() in memory
     * BUGFIX: collections allowed to retrieve non-existing objects
     * key_length added to list placeholders making it possible to have
       key lengths from 1 to 255 for lists
