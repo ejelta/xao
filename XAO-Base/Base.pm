@@ -1,3 +1,13 @@
+package XAO::Base;
+use strict;
+require 5.006_000;
+use XAO::BaseConfig;
+use base qw(XAO::BaseConfig);
+
+###############################################################################
+1;
+__END__
+
 =head1 NAME
 
 XAO::Base - Set of base classes for the XAO family of products
@@ -43,4 +53,4 @@ objects into it.
 
 =head1 AUTHORS
 
-XAO Inc., Copyright (C) 1997-2001
+XAO Inc., Copyright (C) 1997-2003

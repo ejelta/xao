@@ -1,8 +1,11 @@
 #!/usr/bin/perl -w
 #
-# Builds Base.pm according to the configuration in .config.
+# Builds BaseConfig.pm according to the configuration in .config.
 #
-# XAO::Base package version should be updated manually in Makefile.PL
+# The reason to have this separate from XAO::Base (which is the
+# documented place for global configuration values) is to let CPAN
+# indexers see that Base.pm exists and let other modules include it in
+# their dependencies.
 #
 use strict;
 
@@ -50,12 +53,17 @@ exit(0);
 ###############################################################################
 __DATA__
 ####################################################################
-###### This is automatically generated file -- do not edit it ######
+#### This is an automatically generated file -- do not edit it #####
 ############ Re-install XAO::Base package to update it #############
 ####################################################################
+package XAO::BaseConfig;
+use strict;
+
+# Nothing here.
+
 package XAO::Base;
 use strict;
-use XAO::Errors qw(XAO::Base);
+use XAO::Errors qw(XAO::BaseConfig);
 require Exporter;
 
 use vars qw(@ISA @EXPORT_OK @EXPORT $VERSION
@@ -66,7 +74,7 @@ use vars qw(@ISA @EXPORT_OK @EXPORT $VERSION
 @EXPORT=();
 
 ##
-# XAO::Base package version
+# XAO::BaseConfig package version
 #
 $xao_base_version='$version';
 $VERSION='<%VERSION%>';
@@ -88,9 +96,9 @@ $projectsdir='<%PROJECTSDIR%>';
 sub set_root ($) {
     my $dir=shift || '';
     $dir=~/^\// || 
-        throw XAO::E::Base "set_root - $dir must be an absolute path";
+        throw XAO::E::BaseConfig "set_root - $dir must be an absolute path";
     -d $dir ||
-        throw XAO::E::Base "set_root - directory $dir does not exists";
+        throw XAO::E::BaseConfig "set_root - directory $dir does not exists";
     $homedir=$dir;
     $projectsdir=$homedir . '/projects';
 }
