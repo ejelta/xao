@@ -97,15 +97,18 @@ use XAO::Web;
 
 use mod_perl;
 use Apache::Server;
-use Apache::ServerUtil;
 use Apache::Log;
 
 BEGIN {
     if($mod_perl::VERSION && $mod_perl::VERSION >= 1.99) {
         require Apache::Const;
         Apache::Const->import(qw(:common));
-        use Apache::RequestRec;
-        use Apache::RequestIO;
+        require Apache::ServerUtil;
+        Apache::ServerUtil->import();
+        require Apache::RequestRec;
+        Apache::RequestRec->import();
+        require Apache::RequestIO;
+        Apache::RequestIO->import();
     }
     else {
         require Apache::Constants;
