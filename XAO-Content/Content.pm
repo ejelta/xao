@@ -224,6 +224,7 @@ The following list of methods also shows 'mode' as the first element
 package XAO::DO::Web::Content;
 use Error qw(:try);
 use XAO::Utils;
+use XAO::Objects;
 
 use vars qw($VERSION);
 $VERSION='1.0';

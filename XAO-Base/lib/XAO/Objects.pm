@@ -89,7 +89,7 @@ use XAO::Errors qw(XAO::Objects);
 use XAO::Projects;
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: Objects.pm,v 1.9 2002/06/20 00:20:30 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: Objects.pm,v 1.10 2002/06/26 00:54:04 am Exp $ =~ /(\d+\.\d+)/);
 
 ##
 # Prototypes
@@ -207,32 +207,14 @@ Creates an instance of named object. There is just one required
 argument - 'objname', everything else is passed into object's
 constructor unmodified.
 
-See also recycle() method description for the algorithm of object
-recycling that in many circumstances can significantly improve
-performance.
-
 =cut
 
-my %recyclables;
 sub new ($%) {
     my $class=(scalar(@_)%2 || ref($_[1]) ? shift(@_) : 'XAO::Objects');
     my $args=get_args(\@_);
 
     my $objname=$args->{objname} ||
         throw XAO::E::Objects "new - no 'objname' given";
-
-    ##
-    # Checking if we have a recycled object to return
-    #
-    if(exists $recyclables{$objname}) {
-        my $sitename=$args->{sitename} ||
-                     XAO::Projects::get_current_project_name();
-        my $odesc=$recyclables{$objname}->{$sitename};
-        if($odesc && $odesc->{recyclable} && @{$odesc->{pool}}) {
-            # dprint "Returning recycled object";
-            return shift @{$odesc->{pool}};
-        }
-    }
 
     ##
     # Looking up what is real object reference for that objname.
@@ -247,85 +229,6 @@ sub new ($%) {
         throw XAO::E::Objects "new - error creating instance of $objref ($@)";
 
     $obj;
-}
-
-###############################################################################
-
-=item recycle ($)
-
-In some circumstances XAO dynamic objects are created and destroyed
-very frequently -- for instance if a table on a web page is built and
-every line of that table has several Date fields and Web::Date object is
-referenced from templates to display the date.
-
-In that case significant amount of time is spent in BEGIN/END blocks
-and in allocating/de-allocating object support structures in the Perl
-itself. According to profiling information up to 20% of all execution
-time is spent on that on tight loop jobs like the one above.
-
-To address this problem there is a possibility to "recycle" the same
-object without actually destroying it/re-instantiating it. This works
-in the following way - when you're through with the object you got from
-XAO::Objects->new() method call XAO::Objects->recycle() on it instead of
-just letting it die on going out of existance scope.
-
-Even if this technique is used in just one place -- Web::Page's
-display() method it still drastically improves performance as this is
-the place where most calls to new() are coming from anyway. So even for
-existing code the performance is significantly improved without any
-modifications.
-
-Recycle() function does not recycle objects unles it knows they are
-recyclable. It checks it once and remembers results by checking if an
-object has a recycle() method and that this method returns a reference
-to the object. If you want to make your object based on a recyclable
-object non-recyclable just override recycle() method and return undef
-from it.
-
-Web::Page is a recyclable object and therefore all standard Web objects
-are recyclable as well.
-
-B<NOTE:> Current implementation always assumes that the object was
-created for the same project that is current at the time you call
-recycle(). If that's not true - do not recycle.
-
-=cut
-
-sub recycle ($$) {
-    my $class=scalar(@_)==2 ? shift : 'XAO::Objects';
-    my $obj=shift;
-
-    my $objname=$obj->{objname} || return;
-    my $sitename=XAO::Projects::get_current_project_name() || '';
-
-    my $odesc=$recyclables{$objname}->{$sitename};
-
-    if(!$odesc) {
-        my $rc=$obj->can('recycle') && $obj->recycle;
-        if($rc) {
-            $odesc={ recyclable => 1,
-                     pool => [ $obj ],
-                   };
-            #dprint "Recycling $objname ($obj) for $sitename for the first time";
-        }
-        else {
-            $odesc={ recyclable => 0 };
-            #dprint "Non-recyclable object $objname for $sitename";
-        }
-        $recyclables{$objname}->{$sitename}=$odesc;
-        return;
-    }
-    elsif($odesc->{recyclable}) {
-        return unless $obj->recycle;
-        my $ra=$odesc->{pool};
-        return if @$ra>=10;
-        push @$ra,$obj;
-        #dprint "Recycling $objname ($obj) for $sitename";
-        return;
-    }
-    else {
-        return;
-    }
 }
 
 ###############################################################################
