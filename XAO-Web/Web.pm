@@ -85,6 +85,10 @@ When object initialization is completed the Config object is placed into
 XAO::Projects registry and is retrieved from there on next access to the
 same site in case of mod_perl.
 
+B<Note:> that means that if you are embedding a site specific version
+of an object during initialisation you need to pass 'sitename' into
+XAO::Objects' new() method.
+
 =head1 METHODS
 
 Methods of XAO::Web objects include:

@@ -21,7 +21,7 @@ XAO::DO::Web::Action - base for mode-dependant displayable objects
          $self->kick($args);
      }
      else {
-         throw XAO::E::DO::Web::Fubar "check_mode - unknown mode '$mode'";
+         $self->SUPER::check_mode($args);
      }
  }
 
@@ -31,6 +31,15 @@ Very simple object with overridable check_mode method.
 Simplifies implementation of objects with arguments like:
 
  <%Fubar mode="kick" target="ass"%>
+
+Default check_mode() method does not have any functionality and always
+simply throws an error with the content of 'mode':
+
+ throw $self "check_mode - unknown mode ($mode)";
+
+Remember that using "throw $self" you actually throw an error that
+depends on the namespace of your object and therefor can be caught
+separately if required.
 
 =cut
 
@@ -42,17 +51,21 @@ use XAO::Objects;
 use base XAO::Objects->load(objname => 'Web::Page');
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: Action.pm,v 1.2 2002/01/04 02:13:23 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: Action.pm,v 1.3 2002/02/06 21:52:07 am Exp $ =~ /(\d+\.\d+)/);
 
-##
-# Just calls check_mode if it is available. Everyting else is the
-# same as for Page.
-#
 sub display ($;%) {
     my $self=shift;
     my $args=get_args(\@_);
     return $self->check_mode($args) if $self->can('check_mode');
     $self->SUPER::display($args);
+}
+
+sub check_mode ($%) {
+    my $self=shift;
+    my $args=get_args(\@_);
+
+    my $mode=$args->{mode} || '<UNDEF>';
+    throw $self "check_mode - unknown mode ($mode)";
 }
 
 ###############################################################################
@@ -65,7 +78,7 @@ Nothing.
 
 =head1 AUTHOR
 
-Copyright (c) 2000-2001 XAO Inc.
+Copyright (c) 2000-2002 XAO Inc.
 
 Andrew Maltsev <am@xao.com>.
 

@@ -1,3 +1,5 @@
+
+
 CHANGES
 LICENSE
 MANIFEST
@@ -61,14 +63,17 @@ testcases/base.pm
 testcases/FS.pm
 testcases/Page.pm
 testcases/PageSupport.pm
+testcases/WebAction.pm
 testcases/WebClipboard.pm
 testcases/WebCondition.pm
 testcases/WebConfig.pm
+testcases/WebDebug.pm
 testcases/WebFS.pm
 testcases/Web.pm
 testcases/WebSetArg.pm
  --------------------------------- Test installation tree
 testcases/testroot/projects/test/objects/Config.pm
+testcases/testroot/projects/test/objects/Web/MyAction.pm
 testcases/testroot/projects/test/objects/Web/MyPage.pm
 testcases/testroot/projects/test/templates/bits/local-test
 testcases/testroot/projects/test/templates/local.txt
