@@ -1,0 +1,17 @@
+MANIFEST
+MANIFEST.SKIP
+Makefile.PL
+Web.pm
+test.pl
+ --------------------------------- XAO::PageSupport
+PageSupport/Makefile.PL
+PageSupport/PageSupport.pm
+PageSupport/PageSupport.xs
+ --------------------------------- XAO::*
+lib/XAO/DO/Config.pm
+lib/XAO/DO/Web/Page.pm
+lib/XAO/Templates.pm
+ --------------------------------- Test Cases
+testcases/base.pm
+testcases/Page.pm
+testcases/PageSupport.pm

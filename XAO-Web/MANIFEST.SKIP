@@ -1,0 +1,13 @@
+^.cvsignore$
+Makefile
+.*\.old
+blib/
+pm_to_blib
+^CVS/
+/CVS/
+^ta/
+PageSupport/.cvsignore
+PageSupport/PageSupport.bs
+PageSupport/PageSupport.c
+PageSupport/PageSupport.o
+
