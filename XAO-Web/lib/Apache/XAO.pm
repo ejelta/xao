@@ -265,6 +265,7 @@ EOT
             return Apache::OK();
         }
         else {
+            $r->push_handlers(PerlHandler => \&handler_content);
             return Apache::Constants::OK();
         }
     }
