@@ -1,4 +1,4 @@
-Makefile(\.old)?
+Makefile(\.old)?$
 CVS/.*
 .cvsignore
 .config
