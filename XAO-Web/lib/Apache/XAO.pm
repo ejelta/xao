@@ -305,7 +305,10 @@ sub server_error ($$;$) {
     $desc=$name unless $desc;
 
     $r->server->log_error("*ERROR: Apache::XAO - $name");
-    $r->custom_response(SERVER_ERROR,"<H2>XAO::Web System Error: $name</H2>\n$desc");
+    $r->custom_response(
+        (MP2 ? Apache::SERVER_ERROR : Apache::Constants::SERVER_ERROR),
+        "<H2>XAO::Web System Error: $name</H2>\n$desc"
+    );
     return MP2 ? Apache::SERVER_ERROR : Apache::Constants::SERVER_ERROR;
 }
 
