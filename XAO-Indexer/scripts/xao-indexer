@@ -13,6 +13,7 @@ my $project;
 my $search;
 my $update;
 my $complete;
+my $compression=0;
 GetOptions(
     'all'           => \$all,
     'create'        => \$create,
@@ -22,6 +23,7 @@ GetOptions(
     'search'        => \$search,
     'update'        => \$update,
     'complete'      => \$complete,
+    'compression=i' => \$compression,
 );
 
 if(!$project ||
@@ -41,7 +43,9 @@ Usage: $0 [--debug] [--complete] --project PROJ --update --all
 Updates all existing indexes.
 
 
-Usage: $0 [--debug] --project PROJ --create index Indexer::IndexName
+Usage: $0 [--debug] \\
+    [--compression LEVEL] \\
+    --project PROJ --create index Indexer::IndexName
 
 Creates a new index with given name and using given class name to handle
 it. Does not build index data, only prepares data structures.
@@ -105,7 +109,10 @@ if($create) {
 
     dprint "Storing new index object";
     my $ni=$index_list->get_new;
-    $ni->put(indexer_objname => $i_class);
+    $ni->put(
+        indexer_objname => $i_class,
+        compression     => $compression,
+    );
     $index_list->put($i_name => $ni);
 
     dprint "Done";
