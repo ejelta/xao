@@ -33,6 +33,9 @@ use XAO::Errors qw(XAO::DO::FS::Glue::MySQL_DBI);
 use DBI;
 use DBD::mysql;
 
+use vars qw($VERSION);
+($VERSION)=(q$Id: MySQL_DBI.pm,v 1.6 2002/01/04 01:48:40 am Exp $ =~ /(\d+\.\d+)/);
+
 ###############################################################################
 
 =item new ($%)
