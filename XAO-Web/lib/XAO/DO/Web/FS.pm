@@ -184,7 +184,7 @@ use XAO::Errors qw(XAO::DO::Web::FS);
 use base XAO::Objects->load(objname => 'Web::Action');
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: FS.pm,v 1.38 2003/02/27 02:45:21 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: FS.pm,v 1.39 2003/03/26 03:07:10 am Exp $ =~ /(\d+\.\d+)/);
 
 ###############################################################################
 
@@ -626,7 +626,6 @@ sub search ($;%) {
                     glue    => $self->odb,
                 );
                 @fields=map { $n->describe($_)->{type} eq 'list' ? () : $_ } $n->keys;
-                dprint "n=$n, f=",join(',',@fields);
             }
             else {
                 @fields=split(/\W+/,$args->{fields});

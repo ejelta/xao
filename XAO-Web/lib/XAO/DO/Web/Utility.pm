@@ -34,7 +34,7 @@ use XAO::Objects;
 use base XAO::Objects->load(objname => 'Web::Action');
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: Utility.pm,v 1.11 2003/01/08 21:13:11 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: Utility.pm,v 1.12 2003/03/26 03:07:10 am Exp $ =~ /(\d+\.\d+)/);
 
 sub check_mode ($$) {
     my $self=shift;
@@ -112,8 +112,9 @@ sub tracking_url ($%)
           '?tracknbr=' . t2ht($tracknum);
    }
   elsif(lc($carrier) eq 'ups')
-   { $url='http://wwwapps.ups.com/etracking/tracking.cgi' .
-          '&TypeOfInquiryNumber=T' .
+   { $url='http://wwwapps.ups.com/WebTracking/processInputRequest' .
+          '?HTMLVersion=5.0&sort_by=status&tracknums_displayed=1' .
+          '&TypeOfInquiryNumber=T&loc=en_US&AgreeToTermsAndConditions=yes' .
           '&InquiryNumber1=' . t2ht($tracknum);
    }
   elsif(lc($carrier) eq 'fedex')

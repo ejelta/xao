@@ -127,7 +127,7 @@ sub MY::postamble
 config::	README
 
 README:	lib/XAO/Web/Intro.pod
-	pod2text lib/XAO/Web/Intro.pod > README
+	pod2text -w76 lib/XAO/Web/Intro.pod > README
 
 install::
 	[ -d $homedir ] || mkdir $homedir && chmod 755 $homedir

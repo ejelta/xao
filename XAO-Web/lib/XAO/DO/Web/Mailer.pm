@@ -33,14 +33,16 @@ If 'to', 'from' or 'subject' are not specified then get_to(), get_from()
 or get_subject() methods are called first. Derived class may override
 them. 'To' and 'cc' may be comma-separated addresses lists.
 
-THe configuration for Web::Mailer is kept in a hash stored in the site
+The configuration for Web::Mailer is kept in a hash stored in the site
 configuration under 'mailer' name. Normally it is not required, the
 default is to use sendmail for delivery. The parameters are:
 
- method     => either 'local' or 'smtp'
- agent      => server name for `smtp' or binary path for `local'
- from       => either a hash reference or a scalar with the default
-               `from' address.
+ method      => either 'local' or 'smtp'
+ agent       => server name for `smtp' or binary path for `local'
+ from        => either a hash reference or a scalar with the default
+                `from' address.
+ override_to => if set overrides all to addresses and always sends to
+                the given address. Useful for debugging.
 
 If `from' is a hash reference then the content of `from' argument to the
 object is looked in keys and the value is used as actual `from'
@@ -75,7 +77,7 @@ use XAO::Errors qw(XAO::DO::Web::Mailer);
 use base XAO::Objects->load(objname => 'Web::Page');
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: Mailer.pm,v 1.6 2002/06/18 01:36:33 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: Mailer.pm,v 1.7 2003/03/26 03:07:10 am Exp $ =~ /(\d+\.\d+)/);
 
 sub display ($;%) {
     my $self=shift;
@@ -86,6 +88,13 @@ sub display ($;%) {
     my $to=$args->{to} ||
            $self->get_to($args) ||
            throw $self "display - no 'to' given";
+
+    if($config->{override_to}) {
+        dprint ref($self)."::display - overriding '$to' with '$config->{override_to}'";
+        $to=$config->{override_to};
+    }
+
+    return;
 
     my $from=$args->{from};
     if(!$from) {
