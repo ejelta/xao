@@ -384,8 +384,6 @@ sub test_unique {
     }
 }
 
-=pod
-
 ##
 # Checking how 'unique' works for second level objects. The trick with
 # them is that the field should be unique in the space of an enclosing
@@ -399,19 +397,16 @@ sub test_unique_2 {
     my $c1=$list->get('c1');
     my $c2=$list->get('c2');
 
-    $c1->add_placeholder(
-        name    => 'Orders',
-        type    => 'list',
-        class   => 'Data::Order',
-        key     => 'order_id',
-    );
-
-    my $c1list=$c1->get('Orders');
-    my $c2list=$c2->get('Orders');
-
-    my $order=$c1->get('Orders')->get_new;
-
     foreach my $type (qw(text integer real)) {
+        $c1->add_placeholder(
+            name    => 'Orders',
+            type    => 'list',
+            class   => 'Data::Order',
+            key     => 'order_id',
+        );
+
+        my $order=$c1->get('Orders')->get_new;
+
         $order->add_placeholder(
             name    => 'foo',
             type    => $type,
@@ -419,6 +414,9 @@ sub test_unique_2 {
         );
 
         $order->put(foo => 1);
+
+        my $c1list=$c1->get('Orders');
+        my $c2list=$c2->get('Orders');
 
         my $mistake;
         stderr_stop();
@@ -471,10 +469,10 @@ sub test_unique_2 {
             "Got wrong value from c2list/o2");
 
         $order->drop_placeholder('foo');
+
+        $c1->drop_placeholder('Orders');
     }
 }
-
-=cut
 
 sub test_get_multi {
     my $self=shift;
