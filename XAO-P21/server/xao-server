@@ -1,152 +1,150 @@
 #!/usr/bin/perl -w
-
-#use lib qw(/home/amaltsev/j /home/amaltsev/src/perl/lib/site_perl/5.005 /home/amaltsev/src/perl/lib/5.00503);
-
-use vars qw($VERSION $REVISION);
-
+use strict;
 use IO::Socket::INET;
 use Errno qw/EINTR EAGAIN/;
-use POSIX qw(:sys_wait_h setsid);
+use POSIX qw(setsid);
+use Getopt::Long;
 
+use vars qw($VERSION $REVISION);
 $VERSION='0.05';
-$REVISION='$Id: xaosrv.pl,v 1.11 2003/07/01 22:11:09 am Exp $';
+$REVISION='$Id: xao-server,v 1.1 2003/08/26 02:12:10 am Exp $';
+
+sub chld_handler ();
+sub dprint (@);
+sub open_local_query (@);
+sub open_query (@);
+sub open_stream ($);
+sub pipe_handler ();
+sub printsock (@);
+sub reopen_log ();
+
+my $log_file;
+my $no_daemon;
+my $pid_file;
+my $debug;
+my $tcpport=9010;
+
+GetOptions(
+    'debug'		=> \$debug,
+    'log-file=s'	=> \$log_file,
+    'no-daemon'		=> \$no_daemon,
+    'pid-file=s'	=> \$pid_file,
+    'port=i'		=> \$tcpport,
+);
 
 if(@ARGV<1) {
-    print "Usage: $0 SystemUnit [TCP port]\n";
+    print <<EOT;
+Usage: $0 \\
+        [--debug] \\
+        [--log-file FILE] \\
+        [--no-daemon] \\
+        [--pid-file FILE] \\
+        [--port $tcpport] \\
+        SystemUnit
+
+Starts the server that lets website talk to p21 backend for the given
+system unit. TCP port can be set with '--port' option.
+
+By default the server will detach from the terminal and go into
+background. To change that use '--no-daemon' option.
+
+EOT
     exit 1;
 }
 my $systemunit=int(shift @ARGV);
-my $tcpport=int($ARGV[0] || 9010);
+if(@ARGV) {
+    dprint "Deprecated use, port should be specified with --port option";
+    $tcpport=$ARGV[0];
+}
 
 my $spooldir="/tmp/webord$systemunit";
 my $p21dir="/opt/xao/p21";
 
-my $ServerName='xaosrv ' . $systemunit . ' ' . $tcpport;
-my $LockName='xaosrv-' . $systemunit . '-' . $tcpport;
+my $ServerName='xao-server ' . $systemunit . ' ' . $tcpport;
 $0 = $ServerName;
-
-my $Debug = $ENV{DEBUG};
-print "Debugging\n" if $Debug;
-sub debug {
-    print $_[0] if $Debug;
-}
-
-### <Hack>
-$ENV{TERM}='ansi' unless $ENV{TERM};
-### </Hack>
-
-sub open_stream {
-    local *IN;
-    my $script=shift;
-    open IN, qq(/usr/lpp/p21pro/bin/p21pro) .
-             qq( -S $systemunit) .
-             qq( -d /usr/lpp/p21pro/src:/usr/lpp/p21pro/src/include) .
-             qq( -p "-p $p21dir/$script.p -b"|) || die $!;
-    *IN;  
-}
-
-sub open_query {
-    local *IN;
-    $ENV{'PROCNAME'}=shift;
-    my $envn=0; 
-    foreach (@_) {
-        $ENV{"P$envn"}=$_;
-        ++$envn;
-    }
-    $ENV{ORIGIN}='P21';
-    open IN, qq(/usr/lpp/p21pro/bin/p21pro -S $systemunit -P p21/www/query/www.p -p -b|) ||
-        die $!;
-    *IN;  
-}
-
-sub open_local_query {
-    my $script=shift;
-    local *IN;
-    for(my $i=0; $i!=@_; $i++) {
-        $ENV{"P$i"}=$_[0];
-    }
-    open IN, qq(/usr/lpp/p21pro/bin/p21pro) .
-             qq( -S $systemunit) .
-             qq( -d /usr/lpp/p21pro/src:/usr/lpp/p21pro/src/include) .
-             qq( -p "-p $p21dir/$script.p -b"|) || die $!;
-    *IN;  
-}
-
-sub reopen_log {
-    close STDERR;
-    open STDERR, ">/tmp/$LockName.log";
-    select STDERR;
-    $|=1;
-}
-
-sub chld_handler {
-    while((my $rc=waitpid(-1,&WNOHANG)) > 0) {
-	print STDERR "Child exited ($rc/$?)\n";
-    }
-    $SIG{CHLD}=\&chld_handler;
-}
 
 ###############################################################################
 
-my $server=IO::Socket::INET->new( Proto => 'tcp',
-                                  Listen => 10,
-                                  LocalPort => $tcpport,
-                                  Reuse => 1,
-                                  LocalAddr => '127.0.0.1'
-                                );
-die "\n\n** Cannot create server: $!\n\n" unless $server;
+if(!$no_daemon) {
+    my $pid=fork;
+    die "Can't fork: $!" unless defined $pid;
+    if($pid) {
+	print STDERR "XAO P21 Server Started (unit=$systemunit, port=$tcpport)\n" if $debug;
+        sleep 3;
+        exit 0;
+    }
+    setsid();
+    close(STDIN);
+    open(STDIN,"</dev/null");
+    close(STDOUT);
+    open(STDOUT,">/dev/null");
+    close(STDERR);
+    open(STDERR,">/dev/null");
+}
+dprint "XAO P21 Server Started (unit=$systemunit, port=$tcpport)";
 
-my $pid=fork;
-die "$!" unless defined $pid;
-if($pid) {
-    print STDERR "XAO P21 Server Started\n";
-    open(F,">/tmp/$LockName.pid") || die "Can't open /tmp/$LockName.pid: $!";
-    print F "$pid\n";
-    close(F);
-    exit 0;
+reopen_log();
+
+my $main_pid=$$;
+if($pid_file) {
+    dprint "Pid file is in $pid_file";
+    if(!open(F,">$pid_file")) {
+        dprint "ERROR, can't open $pid_file: $!\n";
+    }
+    else {
+        print F "$main_pid\n";
+        close(F);
+    }
 }
 
 chdir '/';
-close STDIN;
-open STDIN, "</dev/null" or die "$!";
-close STDOUT;
-open STDOUT, ">/dev/null" or die "$!";
-POSIX::setsid;
-reopen_log;
+
+my $pipe_flag;;
+my $socket;
+my %children;
+my $child_pid=$$;
 
 $SIG{CHLD}=\&chld_handler;
-
 $SIG{HUP}=\&reopen_log;
+$SIG{PIPE}=\&pipe_handler;
+$SIG{TERM}=\&term_handler;
+$SIG{INT}=\&term_handler;
 
-my $socket;
+$ENV{TERM}='ansi' unless $ENV{TERM}; # P21 scripts apparently need it
+
+my $server=IO::Socket::INET->new(
+    Proto	=> 'tcp',
+    Listen	=> 10,
+    LocalPort	=> $tcpport,
+    Reuse	=> 1,
+    LocalAddr	=> '127.0.0.1',
+);
+if(!$server) {
+    dprint "*** Can't create server at $tcpport: $!";
+    die "Cannot create server at $tcpport: $!\n\n";
+}
+
 while(1) {
+    $pipe_flag=0;
     $socket=$server->accept;
 
     unless(defined $socket) {
         next if $!{EINTR} || $!{EAGAIN};
-        print STDERR "$!\n";
+        dprint "Error accepting connection: $!";
         sleep 5;
         next;
     }
 
-    my $flag = 0;
-    local $SIG{PIPE} = sub { $flag = 1 };
-
-    sub printsock {
-        print $socket @_;
-        die $! if $flag;
-        print STDERR @_ if $Debug;
-    };
-
-    print STDERR "accepted \n";
-    $pid=fork;
-    unless (defined $pid) {
-        print STDERR "$!\n";
+    $child_pid=fork;
+    if(!defined $child_pid) {
+        $child_pid=$$;
+        dprint "Can't fork: $!";
         sleep 10;
         next;
     }
 
-    if($pid) {
+    if($child_pid) {
+        $children{$child_pid}=1;
         $socket->close;
         next;
     }
@@ -172,9 +170,17 @@ while(1) {
     };
     
     while(<$socket>) {
-        chomp;
+        chop while /[\r\n]$/;
         my ($opcode, @args) = split /\t/;
         next unless $opcode;
+
+        my $now=time;
+        dprint "Got cmd='$opcode' args='",join('|',@args),"' now=$now";
+
+	if($pid_file && $now-(stat($pid_file))[9] > 60) {
+            utime $now,$now,$pid_file;
+        }
+
         $0 = "$ServerName $opcode";
 
 =head1 items
@@ -199,7 +205,9 @@ Returns availability info for each of given item code. The info contains lines w
 
 =cut  
 
-        } elsif ($opcode eq "avail") {
+        }
+
+        elsif ($opcode eq "avail") {
             foreach my $code (@args) {
                 my $in = open_query 'stk_item', '?', $code;
                 while(<$in>) {
@@ -290,7 +298,7 @@ Placing order into spool. Input data is:
             my $basename = $args[0];
             my $fname = "$spooldir/$basename.proc";
             eval {
-                open(PROC_OUT,">>$fname~") or die "$!";
+                open(PROC_OUT,">$fname~") or die "$!";
                 while( @args > 0 ) {
                     my (@line, @rest);
                     ( @line[0..38], @rest ) = @args ;
@@ -386,13 +394,33 @@ Output: price for one unit, multiplier.
 
         elsif ($opcode eq 'mod_custinfo') {
             foreach (0..12) {
-                print STDERR "export P$_=\'$args[$_]\'\n";
                 $ENV{"P$_"} = $args[$_];
             }
             system qq(/usr/lpp/p21pro/bin/p21pro) .
                    qq( -S $systemunit) .
                    qq( -d /usr/lpp/p21pro/src:/usr/lpp/p21pro/src/include) .
                    qq( -p "-p $p21dir/modcust.p -b" > /dev/null) || die $!;
+        }
+
+=head1 ping
+
+Simply asks for 'PONG' and updates server's pid file timestamp so
+that monitor can see that the server is alive.
+
+=cut
+        elsif($opcode eq 'ping') {
+            printsock "PONG\n";
+        }
+
+=head1 quit
+
+Finish current session and disconnect.
+
+=cut
+
+        elsif($opcode eq 'quit') {
+            printsock "Good bye\n";
+            last;
         }
 
 =head1 undefined command
@@ -402,10 +430,105 @@ Output: price for one unit, multiplier.
         else {
             printsock "undefined command\n";
         }
-    printsock ".\n";
+
+        printsock ".\n";
     }
+
     $socket->close;
-    exit;
+
+    exit 0;
 }
 
-__END__
+exit 0;
+
+###############################################################################
+
+sub printsock (@) {
+    dprint "PRINTSOCK: ",@_;
+    print $socket @_;
+    die $! if $pipe_flag;
+}
+
+sub dprint (@) {
+    return unless $debug;
+    my $text=join('',map { defined($_) ? $_ : '<UNDEF>' } @_);
+    print STDERR "DEBUG: $text";
+    print STDERR "\n" unless $text=~/\n$/s;
+}
+
+sub open_stream ($) {
+    local *IN;
+    my $script=shift;
+    open IN, qq(/usr/lpp/p21pro/bin/p21pro) .
+             qq( -S $systemunit) .
+             qq( -d /usr/lpp/p21pro/src:/usr/lpp/p21pro/src/include) .
+             qq( -p "-p $p21dir/$script.p -b"|) || die $!;
+    *IN;  
+}
+
+sub open_query (@) {
+    local *IN;
+    $ENV{'PROCNAME'}=shift;
+    my $envn=0; 
+    foreach (@_) {
+        $ENV{"P$envn"}=$_;
+        ++$envn;
+    }
+    $ENV{ORIGIN}='P21';
+    open IN, qq(/usr/lpp/p21pro/bin/p21pro -S $systemunit -P p21/www/query/www.p -p -b|) ||
+        die $!;
+    *IN;  
+}
+
+sub open_local_query (@) {
+    my $script=shift;
+    local *IN;
+    for(my $i=0; $i!=@_; $i++) {
+        $ENV{"P$i"}=$_[0];
+    }
+    open IN, qq(/usr/lpp/p21pro/bin/p21pro) .
+             qq( -S $systemunit) .
+             qq( -d /usr/lpp/p21pro/src:/usr/lpp/p21pro/src/include) .
+             qq( -p "-p $p21dir/$script.p -b"|) || die $!;
+    *IN;  
+}
+
+sub reopen_log () {
+    return unless $log_file;
+    close STDERR;
+    if(open(STDERR,">>$log_file")) {
+        print STDERR "===========================" .
+                     " pid=$$ unit=$systemunit port=$tcpport" .
+                     " time=".scalar(localtime)."\n";
+    	select STDERR;
+    	$|=1;
+    }
+}
+
+sub chld_handler () {
+    my $pid=wait;
+    if($pid>0) {
+        dprint "Child $pid exited";
+        delete $children{$pid};
+    }
+    $SIG{CHLD}=\&chld_handler;
+}
+
+sub pipe_handler () {
+    $pipe_flag=1;
+}
+
+sub term_handler () {
+    if($child_pid) {
+        foreach my $pid (keys %children) {
+            dprint "Killing child $pid";
+            kill 15,$pid;
+        }
+        if($pid_file) {
+            dprint "Unlinking $pid_file";
+            unlink $pid_file;
+        }
+        dprint "Terminating";
+    }
+    exit 1;
+}

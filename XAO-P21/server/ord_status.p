@@ -5,7 +5,7 @@ DEF VAR c_price LIKE p21.ord_line.ut_price NO-UNDO.
 
 /* Field separator
 */
-ASSIGN d_d=" ".
+ASSIGN d_d="\001".
 
 /* Supplied order ID
 */
