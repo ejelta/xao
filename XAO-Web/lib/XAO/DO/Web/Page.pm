@@ -310,7 +310,7 @@ use Error qw(:try);
 use base XAO::Objects->load(objname => 'Atom');
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: Page.pm,v 1.19 2002/06/24 03:03:11 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: Page.pm,v 1.20 2002/06/27 17:32:24 am Exp $ =~ /(\d+\.\d+)/);
 
 ##
 # Prototypes
@@ -598,6 +598,7 @@ my %parsed_cache;
 sub parse ($%) {
     my $self=shift;
     my $args=get_args(\@_);
+    my $sitename;
 
     ##
     # Getting template text
@@ -615,8 +616,10 @@ sub parse ($%) {
         $path=$args->{path} ||
             throw $self "parse - no 'path' and no 'template' given to a Page object";
 
-        if(!$unparsed && exists $parsed_cache{$path}) {
-            return $parsed_cache{$path};
+        $sitename=$self->{sitename} || get_current_project_name();
+
+        if(!$unparsed && exists $parsed_cache{$sitename}->{$path}) {
+            return $parsed_cache{$sitename}->{$path};
         }
 
         if($self->debug_check('show-path')) {
@@ -642,7 +645,7 @@ sub parse ($%) {
     ref $page ||
         throw $self "parse - $page";
 
-    $parsed_cache{$path}=$page if $path;
+    $parsed_cache{$sitename}->{$path}=$page if $path;
 
     return $page;
 }
