@@ -1,4 +1,5 @@
 1.05 -
+    * Web::FS - allow orderby on deep fields like 'Cont/value'
     * Web::Clipboard - 'set' mode
     * Web::Utility - updated UPS tracking URL
     * Web::IdentifyUser - new id_cookie_type parameter

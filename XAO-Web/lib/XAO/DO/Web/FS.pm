@@ -184,7 +184,7 @@ use XAO::Errors qw(XAO::DO::Web::FS);
 use base XAO::Objects->load(objname => 'Web::Action');
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: FS.pm,v 1.41 2003/09/30 22:20:50 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: FS.pm,v 1.42 2003/11/12 01:14:54 am Exp $ =~ /(\d+\.\d+)/);
 
 ###############################################################################
 
@@ -836,7 +836,7 @@ sub _create_query {
             my $ra_orderby = [];
             foreach (split(/\|/, $args->{orderby})) {
                 my $direction = /^-/ ? 'descend' : 'ascend';
-                s/\W//g;
+                s/\s//g;
                 push @$ra_orderby, ($direction => $_);
             }
             $rh_options->{orderby} = $ra_orderby;
