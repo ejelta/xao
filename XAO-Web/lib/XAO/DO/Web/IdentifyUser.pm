@@ -8,7 +8,10 @@ Currently is only useful in XAO::Web site context.
 
 =head1 DESCRIPTION
 
-IdentifyUser class is used for user identification and verification purposes. In 'login' mode it logs a user in while in 'logout' mode, it logs a user out. In 'check' mode it determines the identification status of the user using cookies.
+IdentifyUser class is used for user identification and verification
+purposes. In 'login' mode it logs a user in while in 'logout' mode, it
+logs a user out. In 'check' mode it determines the identification status
+of the user using cookies.
 
 Possible user identification status are:
 
@@ -54,11 +57,14 @@ Template to display if user has been identified.
 
 =item * hard_logout
 
-If 'true' in logout mode, this parameter not only unverifies the user, but erases identification cookies too. The default is to retain identified status.
+If 'true' in logout mode, this parameter not only unverifies the
+user, but erases identification cookies too. The default is to retain
+identified status.
 
 =item * stop
 
-Directive indicating that if a specified template is displayed, the remainder of the current template must not be displayed.
+Directive indicating that if a specified template is displayed, the
+remainder of the current template must not be displayed.
 
 =back
 
@@ -75,13 +81,14 @@ $config hash with all required parameters is presented below:
  customer => { 
     list_uri            => '/Customers', 
     id_cookie           => 'id_customer',    
-    id_cookie_expire    => 126230400,       # (seconds) optional, default is 4y  
+    id_cookie_expire    => 126230400,       # (seconds) optional,
+                                            # default is 10 years
     user_prop           => 'email',         # optional, see below    
     pass_prop           => 'password', 
     pass_encrypt        =>  'md5',          # optional, see below
     vf_key_prop         => 'verify_key',    # optional, see below 
     vf_key_cookie       => 'key_customer',  # optional, see below
-    vf_time_prop        => 'latest_verified_access',    
+    vf_time_prop        => 'verify_time',   # time of last verification
     vf_expire_time      => '600',           # seconds
     cb_uri              => 'IdentifyUser/customer' # optional
  }
@@ -136,6 +143,19 @@ Attribute of user object which stores the time of latest verified access.
 =item vf_expire_time
 
 Time period for which user remains verified.
+
+Please note, that the cookie with the customer key will be set to expire
+in 10 years and actual expiration will only be checked using the content
+of 'vf_time_prop' field value. The reason for such behavior is that many
+(if not all) versions of Microsoft IE have what can be considered a
+serious bug -- they compare the cookie expiration time to the local time
+on the computer. And therefore if customer computer is accidentally set
+to some future date the cookie might expire immediately and prevent this
+customer from logging into the system at all. Most (if not all) versions
+of Netscape and Mozilla do not have this problem.
+
+Therefore, when possible we do not trust customer's computer to measure
+time for us and do that ourselves.
 
 =item cb_uri
 
@@ -192,7 +212,7 @@ use XAO::Objects;
 use base XAO::Objects->load(objname => 'Web::Action');
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: IdentifyUser.pm,v 1.13 2002/06/09 07:10:58 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: IdentifyUser.pm,v 1.14 2002/06/20 23:46:36 am Exp $ =~ /(\d+\.\d+)/);
 
 ###############################################################################
 
@@ -320,21 +340,21 @@ sub check {
 
                     ##
                     # In order to reduce global heating we only transfer
-                    # cookie if more then 1/10 of the expiration time
-                    # passed since the last visit.
+                    # cookie if more then 1/20 of the expiration time passed
+                    # since the last visit.
                     #
-                    # Mozilla (and probably other browsers as well)
-                    # seems to re-write its cookies file every time it
-                    # gets a new cookie. Nobody cares, but I don't like
-                    # it for aesthetic reasons.
+                    # Mozilla (and probably other browsers as well) seems
+                    # to re-write its cookies file every time it gets a
+                    # new cookie. Nobody cares, but I don't like it for
+                    # aesthetic reasons.
                     #
-                    my $quant=int($vf_expire_time/10);
+                    my $quant=int($vf_expire_time/20);
                     if($current_time-$last_vf > $quant) {
                         $self->siteconfig->add_cookie(
                             -name    => $config->{vf_key_cookie},
                             -value   => $web_key,
                             -path    => '/',
-                            -expires => '+' . ($vf_expire_time+$quant) . 's',
+                            -expires => '+10y',
                         );
                         $user->put($vf_time_prop => $current_time);
                     }
@@ -521,7 +541,7 @@ sub login ($;%) {
             -name    => $config->{vf_key_cookie},
             -value   => $random_key,
             -path    => '/',
-            -expires => '+' . $config->{vf_expire_time} . 's',
+            -expires => '+10y',
         );
     }
 
@@ -535,7 +555,8 @@ sub login ($;%) {
     ##
     # Setting user name cookie
     #
-    my $expire=$config->{id_cookie_expire} ? "+$config->{id_cookie_expire}s" : '+4y';
+    my $expire=$config->{id_cookie_expire} ? "+$config->{id_cookie_expire}s"
+                                           : '+10y';
     my $id_cookie=$config->{id_cookie} ||
         throw XAO::E::DO::Web::IdentifyUser "login - no 'id_cookie' in the configuration";
     $self->siteconfig->add_cookie(

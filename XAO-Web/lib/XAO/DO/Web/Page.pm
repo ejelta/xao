@@ -309,7 +309,7 @@ use Error qw(:try);
 use base XAO::Objects->load(objname => 'Atom');
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: Page.pm,v 1.16 2002/06/20 00:20:45 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: Page.pm,v 1.17 2002/06/20 23:46:36 am Exp $ =~ /(\d+\.\d+)/);
 
 ##
 # Prototypes
@@ -476,11 +476,6 @@ sub display ($%) {
             else {
                 $obj->display(\%objargs);
             }
-
-            ##
-            # Allowing XAO::Object to recycle this object
-            #
-            XAO::Objects->recycle($obj);
 
             ##
             # Indicator that we do not need to parse or display anything
@@ -1190,31 +1185,6 @@ sub cache ($%) {
     my $self=shift;
     my $args=get_args(\@_);
     return $self->siteconfig->cache($args);
-}
-
-###############################################################################
-
-=item recycle ()
-
-Cleans up whatever might be messed inside of the current object and
-prepares it for re-using. The object will be returned from XAO::Objects'
-new() function in the state it is left after recycle().
-
-If you do not want your derived object to be recyclable -- return
-'undef' from recycle() method.
-
-=cut
-
-sub recycle ($) {
-    my $self=shift;
-    foreach my $k (keys %$self) {
-        next if $k eq 'objname' ||
-                $k eq 'siteconfig' ||
-                $k eq 'sitename' ||
-                $k eq 'odb';
-        delete $self->{$k};
-    }
-    $self;
 }
 
 ###############################################################################

@@ -88,3 +88,40 @@ addtext(text)
 	        memcpy(buffer+bufpos,text,len);
 	        bufpos+=len;
 		}
+
+SV *
+parse(text)
+        unsigned int length=0;
+        char *template=SvPV(ST(0),length);
+    CODE:
+        unsigned i;
+        char *str;
+
+        AV* parsed=newAV();
+
+        enum {
+            TEXT,
+            OBJECT,
+            ARGUMENT,
+        } state=TEXT;
+
+        char *text_ptr=template;
+
+        for(i=0, str=template; i!=length; i++, str++) {
+            if(*str=='<' && str[1]=='%') {
+                if(state==TEXT) {
+                    if(text_ptr!=str) {
+                        HV* hv=newHV();
+                        hv_store(hv,"text",4,
+                                    newSVpvn(text_ptr,str-text_ptr),0);
+                        av_push(parsed,newRV_noinc((SV*)hv));
+                    }
+                }
+                state=OBJECT;
+                str++;
+            }
+        }
+        RETVAL=newRV_noinc((SV*)parsed);
+
+    OUTPUT:
+        RETVAL
