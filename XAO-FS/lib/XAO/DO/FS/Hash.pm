@@ -67,7 +67,7 @@ use XAO::Objects;
 use base XAO::Objects->load(objname => 'FS::Glue');
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: Hash.pm,v 1.18 2003/10/29 22:07:30 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: Hash.pm,v 1.19 2004/03/17 00:23:51 am Exp $ =~ /(\d+\.\d+)/);
 
 ###############################################################################
 
@@ -924,6 +924,16 @@ sub new ($%) {
 
     $self;
 }
+
+###############################################################################
+
+=item objname ()
+
+Returns class name of the object.
+
+=cut
+
+# implemented in Glue.pm
 
 ###############################################################################
 

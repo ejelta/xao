@@ -465,6 +465,9 @@ DESCRIPTION
 
          my $customer=$customers_list->get_new();
 
+    objname ()
+        Returns class name of the object.
+
     objtype ()
         For all objects based on Hash returns 'Hash' string.
 
