@@ -180,7 +180,7 @@ use XAO::Errors qw(XAO::DO::Web::FS);
 use base XAO::Objects->load(objname => 'Web::Action');
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: FS.pm,v 1.19 2002/02/15 19:23:25 alves Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: FS.pm,v 1.20 2002/02/21 01:57:57 alves Exp $ =~ /(\d+\.\d+)/);
 
 ###############################################################################
 
@@ -916,7 +916,7 @@ sub delete_object ($%) {
     my $self=shift;
     my $args=get_args(\@_);
     my $list=$self->get_object($args);
-    my $id=$args->{id} || throw XAO::E::DO::Web::Account "delete_object - no 'id'";
+    my $id=$args->{id} || throw $self "delete_object - no 'id'";
     $list->delete($id);
 }
 ###############################################################################
