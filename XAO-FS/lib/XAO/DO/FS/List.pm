@@ -33,7 +33,7 @@ use XAO::Objects;
 use base XAO::Objects->load(objname => 'FS::Glue');
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: List.pm,v 1.5 2002/03/19 03:37:08 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: List.pm,v 1.6 2002/05/15 18:39:45 am Exp $ =~ /(\d+\.\d+)/);
 
 ###############################################################################
 
@@ -493,6 +493,19 @@ field. Example:
  my $color_ids=$products->search('category_id', 'eq', 123, {
                                     'distinct' => 'color'
                                 }); 
+
+=item limit
+
+Indicates that you are only interested in some limited number of results
+allowing database to return just as many and therefor optimize the query
+or data transfer.
+
+Remember, that you can still get more results then you ask for if
+underlying database does not support this feature.
+
+ my $subset=$persons->search('eye_color','eq','brown', {
+                                 'limit' => 100
+                            });
 
 =back
 

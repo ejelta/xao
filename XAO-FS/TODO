@@ -6,8 +6,6 @@ made at the same time.
 Fix destroy() on hash objects. It currently does not remove the object,
 but empties it incorrectly.
 
-Add `limit' option to searches to limit the number of results retrieved.
-
 Negation of 'wq' and 'ws' in search() (Marcos' idea)
 
 fill() method.

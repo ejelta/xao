@@ -240,6 +240,18 @@ DESCRIPTION
                                                 'distinct' => 'color'
                                             }); 
 
+        limit
+            Indicates that you are only interested in some limited number of
+            results allowing database to return just as many and therefor
+            optimize the query or data transfer.
+
+            Remember, that you can still get more results then you ask for
+            if underlying database does not support this feature.
+
+             my $subset=$persons->search('eye_color','eq','brown', {
+                                             'limit' => 100
+                                        });
+
         Beware that these options usually significantly decrease search
         performance. Only use them when you would do sorting or select
         unique rows in your code anyway.

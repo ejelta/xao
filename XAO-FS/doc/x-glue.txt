@@ -212,6 +212,7 @@ PUBLIC METHODS
          post_process => is non-zero if there could be extra rows in the search
                          results because of some condition that could not be
                          expressed adequately in SQL.
+         options      => original options from the FS query
 
     _build_search_field ($$)
         Builds SQL field name including table alias from field path like

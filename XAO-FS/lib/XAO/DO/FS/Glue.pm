@@ -50,7 +50,7 @@ use XAO::Objects;
 use base XAO::Objects->load(objname => 'Atom');
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: Glue.pm,v 1.12 2002/03/19 03:37:08 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: Glue.pm,v 1.13 2002/05/15 18:39:45 am Exp $ =~ /(\d+\.\d+)/);
 
 ###############################################################################
 
@@ -896,6 +896,7 @@ following structure, not a string:
  post_process => is non-zero if there could be extra rows in the search
                  results because of some condition that could not be
                  expressed adequately in SQL.
+ options      => original options from the FS query
 
 =cut
 
@@ -936,7 +937,6 @@ sub _build_search_query ($%) {
     #
     my %return_fields;
     my @distinct;
-    my $reverse;
     my @orderby;
     my $options=$args->{options};
     if($options) {
@@ -1079,8 +1079,6 @@ sub _build_search_query ($%) {
         }
     }
 
-    # dprint "SQL: $sql";
-
     ##
     # Returning resulting hash
     #
@@ -1095,6 +1093,7 @@ sub _build_search_query ($%) {
         distinct => \@distinct,
         order_by => \@orderby,
         post_process => $post_process,
+        options => $options,
     };
 }
 
