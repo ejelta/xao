@@ -38,7 +38,7 @@ sub merge_refs (@);
 sub fround ($$);
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: Utils.pm,v 1.10 2003/05/03 00:55:23 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: Utils.pm,v 1.11 2003/09/03 06:31:45 am Exp $ =~ /(\d+\.\d+)/);
 
 ###############################################################################
 # Export control
@@ -374,6 +374,10 @@ Now my_method could be called in either way:
 
  $self->my_method( { mode => 'fubar' } );
 
+Or even:
+
+ $self->my_method( { mode => 'fubar' }, { submode => 'barfoo' });
+
  sub other_method ($%) {
      my $self=shift;
      my $args=get_args(\@_);
@@ -391,28 +395,33 @@ Now my_method could be called in either way:
  }
 
 Note, that in the above examples you could also use "get_args(@_)"
-instead of "get_args(\@_)". That's fine and that would work, but
+instead of "get_args(\@_)". That's fine and that will work, but
 slower.
 
 =cut
 
 sub get_args (@) {
-    my $arr=ref($_[0]) eq "ARRAY" ? $_[0] : \@_;
-    my $args;
-    if(@{$arr} == 1) {
-        $args=$arr->[0];
-        ref($args) eq "HASH" ||
-            throw XAO::E::Utils "get_args - not a HASH in arguments ($arr->[0])";
+    my $arr=ref($_[0]) eq 'ARRAY' ? $_[0] : \@_;
+
+    if(!@$arr) {
+        return { };
     }
-    elsif(! (scalar(@{$arr}) % 2)) {
-        my %a=@{$arr};
-        $args=\%a;
+    elsif(@$arr == 1) {
+        my $args=$arr->[0];
+        ref($args) eq 'HASH' ||
+            throw XAO::E::Utils "get_args - single argument not a hash ref";
+        return $args;
+    }
+    elsif(ref($arr->[0]) eq 'HASH') {
+        return merge_refs(@$arr);
+    }
+    elsif(!ref($arr->[0]) && (scalar(@$arr)%2)==0) {
+        my %a=@$arr;
+        return \%a;
     }
     else {
         throw XAO::E::Utils "get_args - unparsable arguments";
     }
-    $args={} unless $args;
-    $args;
 }
 
 ###############################################################################

@@ -1,4 +1,5 @@
 1.05 -
+    * XAO::Utils - get_args works as merge_refs on multiple hash refs
     * XAO::TestUtils - new module, automated testing for XAO packages
     * XAO::DO::Embeddable - optional base class for embeddable configs
     * XAO::Utils - fround() function added

@@ -155,8 +155,11 @@ sub analyze ($$;$) {
             # that means that we need to fall back to default handler
             # for that path.
             #
+            # The same happens for 'default' type in a hash reference.
+            #
             my $rhash;
             if(ref($od) eq 'HASH') {
+                last if $od->{type} && $od->{type} eq 'default';
                 $rhash=merge_refs($od);
             }
             elsif(ref($od) eq 'ARRAY') {
