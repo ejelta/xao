@@ -26,7 +26,7 @@ use XAO::Objects;
 use base XAO::Objects->load(objname => 'Web::Page');
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: Debug.pm,v 1.3 2002/02/04 18:40:44 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: Debug.pm,v 1.4 2002/06/08 01:07:31 am Exp $ =~ /(\d+\.\d+)/);
 
 sub display ($%) {
     my $self=shift;
@@ -55,7 +55,6 @@ sub display ($%) {
     }
 
     if(defined($args->{text}) || defined($args->{template}) || $args->{path}) {
-    dprint "xx";
         my $text=$args->{text} ||
                  $self->object->expand($args);
         dprint $self->{objname}," - $text";

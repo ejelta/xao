@@ -309,7 +309,7 @@ use Error qw(:try);
 use base XAO::Objects->load(objname => 'Atom');
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: Page.pm,v 1.14 2002/05/17 05:19:03 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: Page.pm,v 1.15 2002/06/08 01:07:31 am Exp $ =~ /(\d+\.\d+)/);
 
 ##
 # Prototypes
@@ -414,98 +414,101 @@ sub display ($%) {
         my $itemflag=$item->{flag};
         if(!defined($text)) {
             my $obj;
-        try {
-            $obj=$self->object(objname => $item->{objname});
-        }
-        catch XAO::E::Objects with {
-            my $e=shift;
-            if($args->{path}) {
-                eprint "Object loading error while processing path='$args->{path}'";
+            try {
+                $obj=$self->object(objname => $item->{objname});
+            }
+            catch XAO::E::Objects with {
+                my $e=shift;
+                if($args->{path}) {
+                    eprint "Object loading error while processing path='$args->{path}'";
+                }
+                else {
+                    eprint "Object loading error";
+                }
+                $e->throw;
+            };
+
+            ##
+            # Preparing arguments. If argument includes object references -
+            # they are expanded first.
+            #
+            my %objargs;
+            my $ia=$item->{args};
+            foreach my $a (keys %$ia) {
+                my $v=$ia->{$a};
+                if($v =~ /<\%.*\%>/s) {
+                    $objargs{$a}=$self->expand(merge_refs($args,{
+                        template    => $v,
+                    }));
+                }
+                else {
+                    $objargs{$a}=$v;
+                }
+            }
+
+            ##
+            # Now decoding entities from arguments. Lt, gt, amp, quot and
+            # &#DEC; are supported.
+            #
+            foreach my $v (values %objargs) {
+                $v=~s/&lt;/</sg;
+                $v=~s/&gt;/>/sg;
+                $v=~s/&quot;/"/sg;
+                $v=~s/&#(\d+);/chr($1)/sge;
+                $v=~s/&amp;/&/sg;
+            }
+
+            ##
+            # Executing object. For speed optimisation we call object's
+            # display method directly if we're not going to do anything
+            # with the text anyway. This way we avoid push/pop and at
+            # least two extra memcpy's.
+            #
+            delete $self->{merge_args};
+            if($itemflag && $itemflag ne 't') {
+                $text=$obj->expand(\%objargs);
             }
             else {
-                eprint "Object loading error";
+                $obj->display(\%objargs);
             }
-            $e->throw;
-        };
+
+            ##
+            # Was it something like SetArg object? Merging changes in then.
+            #
+            if($self->{merge_args}) {
+                @{$args}{keys %{$self->{merge_args}}}=values %{$self->{merge_args}};
+            }
+        }
 
         ##
-        # Preparing arguments. If argument includes object references -
-        # they are expanded first.
+        # Safety conversion - q for query, h - for html, s - for nbsp'ced
+        # html, f - for tag fields, t - for text as is (default).
         #
-        my $objargs=$item->{args};
-        foreach my $a (keys %{$objargs})
-         { next unless $objargs->{$a} =~ /<\%.*\%>/s;
-           my %newargs=%{$args};
-           $newargs{template}=$objargs->{$a};
-           delete $newargs{path};
-           $objargs->{$a}=$self->expand(%newargs);
-         }
+        if(defined($text) && $itemflag && $itemflag ne 't') {
+            if($itemflag eq 'h') {
+                $text=XAO::Utils::t2ht($text)
+            }
+            elsif($itemflag eq 's') {
+                $text=(defined $text && length($text)) ? XAO::Utils::t2ht($text) : "&nbsp;";
+            }
+            elsif($itemflag eq 'q') {
+                $text=XAO::Utils::t2hq($text)
+            }
+            elsif($itemflag eq 'f') {
+                $text=XAO::Utils::t2hf($text)
+            }
+        }
 
         ##
-        # Now decoding entities from arguments. Lt, gt, amp, quot and
-        # &#DEC; are supported.
+        # Sending out the text
         #
-        map
-         { my $v=$objargs->{$_};
-           $v=~s/&lt;/</sg;
-           $v=~s/&gt;/>/sg;
-           $v=~s/&quot;/"/sg;
-           $v=~s/&#(\d+);/chr($1)/sge;
-           $v=~s/&amp;/&/sg;
-           $objargs->{$_}=$v;
-         } keys %{$objargs};
+        $self->textout($text) if defined($text);
 
         ##
-        # Executing object. For speed optimisation we call object's
-        # display method directly if we're not going to do anything with
-        # the text anyway. This way we avoid push/pop and two extra
-        # memcpy's.
+        # Checking if this object required to stop processing
         #
-        delete $self->{merge_args};
-        if($itemflag && $itemflag ne 't')
-         { $text=$obj->expand($objargs);
-         }
-        else
-         { $obj->display($objargs);
-         }
-
-        ##
-        # Was it something like SetArg object? Merging changes in then.
-        #
-        if($self->{merge_args})
-         { @{$args}{keys %{$self->{merge_args}}}=values %{$self->{merge_args}};
-         }
-      }
-
-     ##
-     # Safety conversion - q for query, h - for html, s - for nbsp'ced
-     # html, f - for tag fields, t - for text as is (default).
-     #
-     if(defined($text) && $itemflag && $itemflag ne 't')
-      { if($itemflag eq 'h')
-         { $text=XAO::Utils::t2ht($text)
-         }
-        elsif($itemflag eq 's')
-         { $text=(defined $text && length($text)) ? XAO::Utils::t2ht($text) : "&nbsp;";
-         }
-        elsif($itemflag eq 'q')
-         { $text=XAO::Utils::t2hq($text)
-         }
-        elsif($itemflag eq 'f')
-         { $text=XAO::Utils::t2hf($text)
-         }
-      }
-
-     ##
-     # Sending out the text
-     #
-     $self->textout($text) if defined($text);
-
-     ##
-     # Checking if this object required to stop processing
-     #
-     last if $self->clipboard->get('_no_more_output');
-   }
+        last if $self->clipboard->get('_no_more_output');
+    }
 }
 
 ###############################################################################
@@ -875,7 +878,7 @@ sub merge_args ($%) {
 #  , { text => text }
 #  ]
 #
-### my %parsed_cache;
+my %parsed_cache;
 sub parse ($%) {
     my ($self,%args)=@_;
     my $classname=ref $self || $self;
@@ -895,11 +898,11 @@ sub parse ($%) {
         my $path=$args{path} ||
             throw $self "parse - No path given to a Page object";
 
+        return $parsed_cache{$path} if exists $parsed_cache{$path};
+
         if($self->debug_check('show-path')) {
             dprint $self->{objname}."::parse - path='$path'";
         }
-
-        #XXX# return $parsed_cache{$path} if exists($parsed_cache{$path});
 
         $template=XAO::Templates::get(path => $path);
         defined($template) ||
@@ -979,12 +982,12 @@ sub parse ($%) {
         }
     }
 
-    $in_object && throw $self 'display - not closed object in template';
+    $in_object && throw $self 'parse - not closed object in template';
 
     foreach my $item (@page) {
         next unless defined($item->{objtext});
         if($item->{objtext} !~ /^\s*(\w[\w\.:]*)(\/(\w+))?\s*(.*)$/s) {
-            $item->{text}='<%';	# <%%> is just a funny way to embed <%
+            $item->{text}='<%'; # <%%> is just a funny way to embed <%
             delete $item->{objtext};
             next;
         }
@@ -1006,14 +1009,12 @@ sub parse ($%) {
     ##     }
     ##  }
 
-    ## XXX - Cache have to be much more elaborate, the same template can
-    ## be parsed into different things and we can't cache it without
-    ## content checks. Need to check if hashing by complete content is
-    ## faster then just re-parsing.
-    ## ##
-    ## # Storing into the cache if possible
-    ## #
-    ## $parsed_cache{$args{path}}=\@page unless defined($args{template});
+    ##
+    # Storing into the cache if possible
+    #
+    if(!defined($args{template})) {
+        $parsed_cache{$args{path}}=\@page;
+    }
 
     \@page;
 }
