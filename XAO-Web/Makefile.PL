@@ -109,9 +109,9 @@ WriteMakefile(
     'PREREQ_PM'     => {
         'Digest::MD5'       => 2.13,
         'MIME::Lite'        => 2.117,
-        'Error'             => 0.13,
-        'XAO::Base'         => 1.04,
-        'XAO::FS'           => 1.04,
+        'Error'             => 0.15,
+        'XAO::Base'         => 1.05,
+        'XAO::FS'           => 1.05,
         'Text::FormatTable' => 0.01,
     },
     'INSTALLBIN'	=> $homedir . '/bin',

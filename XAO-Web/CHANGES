@@ -1,4 +1,4 @@
-1.05 -
+1.05 - 12-Nov-2003
     * Web::FS - allow orderby on deep fields like 'Cont/value'
     * Web::Clipboard - 'set' mode
     * Web::Utility - updated UPS tracking URL
