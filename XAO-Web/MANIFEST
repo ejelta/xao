@@ -104,17 +104,14 @@ misc/web-bench.pl
 misc/vim/HOWTO
 misc/vim/scripts.vim
 misc/vim/xaoweb.vim
-misc/samplesite/.config-cache
 misc/samplesite/.cvsignore
 misc/samplesite/bin/.cvsignore
-misc/samplesite/bin/build-structure
 misc/samplesite/bin/build-structure.proto
 misc/samplesite/configure.pl
 misc/samplesite/MANIFEST
 misc/samplesite/MANIFEST.MODES
 misc/samplesite/MANIFEST.SKIP
 misc/samplesite/objects/.cvsignore
-misc/samplesite/objects/Config.pm
 misc/samplesite/objects/Config.pm.proto
 misc/samplesite/README
 misc/samplesite/requires.pl

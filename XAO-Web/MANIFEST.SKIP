@@ -11,4 +11,6 @@ PageSupport/.cvsignore
 PageSupport/PageSupport.bs
 PageSupport/PageSupport.c
 PageSupport/PageSupport.o
-
+^misc/samplesite/.config-cache$
+^misc/samplesite/bin/build-structure$
+^misc/samplesite/objects/Config.pm$
