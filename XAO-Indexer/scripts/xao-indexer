@@ -1,0 +1,111 @@
+#!/usr/bin/perl -w
+use strict;
+use XAO::Utils;
+use XAO::Web;
+use Getopt::Long;
+
+use Data::Dumper;
+
+my $all;
+my $create;
+my $search;
+GetOptions(
+    'all'           => \$all,
+    'create'        => \$create,
+    'debug'         => sub { XAO::Utils::set_debug(1) },
+    'search'        => \$search,
+);
+
+if(($all && @ARGV) ||
+   ($create && @ARGV!=2) ||
+   ($search && @ARGV!=3) ||
+   (!$all && !$create && !$search && !@ARGV)) {
+    print <<EOT;
+Usage: $0 [--debug] index_code1 index_code2 ...
+
+Updates given indexes in the database.
+
+
+Usage: $0 [--debug] --all
+
+Updates all existing indexes.
+
+
+Usage: $0 [--debug] --create index_name Indexer::IndexName
+
+Creates a new index with given name and using given class name to handle
+it. Does not build index data, only prepares data structures.
+
+
+Usage: $0 [--debug] --search index_name ordering 'search string'
+
+Performes a search on the given index and returns found unique IDs one
+per line on standard output. Mostly useful for testing.
+
+EOT
+    exit 1;
+}
+
+my $site=XAO::Web->new(sitename => 'cws');
+$site->set_current();
+my $config=$site->config;
+my $odb=$config->odb();
+
+my $index_list=$odb->fetch('/Indexes');
+
+##
+# Searching
+#
+if($search) {
+    my ($i_name,$ordering,$str)=@ARGV;
+    my $index=$index_list->get($i_name);
+    my $sr=$index->search_indexer($ordering,$str);
+    print join("\n",@$sr),"\n";
+    exit 0;
+}
+
+##
+# Creating new index structure
+#
+if($create) {
+    my ($i_name,$i_class)=@ARGV;
+
+    $index_list->check_name($i_name) ||
+        die "Bad name for an index '$i_name'\n";
+
+    $odb->transact_begin;
+
+    $index_list->exists($i_name) &&
+        die "Index with such name ($i_name) already exists\n";
+
+    dprint "Storing new index object";
+    my $ni=$index_list->get_new;
+    $ni->put(object_name => $i_class);
+    $index_list->put($i_name => $ni);
+
+    dprint "Initializing new index object";
+    $index_list->get($i_name)->init;
+
+    dprint "Done";
+    $odb->transact_commit;
+    exit 0;
+}
+
+##
+# Updating existing indexes
+#
+foreach my $index_id ($all ? $index_list->keys : @ARGV) {
+    dprint "Updating index '$index_id'";
+    $index_list->get($index_id)->update;
+}
+
+exit 0;
+
+###############################################################################
+
+sub END {
+    if($odb && $odb->transact_active) {
+        eprint "Rolling back transaction..";
+        $odb->transact_rollback;
+    }
+}
