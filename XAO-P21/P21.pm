@@ -90,7 +90,7 @@ sub call {
 
     my $flag=0;
     local $SIG{PIPE} = sub { $flag = 1 };
-    print $socket join("\t", @params), "\n";
+    print $socket join("\t", map { defined($_) ? $_ : '' } @params), "\n";
     unless ($flag) {
         my $result;
         while(<$socket>) {
@@ -325,7 +325,8 @@ The hash contains following attributes:
  itemcode         => a valid P21 itemcode (not a customer itemcode!)
  price            => the unit price, not the total price
  email            => email address for further notification
-     
+ stax_exemp       => order line sales tax exemption status
+
 Returns a hash reference with 'result' and 'info' members. Where
 result is zero for success and info contains internally used
 order ID which is the same as provided currenly.
@@ -366,6 +367,15 @@ sub order {
         $_->{qty},
         $_->{price},
         $_->{email},
+        '',
+        '',
+        '',
+        '',
+        '',
+        '',
+        '',
+        $_->{stax_exemp},
+        $_->{stax_exemp} ? 'N' : 'Y',
     } @$order_list;
 
     $self->call($constr,$callback, 'order_entry', @order_array);
