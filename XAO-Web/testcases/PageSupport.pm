@@ -1,11 +1,76 @@
 package testcases::PageSupport;
 use strict;
+use Data::Dumper;
+use XAO::Utils;
 use base qw(testcases::base);
 
-sub test_everything {
+use XAO::PageSupport;
+
+sub test_parse {
     my $self=shift;
 
-    use XAO::PageSupport;
+    eval 'use Data::Compare';
+    if($@) {
+        print STDERR "\n" .
+                     "Perl extension Data::Compare is not available,\n" .
+                     "skipping XAO::PageSupport::parse tests\n";
+        return;
+    }
+
+    my %matrix=(
+        '' => [
+        ],
+        '0' => [
+            {   text    => '0',
+            },
+        ],
+        'aaa' => [
+            {   text    => 'aaa',
+            },
+        ],
+        'aaa<%%>bbb' => [
+            {   text    => 'aaa<%',
+            },
+            {   text    => 'bbb',
+            }
+        ],
+        # 'aaa<%BB%>' => [
+        #     {   text    => 'aaa',
+        #     },
+        #     {   objname => 'BB',
+        #     }
+        # ],
+        # '<%Date style="dateonly" gmtime=  {<%VAR/f%>} %>' => [
+        #     {   objname => 'Date',
+        #         args    => {
+        #             style   => [
+        #                 {   text    => 'dateonly',
+        #                 },
+        #             ],
+        #             gmtime  => [
+        #                 {   objname => 'VAR',
+        #                     flags   => 'f',
+        #                 },
+        #             ],
+        #         },
+        #     },
+        # ],
+    );
+
+    foreach my $template (keys %matrix) {
+        my $parsed=XAO::PageSupport::parse($template);
+        my $expect=$matrix{$template};
+        my $rc=Compare($expect,$parsed);
+        $rc ||
+            dprint "========== Expect:",Dumper($expect),
+                   "========== Got:",Dumper($parsed);
+        $self->assert($rc,
+                      "Wrong result for '$template'");
+    }
+}
+
+sub test_textadd {
+    my $self=shift;
 
     XAO::PageSupport::addtext("123abcABC");
     XAO::PageSupport::push();

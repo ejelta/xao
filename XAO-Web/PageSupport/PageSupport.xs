@@ -7,8 +7,9 @@
  * stack of positions in it that can be pushed/popped when application
  * need new portion of text.
  *
- * Andrew Maltsev, <amaltsev@valinux.com>, 2000
+ * Andrew Maltsev, <am@xao.com>, 2000, 2002
 */
+#define PERL_NO_GET_CONTEXT
 #include "EXTERN.h"
 #include "perl.h"
 #include "XSUB.h"
@@ -22,6 +23,74 @@ static unsigned long bufsize=0;
 static unsigned long bufpos=0;
 static unsigned long pstack[MAX_STACK];
 static unsigned stacktop=0;
+
+/************************************************************************/
+
+/* Parsing template into an array suitable for Web::Page
+*/
+
+static SV*
+parse_text(pTHX_ char * template, unsigned length) {
+    unsigned i;
+    char *str;
+
+    AV* parsed=newAV();
+
+    enum {
+        TEXT,
+        OBJECT,
+        ARGUMENT,
+    } state=TEXT;
+
+    char *text_ptr=template;
+
+    for(i=0, str=template; i!=length; i++, str++) {
+        if(*str=='<' && i+1<length && str[1]=='%') {
+            if(state==TEXT) {
+                if(i+3<length && str[2]=='%' && str[3]=='>') {
+                    /* An way to embed '<%' -- <%%> */
+                    str+=2;
+                    i+=2;
+                    state=TEXT;
+                }
+                else {
+                    state=OBJECT;
+                }
+
+                if(text_ptr!=str) {
+                    HV* hv=newHV();
+                    hv_store(hv,"text",4,
+                                newSVpvn(text_ptr,str-text_ptr),0);
+                    av_push(parsed,newRV_noinc((SV*)hv));
+                    text_ptr=str+2;
+                }
+
+                str++;
+                i++;
+            }
+            else if(state==ARGUMENT) {
+                fprintf(stderr,"Got here");
+            }
+
+        }
+        else {
+            if(state==OBJECT) {
+                fprintf(stderr,"Got here O\n");
+            }
+        }
+    }
+
+    if(state==TEXT) {
+        if(text_ptr!=str) {
+            HV* hv=newHV();
+            hv_store(hv,"text",4,
+                        newSVpvn(text_ptr,str-text_ptr),0);
+            av_push(parsed,newRV_noinc((SV*)hv));
+        }
+    }
+
+    return newRV_noinc((SV*)parsed);
+}
 
 /************************************************************************/
 
@@ -66,14 +135,14 @@ pop()
             }
             text=buffer+bufpos;
         }
-		RETVAL=newSVpvn(text,len);
+		RETVAL=newSVpvn(aTHX_ text,len);
 	OUTPUT:
 	    RETVAL
 
 void
 addtext(text)
         unsigned int len=0;
-		char * text=SvPV(ST(0),len);
+		char * text=SvPV(aTHX_ ST(0),len);
 	CODE:
 		if(text && len) {
 	        if(bufpos+len >= bufsize) {
@@ -92,36 +161,8 @@ addtext(text)
 SV *
 parse(text)
         unsigned int length=0;
-        char *template=SvPV(ST(0),length);
+        char *template=SvPV(aTHX_ ST(0),length);
     CODE:
-        unsigned i;
-        char *str;
-
-        AV* parsed=newAV();
-
-        enum {
-            TEXT,
-            OBJECT,
-            ARGUMENT,
-        } state=TEXT;
-
-        char *text_ptr=template;
-
-        for(i=0, str=template; i!=length; i++, str++) {
-            if(*str=='<' && str[1]=='%') {
-                if(state==TEXT) {
-                    if(text_ptr!=str) {
-                        HV* hv=newHV();
-                        hv_store(hv,"text",4,
-                                    newSVpvn(text_ptr,str-text_ptr),0);
-                        av_push(parsed,newRV_noinc((SV*)hv));
-                    }
-                }
-                state=OBJECT;
-                str++;
-            }
-        }
-        RETVAL=newRV_noinc((SV*)parsed);
-
+        RETVAL=parse_text(aTHX_ template, length);
     OUTPUT:
         RETVAL
