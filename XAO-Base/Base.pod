@@ -5,7 +5,7 @@ XAO::Base - Set of base classes for the XAO family of products
 =head1 DESCRIPTION
 
 XAO::Base is really a collection of some very basic modules that are
-used throughout XAO suite. The include:
+used throughout XAO suite. They include:
 
 =over
 

@@ -121,6 +121,11 @@ WriteMakefile(
 sub MY::postamble
 { <<EOT;
 
+config::	README
+
+README: Base.pod
+	pod2text Base.pod > README
+
 install::
 	[ -d $homedir ] || mkdir $homedir && chmod 755 $homedir
 
