@@ -75,6 +75,10 @@ sub sql_do ($$;@) {
     $rc && $_[0]->throw("sql_do - SQL error: " . sql_error_text($_[0]));
 }
 
+sub sql_do_no_error ($$) {
+    sql_real_do($_[0],$_[1],[ ]);
+}
+
 ###############################################################################
 
 sub sql_execute ($$;@) {
