@@ -31,7 +31,7 @@ use XAO::Objects;
 use base XAO::Objects->load(objname => 'FS::Glue::SQL_DBI');
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: MySQL_DBI.pm,v 1.20 2003/06/12 22:34:00 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: MySQL_DBI.pm,v 1.21 2003/06/13 00:42:46 am Exp $ =~ /(\d+\.\d+)/);
 
 ###############################################################################
 
@@ -605,6 +605,8 @@ sub load_structure ($) {
     # Loading fields descriptions from the database.
     #
     my %fields;
+    my %tkeys;
+    my %ckeys;
     $sth=$self->sql_execute("SELECT unique_id,table_name_,field_name_," .
                                    "type_,refers_,key_format_," .
                                    "index_,default_," .
@@ -621,16 +623,18 @@ sub load_structure ($) {
                 type        => $type,
                 class       => $refers,
             };
+            $ckeys{$refers}=$field;
         }
         elsif($type eq 'key') {
             $refers || $self->throw("load_structure - no class name at Global_Fields($table,$field,..)");
             $data={
                 type        => $type,
                 refers      => $refers,
-                key_format  => $key_format,
+                key_format  => $key_format || '<$RANDOM$>',
                 key_unique_id => $uid,
-                key_length  => $maxlength,
+                key_length  => $maxlength || 30,
             };
+            $tkeys{$table}=$field;
         }
         elsif($type eq 'connector') {
             $refers || $self->throw("load_structure - no class name at Global_Fields($table,$field,..)");
@@ -681,6 +685,20 @@ sub load_structure ($) {
         };
     }
     $self->sql_finish($sth);
+
+    ##
+    # Copying key related stuff to list description which is very
+    # helpful for build_structure
+    #
+    foreach my $class (keys %ckeys) {
+        my $upper_key_name=$ckeys{$class};
+        my ($data,$table)=@{$classes{$class}}{'fields','table'};
+        my $key_name=$tkeys{$table};
+        my $key_data=$data->{$key_name};
+        my $upper_data=$classes{$key_data->{refers}}->{fields}->{$upper_key_name};
+        @{$upper_data}{qw(key key_format key_length)}=
+            ($key_name,@{$key_data}{qw(key_format key_length)});
+    }
 
     ##
     # Resulting structure

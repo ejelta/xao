@@ -1,7 +1,6 @@
 package XAO::testcases::FS::placeholders;
 use strict;
 use XAO::Utils;
-use Data::Dumper;
 use Error qw(:try);
 
 use base qw(XAO::testcases::FS::base);

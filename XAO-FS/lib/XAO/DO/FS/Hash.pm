@@ -67,7 +67,7 @@ use XAO::Objects;
 use base XAO::Objects->load(objname => 'FS::Glue');
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: Hash.pm,v 1.15 2003/06/12 22:34:00 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: Hash.pm,v 1.16 2003/06/13 00:42:46 am Exp $ =~ /(\d+\.\d+)/);
 
 ###############################################################################
 
@@ -335,13 +335,11 @@ sub build_structure ($%) {
         if($desc) {
             while(my ($n,$v)=each %ph) {
                 next if $n eq 'name';
-                next if $n eq 'key';
-                next if $n eq 'key_format';
                 next if $n eq 'structure';
                 my $dbv=$desc->{$n};
                 (!defined($v) && !defined($dbv)) || $dbv eq $v ||
-                    $self->throw("build_structure - structure mismatch, " .
-                                 "property=$name, ($n,$v) <> ($n,$dbv)");
+                    throw $self "build_structure - structure mismatch, " .
+                                "property=$name, ($n,$v) <> ($n,$dbv)";
             }
         }
         else {
