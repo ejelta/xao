@@ -31,6 +31,7 @@ use strict;
 use XAO::Utils;
 use XAO::Objects;
 use XAO::Projects qw(get_current_project);
+use XAO::IndexerSupport;
 use Digest::MD5 qw(md5_base64);
 use base XAO::Objects->load(objname => 'Atom');
 
@@ -574,6 +575,11 @@ better. Going with it.
         }
         my $sorted_ids_total=scalar(@$sorted_ids);
 
+        ##
+        # Preparing template_sort to sort on these IDs quickly.
+        #
+        XAO::IndexerSupport::template_sort_prepare($sorted_ids);
+
         $count=0;
         my $tstamp_start=time;
         foreach my $kw (keys %{$kw_data{keywords}}) {
@@ -670,7 +676,7 @@ better. Going with it.
             ##
             # Preparing sorted list of IDs
             #
-            my $kwids=fast_sort($sorted_ids,[ keys %$kwd ]);
+            my $kwids=XAO::IndexerSupport::template_sort([ keys %$kwd ]);
 
             ##
             # Posdata format
@@ -713,6 +719,11 @@ better. Going with it.
     continue {
         $o_first=0;
     }
+
+    ##
+    # Freeing template_sort internal structures
+    #
+    XAO::IndexerSupport::template_sort_free();
 
     ##
     # Deleting outdated records
@@ -811,17 +822,6 @@ sub finish_collection ($%) {
     if($cinfo->{partial}) {
         throw $self "finish_collection - implementation required for partial collections";
     }
-}
-
-###############################################################################
-
-sub fast_sort ($$) {
-    my ($allids,$ids)=@_;
-
-    my %t;
-    @t{@$ids}=@$ids;
-
-    return [ map { $t{$_} ? ($_) : () } @$allids ];
 }
 
 ###############################################################################
