@@ -6,7 +6,6 @@
 #  ./test.pl placeholders fields
 # to test only "placeholders" and "fields".
 #
-use Test::Unit::ExceptionFailure;
 
 ##
 # First we check if we need to run tests at all

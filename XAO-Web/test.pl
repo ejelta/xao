@@ -6,7 +6,6 @@
 #  ./test.pl placeholders fields
 # to test only "placeholders" and "fields".
 #
-use Test::Unit::ExceptionFailure;
 eval "use XAO::Web";
 if($@) { die "Can't find XAO::Web - call as ``perl -Mblib $0''\n" }
 
