@@ -333,10 +333,12 @@ sub expand ($%) {
             # cgi
             $active_url.=$1;
         }
+        # dprint ">2.8 $active_url";
     }
     else {
         $active_url=$cgi->url(-full => 1, -path_info => 0);
         $active_url=$1 if $active_url=~/^(.*)(\Q$path\E)$/;
+        # dprint "<2.8 $active_url";
     }
 
     ##

@@ -84,7 +84,7 @@ use XAO::Objects;
 use base XAO::Objects->load(objname => 'Web::Page');
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: Condition.pm,v 1.8 2002/06/25 23:00:47 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: Condition.pm,v 1.9 2003/06/06 18:39:07 am Exp $ =~ /(\d+\.\d+)/);
 
 sub display ($;%)
 { my $self=shift;
@@ -96,7 +96,7 @@ sub display ($;%)
   #
   my $name;
   foreach my $a (sort keys %args)
-   { next unless $a =~ /^(\w+)\.(number|value|arg|cgiparam|length|siteconf|siteconfig|cookie|secure)$/;
+   { next unless $a =~ /^(\w+)\.(number|value|arg|cgiparam|length|siteconf|siteconfig|cookie|secure|clipboard)$/;
      if($2 eq 'cgiparam')
       { my $param=$args{$a};
         my $cname=$1;
@@ -150,6 +150,12 @@ sub display ($;%)
          { $name=$1;
            last;
          }    
+      }
+     elsif($2 eq 'clipboard')
+      { if($self->clipboard->get($args{$a}))
+         { $name=$1;
+           last;
+         }
       }
      elsif($args{$a})	# value
       { $name=$1;
