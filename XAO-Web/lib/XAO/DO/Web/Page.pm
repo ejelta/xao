@@ -298,35 +298,37 @@ from Page unless overwritten) are:
 ###############################################################################
 package XAO::DO::Web::Page;
 use strict;
-use Error qw(:try);
 use XAO::Utils;
 use XAO::Templates;
 use XAO::Projects qw(:all);
 use XAO::PageSupport;
+use Error qw(:try);
+use XAO::Errors;
 
 ##
 # Package version
 #
 use vars qw($VERSION);
-($VERSION)=(q$Id: Page.pm,v 1.8 2002/01/22 06:26:03 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: Page.pm,v 1.9 2002/02/04 07:35:24 am Exp $ =~ /(\d+\.\d+)/);
 
 ##
 # Methods prototypes
 #
-sub new ($%);
-sub display ($%);
-sub expand ($%);
-sub parse ($%);
-sub object ($%);
-sub parse_args ($);
-sub editable ();
-sub check_db ($);
-sub textout ($%);
-sub finaltextout ($%);
-sub dbh ($);
-sub odb ($);
-sub siteconfig ($);
 sub cgi ($);
+sub check_db ($);
+sub dbh ($);
+sub display ($%);
+sub editable ();
+sub expand ($%);
+sub finaltextout ($%);
+sub new ($%);
+sub object ($%);
+sub odb ($);
+sub parse ($%);
+sub parse_args ($);
+sub siteconfig ($);
+sub textout ($%);
+sub throw ($@);
 
 ###############################################################################
 # Creating new instance of Page.
@@ -679,7 +681,7 @@ sub dbh ($) {
     return $self->{dbh} if $self->{dbh};
     $self->{dbh}=$self->{siteconfig}->dbh;
     return $self->{dbh} if $self->{dbh};
-    throw XAO::Errors::Page ref($self)." requires database connection";
+    $self->throw("dbh - no database connection");
 }
 
 ###############################################################################
@@ -707,8 +709,7 @@ sub odb ($) {
     $self->{odb}=$self->{siteconfig}->odb;
     return $self->{odb} if $self->{odb};
 
-    throw XAO::Errors::Page
-          ref($self)."odb - requires object database connection";
+    $self->throw("odb - requires object database connection");
 }
 
 ###############################################################################
@@ -899,6 +900,12 @@ sub parse ($%) {
     else {
         my $path=$args{path} ||
             $self->throw("parse - No path given to a Page object");
+
+        if($self->debug_check('show-path')) {
+            dprint ref($self)."::parse - path='$path', cache=",
+                   exists($parsed_cache{$path}) ? 'yes' : 'no';
+        }
+
         return $parsed_cache{$path} if exists($parsed_cache{$path});
         $template=XAO::Templates::get(path => $path);
         defined($template) ||
@@ -1154,26 +1161,52 @@ sub check_db ($)
   $self->dbh;
 }
 
-##
-# Helps to write code like:
-#  $sth || throw $self "show_path - SQL error";
-#
-sub throw ($@)
-{ my $self=shift;
-  throw XAO::Errors::Page ref($self) . '::' . join('',@_);
+###############################################################################
+
+=item throw ($)
+
+Helps to write code like:
+
+ sub foobar ($%) {
+    my $self=shift;
+    my $args=get_args(\@_);
+
+    my $id=$args->{id} || throw $self "foobar - no 'id' given";
+    ...
+ }
+
+It is recommended to always use text maessages af the following format:
+
+ "function_name - error description starting from lowercase letter"
+
+There is no need to print class name, it will be prepended to the front
+of your error message automatically.
+
+=cut
+
+sub throw ($@) {
+    my $self=shift;
+    my $text=join('',@_);
+
+    my $class=$self->{objname} ? 'XAO::DO::' . $self->{objname} : ref($self);
+
+    XAO::Errors->throw_by_class($class,$text);
 }
 
-##
-# Error to be thrown from displayable objects.
-#
-package XAO::Errors::Page;
-use Error;
-use vars qw(@ISA);
-@ISA=qw(Error::Simple);
+sub debug_check ($$) {
+    my $self=shift;
+    my $type=shift;
+    return $self->{debug} && $self->{debug}->{$type};
+}
 
-##
-# That's it
-#
+sub debug_set ($%) {
+    my $self=shift;
+    my $args=get_args(\@_);
+    $self->{debug}={} unless $self->{debug};
+    @{$self->{debug}}{keys %$args}=values %$args;
+}
+
+###############################################################################
 1;
 __END__
 
@@ -1183,7 +1216,7 @@ Nothing.
 
 =head1 AUTHOR
 
-Copyright (c) 2000-2001 Xao, Inc.
+Copyright (c) 2000-2002 XAO, Inc.
 
 Andrew Maltsev <am@xao.com>.
 

@@ -1,6 +1,8 @@
 package testcases::Page;
 use strict;
 use XAO::Objects;
+use Error qw(:try);
+use XAO::Errors qw(XAO::DO::Web::Page XAO::DO::Web::MyPage);
 
 use base qw(testcases::base);
 
@@ -71,6 +73,33 @@ sub test_end {
     my $expect='AAA';
     $self->assert($got eq $expect,
                   "<%End%> does not work, got '$got' instead of '$expect'");
+}
+
+sub test_throw {
+    my $self=shift;
+
+    my $page=XAO::Objects->new(objname => 'Web::MyPage');
+    $self->assert(ref($page),
+                  "Can't load MyPage object");
+
+    my $error='';
+    try {
+        $page->throw("test - test error");
+        $error="not really throwed an error";
+    }
+    catch XAO::E::DO::Web::MyPage with {
+        # Ok!
+    }
+    catch XAO::E::DO::Web::Page with {
+        $error="caught E...Page instead of E...MyPage";
+    }
+    otherwise {
+        my $e=shift;
+        $error="cought some unknown error ($e) instead of expected E...MyPage";
+    };
+
+    $self->assert(!$error,
+                  "Page::throw error - $error");
 }
 
 1;

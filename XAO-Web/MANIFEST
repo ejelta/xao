@@ -19,6 +19,7 @@ lib/XAO/DO/Web/Cookie.pm
 lib/XAO/DO/Web/Condition.pm
 lib/XAO/DO/Web/Config.pm
 lib/XAO/DO/Web/Date.pm
+lib/XAO/DO/Web/Debug.pm
 lib/XAO/DO/Web/Default.pm
 lib/XAO/DO/Web/FilloutForm.pm
 lib/XAO/DO/Web/Footer.pm
@@ -68,6 +69,7 @@ testcases/Web.pm
 testcases/WebSetArg.pm
  --------------------------------- Test installation tree
 testcases/testroot/projects/test/objects/Config.pm
+testcases/testroot/projects/test/objects/Web/MyPage.pm
 testcases/testroot/projects/test/templates/bits/local-test
 testcases/testroot/projects/test/templates/local.txt
 testcases/testroot/projects/test/templates/index.html

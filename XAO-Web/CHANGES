@@ -1,4 +1,9 @@
 1.03 - XXX
+    * Web::Debug - new object
+    * Web::Page - printing template paths can be enabled with
+      'show-path' debug parameter; debug_set() and debug_check() methods
+      added
+    * Web::Page - throw() method now throws erros in correct namespace
     * Web::Condition 'secure' pseudo condition added
     * Web::Page - is_secure() method added
     * Web::FS displaying methods pass their arguments to templates they
