@@ -9,7 +9,7 @@ use Errno qw/EINTR EAGAIN/;
 use POSIX qw(:sys_wait_h setsid);
 
 $VERSION='0.05';
-$REVISION='$Id: xaosrv.pl,v 1.9 2003/05/30 19:23:48 am Exp $';
+$REVISION='$Id: xaosrv.pl,v 1.10 2003/07/01 03:48:55 am Exp $';
 
 if(@ARGV<1) {
     print "Usage: $0 SystemUnit [TCP port]\n";
@@ -297,7 +297,7 @@ Placing order into spool. Input data is:
                 open(PROC_OUT,">>$fname~") or die "$!";
                 while( @args > 0 ) {
                     my (@line, @rest);
-                    ( @line[0..32], @rest ) = @args ;
+                    ( @line[0..38], @rest ) = @args ;
                     foreach(@line) {
                         $_='' unless defined $_;
                     }
