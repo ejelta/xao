@@ -7,5 +7,5 @@
     * fixed XAO::Projects::get_project() method
     * Config::init() now calls init() on all embedded objects
 
-1.1 - 2-Nov-2001
+1.0 - 2-Nov-2001
     * Initial public release

@@ -43,6 +43,7 @@ handlers/xao-apache.pl
 templates/bits/errors/file-not-found
 templates/bits/fillout-form/errstr
 templates/bits/fillout-form/html-checkbox
+templates/bits/fillout-form/html-password
 templates/bits/fillout-form/html-text
 templates/bits/page-footer
 templates/bits/page-header

@@ -223,12 +223,12 @@ PUBLIC METHODS
         Sets up list reference fields - relation to upper hash. Makes sense
         only in derived objects.
 
-    _check_name ($)
+    check_name ($)
         Checks if the given name is a valid field name to be used in put()
         or get(). Should not be overriden unless you fully understand
         potential effects.
 
-        Valid name must start from letter and may consist from letters,
+        Valid name must start from a letter and may consist from letters,
         digits and underscore symbol. Length is limited to 30 characters.
 
         Returns boolean value.

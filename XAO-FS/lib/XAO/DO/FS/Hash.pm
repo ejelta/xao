@@ -67,7 +67,7 @@ use XAO::Objects;
 use base XAO::Objects->load(objname => 'FS::Glue');
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: Hash.pm,v 1.3 2002/01/04 01:41:27 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: Hash.pm,v 1.4 2002/01/17 19:29:03 am Exp $ =~ /(\d+\.\d+)/);
 
 ###############################################################################
 
@@ -204,7 +204,7 @@ sub add_placeholder ($%) {
 
 	my $name=$args->{name} || $self->throw('add_placeholder - no name given');
 	my $type=$args->{type} || $self->throw('add_placeholder - no type given');
-	$self->_check_name($name) ||
+	$self->check_name($name) ||
 	    $self->throw("add_placeholder - bad name ($name)");
 	$self->_field_description($name) &&
 	    $self->throw("add_placeholder - placeholder already exists ($name)");

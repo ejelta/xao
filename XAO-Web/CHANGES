@@ -1,3 +1,9 @@
+1.03 - XXX
+    * Web::FilloutForm - html block is now available for `email' style
+    * Web::FilloutForm - passes original arguments to form and success
+      templates
+    * Web::FilloutForm - supports per-field indication of mistakes
+
 1.02 - 3-Jan-2002
     * Documentation updated
 

@@ -1,3 +1,8 @@
+(!) Locking and/or transactions support. Safe adding of a new item with
+pre-defined ID using checks that no such item already exists. Somehow
+must deal with race condition if two attempts to add the same item are
+made at the same time.
+
 Fix destroy() on hash objects. It currently does not remove the object,
 but empties it incorrectly.
 

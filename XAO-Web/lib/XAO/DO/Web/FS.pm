@@ -36,7 +36,7 @@ use XAO::Errors qw(XAO::DO::Web::FS);
 use base XAO::Objects->load(objname => 'Web::Action');
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: FS.pm,v 1.3 2001/12/13 04:58:18 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: FS.pm,v 1.4 2002/01/17 19:29:03 am Exp $ =~ /(\d+\.\d+)/);
 
 ###############################################################################
 
@@ -179,13 +179,24 @@ sub delete_property ($%) {
 Displays a XAO::FS hash derived object. Object location is the same as
 described in get_object() method. Additional arguments are:
 
- fields             comma or space separated list of fields that are
-                    to be retrieved from each object in the list and
-                    passed to the template. Field names are converted
-                    to all uppercase when passed to template. For
-                    convenience '*' means to pass all
-                    property names (lists be passed as empty strings).
- path               path that is displayed for each element of the list
+ fields     comma or space separated list of fields that are
+            to be retrieved from each object in the list and
+            passed to the template. Field names are converted
+            to all uppercase when passed to template. For
+            convenience '*' means to pass all
+            property names (lists be passed as empty strings).
+
+ path       path to the template that gets displayed with the
+            given fields passed in all uppercase.
+
+Example:
+
+ <%FS mode="show-hash" uri="/Customers/c123" fields="firstname,lastname"
+      path="/bits/customer-name"%>
+
+Where /bits/customer-name should be something like:
+
+ Customer Name: <%FIRSTNAME/h%> <%LASTNAME/h%>
 
 =cut
 

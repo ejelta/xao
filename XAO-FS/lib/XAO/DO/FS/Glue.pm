@@ -49,7 +49,7 @@ use XAO::Objects;
 use XAO::Errors qw(XAO::DO::FS::Glue);
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: Glue.pm,v 1.7 2002/01/04 01:47:37 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: Glue.pm,v 1.8 2002/01/17 19:29:03 am Exp $ =~ /(\d+\.\d+)/);
 
 ###############################################################################
 
@@ -1451,11 +1451,11 @@ sub _add_list_placeholder ($%) {
     my $name=$args->{name} || $self->throw("_add_list_placeholder - no 'name' argument");
     my $class=$args->{class} || $self->throw("_add_list_placeholder - no 'class' argument");
     my $key=$args->{key} || $self->throw("_add_list_placeholder - no 'key' argument");
-    $self->_check_name($key) || $self->throw("_add_list_placeholder - bad key name ($key)");
+    $self->check_name($key) || $self->throw("_add_list_placeholder - bad key name ($key)");
     my $connector;
     if($self->objname ne 'FS::Global') {  
         $connector=$args->{connector} || 'parent_unique_id';
-        $self->_check_name($connector) ||
+        $self->check_name($connector) ||
             $self->throw("_add_list_placeholder - bad connector name ($key)");
     }
 
@@ -1631,23 +1631,29 @@ sub _drop_list_placeholder ($$;$) {
 
 ###############################################################################
 
-=item _check_name ($)
+=item check_name ($)
 
 Checks if the given name is a valid field name to be used in put() or
 get(). Should not be overriden unless you fully understand potential
 effects.
 
-Valid name must start from letter and may consist from letters, digits
+Valid name must start from a letter and may consist from letters, digits
 and underscore symbol. Length is limited to 30 characters.
 
 Returns boolean value.
 
 =cut
 
-sub _check_name ($$) {
+sub check_name ($$) {
     my $self=shift;
     my $name=shift;
     defined($name) && $name =~ /^[a-z][a-z0-9_]*$/i && length($name)<=30;
+}
+
+sub _check_name ($$) {
+    my $self=shift;
+    dprint ref($self) . "_check_name - obsolete, please change to 'check_name'";
+    $self->check_name(@_);
 }
 
 sub normalize_path ($$) {

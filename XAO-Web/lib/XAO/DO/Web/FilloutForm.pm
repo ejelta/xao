@@ -12,14 +12,14 @@ Must be overriden with something which will put 'fields' parameter
 into $self. Format is as array of hash references reference of the
 following structure:
 
- [ { name => field name
-   , required => 0 || 1
-   , style => selection || text || email || phone || integer ||
-              dollars || real
-   , maxlength => maximum length
-   , minlength => minimum length
-   , param => name of parameter for form substitution
-   , text => description of parameter
+ [ { name       => field name,
+     required   => 0 || 1,
+     style      => selection || text || email || phone || integer ||
+                   dollars || real,
+     maxlength  => maximum length,
+     minlength  => minimum length,
+     param      => name of parameter for form substitution,
+     text       => description of parameter,
    },
    { ... }
  ]
@@ -27,13 +27,14 @@ following structure:
 If you do not care in what order fields are checked you can also
 supply 'fields' as a hash reference:
 
- { name => { required => 0 || 1
-           , style => text || email || phone || integer || dollars || real
-           , maxlength => maximum length
-           , minlength => minimum length
-           , param => name of parameter for form substitution
-           , text => description of parameter
-           },
+ { name => {
+       required     => 0 || 1,
+       style        => text || email || phone || integer || dollars || real,
+       maxlength    => maximum length,
+       minlength    => minimum length,
+       param        => name of parameter for form substitution,
+       text         => description of parameter,
+   },
    name1 => { ... }
  }
 
@@ -61,7 +62,7 @@ use XAO::Errors qw(XAO::DO::Web::FilloutForm);
 use base XAO::Objects->load(objname => 'Web::Page');
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: FilloutForm.pm,v 1.2 2002/01/04 02:13:23 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: FilloutForm.pm,v 1.3 2002/01/17 19:29:03 am Exp $ =~ /(\d+\.\d+)/);
 
 sub setup ($%);
 sub field_desc ($$);
@@ -121,27 +122,27 @@ sub new ($%) {
 # Call to this subroutine is not required from derived objects, use
 # method overriding instead when possible!
 #
-sub setup ($%)
-{ my $self=shift;
-  my $args=get_args(\@_);
+sub setup ($%) {
+    my $self=shift;
+    my $args=get_args(\@_);
 
-  ##
-  # Fields and values
-  #
-  $self->setup_fields(fields => $args->{fields},
-                      values => $args->{values});
+    ##
+    # Fields and values
+    #
+    $self->setup_fields(fields => $args->{fields},
+                        values => $args->{values});
 
-  ##
-  # Handlers and special data:
-  #  extra_data  - passed to handlers as is.
-  #  submit_name - name of submit button for pre-filled forms (change form).
-  #
-  my @names=qw(extra_data submit_name form_ok pre_check_form check_form);
-  @{$self}{@names}=@{$args}{@names};
-  my $values=$args->{values} || {};
-  foreach my $fdata (@{$self->{fields}})
-   { $fdata->{value}=$values->{$fdata->{name}};
-   }
+    ##
+    # Handlers and special data:
+    #  extra_data  - passed to handlers as is.
+    #  submit_name - name of submit button for pre-filled forms (change form).
+    #
+    my @names=qw(extra_data submit_name form_ok pre_check_form check_form);
+    @{$self}{@names}=@{$args}{@names};
+    my $values=$args->{values} || {};
+    foreach my $fdata (@{$self->{fields}}) {
+        $fdata->{value}=$values->{$fdata->{name}};
+    }
 }
 
 ###############################################################################
@@ -212,13 +213,13 @@ Displaying the form.
 
 sub display ($;%) {
     my $self=shift;
-    my %args=%{get_args(\@_) || {}};
+    my $args=get_args(\@_);
     my $cgi=$self->{siteconfig}->cgi;
     my $fields=$self->{fields};
     $fields || throw XAO::E::DO::Web::FilloutForm
                      "display - has not set fields for FilloutForm";
-    my $phase=$self->{phase}=$args{phase};
-    $self->{submit_name}=$args{submit_name} if $args{submit_name};
+    my $phase=$self->{phase}=$args->{phase};
+    $self->{submit_name}=$args->{submit_name} if $args->{submit_name};
 
     ##
     # Checking the type of fields argument we have - hash or
@@ -235,7 +236,7 @@ sub display ($;%) {
 
     # Pre-checking form with external overridable function.
     #
-    $self->pre_check_form(\%args);
+    $self->pre_check_form($args);
 
     # Displayable object
     #
@@ -279,21 +280,21 @@ sub display ($;%) {
         #
         my $style=$fdata->{style};
         if(!length($value) && $fdata->{required}) {
-            $newerr="is required!";
+            $newerr="Required field!";
         }
         elsif($fdata->{maxlength} && length($value) > $fdata->{maxlength}) {
-            $newerr="is too long!";
+            $newerr="Value is too long!";
         }
         elsif($fdata->{minlength} && length($value) &&
               length($value) < $fdata->{minlength}) {
-            $newerr="is too short!";
+            $newerr="Value is too short!";
         }
         elsif($style eq 'text') {
             # No checks for text
         }
         elsif($style eq 'email') {
             if(length($value) && $value !~ /^.*\@([a-z0-9-]+\.)+[a-z]+$/i) {
-                $newerr="is not in the form of user\@host.domain!";
+                $newerr="Value is not in the form of user\@host.domain!";
             }
         }
         elsif($style eq 'usphone') {
@@ -301,15 +302,15 @@ sub display ($;%) {
             if(length($value)) {
                 $value =~ s/\D//g;
                 if(length($value) == 7) {
-                    $newerr="needs area code!";
+                    $newerr="Needs area code!";
                 }
                 elsif(length($value) == 11) {
                     if(substr($value,0,1) ne '1') {
-                        $newerr="must be US phone!";
+                        $newerr="Must be a US phone!";
                     }
                 }
                 elsif(length($value) != 10) {
-                    $newerr="does not look like a right phone!";
+                    $newerr="Does not look like a right phone!";
                 }
                 else {
                     $value=~s/^.?(...)(...)(....)/($1) $2-$3/;
@@ -321,13 +322,13 @@ sub display ($;%) {
         }
         elsif($style eq 'int' || $style eq 'integer' || $style eq 'number') {
             if(length($value) && $value !~ /^\d+$/) {
-                $newerr="is not integer!"
+                $newerr="Is not an integer!"
             }
         }
         elsif($style eq 'password') {
             if(length($value) && $fdata->{pair} &&
                $value ne $cgi->param($fdata->{pair})) {
-                $newerr="does not match the copy!";
+                $newerr="Does not match the copy!";
             }
         }
         elsif($style eq 'country') {
@@ -338,7 +339,7 @@ sub display ($;%) {
                 last if $match;
             }
             if(length($value) && !$match) {
-                $newerr="is unknown";
+                $newerr="Unknown country";
             }
         }
         elsif($style eq 'usstate' || $style eq 'uscontst') {
@@ -351,7 +352,7 @@ sub display ($;%) {
                 last if $match;
             }
             if(length($value) && !$match) {
-                $newerr="is unknown";
+                $newerr="Unknown state";
             }
         }
         elsif($style eq 'cctype') {
@@ -362,7 +363,7 @@ sub display ($;%) {
                 last if $match;
             }
             if(length($value) && !$match) {
-                $newerr="is unknown";
+                $newerr="Unknown credit card type";
             }
         }  
         elsif($style eq 'ccnum') {
@@ -374,7 +375,7 @@ sub display ($;%) {
         elsif($style eq 'month') {
             if(length($value)) {
                 $value=int($value);
-                $newerr='is invalid!' if $value<1 || $value>12;
+                $newerr='Invalid month!' if $value<1 || $value>12;
             }
         }
         elsif($style eq 'year') {
@@ -384,17 +385,17 @@ sub display ($;%) {
                 if(length($value)) {
                     $value=$self->calculate_year($value);
                     if($value<$minyear) {
-                        $newerr='must be after $minyear!';
+                        $newerr='Must be after $minyear!';
                     }
                     elsif($value>$maxyear) {
-                        $newerr='must be before $maxyear!';
+                        $newerr='Must be before $maxyear!';
                     }
                 }
             }
             elsif(length($value)) {
                 $value=$self->calculate_year($value);
                 if($value<1900 || $value>2099) {
-                    $newerr='is invalid!';
+                    $newerr='Invalid year!';
                 }
             }
         }
@@ -403,7 +404,7 @@ sub display ($;%) {
         }
         elsif($style eq 'selection') {
             if(length($value) && !exists($fdata->{options}->{$value})) {
-                $newerr='bad option value!';
+                $newerr='Bad option value!';
             }
         }
         else {
@@ -493,9 +494,18 @@ sub display ($;%) {
                            '</SELECT>';
         }
         elsif($style eq 'text' || $style eq 'phone' || $style eq 'usphone' ||
-              $style eq 'ccnum') {
+              $style eq 'ccnum' || $style eq 'email') {
             $fdata->{html}=$obj->expand(
                 path => '/bits/fillout-form/html-text',
+                NAME => $name,
+                VALUE => $value || '',
+                MAXLENGTH => $fdata->{maxlength} || 100,
+                SIZE => $fdata->{size} || 30,
+            );
+        }
+        elsif($style eq 'password') {
+            $fdata->{html}=$obj->expand(
+                path => '/bits/fillout-form/html-password',
                 NAME => $name,
                 VALUE => $value || '',
                 MAXLENGTH => $fdata->{maxlength} || 100,
@@ -508,7 +518,8 @@ sub display ($;%) {
         # error. Storing value otherwise.
         #
         if($newerr) {
-            $errstr.=($fdata->{text} || $name) .  " " . $newerr . "<BR>\n";
+            $errstr.=($fdata->{text} || $name) .  ": " . $newerr . "<BR>\n";
+            $fdata->{errstr}=$newerr;
         }
         else {
             $fdata->{value}=$value;
@@ -517,13 +528,14 @@ sub display ($;%) {
         ##
         # Filling formparams hash
         #
-        my $param=$fdata->{param} || $name;
+        my $param=$fdata->{param} || uc($name);
         $formparams{"$param.VALUE"}=defined($value) ? $value : "";
         $formparams{"$param.TEXT"}=$fdata->{text} || $name;
         $formparams{"$param.NAME"}=$name;
         $formparams{"$param.HTML"}=$fdata->{html} || "";
         $formparams{"$param.MAXLENGTH"}=$fdata->{maxlength} || 0;
         $formparams{"$param.MINLENGTH"}=$fdata->{minlength} || 0;
+        $formparams{"$param.ERRSTR"}=$fdata->{errstr} || '';
     }
 
     # Special parameter named 'submit_name' contains submit button name and used
@@ -536,54 +548,81 @@ sub display ($;%) {
     # Checking content for general compatibility by overriden
     # method. Called only if data are basicly good.
     #
-    $errstr=$self->check_form(%args,%formparams) if $filled && !$errstr;
+    if($filled && !$errstr) {
+        ($errstr,my $fname)=$self->check_form(merge_refs($args,\%formparams));
+        if($fname) {
+            my $fdata=$self->field_desc($fname);
+            my $param=$fdata->{param} || uc($fdata->{name});
+            $fdata->{errstr}=$formparams{"$param.ERRSTR"}=$errstr || '';
+        }
+        else {
+            $formparams{"ERRSTR.CHECK_FORM"}=$errstr;
+        }
+    }
+    $formparams{"ERRSTR.CHECK_FORM"}||='';
+
+    # If the form is not filled at all we remove errstr's from
+    # individual fields.
+    #
+    if(!$filled) {
+        foreach my $fdata (@{$fields}) {
+            my $param=$fdata->{param} || uc($fdata->{name});
+            $formparams{"$param.ERRSTR"}='';
+        }
+    }
 
     # If there were errors then displaying the form.
     #
     if(!$filled || $errstr) {
-        my $eh=$obj->expand(path => '/bits/fillout-form/errstr',
-                            ERRSTR => $filled ? $errstr : '',
-                           );
-        $obj->display(path => $args{'form.path'},
-                      template => $args{"form.template"},
-                      ERRSTR => $filled ? $errstr : "",
-                      'ERRSTR.HTML' => $eh,
-                      %formparams,
-                     );
+        my $eh;
+        my $et;
+        if($errstr && $filled) {
+            $eh=$obj->expand(path => '/bits/fillout-form/errstr',
+                             ERRSTR => $errstr,
+                            );
+            $et=$errstr;
+
+        }
+        $obj->display(merge_refs($args,{
+            path          => $args->{'form.path'},
+            template      => $args->{'form.template'},
+            ERRSTR        => $et || '',
+            'ERRSTR.HTML' => $eh || '',
+            %formparams,
+        }));
         return;
     }
 
     # Our form is correct!
     #
-    $self->form_ok(%args,%formparams);
+    $self->form_ok(merge_refs($args,\%formparams));
 }
 
 ##
 # Default handler for filled out form. Must be overriden!
 #
-sub form_ok ($%)
-{ my $self=shift;
-  if($self->{form_ok})
-   { my %na=%{get_args(\@_)};
-     $na{extra_data}=$self->{extra_data};
-     return &{$self->{form_ok}}($self,\%na);
-   }
-  my $class=ref $self || $self;
-  eprint "$class does not override form_ok of FilloutForm!";
+sub form_ok ($%) {
+    my $self=shift;
+    if($self->{form_ok}) {
+        my %na=%{get_args(\@_)};
+        $na{extra_data}=$self->{extra_data};
+        return &{$self->{form_ok}}($self,\%na);
+    }
+    $self->throw('form_ok - must be overriden in derived class or using form_ok parameter');
 }
 
 ##
 # High-level form content check. Should be overriden for real checks.
 # Returns '' if there were no error or error text otherwise.
 #
-sub check_form ($%)
-{ my $self=shift;
-  if($self->{check_form})
-   { my %na=%{get_args(\@_)};
-     $na{extra_data}=$self->{extra_data};
-     return &{$self->{check_form}}($self,\%na);
-   }
-  '';
+sub check_form ($%) {
+    my $self=shift;
+    if($self->{check_form}) {
+        my %na=%{get_args(\@_)};
+        $na{extra_data}=$self->{extra_data};
+        return &{$self->{check_form}}($self,\%na);
+    }
+    '';
 }
 
 ###############################################################################
@@ -973,8 +1012,8 @@ END_OF_LIST
 # Returns a list of known Credit Card types. May be overriden. Should be
 # consistent with cc_validate.
 #
-sub cc_list ($)
-{ split(/\n/,<<'END_OF_LIST');
+sub cc_list ($) {
+    split(/\n/,<<'END_OF_LIST');
 Visa
 American Express
 MasterCard
@@ -987,52 +1026,53 @@ END_OF_LIST
 # Returns error text if card number is invalid, only checksum and
 # consistence with card type is checked.
 #
-sub cc_validate ($%)
-{ my $self=shift;
-  my $args=get_args(\@_);
-  my $number=$args->{number};
-  my $type=$args->{type};
+sub cc_validate ($%) {
+    my $self=shift;
+    my $args=get_args(\@_);
+    my $number=$args->{number};
+    my $type=$args->{type};
 
-  ##
-  # General corrections and checks first.
-  #
-  $number=~s/\D//g;
-  return 'is too short!' if length($number)<13;
+    ##
+    # General corrections and checks first.
+    #
+    $number=~s/\D//g;
+    return 'Number is too short!' if length($number)<13;
 
-  ##
-  # Checksum first
-  #
-  my $sum=0;
-  for(my $i=0; $i!=length($number)-1; $i++)
-   { my $weight = substr($number, -1 * ($i + 2), 1) * (2 - ($i % 2));
-     $sum += (($weight < 10) ? $weight : ($weight - 9));
-   }
-  return 'is invalid!' unless substr($number,-1) == (10-$sum%10)%10;
+    ##
+    # Checksum first
+    #
+    my $sum=0;
+    for(my $i=0; $i!=length($number)-1; $i++) {
+        my $weight = substr($number, -1 * ($i + 2), 1) * (2 - ($i % 2));
+        $sum += (($weight < 10) ? $weight : ($weight - 9));
+    }
+    return 'Invalid number!' unless substr($number,-1) == (10-$sum%10)%10;
 
-  ##
-  # Checking card type now
-  #
-  if($type)
-   { my $realtype='';
-     if($number =~ /^37/)
-      { $realtype='american express';
-      }
-     elsif($number =~ /^4/)
-      { $realtype='visa';
-      }
-     elsif($number =~ /^5/)
-      { $realtype='master\s?card';
-      }
-     elsif($number =~ /^6/)
-      { $realtype='discover';
-      }
-     else
-      { return 'is of unkown type!';
-      }
-     return 'does not match Card Type!' unless lc($type) =~ $realtype;
-   }
-  ${$args->{validated}}=$number if $args->{validated};
-  return '';
+    ##
+    # Checking card type now
+    #
+    if($type) {
+        my $realtype='';
+        if($number =~ /^37/) {
+            $realtype='american express';
+        }
+        elsif($number =~ /^4/) {
+            $realtype='visa';
+        }
+        elsif($number =~ /^5/) {
+            $realtype='master\s?card';
+        }
+        elsif($number =~ /^6/) {
+            $realtype='discover';
+        }
+        else {
+            return 'Unknown card type!';
+        }
+        return 'Number does not match card type!' unless lc($type) =~ $realtype;
+    }
+
+    ${$args->{validated}}=$number if $args->{validated};
+    return '';
 }
 
 ##

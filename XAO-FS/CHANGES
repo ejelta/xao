@@ -1,3 +1,6 @@
+1.03 - XXX
+    * check_name method is now available on all FS objects
+
 1.02 - 3-Jan-2002
     * Minor index bug fixed, introduced in 1.01
     * versions added to packages for convenience
@@ -16,5 +19,5 @@
     * prefix for default table name changed to 'fs'
     * xao-fs tool modified to accept 'drop' command
 
-1.1 - 2-Nov-2001
+1.0 - 2-Nov-2001
     * Initial public release
