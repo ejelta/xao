@@ -42,7 +42,7 @@ use vars qw(@ISA @EXPORT_OK @EXPORT $VERSION);
 @EXPORT_OK=qw(xao_test_all xao_test);
 @EXPORT=();
 
-($VERSION)=(q$Id: TestUtils.pm,v 1.4 2003/08/09 01:13:23 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: TestUtils.pm,v 1.5 2004/06/17 01:26:34 am Exp $ =~ /(\d+\.\d+)/);
 
 ###############################################################################
 
@@ -161,12 +161,14 @@ my \$r=Test::Unit::HarnessUnit->new();
 EOT
         close(F);
 
+        my $use_blib=(-d 'blib' ? 'use blib;' : '');
+
         open(F,"> $testdir/$testfile.pl") || die "Can't create test script ($testdir/$test.pl): $!\n";
         print F <<EOT;
 #!$^X
 #### GENERATED AUTOMATICALLY, DO NOT EDIT ####
 use strict;
-use blib;
+$use_blib
 use XAO::Utils;
 use Test::Unit::TestRunner;
 
