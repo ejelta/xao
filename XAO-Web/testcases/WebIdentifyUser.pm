@@ -1220,7 +1220,7 @@ sub test_key_list {
         #
         # Checking timing out of sessions
         #
-        t17     => {
+        t17 => {
             sub_pre => sub {
                 $config->put('/identify_user/member/vf_expire_time' => 2);
                 sleep(3);
@@ -1245,7 +1245,7 @@ sub test_key_list {
         #
         # Switching back to name mode and checking expiration again. It
         # should keep verification key by default and with
-        # vf_key_expired='keep'.
+        # expire_mode='keep'.
         #
         t18a    => {
             sub_pre => sub {
@@ -1321,7 +1321,7 @@ sub test_key_list {
         },
         t18e => {
             sub_pre => sub {
-                $config->put('/identify_user/member/vf_key_expired' => 'clean');
+                $config->put('/identify_user/member/expire_mode' => 'clean');
                 sleep(3);
             },
             args => {
@@ -1372,6 +1372,67 @@ sub test_key_list {
                     mkey        => '6',
                 },
                 text        => 'V',
+            },
+        },
+        #
+        # In 'key' mode along with expire_mode='clean' even the
+        # id_cookie should get cleared.
+        #
+        t19a    => {
+            sub_pre => sub {
+                $config->put('/identify_user/member/id_cookie_type' => 'key');
+                $config->put('/identify_user/member/expire_mode' => 'clean');
+            },
+            args => {
+                mode        => 'login',
+                type        => 'member',
+                username    => 'm001',
+                password    => '12345',
+            },
+            results => {
+                cookies     => {
+                    mid         => '7',
+                    mkey        => '6',
+                },
+                text        => 'V',
+            },
+        },
+        t19b     => {
+            sub_pre => sub {
+                sleep(3);
+            },
+            args => {
+                mode        => 'check',
+                type        => 'member',
+            },
+            results => {
+                cookies     => {
+                    mid         => '0',
+                    mkey        => '6',
+                },
+                text        => 'I',
+                clipboard   => {
+                    '/IdentifyUser/member/object'   => { },
+                    '/IdentifyUser/member/verified' => undef,
+                    '/IdentifyUser/member/name'     => '7',
+                },
+            },
+        },
+        t19c     => {
+            args => {
+                mode        => 'check',
+                type        => 'member',
+            },
+            results => {
+                cookies     => {
+                    mkey        => '6',
+                },
+                text        => 'A',
+                clipboard   => {
+                    '/IdentifyUser/member/object'   => undef,
+                    '/IdentifyUser/member/verified' => undef,
+                    '/IdentifyUser/member/name'     => undef,
+                },
             },
         },
     );
