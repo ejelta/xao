@@ -3,7 +3,7 @@ DEFINE VARIABLE price LIKE cust_item.sales_price NO-UNDO.
 
 ASSIGN d_d="\t".
 
-FOR EACH cust_item.
+FOR EACH cust_item NO-LOCK.
     IF cust_item.fixed_price THEN
         ASSIGN price=cust_item.sales_price.
     ELSE

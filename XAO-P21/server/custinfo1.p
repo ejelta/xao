@@ -9,12 +9,12 @@ ASSIGN d_d="\001".
 ASSIGN v_custcode=OS-GETENV("P0").
 
 FIND FIRST p21.customer WHERE p21.customer.cust_code = v_custcode
-                        NO-LOCK NO-ERROR.
+                        SHARE-LOCK NO-ERROR.
 
 IF AVAILABLE p21.customer THEN DO:
 
     FIND FIRST p21.cust_aux WHERE p21.cust_aux.cust_code = v_custcode
-                            NO-LOCK NO-ERROR.
+                            SHARE-LOCK NO-ERROR.
 
     IF AVAILABLE p21.cust_aux THEN DO:
         PUT UNFORMATTED

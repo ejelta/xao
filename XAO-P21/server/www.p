@@ -378,7 +378,7 @@ END.
 def var procname as char.
 find first p21.customer no-lock no-error.
 if available(p21.customer) then put unformatted "OK" skip.
-procname = "/home/amaltsev/current/" + OS-GETENV("PROCNAME") + ".p".
+procname = "/opt/xao/p21/" + OS-GETENV("PROCNAME") + ".p".
 run value(procname).
 put unformatted "OK" skip.
 quit.

@@ -1,12 +1,12 @@
-define query qitem for item, item_unit_data.
-open query qitem for each item, each item_unit_data
-        left outer-join where item.frecno = item_unit_data.item_rec
-                and item_unit_data.item_type = 0.
+DEFINE QUERY qitem FOR item, item_unit_data.
+OPEN QUERY qitem FOR EACH item, EACH item_unit_data
+        LEFT OUTER-JOIN WHERE item.frecno = item_unit_data.item_rec
+                AND item_unit_data.item_type = 0.
 
-get first qitem.
+GET FIRST qitem.
 
-do while available (item):
-        put unformatted
+DO WHILE AVAILABLE (item):
+        PUT UNFORMATTED
                 item.item_code "\t"
 		item.prod_group "\t"
                 item.pkg_size "\t"
@@ -19,5 +19,5 @@ do while available (item):
                 item.upc_code "\t"
 		item.cat_page
                 "\n".
-        get next qitem.                
-end.        
+        GET NEXT qitem.                
+END.        

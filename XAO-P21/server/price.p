@@ -92,7 +92,7 @@ END PROCEDURE.
 */
  FIND FIRST p21.customer
          WHERE p21.customer.cust_code EQ v_cust_code
-         NO-LOCK NO-ERROR.
+         SHARE-LOCK NO-ERROR.
  IF AVAILABLE p21.customer THEN DO:        
          ASSIGN v_cust_price_code=p21.customer.price_code
                 v_cust_schd_num=p21.customer.schd_num
@@ -101,7 +101,7 @@ END PROCEDURE.
 
  FIND FIRST p21.item
          WHERE p21.item.item_code EQ v_item_code
-         NO-LOCK NO-ERROR.
+         SHARE-LOCK NO-ERROR.
  IF AVAILABLE p21.item THEN DO:        
          ASSIGN v_item_ut_size = p21.item.pkg_size
                 v_item_cost = p21.item.prices_std_cost /* XXX ? */
@@ -111,7 +111,7 @@ END PROCEDURE.
                 v_item_alt_unit_size = 1.
         FIND FIRST p21.item_unit_data
                 WHERE p21.item_unit_data.item_rec EQ p21.item.frecno
-                NO-LOCK NO-ERROR.
+                SHARE-LOCK NO-ERROR.
         IF AVAILABLE p21.item_unit_data THEN DO:
                 ASSIGN v_item_alt_unit_size = p21.item_unit_data.alt_ut_size.
         END.
@@ -119,7 +119,7 @@ END PROCEDURE.
  else do:
         FIND FIRST p21.catalog
                  WHERE p21.catalog.item_code EQ v_item_code
-                 NO-LOCK NO-ERROR.
+                 SHARE-LOCK NO-ERROR.
         IF AVAILABLE p21.catalog THEN DO:        
                 ASSIGN v_item_ut_size = p21.catalog.pkg_size
                         v_item_cost = p21.catalog.prices_std_cost /* XXX ? */
@@ -129,7 +129,7 @@ END PROCEDURE.
                         v_item_alt_unit_size = 1.
                 FIND FIRST p21.item_unit_data
                         WHERE p21.item_unit_data.item_rec EQ p21.catalog.frecno
-                        NO-LOCK NO-ERROR.
+                        SHARE-LOCK NO-ERROR.
                 IF AVAILABLE p21.item_unit_data THEN DO:
                         ASSIGN v_item_alt_unit_size = p21.item_unit_data.alt_ut_size.
                 END.
@@ -141,7 +141,7 @@ v_item_qty = v_item_qty * v_cur_size.
 v_cost = v_item_cost. /* Price in eaches */
 
 def var vss_cust_item as logical init false no-undo.
-FIND p21.S36 WHERE RECID(p21.S36) EQ 36 NO-LOCK.
+FIND p21.S36 WHERE RECID(p21.S36) EQ 36 SHARE-LOCK.
 vss_cust_item = p21.S36.cust_item.
 if vss_cust_item then do:
         find first p21.cust_item where
