@@ -20,7 +20,7 @@ use XAO::Utils;
 use base XAO::Objects->load(objname => 'Web::Page');
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: Redirect.pm,v 1.3 2003/01/08 21:33:46 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: Redirect.pm,v 1.4 2003/01/29 04:20:38 am Exp $ =~ /(\d+\.\d+)/);
 
 ###############################################################################
 
@@ -28,8 +28,10 @@ use vars qw($VERSION);
 
 Arguments are:
 
- url => new url or short path.
- target => target frame (optional)
+ url        => new url or short path.
+ target     => target frame (optional, only works with Netscape)
+ base       => if set uses base site name (optiona)
+ secure     => if set uses secure protocol (optional)
 
 =cut
 
@@ -68,10 +70,23 @@ sub display {
         $url=$args->{url};
     }
     else {
-        $url=$self->base_url(active => 1);
+        my $base=$args->{base};
+        my $secure=$args->{secure};
         my $url_path=$args->{url};
-        $url_path="/".$url_path unless substr($url_path,0,1) eq '/';
-        $url.=$url_path;
+        if(substr($url_path,0,1) eq '/') {
+            my $base_url=$self->base_url(
+                active  => $base ? 0 : 1,
+                secure  => $secure ? 1 : 0,
+            );
+            $url=$base_url . $url_path;
+        }
+        else {
+            $url=$self->pageurl(
+                active  => $base ? 0 : 1,
+                secure  => $secure ? 1 : 0,
+            );
+            $url=~s/^(.*\/)(.*?)$/$1$url_path/;
+        }
     }
 
     ##

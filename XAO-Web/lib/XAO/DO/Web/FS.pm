@@ -184,7 +184,7 @@ use XAO::Errors qw(XAO::DO::Web::FS);
 use base XAO::Objects->load(objname => 'Web::Action');
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: FS.pm,v 1.36 2003/01/23 03:25:58 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: FS.pm,v 1.37 2003/01/29 04:20:38 am Exp $ =~ /(\d+\.\d+)/);
 
 ###############################################################################
 
@@ -992,7 +992,8 @@ sub edit_object ($%) {
             $self->object->display(path => $args->{'success.path'});
         },
     );
-    $form->display('form.path' => $args->{'form.path'});
+
+    $form->display($args);
 }
 ###############################################################################
 #
