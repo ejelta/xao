@@ -1,4 +1,7 @@
+#!/usr/bin/perl -w
+use strict;
 use ExtUtils::MakeMaker;
+use ExtUtils::Manifest;
 
 my %d;
 if(open(F,'.config')) {
@@ -50,7 +53,7 @@ Here is what will be used to connect to TEST database
 (and DESTROY it):
    DSN:      $dsn
    User:     $user
-   Password: $password
+   Password: $pass
 
 EOT
     $|=1;
@@ -69,6 +72,31 @@ EOT
     }
 }
 
+##
+# This rather stupid workaround is here because for some reason
+# MakeMaker excludes /Config/ files from MAN3PODS
+#
+my %man3pods;
+foreach my $n (keys %{ExtUtils::Manifest::maniread()}) {
+    next unless $n =~ '^(FS).pm$' ||
+                $n =~ '^lib/XAO/(.*)\.(pm|pod)$';
+    my $man=$1;
+    $man=~s/\/+/::/g;
+    $man='XAO::' . $man;
+
+    open(F,$n) || die "Can't read $n: $!";
+    my $pod=0;
+    while(<F>) {
+        if(/^=(\w+)/) {
+            $pod=1;
+            last;
+        }
+    }
+    $pod || die "$n ($man) does not have documentation";
+
+    $man3pods{$n}='$(INST_MAN3DIR)/' . $man . '.3';
+}
+
 WriteMakefile(
     'AUTHOR'        => 'XAO Inc. http://xao.com/',
     'ABSTRACT'      => 'XAO Foundation Server',
@@ -85,6 +113,7 @@ WriteMakefile(
     'EXE_FILES'     => [
         'scripts/xao-fs',
     ],
+    'MAN3PODS'      => \%man3pods,
 );
 
 sub MY::postamble
