@@ -35,7 +35,7 @@ use DBD::mysql;
 use base XAO::Objects->load(objname => 'Atom');
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: MySQL_DBI.pm,v 1.12 2002/05/15 18:39:45 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: MySQL_DBI.pm,v 1.13 2002/05/17 05:19:03 am Exp $ =~ /(\d+\.\d+)/);
 
 ###############################################################################
 
@@ -659,7 +659,7 @@ sub search ($%) {
         $sql.=' LIMIT '.int($query->{options}->{limit});
     }
 
-    dprint "SQL: $sql";
+    # dprint "SQL: $sql";
 
     my $sth=$self->{dbh}->prepare($sql);
     $sth && $sth->execute(@{$query->{values}}) || $self->throw_sql('search');

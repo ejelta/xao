@@ -102,4 +102,49 @@ sub test_throw {
                   "Page::throw error - $error");
 }
 
+sub test_cache {
+    my $self=shift;
+
+    my $page=XAO::Objects->new(objname => 'Web::MyPage');
+    $self->assert(ref($page),
+                  "Can't load MyPage object");
+
+    my $cache_val=123;
+    my $cache_sub=sub { return $cache_val++ };
+
+    my $cache=$page->cache(
+        name        => 'test',
+        retrieve    => $cache_sub,
+        coords      => 'name',
+        expire      => 60,
+    );
+    $self->assert(ref($cache),
+                  "Can't load Cache object");
+
+    my $got=$cache->get(name => 'foo');
+    $self->assert($got == 123,
+                  "Wrong value from cache, expected 123, got $got");
+
+    $got=$cache->get(name => 'foo');
+    $self->assert($got == 123,
+                  "Wrong value from cache, expected 123, got $got");
+
+    my $page1=XAO::Objects->new(objname => 'Web::MyPage');
+    $self->assert(ref($page),
+                  "Can't load MyPage object");
+
+     my $cache1=$page1->cache(
+        name        => 'test',
+        retrieve    => $cache_sub,
+        coords      => 'name',
+        expire      => 60,
+    );
+    $self->assert(ref($cache1),
+                  "Can't load Cache object (Page1)");
+
+    $got=$cache1->get(name => 'foo');
+    $self->assert($got == 123,
+                  "Wrong value from cache, expected 123, got $got");
+}
+
 1;

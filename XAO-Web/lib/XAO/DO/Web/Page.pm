@@ -309,7 +309,7 @@ use Error qw(:try);
 use base XAO::Objects->load(objname => 'Atom');
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: Page.pm,v 1.13 2002/02/20 01:03:29 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: Page.pm,v 1.14 2002/05/17 05:19:03 am Exp $ =~ /(\d+\.\d+)/);
 
 ##
 # Prototypes
@@ -1028,7 +1028,8 @@ my $AFTER_EQUAL=3;
 my $GOT_QUOTE=4;
 my $GOT_LCB=5;
 
-##
+###############################################################################
+
 # Pretty hairy subroutine - parsing arguments and values from text
 # string into hash reference.
 #
@@ -1145,65 +1146,40 @@ sub parse_args ($)
   \%args;
 } 
 
-##
+###############################################################################
+
 # This is overriden in all editable objects. Default is "not editable".
-# XXX - unused.
-#
+# Never evolved to real functionality and now not supported.
+
 sub editable () {
-    eprint "editable - should not be used any more";
-    return 0;
+    my $self=shift;
+    throw $self "editable - not supported any more";
 }
 
 ###############################################################################
 
 =item cache (%)
 
-Creates or retrieves a cache for use in various Page based
-objects. Arguments are directly passed to XAO::Cache's new() method (see
-L<XAO::Cache>) except for 'name' argument which is used to identify the
-requested cache.
-
-If a cache with that name was already initialized before it is not
-re-created, but previously created version is returned instead.
-
-Example:
-
- my $cache=$self->cache(
-     name        => 'fubar',
-     retrieve    => \&real_retrieve,
-     coords      => ['foo','bar'],
-     expire      => 60
- );
+A shortcut that actually calls $self->siteconfig->cache. See the
+description of cache() in L<XAO::DO::Web::Config> for more details.
 
 =cut
 
 sub cache ($%) {
     my $self=shift;
     my $args=get_args(\@_);
-
-    my $name=$args->{name} ||
-        throw $self "cache - no 'name' argument";
-
-    my $cache_list=$self->siteconfig->get('cache_list');
-    if(! $cache_list) {
-        $cache_list={};
-        $self->siteconfig->put(cache_list => $cache_list);
-    }
-
-    my $cache=$cache_list->{$name};
-    if(! $cache) {
-        $cache=XAO::Cache->new($args);
-        $cache_list->{$name}=$cache;
-    }
-
-    return $cache;
+    return $self->siteconfig->cache($args);
 }
+
+###############################################################################
 
 sub debug_check ($$) {
     my $self=shift;
     my $type=shift;
     return $self->clipboard->get("debug/Web/Page/$type");
 }
+
+###############################################################################
 
 sub debug_set ($%) {
     my $self=shift;

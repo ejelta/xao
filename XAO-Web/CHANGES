@@ -1,4 +1,7 @@
 1.04 - XXX
+    * Web::Page - cache() method moved to Web::Config to make it
+      available for generic use from not Page based objects. Page has an
+      alias for compatibility.
     * Web::Utility - 'show-pagedesc' fixed
     * Web::Utility - 'number-ordinal-suffix' added
     * XAO::Web - clipboard() method added

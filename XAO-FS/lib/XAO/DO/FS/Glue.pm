@@ -50,7 +50,7 @@ use XAO::Objects;
 use base XAO::Objects->load(objname => 'Atom');
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: Glue.pm,v 1.14 2002/05/16 05:53:09 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: Glue.pm,v 1.15 2002/05/17 05:19:02 am Exp $ =~ /(\d+\.\d+)/);
 
 ###############################################################################
 
@@ -978,6 +978,9 @@ sub _build_search_query ($%) {
                     push(@orderby,$o,$sqlfn);
                 }
             }
+            elsif(lc($option) eq 'limit') {
+                # pass through, handled in the driver
+            }
             else {
                 $self->throw("_build_search_query - unknown option '$option'");
             }
@@ -1039,7 +1042,6 @@ sub _build_search_query ($%) {
         }
         $previous=1;
     }
-    dprint "post-clause=$clause";
 
     ##
     # Adding key name into fields we need. Forming an array of field
@@ -1245,8 +1247,6 @@ sub _build_search_field ($$$) {
 
     $lha=$class_index . '.' . $self->_driver->mangle_field_name($lha);
 
-dprint "lha=$lha";
-
     ($lha,$field_desc);
 }
 
@@ -1325,8 +1325,6 @@ sub _build_search_clause ($$$$$$) {
         else {
             $self->throw("_build_search_clause - unknown operation '$op'");
         }
-
-        dprint "ref-clause=$clause";
 
         return $clause;
     }
@@ -1411,8 +1409,6 @@ sub _build_search_clause ($$$$$$) {
     else {
         $self->throw("_build_search_clause - unknown operator '$op'");
     }
-
-    dprint "clause=$clause";
 
     $clause;
 }

@@ -88,7 +88,7 @@ use XAO::Objects;
 use base XAO::Objects->load(objname => 'Web::Page');
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: Header.pm,v 1.3 2002/04/25 18:52:13 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: Header.pm,v 1.4 2002/05/17 05:19:03 am Exp $ =~ /(\d+\.\d+)/);
 
 ###############################################################################
 # Displaying HTML header.
@@ -107,9 +107,10 @@ sub display ($;%) {
     $meta.=qq(<META NAME="Description" CONTENT="$args->{description}">\n) if $args->{description};
 
     $self->SUPER::display(merge_refs($args, {
-                            path => $args->{path} || "/bits/page-header",
-                            TITLE => $args->{title} || "XAO::Web -- No Title",
-                            META => $meta,
+                            path        => $args->{path} || "/bits/page-header",
+                            TITLE       => $args->{title} || "XAO::Web -- No Title",
+                            GIVEN_TITLE => $args->{title} || '',
+                            META        => $meta,
                          }));
 }
 
