@@ -222,6 +222,7 @@ The following list of methods also shows 'mode' as the first element
 
 ###############################################################################
 package XAO::DO::Web::Content;
+use strict;
 use Error qw(:try);
 use XAO::Utils;
 use XAO::Objects;

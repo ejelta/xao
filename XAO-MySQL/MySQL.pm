@@ -65,6 +65,7 @@ sub sql_connect ($%) {
 
 sub sql_do ($$;@) {
     my $rc;
+
     if(@_>2 && ref($_[2])) {
         $rc=sql_real_do(@_);
     }

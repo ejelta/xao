@@ -14,6 +14,6 @@ FOR EACH cust_item NO-LOCK.
         cust_item.item_code             d_d
         cust_item.part_number           d_d
         price                           d_d
-        cust_item.int_desc              skip
+        cust_item.extended_part         skip
     .
 END.
