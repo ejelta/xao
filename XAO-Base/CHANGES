@@ -4,6 +4,8 @@
     * XAO::Utils - get_debug() added
     * XAO::TestUtils - support for package building
       (xao_mf_check_consistency & xao_mf_fix_permissions)
+    * Changed from SleepyCat based proprietary open source compatible
+      license to the standard "Artistic".
 
 1.05 - 12-Nov-2003
     * XAO::Utils - get_args works as merge_refs on multiple hash refs

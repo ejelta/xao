@@ -108,6 +108,7 @@ foreach my $n (keys %{ExtUtils::Manifest::maniread()}) {
 
 WriteMakefile(
     'NAME'          => 'XAO::Base',
+    'ABSTRACT'      => 'Base support modules for the XAO Suite',
     'VERSION'       => $version,
     'PREREQ_PM'     => {
         'Error' => '0.13',
