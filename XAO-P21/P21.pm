@@ -485,46 +485,46 @@ sub order {
         $_[0];
     };
 
-    my @order_array=map { uc } map {
-        $_->{reference_number},             #  1 |  1
-        $_->{customer},                     #  2 |  2
-        $_->{date},                         #  3 |  3
-        $_->{po},                           #  4 |  4
-        $_->{credit_card},                  #  5 |  5
-        $_->{card_exp_month},               #  6 |  6
-        $_->{card_exp_year},                #  7 |  7
-        $_->{name},                         #  8 |  8
-        $_->{address1},                     #  9 |  9
-        $_->{address2},                     # 10 | 10
-        $_->{city},                         # 11 | 11
-        $_->{state},                        # 12 | 12
-        $_->{zip},                          #  1 | 13
-        $_->{inst1},                        #  2 | 14
-        $_->{inst2},                        #  3 | 15
-        $_->{line_number},                  #  4 | 16
-        $_->{itemcode},                     #  5 | 17
-        $_->{qty},                          #  6 | 18
-        $_->{price},                        #  7 | 19
-        $_->{email},                        #  8 | 20
-        '',                                 #  9 | 21
-        '',                                 # 10 | 22
-        '',                                 # 11 | 23
-        '',                                 # 12 | 24
-        '',                                 #  1 | 25
-        '',                                 #  2 | 26
-        '',                                 #  3 | 27
-        '',                                 #  4 | 28
-        $_->{stax_exemp} ? 'N' : 'Y',       #  5 | 29
-        $_->{suspended_order} ? 'Y' : 'N',  #  6 | 30
-        $_->{unit_name} || '',              #  7 | 31
-        $_->{unit_size} || 1,               #  8 | 32
-        $_->{account_number} || '',         #  9 | 33
-        '',                                 # 10 | 34
-        '',                                 # 11 | 35
-        $_->{address3} || '',               # 12 | 36
-        $_->{country} || '',                #  1 | 37
-        '',                                 #  2 | 38
-        $_->{taker_number} || '',           #  3 | 39
+    my @order_array=map {
+        uc($_->{reference_number}),             #  1 |  1
+        uc($_->{customer}),                     #  2 |  2
+        uc($_->{date}),                         #  3 |  3
+        uc($_->{po}),                           #  4 |  4
+        uc($_->{credit_card}),                  #  5 |  5
+        uc($_->{card_exp_month}),               #  6 |  6
+        uc($_->{card_exp_year}),                #  7 |  7
+        uc($_->{name}),                         #  8 |  8
+        uc($_->{address1}),                     #  9 |  9
+        uc($_->{address2}),                     # 10 | 10
+        uc($_->{city}),                         # 11 | 11
+        uc($_->{state}),                        # 12 | 12
+        uc($_->{zip}),                          #  1 | 13
+        uc($_->{inst1}),                        #  2 | 14
+        uc($_->{inst2}),                        #  3 | 15
+        uc($_->{line_number}),                  #  4 | 16
+        $_->{itemcode},                         #  5 | 17
+        uc($_->{qty}),                          #  6 | 18
+        uc($_->{price}),                        #  7 | 19
+        uc($_->{email}),                        #  8 | 20
+        '',                                     #  9 | 21
+        '',                                     # 10 | 22
+        '',                                     # 11 | 23
+        '',                                     # 12 | 24
+        '',                                     #  1 | 25
+        '',                                     #  2 | 26
+        '',                                     #  3 | 27
+        '',                                     #  4 | 28
+        $_->{stax_exemp} ? 'N' : 'Y',           #  5 | 29
+        $_->{suspended_order} ? 'Y' : 'N',      #  6 | 30
+        uc($_->{unit_name} || ''),              #  7 | 31
+        $_->{unit_size} || 1,                   #  8 | 32
+        uc($_->{account_number} || ''),         #  9 | 33
+        '',                                     # 10 | 34
+        '',                                     # 11 | 35
+        uc($_->{address3} || ''),               # 12 | 36
+        uc($_->{country} || ''),                #  1 | 37
+        '',                                     #  2 | 38
+        uc($_->{taker_number} || ''),           #  3 | 39
     } @$order_list;
 
     $self->call($constr,$callback, 'order_entry', @order_array);
