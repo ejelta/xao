@@ -36,6 +36,21 @@ sub test_expand {
                        TEST => 'TEST<>?');
     $self->assert($got eq 'system:[[TEST<>?]{TEST&lt;&gt;?}]',
                   "Got wrong value for /local.txt: $got");
+
+    my %matrix=(
+        '123' => {
+            template => q(<%Page
+                            template={'<%Page template="<%TEST%>"%>'}
+                            TEST='123'
+                          %>),
+        },
+    );
+    foreach my $expect (keys %matrix) {
+        my $args=$matrix{$expect};
+        my $got=$page->expand($args);
+        $self->assert($got eq $expect,
+                      "Expected '$expect', got '$got'");
+    }
 }
 
 sub test_fs {

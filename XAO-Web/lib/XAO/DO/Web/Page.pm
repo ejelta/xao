@@ -298,6 +298,7 @@ from Page unless overwritten) are:
 ###############################################################################
 package XAO::DO::Web::Page;
 use strict;
+#use Data::Dumper; #XXX - remove
 use XAO::Utils;
 use XAO::Cache;
 use XAO::Templates;
@@ -309,7 +310,7 @@ use Error qw(:try);
 use base XAO::Objects->load(objname => 'Atom');
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: Page.pm,v 1.18 2002/06/22 00:03:01 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: Page.pm,v 1.19 2002/06/24 03:03:11 am Exp $ =~ /(\d+\.\d+)/);
 
 ##
 # Prototypes
@@ -319,13 +320,11 @@ sub cgi ($);
 sub check_db ($);
 sub dbh ($);
 sub display ($%);
-sub editable ();
 sub expand ($%);
 sub finaltextout ($%);
 sub object ($%);
 sub odb ($);
 sub parse ($%);
-sub parse_args ($);
 sub siteconfig ($);
 sub textout ($%);
 
@@ -371,11 +370,11 @@ Example:
 
  $obj->display(path => "/bits/left-menu", ITEM => "main");
 
-For security reasons is also recommended to put all sub-templates into
-/bits/ directory under templates tree or into "bits" subdirectory of
-some tree inside of templates (like /admin/bits/admin-menu). Such
-templates cannot be displayed from XAO::Web handler by passing their path in
-URL.
+For security reasons it is also recommended to put all sub-templates
+into /bits/ directory under templates tree or into "bits" subdirectory
+of some tree inside of templates (like /admin/bits/admin-menu). Such
+templates cannot be displayed from XAO::Web handler by passing their
+path in URL.
 
 =cut
 
@@ -384,109 +383,111 @@ sub display ($%) {
     my $args=$self->{args}=get_args(\@_);
 
     ##
-    # Parsing template
+    # Parsing template or getting already pre-parsed template when it is
+    # available.
     #
     my $page=$self->parse($args);
-    $page || return;
 
     ##
     # Template processing itself. Pretty simple, huh? :)
     #
     foreach my $item (@{$page}) {
-        my $text=$item->{text};
 
-        ##
-        # <%End%> is special kind of object, processing stops where it is
-        # found. Suitable to cut off carriage return at the end of template
-        # and to put comments inside template.
-        #
-        last if !defined($text) && $item->{objname} eq 'End';
-
-        ##
-        # Trying to substitute from args if possible.
-        #
-        $text=$args->{$item->{objname}} unless defined($text);
-
-        ##
-        # Flag to stop after current element
-        #
         my $stop_after;
+        my $itemflag;
 
-        ##
-        # Executing object if not.
-        #
-        my $itemflag=$item->{flag};
-        if(!defined($text)) {
-            my $obj;
-            try {
-                $obj=$self->object(objname => $item->{objname});
-            }
-            catch XAO::E::Objects with {
-                my $e=shift;
-                if($args->{path}) {
-                    eprint "Object loading error while processing path='$args->{path}'";
-                }
-                else {
-                    eprint "Object loading error";
-                }
-                $e->throw;
-            };
+        my $text;
+
+        if(exists $item->{text}) {
+            $text=$item->{text};
+        }
+
+        elsif(exists $item->{varname}) {
+            my $varname=$item->{varname};
+            $text=$args->{$varname};
+            defined $text ||
+                throw $self "display - undefined argument '$varname'";
+            $itemflag=$item->{flag};
+        }
+
+        elsif(exists $item->{objname}) {
+            my $objname=$item->{objname};
+
+            $itemflag=$item->{flag};
 
             ##
-            # Preparing arguments. If argument includes object references -
-            # they are expanded first.
+            # First we're trying to substitute from arguments
             #
-            my %objargs;
-            my $ia=$item->{args};
-            foreach my $a (keys %$ia) {
-                my $v=$ia->{$a};
-                if($v =~ /<\%.*\%>/s) {
-                    $objargs{$a}=$self->expand(merge_refs($args,{
-                        template    => $v,
-                    }));
-                }
-                else {
+            $text=$args->{$objname};
+
+            ##
+            # Executing object if not.
+            #
+            if(!defined $text) {
+                my $obj=$self->object(objname => $objname);
+            
+                ##
+                # Preparing arguments. If argument includes object references -
+                # they are expanded first.
+                #
+                my %objargs;
+                my $ia=$item->{args};
+                my $args_copy;
+                foreach my $a (keys %$ia) {
+                    my $v=$ia->{$a};
+                    if(ref($v)) {
+                        if(@$v==1 && exists($v->[0]->{text})) {
+                            $v=$v->[0]->{text};
+                        }
+                        else {
+                            if(!$args_copy) {
+                                $args_copy=merge_refs($args);
+                                delete $args_copy->{path};
+                            }
+                            $args_copy->{template}=$v;
+                            $v=$self->expand($args_copy);
+                        }
+                    }
+
+                    ##
+                    # Decoding entities from arguments. Lt, gt, amp,
+                    # quot and &#DEC; are supported.
+                    #
+                    $v=~s/&lt;/</sg;
+                    $v=~s/&gt;/>/sg;
+                    $v=~s/&quot;/"/sg;
+                    $v=~s/&#(\d+);/chr($1)/sge;
+                    $v=~s/&amp;/&/sg;
+
                     $objargs{$a}=$v;
                 }
-            }
 
-            ##
-            # Now decoding entities from arguments. Lt, gt, amp, quot and
-            # &#DEC; are supported.
-            #
-            foreach my $v (values %objargs) {
-                $v=~s/&lt;/</sg;
-                $v=~s/&gt;/>/sg;
-                $v=~s/&quot;/"/sg;
-                $v=~s/&#(\d+);/chr($1)/sge;
-                $v=~s/&amp;/&/sg;
-            }
+                ##
+                # Executing object. For speed optimisation we call object's
+                # display method directly if we're not going to do anything
+                # with the text anyway. This way we avoid push/pop and at
+                # least two extra memcpy's.
+                #
+                delete $self->{merge_args};
+                if($itemflag && $itemflag ne 't') {
+                    $text=$obj->expand(\%objargs);
+                }
+                else {
+                    $obj->display(\%objargs);
+                }
 
-            ##
-            # Executing object. For speed optimisation we call object's
-            # display method directly if we're not going to do anything
-            # with the text anyway. This way we avoid push/pop and at
-            # least two extra memcpy's.
-            #
-            delete $self->{merge_args};
-            if($itemflag && $itemflag ne 't') {
-                $text=$obj->expand(\%objargs);
-            }
-            else {
-                $obj->display(\%objargs);
-            }
+                ##
+                # Indicator that we do not need to parse or display anything
+                # after that point.
+                #
+                $stop_after=$self->clipboard->get('_no_more_output');
 
-            ##
-            # Indicator that we do not need to parse or display anything
-            # after that point.
-            #
-            $stop_after=$self->clipboard->get('_no_more_output');
-
-            ##
-            # Was it something like SetArg object? Merging changes in then.
-            #
-            if($self->{merge_args}) {
-                @{$args}{keys %{$self->{merge_args}}}=values %{$self->{merge_args}};
+                ##
+                # Was it something like SetArg object? Merging changes in then.
+                #
+                if($self->{merge_args}) {
+                    @{$args}{keys %{$self->{merge_args}}}=values %{$self->{merge_args}};
+                }
             }
         }
 
@@ -544,6 +545,106 @@ sub expand ($%) {
     XAO::PageSupport::push();
     $self->display(@_);
     XAO::PageSupport::pop();
+}
+
+###############################################################################
+
+=item parse ($%)
+
+Takes template from either 'path' or 'template' and parses it. If given
+the following template:
+
+    Text <%Object a=A b="B" c={<%C/f ca={CA}%>} d='D' e={'<$E$>'}%>
+
+It will return a reference to the array of the following structure:
+
+    [   {   text    => 'Text ',
+        },
+        {   objname => 'Object',
+            args    => {
+                a => [
+                    {   text    => 'A',
+                    },
+                ],
+                b => [
+                    {   text    => 'B',
+                    },
+                ],
+                c => [
+                    {   objname => 'C',
+                        flag    => 'f',
+                        args    => {
+                            ca => [
+                                {   text    => 'CA',
+                                },
+                            ],
+                        },
+                    },
+                ],
+                d => 'D',
+                e => '<$E$>',
+            },
+        },
+    ]
+
+Templates from disk files are cached for the lifetime of the process and
+are never re-parsed.
+
+Always returns with the correct array or throws an error.
+
+=cut
+
+my %parsed_cache;
+sub parse ($%) {
+    my $self=shift;
+    my $args=get_args(\@_);
+
+    ##
+    # Getting template text
+    #
+    my $template;
+    my $unparsed=$args->{unparsed};
+    my $path;
+    if(defined($args->{template})) {
+        $template=$args->{template};
+        if(ref($template)) {
+            return $template;       # Pre-parsed as an argument of some upper class
+        }
+    }
+    else {
+        $path=$args->{path} ||
+            throw $self "parse - no 'path' and no 'template' given to a Page object";
+
+        if(!$unparsed && exists $parsed_cache{$path}) {
+            return $parsed_cache{$path};
+        }
+
+        if($self->debug_check('show-path')) {
+            dprint $self->{objname}."::parse - path='$path'";
+        }
+
+        $template=XAO::Templates::get(path => $path);
+        defined($template) ||
+            throw $self "parse - no template found (path=$path)";
+    }
+
+    ##
+    # Checking if we do not need to parse that template.
+    #
+    if($unparsed) {
+        return [ { text => $template } ];
+    }
+
+    ##
+    # Parsing. If a scalar is returned it is an indicator of an error.
+    #
+    my $page=XAO::PageSupport::parse($template);
+    ref $page ||
+        throw $self "parse - $page";
+
+    $parsed_cache{$path}=$page if $path;
+
+    return $page;
 }
 
 ###############################################################################
@@ -852,99 +953,6 @@ sub pageurl ($;%) {
     my $url_path=$self->clipboard->get('pagedesc')->{fullpath};
     $url_path="/".$url_path unless $url_path=~ /^\//;
     $url.$url_path;
-}
-
-###############################################################################
-
-=item parse ($%)
-
-Takes template from either 'path' or 'template' and parses it. If given
-the following template:
-
-    Text <%Object a=A b="B" c={<%C/f ca={CA}%>} d='D' e={'<$E$>'}%>
-
-It will return a reference to the array of the following structure:
-
-    [   {   text    => 'Text ',
-        },
-        {   objname => 'Object',
-            args    => {
-                a => [
-                    {   text    => 'A',
-                    },
-                ],
-                b => [
-                    {   text    => 'B',
-                    },
-                ],
-                c => [
-                    {   objname => 'C',
-                        flag    => 'f',
-                        args    => {
-                            ca => [
-                                {   text    => 'CA',
-                                },
-                            ],
-                        },
-                    },
-                ],
-                d => 'D',
-                e => '<$E$>',
-            },
-        },
-    ]
-
-Templates from disk files are cached for the lifetime of the process and
-are never re-parsed.
-
-=cut
-
-my %parsed_cache;
-sub parse ($%) {
-    my $self=shift;
-    my $args=get_args(\@_);
-
-    ##
-    # Getting template text
-    #
-    my $template;
-    my $unparsed=$args->{unparsed};
-    my $path;
-    if(defined($args->{template})) {
-        $template=$args->{template};
-    }
-    else {
-        $path=$args->{path} ||
-            throw $self "parse - no 'path' and no 'template' given to a Page object";
-
-        if(!$unparsed && exists $parsed_cache{$path}) {
-            return $parsed_cache{$path};
-        }
-
-        if($self->debug_check('show-path')) {
-            dprint $self->{objname}."::parse - path='$path'";
-        }
-
-        $template=XAO::Templates::get(path => $path);
-        defined($template) ||
-            throw $self "parse - no template found (path=$path)";
-    }
-
-    ##
-    # Checking if we do not need to parse that template.
-    #
-    if($unparsed) {
-        return [ { text => $template } ];
-    }
-
-    ##
-    # Parsing
-    #
-    my $page=XAO::PageSupport::parse($template);
-
-    $parsed_cache{$path}=$page if $path;
-
-    return $page;
 }
 
 ###############################################################################

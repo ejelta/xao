@@ -27,9 +27,15 @@ static unsigned stacktop=0;
 
 /************************************************************************/
 
+/* Allows letters, digits, underscore and dot
+*/
+static int
+isalnum_dot(int c) {
+    return isalnum(c) || c=='.' || c=='_';
+}
+
 /* Parsing template into an array suitable for Web::Page
 */
-
 static SV*
 parse_text(pTHX_ char * template, unsigned length) {
     AV* parsed=newAV();
@@ -74,6 +80,26 @@ parse_text(pTHX_ char * template, unsigned length) {
                     break;
                 }
             }
+            else if(*str=='<' && str+4<end && str[1]=='!' && str[2]=='-' && str[3]=='-' && str[4]!='/') {
+                if(text_ptr!=str) {
+                    hv=newHV();
+                    hv_store(hv,"text",4,
+                                newSVpvn(text_ptr,str-text_ptr),0);
+                    av_push(parsed,newRV_noinc((SV*)hv));
+                }
+
+                str+=4;
+                while(str+2<end && (*str!='-' || str[1]!='-' || str[2]!='>')) str++;
+                if(str+2>=end) {
+                    av_clear(parsed);
+                    return newSVpvf("Unclosed comment at position %u (%*s)",
+                                    str-template,
+                                    end-str>10 ? 10 : end-str,str);
+                }
+
+                str+=3;
+                text_ptr=str;
+            }
             else {
                 str++;
                 if(str>=end) {
@@ -100,7 +126,7 @@ parse_text(pTHX_ char * template, unsigned length) {
         str+=2;
         while(str<end && isspace(*str)) str++;
         text_ptr=str;
-        while(str<end && isalnum(*str)) str++;
+        while(str<end && isalnum_dot(*str)) str++;
 
         /* End object is a special case, we stop parsing if we meet it
          * and do not even look what's behind it. That helps if it there
@@ -160,7 +186,7 @@ parse_text(pTHX_ char * template, unsigned length) {
                 /* Argument name
                 */
                 text_ptr=str;
-                while(str<end && (isalnum(*str) || *str=='.')) str++;
+                while(str<end && isalnum_dot(*str)) str++;
 
                 if(str==text_ptr) {
                     av_clear(parsed);

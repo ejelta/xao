@@ -186,6 +186,40 @@ sub test_parse {
             {   text    => 'Text',
             },
         ],
+        q(<!-- Comment --><%Condition
+                            a.cgiparam="printable"
+                            a.path="/bits/header-printable"
+                            a.pa_ss
+                            default.path="/bits/header-normal"
+                            default.pass
+                          %><!--//javascript--><%End%>Something) => [
+            {   objname => 'Condition',
+                args    => {
+                    'a.cgiparam'    => [
+                        {   text    => 'printable',
+                        },
+                    ],
+                    'a.path'        => [
+                        {   text    => '/bits/header-printable',
+                        },
+                    ],
+                    'a.pa_ss'        => [
+                        {   text    => 'on',
+                        },
+                    ],
+                    'default.path'   => [
+                        {   text    => '/bits/header-normal',
+                        },
+                    ],
+                    'default.pass'   => [
+                        {   text    => 'on',
+                        },
+                    ],
+                },
+            },
+            {   text    => '<!--//javascript-->',
+            },
+        ],
         # Sample from the man page
         q(Text <%Object a=A b="B" c={<%C/f ca={CA}%>} d='D' e={'<$E$>'}%>) => [
             {   text    => 'Text ',
