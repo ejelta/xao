@@ -336,7 +336,7 @@ sub expand ($%) {
     }
     else {
         $active_url=$cgi->url(-full => 1, -path_info => 0);
-        $active_url=$1 if $active_url=~/^(.*)($path)$/;
+        $active_url=$1 if $active_url=~/^(.*)(\Q$path\E)$/;
     }
 
     ##
