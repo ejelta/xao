@@ -54,7 +54,7 @@ configuration. Its URI is '/content' and parameters are:
 =head1 INSTALLATION AND USE
 
 The easiest way to install XAO Content is to use CPAN. Usually you would
-need to something like this:
+need to do something like this:
 
  sudo perl -MCPAN -e'install XAO::DO::Web::Content'
 
@@ -286,6 +286,7 @@ Displays a form for creating new content and when the form is filled --
 creates that content accordingly.
 
 Arguments are:
+
  form.path      => path to form template
  success.path   => path to success template
 
