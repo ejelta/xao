@@ -19,6 +19,7 @@ lib/XAO/DO/Web/IdentifyAgent.pm
 lib/XAO/DO/Web/IdentifyUser.pm
 lib/XAO/DO/Web/Page.pm
 lib/XAO/DO/Web/Search.pm
+lib/XAO/DO/Web/SetArg.pm
 lib/XAO/DO/Web/Styler.pm
 lib/XAO/DO/Web/Utility.pm
 lib/XAO/PluginUtils.pm
@@ -39,6 +40,7 @@ testcases/Page.pm
 testcases/PageSupport.pm
 testcases/WebCondition.pm
 testcases/WebConfig.pm
+testcases/WebSetArg.pm
  --------------------------------- Test installation tree
 testcases/testroot/projects/test/objects/Config.pm
 testcases/testroot/projects/test/templates/bits/local-test
