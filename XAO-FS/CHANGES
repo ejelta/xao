@@ -1,4 +1,6 @@
 1.05 -
+    * transact_*() methods and driver support for InnoDB
+    * glue() method added to all Hash, List and Collection
     * Hash::collection_key() method added
     * fetch() can now fetch collections using
       xaofs://collection/class/Data::Product/ syntax

@@ -1,10 +1,10 @@
-package testcases::placeholders;
+package XAO::testcases::FS::placeholders;
 use strict;
 use XAO::Utils;
 use Data::Dumper;
 use Error qw(:try);
 
-use base qw(testcases::base);
+use base qw(XAO::testcases::FS::base);
 
 sub test_same_field_name {
     my $self=shift;

@@ -45,6 +45,10 @@ DESCRIPTION
         If an object does not exist an error will be thrown, use exists()
         method to check if you really need to.
 
+    glue ()
+        Returns the Glue object which was used to retrieve the current
+        object from.
+
     keys ()
         Returns unsorted list of all keys for all objects stored in that
         list.

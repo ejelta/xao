@@ -1,10 +1,10 @@
-package testcases::index;
+package XAO::testcases::FS::index;
 use strict;
 use XAO::Utils;
 use XAO::Objects;
 use Error qw(:try);
 
-use base qw(testcases::base);
+use base qw(XAO::testcases::FS::base);
 
 sub test_index_int {
     my $self=shift;
@@ -69,10 +69,12 @@ sub measure_integer {
 
     my $before_fill=$self->timestamp;
     my @xx;
+    $cust->glue->transact_begin;
     for(my $i=0; $i!=$testq; $i++) {
         $cust->put(int => $i);
         push(@xx,$clist->put($cust));
     }
+    $cust->glue->transact_commit;
 
     my $list;
     my $before_search_1=$self->timestamp;

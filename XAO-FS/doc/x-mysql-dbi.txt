@@ -20,7 +20,7 @@ METHODS
         Example:
 
          my $driver=XAO::Objects->new(objname => 'FS::Glue::MySQL',
-                                      dsn => 'DBI:MySQL_DBI:dbname',
+                                      dsn => 'OS:MySQL_DBI:dbname',
                                       user => 'username',
                                       password => '123123123');
 
@@ -76,6 +76,9 @@ METHODS
     increment_key_seq ($)
         Increments the value of key_seq in Global_Fields table identified by
         the given row unique ID. Returns previous value.
+
+        Note: Always executed as a part of some outer level transaction.
+        Does not create any locks or starts transactions.
 
     initialize_database ($)
         Removes all data from all tables and creates minimal tables that
@@ -150,6 +153,23 @@ METHODS
         Example:
 
          $self->_driver->update_row($table,$unique_id,\%row);
+
+    tr_loc_active ()
+        Checks if we currently have active local or external transaction.
+
+    tr_loc_begin ()
+        Starts new local transaction. Will only really start it if we do not
+        have currently active external transaction. Does nothing for MyISAM.
+
+    tr_loc_commit ()
+        Commits changes for local transaction if it is active.
+
+    tr_loc_rollback ()
+        Rolls back changes for local transaction if it is active. Called
+        automatically on errors.
+
+    tr_ext_active ()
+        Checks if an external transaction is currently active.
 
 AUTHORS
     Copyright (c) 2001,2002 XAO, Inc.

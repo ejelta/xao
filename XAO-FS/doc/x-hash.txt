@@ -420,6 +420,10 @@ DESCRIPTION
 
          my ($name,$phone,$fax)=$customer->get('name','phone','fax');
 
+    glue ()
+        Returns the Glue object which was used to retrieve the current
+        object from.
+
     is_attached ()
         Boolean method that returns true if the current object is attached
         or false otherwise.

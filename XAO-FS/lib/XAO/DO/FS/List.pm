@@ -33,7 +33,7 @@ use XAO::Objects;
 use base XAO::Objects->load(objname => 'FS::Glue');
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: List.pm,v 1.12 2003/01/23 03:25:58 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: List.pm,v 1.13 2003/03/14 02:50:20 am Exp $ =~ /(\d+\.\d+)/);
 
 ###############################################################################
 
@@ -241,6 +241,17 @@ sub get_new ($) {
     my $self=shift;
     $self->_glue->new(objname => $$self->{class_name});
 }
+
+###############################################################################
+
+=item glue ()
+
+Returns the Glue object which was used to retrieve the current object
+from.
+
+=cut
+
+# Implemented in Glue
 
 ###############################################################################
 
@@ -495,8 +506,7 @@ Examples:
                            ]);
 
 The search() method can also accept additional options that can alter
-sorting or uniqueness of search results. These options are listed after
-required three first elements. Supported options are:
+results. Supported options are:
 
 =over
 
@@ -530,7 +540,7 @@ that.
 
 Remember that even though you sort results on the content of a field it
 is not that field that would be returned to you, you will still get a
-list of object IDs.
+list of object IDs unless you also use 'result' option.
 
 =item distinct
 
@@ -553,6 +563,64 @@ underlying database does not support this feature.
  my $subset=$persons->search('eye_color','eq','brown', {
                                  'limit' => 100
                             });
+
+=item result
+
+Be default search() method returns a reference to an array of object
+keys. Result options allows you to alter that behavior.
+
+Generally you can pass single description of return value or multiple
+descriptions as an array reference. In the first case what you get then
+is array of scalars, in the second case -- you get an array of arrays of
+scalars.
+
+Description of return value can be a scalar -- in that case it is simply
+a name of field in the database; or it can be a hash reference. For hash
+reference the only required field is 'type', that determines type of the
+result. Other parameters in the hash depend on the specific type.
+
+Recognized types are:
+
+=over
+
+=item count
+
+No other parameters, return number of would-be results for the
+search. Resulting array will have only one row if 'count' is used.
+
+=item key
+
+Returns object ID, just the same as would be returned by default.
+
+=item sum
+
+Returns arithmetic sum of all 'name' fields in the resulting set.
+
+=back
+
+Examples:
+
+ my $rr=$data->search('last_name','cs','smit', {
+                    orderby => 'last_name',
+                    result => [qw(id last_name first_name age)]
+                });
+
+ my $rr=$data->search({
+                    result => {
+                        type    => 'count',
+                    },
+                 });
+ my $count=$rr->[0];
+
+ my $rr=$data->search({
+                    result => [ {
+                        type    => 'count',
+                    }, {
+                        type    => 'sum',
+                        name    => 'gross_rev',
+                    }
+                ] });
+ my ($count,$sum)=@{$rr->[0]};
 
 =back
 

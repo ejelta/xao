@@ -71,6 +71,10 @@ DESCRIPTION
         Convenience method that returns new empty detached object of the
         type, that list can store.
 
+    glue ()
+        Returns the Glue object which was used to retrieve the current
+        object from.
+
     keys ()
         Returns unsorted list of all keys for all objects stored in that
         list.
@@ -217,8 +221,7 @@ DESCRIPTION
                                    ]);
 
         The search() method can also accept additional options that can
-        alter sorting or uniqueness of search results. These options are
-        listed after required three first elements. Supported options are:
+        alter results. Supported options are:
 
         orderby
             To sort results using any field in either ascending or
@@ -249,7 +252,8 @@ DESCRIPTION
 
             Remember that even though you sort results on the content of a
             field it is not that field that would be returned to you, you
-            will still get a list of object IDs.
+            will still get a list of object IDs unless you also use 'result'
+            option.
 
         distinct
             To only get the rows that have unique values in the given field.
@@ -270,6 +274,58 @@ DESCRIPTION
              my $subset=$persons->search('eye_color','eq','brown', {
                                              'limit' => 100
                                         });
+
+        result
+            Be default search() method returns a reference to an array of
+            object keys. Result options allows you to alter that behavior.
+
+            Generally you can pass single description of return value or
+            multiple descriptions as an array reference. In the first case
+            what you get then is array of scalars, in the second case -- you
+            get an array of arrays of scalars.
+
+            Description of return value can be a scalar -- in that case it
+            is simply a name of field in the database; or it can be a hash
+            reference. For hash reference the only required field is 'type',
+            that determines type of the result. Other parameters in the hash
+            depend on the specific type.
+
+            Recognized types are:
+
+            count
+                No other parameters, return number of would-be results for
+                the search. Resulting array will have only one row if
+                'count' is used.
+
+            key Returns object ID, just the same as would be returned by
+                default.
+
+            sum Returns arithmetic sum of all 'name' fields in the resulting
+                set.
+
+            Examples:
+
+             my $rr=$data->search('last_name','cs','smit', {
+                                orderby => 'last_name',
+                                result => [qw(id last_name first_name age)]
+                            });
+
+             my $rr=$data->search({
+                                result => {
+                                    type    => 'count',
+                                },
+                             });
+             my $count=$rr->[0];
+
+             my $rr=$data->search({
+                                result => [ {
+                                    type    => 'count',
+                                }, {
+                                    type    => 'sum',
+                                    name    => 'gross_rev',
+                                }
+                            ] });
+             my ($count,$sum)=@{$rr->[0]};
 
         Beware that these options usually significantly decrease search
         performance. Only use them when you would do sorting or select

@@ -1,3 +1,21 @@
+Multiple read-servers, read_pool argument to odb. For better chance
+of returning in-sync data it is probably worth keeping track of last
+update issued to the main server and querying the main server for a
+couple of seconds after each update before switching to normal read_pool
+selection.
+
+Also, it is probably better to only keep two connections -- to master
+server and to a random read_pool server. If read server goes away -
+reconnect to another read_pool server. It has no merit to keep cycling
+through all read pool servers continuously. Or may-be we should have a
+limit on how many connections to read servers to keep/cycle through.
+
+===============
+
+Multivalue put.
+
+===============
+
 Make sure that there is a glue() method available on both Lists and
 Hashes and that fetch() also works on all of them.
 
@@ -57,3 +75,9 @@ temporary_data() method to get per-object space to store something
 temporary that would not be stored in the object on disk. Some cached
 values or something like that. Just a hash or SimpleHash reference in
 fact.
+
+===============
+
+(DONE) Transactions, InnoDB support. trans_begin(), trans_rollback() and
+trans_commit().
+

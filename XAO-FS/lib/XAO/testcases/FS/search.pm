@@ -1,9 +1,9 @@
-package testcases::search;
+package XAO::testcases::FS::search;
 use strict;
 use XAO::Utils;
 use XAO::Objects;
 
-use base qw(testcases::base);
+use base qw(XAO::testcases::FS::base);
 
 sub test_search {
     my $self=shift;
@@ -85,6 +85,7 @@ EOT
     my $nl=3;
     my $pp=12;
     $customer->put(name => 'Search Test Customer');
+    $odb->transact_begin;
     for(1..300) {
         my $str='';
         for(my $i=0; $i!=10; $i++) {
@@ -111,6 +112,7 @@ EOT
         $pp-=1000 if $pp>=1000;
         $plist->put($product);
     }
+    $odb->transact_commit;
 
     ##
     # Checking normal search

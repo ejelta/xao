@@ -1,10 +1,10 @@
-package testcases::collection;
+package XAO::testcases::FS::collection;
 use strict;
 use Error qw(:try);
 use XAO::Utils;
 use XAO::Objects;
 
-use base qw(testcases::base);
+use base qw(XAO::testcases::FS::base);
 
 ##
 # This is a testcase for a bug reported by Bil on 12/17/2002. It allows
@@ -84,6 +84,9 @@ sub test_everything {
     my $c=$clist->get($kk[0]);
     $self->assert($c->objtype eq 'Hash',
                   "Got something wrong from collection");
+
+    $self->assert($c->collection_key eq $kk[0],
+                  "Wrong value returned by collection_key()");
 
     my $kn=$c->container_key();
     $self->assert($kn eq 'c1' || $kn eq 'c2',

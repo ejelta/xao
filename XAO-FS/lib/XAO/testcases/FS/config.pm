@@ -1,10 +1,10 @@
-package testcases::config;
+package XAO::testcases::FS::config;
 use strict;
 use XAO::Utils;
 use XAO::Objects;
 use Error qw(:try);
 
-use base qw(testcases::base);
+use base qw(XAO::testcases::FS::base);
 
 sub test_everything {
     my $self=shift;

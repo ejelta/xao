@@ -1,8 +1,8 @@
-package testcases::linkage;
+package XAO::testcases::FS::linkage;
 use strict;
 use XAO::Utils;
 
-use base qw(testcases::base);
+use base qw(XAO::testcases::FS::base);
 
 sub test_linkage {
     my $self=shift;

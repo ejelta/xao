@@ -119,11 +119,78 @@ PUBLIC METHODS
         Both should yield the same result providing that 5678 is a
         Collection (see the XAO::DS::FS::Collection manpage) code for P123.
 
+    glue ()
+        Returns reference to the Glue object the current object is received
+        from.
+
     objname ()
         Returns relative object name that XAO::Objects would accept.
 
     objtype ()
         Always returns 'Glue' string for object database handler object.
+
+    transact_active ()
+        Checks if a there is an active transaction at the moment. Can be
+        used to avoid starting another one as transactions can't be nested.
+
+        Example:
+
+          $odb->transact_begin unless $odb->transact_active;
+
+    transact_begin ()
+        Begins new transaction. If transactions are not supported by the
+        underlying driver it does nothing, see transact_can() method.
+
+        If there is already an active transaction an error will be thrown
+        and no new transaction will be started. Transactions can't be nested
+        and each transact_begin() must be matched by a transact_commit() or
+        transact_rollback().
+
+        Automatic transact_rollback() is performed on destroying Glue or
+        disconnecting. It is not done automatically on thrown errors, but if
+        an error is never caught the transaction will be rolled back
+        automatically at the program termination stage when Glue is
+        destroyed. Beware of global error catching blocks and do proper
+        cleanup if you use them.
+
+        Example:
+
+          $odb->transact_begin;
+          try {
+              $order->put(order_total => 123.45);
+              $order->get('Products')->put($product_obj);
+              $odb->transact_commit;
+          }
+          otherwise {
+              my $e=shift;
+              $odb->transact_rollback;
+              $e->throw;
+          };
+
+    transact_can ()
+        Returns boolean true if underlying driver supports transactions of
+        false otherwise.
+
+        Example:
+
+          $odb->transact_can ||
+              throw XAO::E::Sample "Transactions are not supported";
+
+    transact_commit ()
+        Commits changes made during the current transaction. If there is no
+        current transaction it will throw an error assuming that there was
+        an out-of-sync transact_commit() or transact_rollback() somewhere
+        before.
+
+        If transactions are not supported the method will do nothing.
+
+    transact_rollback ()
+        Rolls back (cancels) changes made during the current transaction. If
+        there is no current transaction it will throw an error assuming that
+        there was an out-of-sync transact_commit() or transact_rollback()
+        somewhere before.
+
+        If transactions are not supported the method will do nothing.
 
     unlink ($)
         Alias to delete(), which is defined in derived classes - List and

@@ -31,7 +31,7 @@ use XAO::Objects;
 use base XAO::Objects->load(objname => 'FS::Glue');
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: Collection.pm,v 1.4 2003/01/10 03:07:10 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: Collection.pm,v 1.5 2003/03/14 02:50:20 am Exp $ =~ /(\d+\.\d+)/);
 
 ###############################################################################
 
@@ -141,6 +141,17 @@ sub get ($$) {
 
     @_==1 ? $results[0] : @results;
 }
+
+###############################################################################
+
+=item glue ()
+
+Returns the Glue object which was used to retrieve the current object
+from.
+
+=cut
+
+# Implemented in Glue
 
 ###############################################################################
 

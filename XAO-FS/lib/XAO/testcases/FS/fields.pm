@@ -1,10 +1,10 @@
-package testcases::fields;
+package XAO::testcases::FS::fields;
 use strict;
 use XAO::Utils;
 use XAO::Objects;
 use Error qw(:try);
 
-use base qw(testcases::base);
+use base qw(XAO::testcases::FS::base);
 
 ##
 # MySQL is noisy about mistakes that we expect. So we hide DBD

@@ -1,10 +1,10 @@
-package testcases::lists;
+package XAO::testcases::FS::lists;
 use strict;
 use Error qw(:try);
 use XAO::Utils;
 use XAO::Objects;
 
-use base qw(testcases::base);
+use base qw(XAO::testcases::FS::base);
 
 sub new_cust {
     my $self=shift;

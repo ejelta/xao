@@ -1,4 +1,3 @@
-
 CHANGES
 LICENSE
 README
@@ -33,16 +32,17 @@ lib/XAO/DO/FS/Glue.pm
 lib/XAO/DO/FS/Hash.pm
 lib/XAO/DO/FS/List.pm
  ------------------------------------------------------------- Test Cases
-testcases/base.pm
-testcases/basic.pm
-testcases/collection.pm
-testcases/config.pm
-testcases/fields.pm
-testcases/index.pm
-testcases/linkage.pm
-testcases/lists.pm
-testcases/placeholders.pm
-testcases/search.pm
+lib/XAO/testcases/FS/base.pm
+lib/XAO/testcases/FS/basic.pm
+lib/XAO/testcases/FS/collection.pm
+lib/XAO/testcases/FS/config.pm
+lib/XAO/testcases/FS/fields.pm
+lib/XAO/testcases/FS/index.pm
+lib/XAO/testcases/FS/linkage.pm
+lib/XAO/testcases/FS/lists.pm
+lib/XAO/testcases/FS/placeholders.pm
+lib/XAO/testcases/FS/search.pm
+lib/XAO/testcases/FS/transact.pm
  ------------------------------------------------------------- Benchmarking
 bench/bench.pl
 bench/results-20020701-am-workstation.txt
@@ -50,3 +50,4 @@ bench/results-20020701-dell.txt
 bench/results-20020701-dual-p-dell.txt
 bench/results-20020702-am-workstation.txt
 bench/results-20020705-am-workstation-c.txt
+bench/results-20030128-dual-p-dell-c.txt
