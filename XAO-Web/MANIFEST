@@ -9,6 +9,8 @@ PageSupport/PageSupport.pm
 PageSupport/PageSupport.xs
  --------------------------------- XAO::*
 lib/XAO/DO/Web/Action.pm
+lib/XAO/DO/Web/CgiParam.pm
+lib/XAO/DO/Web/Cookie.pm
 lib/XAO/DO/Web/Condition.pm
 lib/XAO/DO/Web/Config.pm
 lib/XAO/DO/Web/Date.pm
