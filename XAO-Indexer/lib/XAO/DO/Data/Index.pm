@@ -73,10 +73,18 @@ The first optional argument is the number of fields to
 hold orderings. If it is not given site configuration's
 '/indexer/max_orderings' parameter is used, which defaults to 10.
 
-Second parameter sets the maximum size of single keyword data chunk that
-lists all places where this word was found. Default is taken from
-'/indexer/max_kwdata_length' configuration parameter and defaults to
-65000.
+Second parameter sets the maximum size of a single keyword data chunk
+that lists all places where this word was found and their positions. The
+value is taken from '/indexer/max_kwdata_length' configuration parameter
+and defaults to 65000.
+
+It depends highely on the type of text you index, but as a rough
+estimate, for every 1,000 allowed words you need 20,000 for the
+data. So, if your ignore_limit is set to 50,000 you might want to set
+max_kwdata_length to 1,000,000. If you are using MySQL you might also
+need to adjust max_allowed_packet accordingly -- to be slightly higher
+than the max_kwdata_length. Using compression these values can be
+reduced -- as the limit gets applied after compression.
 
 =cut
 
