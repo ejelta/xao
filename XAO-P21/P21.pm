@@ -79,6 +79,14 @@ Build does not have a default and must be provided.
 sub call {
     my ($self, $build, $callback, @params) = @_ ;
 
+    ##
+    # Fixing params, newlines are not acceptable in them
+    #
+    foreach (@params) {
+        s/[\r\n]/ /sg;
+        s/^\s*(.*?)\s*$/$1/g;
+    }
+
     my $list;
     if(!$callback) {
         $list=[];
