@@ -3,6 +3,33 @@ use strict;
 
 use base qw(testcases::base);
 
+sub test_logprint_handler {
+    my $self=shift;
+
+    use XAO::Utils;
+
+    my @log;
+    XAO::Utils::set_logprint_handler(sub {
+        push(@log,$_[0]);
+    });
+    my $olddebug=XAO::Utils::set_debug(1);
+    dprint "Test1";
+    eprint "Test2";
+    dprint "Test3","Test4","Test5";
+
+    $self->assert(@log == 3,
+                  "Expected log to have 3 elements, has ".scalar(@log)." (".join(',',@log).")");
+    $self->assert($log[0] =~ /Test1/,
+                  "Expected first element to match /Test1/, got '$log[0]'");
+    $self->assert($log[1] =~ /Test2/,
+                  "Expected second element to match /Test2/, got '$log[1]'");
+    $self->assert($log[2] =~ /Test3Test4Test5/,
+                  "Expected third element to match /Test3Test4Test5/, got '$log[2]'");
+
+    XAO::Utils::set_logprint_handler(undef);
+    XAO::Utils::set_debug($olddebug);
+}
+
 sub test_fround {
     my $self=shift;
 
