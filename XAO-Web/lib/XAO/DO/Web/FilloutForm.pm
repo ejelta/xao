@@ -62,7 +62,7 @@ use XAO::Errors qw(XAO::DO::Web::FilloutForm);
 use base XAO::Objects->load(objname => 'Web::Page');
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: FilloutForm.pm,v 1.17 2004/04/06 23:36:33 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: FilloutForm.pm,v 1.18 2004/05/25 00:43:57 am Exp $ =~ /(\d+\.\d+)/);
 
 sub setup ($%);
 sub field_desc ($$);
@@ -442,11 +442,12 @@ sub display ($;%) {
             if(length($value)) {
                 my $opt=$fdata->{options};
                 if(ref($opt) eq 'HASH') {
-                    $newerr='Bad option value!' unless exists $opt->{$value};
+                    $newerr='Bad option value!' unless defined $opt->{$value};
                 }
                 elsif(ref($opt) eq 'ARRAY') {
                     my $found;
                     for(my $i=0; $i<@$opt; $i+=2) {
+                        next unless defined($opt->[$i+1]);
                         if($opt->[$i] eq $value) {
                             $found=1;
                             last;
@@ -535,6 +536,7 @@ sub display ($;%) {
             my $html_sub=sub {
                 my ($v,$t)=@_;
                 $has_empty=1 if !length($v);
+                return unless defined($t);
                 my $sel='';
                 if(!$used_selected && $value eq $v) {
                     $sel=' SELECTED';
@@ -563,6 +565,9 @@ sub display ($;%) {
             # We do not display 'Please select' if there is an empty
             # value in the list, we assume that that empty value is a
             # prompt of some sort.
+            #
+            # If there is no need for empty value and no need for a
+            # prompt -- use ('' => undef) as an indicator of that.
             #
             $formparams{"$param.HTML_OPTIONS"}=$html;
             $fdata->{html}='<SELECT NAME="' . t2hf($name) . '">' .
