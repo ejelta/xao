@@ -146,6 +146,21 @@ sub data_structure ($) {
 
 ###############################################################################
 
+=item get_collection ()
+
+Simply a shortcut to indexer's get_collection() method.
+
+=cut
+
+sub get_collection ($) {
+    my $self=shift;
+    return $self->indexer->get_collection(
+        index_object    => $self,
+    );
+}
+
+###############################################################################
+
 =item indexer (;$)
 
 Returns corresponding indexer object, its name taken from
