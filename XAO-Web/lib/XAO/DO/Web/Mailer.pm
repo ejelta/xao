@@ -27,6 +27,7 @@ Arguments are:
  subject     => message subject;
  [text.]path => text-only template path (required);
  html.path   => html template path;
+ date        => optional date header, passed as is
  ARG         => VALUE - passed to Page when executing templates;
 
 If 'to', 'from' or 'subject' are not specified then get_to(), get_from()
@@ -77,7 +78,7 @@ use XAO::Errors qw(XAO::DO::Web::Mailer);
 use base XAO::Objects->load(objname => 'Web::Page');
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: Mailer.pm,v 1.9 2004/03/17 07:58:19 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: Mailer.pm,v 1.10 2004/09/03 01:25:44 am Exp $ =~ /(\d+\.\d+)/);
 
 sub display ($;%) {
     my $self=shift;
@@ -156,6 +157,8 @@ sub display ($;%) {
             Subject     => $subject,
             Data        => $html,
             Type        => 'text/html',
+            Datestamp   => 0,
+            Date        => $args->{'date'} || undef,
         );
     }
     elsif($text && !$html) {
@@ -165,6 +168,8 @@ sub display ($;%) {
             To          => $to,
             Subject     => $subject,
             Data        => $text,
+            Datestamp   => 0,
+            Date        => $args->{'date'} || undef,
         );
     }
     elsif($text && $html) {
@@ -174,6 +179,8 @@ sub display ($;%) {
             To          => $to,
             Subject     => $subject,
             Type        => 'multipart/alternative',
+            Datestamp   => 0,
+            Date        => $args->{'date'} || undef,
         );
         $mailer->attach(
             Type        => 'text/html',
