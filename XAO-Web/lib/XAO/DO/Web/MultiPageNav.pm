@@ -241,7 +241,7 @@ use XAO::Errors qw(XAO::DO::Web::MultiPageNav);
 use base XAO::Objects->load(objname => 'Web::Page');
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: MultiPageNav.pm,v 1.4 2001/12/17 21:36:05 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: MultiPageNav.pm,v 1.5 2001/12/19 02:56:40 am Exp $ =~ /(\d+\.\d+)/);
 
 ###############################################################################
 # Displaying multi page navigation display
@@ -309,7 +309,7 @@ sub expand_nav {
         }
     }
     else {
-        $strt{$type} = $stop{$type} = '';
+        $strt{$type} = $stop{$type} = 0;
     }
 
     # PREVIOUS
@@ -421,7 +421,7 @@ sub expand_nav {
         }
     }
     else {
-        $strt{$type} = $stop{$type} = '';
+        $strt{$type} = $stop{$type} = 0;
     }
 
 

@@ -194,7 +194,7 @@ use base XAO::Objects->load(objname => 'Web::Action');
 ##
 # Version
 use vars qw($VERSION);
-($VERSION)=(q$Id: IdentifyUser.pm,v 1.8 2001/12/19 02:48:25 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: IdentifyUser.pm,v 1.9 2001/12/19 02:56:40 am Exp $ =~ /(\d+\.\d+)/);
 
 ###############################################################################
 
@@ -331,7 +331,6 @@ sub check {
                     # it for aesthetic reasons.
                     #
                     my $quant=int($vf_expire_time/10);
-                    dprint "quant=$quant, diff=",$current_time-$last_vf," vf_exp=$vf_expire_time";
                     if($current_time-$last_vf > $quant) {
                         $self->siteconfig->add_cookie(
                             -name    => $config->{vf_key_cookie},
