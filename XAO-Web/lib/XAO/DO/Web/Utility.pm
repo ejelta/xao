@@ -34,7 +34,7 @@ use XAO::Objects;
 use base XAO::Objects->load(objname => 'Web::Action');
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: Utility.pm,v 1.6 2002/04/01 19:30:45 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: Utility.pm,v 1.7 2002/04/10 21:24:49 am Exp $ =~ /(\d+\.\d+)/);
 
 sub check_mode ($$) {
     my $self=shift;
@@ -527,7 +527,7 @@ sub select_time_range ($%) {
                 $ct[5]++;
             }
             my $nm=mktime(@ct);
-            $end=(localtime($nm-60))[3];
+            $end=(localtime($nm-120*60))[3];
         }
         $end=int($end);
 
@@ -540,7 +540,6 @@ sub select_time_range ($%) {
                 $end=$t;
             }
             $cmp=sub {
-                dprint "Comparing $_[0] <= $end";
                 return $_[0] <= $end;
             };
             $inc=1;
@@ -552,7 +551,6 @@ sub select_time_range ($%) {
                 $end=$t;
             }
             $cmp=sub {
-                dprint "Comparing $_[0] => $end";
                 return $_[0] >= $end;
             };
             $inc=-1;

@@ -373,7 +373,8 @@ sub expand ($%) {
     if($path[-1] !~ /\.\w+$/) {
         my $pd=$self->analyze(@path,'index.html');
         if($pd->{objname} ne 'Default') {
-            my $newpath=$cgi->url(-full => 1, -path_info => 1)."/";
+            my $newpath=$siteconfig->get('base_url') . $path . '/';# cgi->url(-full => 1, -path_info => 1)."/";
+            dprint "Redirecting $path to $newpath";
             print $cgi->redirect(-url => $newpath),
                   "Document is really <A HREF=\"$newpath\">here</A>.\n";
             return;
