@@ -123,6 +123,11 @@ WriteMakefile(
 sub MY::postamble
 { <<EOT;
 
+config::	README
+
+README:	lib/XAO/Web/Intro.pod
+	pod2text lib/XAO/Web/Intro.pod > README
+
 install::
 	[ -d $homedir ] || mkdir $homedir && chmod 755 $homedir
 	\@\$(PERL) -Mblib \\
