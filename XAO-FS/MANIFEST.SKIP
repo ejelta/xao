@@ -1,6 +1,7 @@
 Makefile(\.old)?
+^\.config
 CVS/.*
-.cvsignore
+\.cvsignore
 ^blib/.*
 ^ta/.*
 pm_to_blib
