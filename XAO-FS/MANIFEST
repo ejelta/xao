@@ -23,6 +23,7 @@ lib/XAO/DO/Data/Customer.pm
 lib/XAO/DO/Data/Order.pm
 lib/XAO/DO/Data/Product.pm
 lib/XAO/DO/FS/Collection.pm
+lib/XAO/DO/FS/Config.pm
 lib/XAO/DO/FS/Global.pm
 lib/XAO/DO/FS/Glue/MySQL_DBI.pm
 lib/XAO/DO/FS/Glue.pm
@@ -36,6 +37,7 @@ mysql/typemap
 testcases/base.pm
 testcases/basic.pm
 testcases/collection.pm
+testcases/config.pm
 testcases/dictionary.pm
 testcases/fields.pm
 testcases/index.pm

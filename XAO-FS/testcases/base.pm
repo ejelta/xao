@@ -26,8 +26,13 @@ sub set_up {
                                    user => $d{test_user},
                                    password => $d{test_password},
                                    empty_database => 'confirm');
-
     $self->assert($self->{odb}, "Can't connect to the FS database");
+
+    $self->{odb_args}={
+        dsn => $d{test_dsn},
+        user => $d{test_user},
+        password => $d{test_password},
+    };
 
     my $global=$self->{odb}->fetch('/');
     $self->assert($global, "Can't fetch Global from FS database");
