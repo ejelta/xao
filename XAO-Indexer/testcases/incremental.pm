@@ -7,7 +7,12 @@ use base qw(testcases::base);
 
 sub test_incremental {
     my $self=shift;
-    my $odb=$self->{config}->odb;
+    my $odb=$self->{'config'}->odb;
+
+    ##
+    # Setting commit interval to test that it remains transparent
+    #
+    $self->{'config'}->put('/indexer/foo/commit_interval' => 789);
 
     ##
     # Checking if we have 'Compress::LZO'

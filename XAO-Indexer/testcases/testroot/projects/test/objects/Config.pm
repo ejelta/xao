@@ -12,7 +12,7 @@ sub init ($) {
 
     my $hash=XAO::SimpleHash->new();
     $hash->put(base_url => 'http://xao.com');
-    $hash->put('/indexer/max_orderings' => 5);
+    $hash->put('/indexer/common/max_orderings' => 5);
 
     my %d;
     open(F,'.config') ||

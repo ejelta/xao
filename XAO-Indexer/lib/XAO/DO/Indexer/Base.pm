@@ -65,7 +65,7 @@ sub analyze_text ($$$@) {
         my $kwlist=$self->analyze_text_split($field_num+1,$text);
         my $pos=1;
         foreach my $kw (@$kwlist) {
-            $kw_data->{count_uid}->{$unique_id}->{$kw}++;
+            $kw_data->{'count_uid'}->{$unique_id}->{$kw}++;
             if(! exists $kw_data->{ignore}->{$kw}) {
                 my $kwt=$kw_info->{lc($kw)}->{$unique_id};
                 if(! $kwt->[$field_num]) {
@@ -95,20 +95,33 @@ sub analyze_text_split ($$$) {
 
 ###############################################################################
 
-sub ignore_limit ($) {
+sub config_param ($$) {
+    my ($self,$param,$default)=@_;
+
     my $config=get_current_project();
-    my $limit;
+    my $value;
     if($config) {
-        my $self=shift;
-        my $args=get_args(\@_);
-        if($args->{index_object}) {
-            my $index_id=$args->{index_object}->container_key;
-            $limit=$config->get("/indexer/$index_id/ignore_limit");
-        }
-        $limit||=$config->get('/indexer/default/ignore_limit');
+        my $index_id=$self->{'index_id'} ||
+            throw $self "config_param - no index_id (improper creation?)";
+        $value=$config->get("/indexer/$index_id/$param");
+        $value||=$config->get("/indexer/default/$param");
     }
 
-    return $limit || 500;
+    return $value || $default;
+}
+
+###############################################################################
+
+sub ignore_limit ($) {
+    my $self=shift;
+    return $self->config_param('ignore_limit',500);
+}
+
+###############################################################################
+
+sub commit_interval ($) {
+    my $self=shift;
+    return $self->config_param('commit_interval',0);
 }
 
 ###############################################################################
@@ -339,7 +352,7 @@ sub update ($%) {
     my $self=shift;
     my $args=get_args(\@_);
 
-    my $index_object=$args->{index_object} ||
+    my $index_object=$args->{'index_object'} ||
         throw $self "update - no 'index_object'";
 
     ##
@@ -375,15 +388,25 @@ sub update ($%) {
     # Maximum number of matches for a word for it to be completely
     # ignored.
     #
-    my $ignore_limit=$self->ignore_limit($args);
+    my $ignore_limit=$self->ignore_limit;
+
+    ##
+    # Maximum number of keywords updated before a forced transaction
+    # commit. This helps to deal with otherwise huge transaction that
+    # have to be cached before being moved into binlogs for slave
+    # updates in MySQL -- it is my understanding that it will require at
+    # least tripple write, and at least one atomic huge write. Better
+    # not do that.
+    #
+    my $commit_interval=$self->commit_interval;
 
     ##
     # If that's a partial update and we don't have any IDs to update
     # we return immediately. Otherwise proceed even with empty set to
     # remove records from the index.
     #
-    my $is_partial=$cinfo->{partial};
-    my $coll_ids=$cinfo->{ids};
+    my $is_partial=$cinfo->{'partial'};
+    my $coll_ids=$cinfo->{'ids'};
     my $coll_ids_total=scalar(@$coll_ids);
     if($is_partial && !$coll_ids_total) {
         return 0;
@@ -444,6 +467,8 @@ sub update ($%) {
     my $now=time;
 
     $index_object->glue->transact_begin;
+    my $transact_count=0;
+
     my $data_list=$index_object->get('Data');
     my $max_kw_length=$data_list->get_new->describe('keyword')->{'maxlength'};
     my $ni=$ignore_list->get_new;
@@ -457,7 +482,6 @@ sub update ($%) {
     #
     my $maxlen_id=$data_list->get_new->describe('id_1')->{'maxlength'};
     my $maxlen_idpos=$data_list->get_new->describe('idpos_1')->{'maxlength'};
-    dprint ".maxlen_id=$maxlen_id maxlen_idpos=$maxlen_idpos";
 
     ##
     # As the list can potentially be huge, we go one ordering at a time,
@@ -528,6 +552,20 @@ sub update ($%) {
                 my $tstamp=time;
                 my $tstamp_end=$tstamp_start+int(($tstamp-$tstamp_start)/$count * $kw_total);
                 dprint "..$count/$kw_total (".localtime($tstamp)." - ".localtime($tstamp_end).")";
+            }
+
+            ##
+            # If it's time to commit - committing and starting a new
+            # transaction. Yes, if we fail we can end up with a
+            # partially update data, but nothing terribly bad -- it'll
+            # join fine on next update anyway and will be usable in
+            # between.
+            #
+            if($commit_interval && ++$transact_count>$commit_interval) {
+                dprint "...forced transaction commit";
+                $index_object->glue->transact_commit;
+                $index_object->glue->transact_begin;
+                $transact_count=0;
             }
 
             ##

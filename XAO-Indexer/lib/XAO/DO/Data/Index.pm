@@ -71,12 +71,12 @@ build_structure() method.
 
 The first optional argument is the number of fields to
 hold orderings. If it is not given site configuration's
-'/indexer/max_orderings' parameter is used, which defaults to 10.
+'/indexer/common/max_orderings' parameter is used, which defaults to 10.
 
 Second parameter sets the maximum size of a single keyword data chunk
 that lists all places where this word was found and their positions. The
-value is taken from '/indexer/max_kwdata_length' configuration parameter
-and defaults to 65000.
+value is taken from '/indexer/common/max_kwdata_length' configuration
+parameter and defaults to 65000.
 
 It depends highely on the type of text you index, but as a rough
 estimate, for every 1,000 allowed words you need 20,000 for the
@@ -93,12 +93,18 @@ sub data_structure ($) {
 
     if(!$max_orderings) {
         my $config=XAO::Projects::get_current_project;
-        $max_orderings=$config->get('/indexer/max_orderings') || 10;
+        $max_orderings=
+            $config->get('/indexer/common/max_orderings') ||
+            $config->get('/indexer/max_orderings') ||
+            10;
     }
 
     if(!$max_kwdata_length) {
         my $config=XAO::Projects::get_current_project;
-        $max_kwdata_length=$config->get('/indexer/max_kwdata_length') || 65000;
+        $max_kwdata_length=
+            $config->get('/indexer/common/max_kwdata_length') ||
+            $config->get('/indexer/max_kwdata_length') ||
+            65000;
     }
 
     return {
@@ -219,6 +225,9 @@ Returns corresponding indexer object, its name taken from
 
 =cut
 
+# TODO: there is something inherently wrong with all this passing around
+# of two different objects. Should be done differently. (am@, 3/21/2005)
+
 sub indexer ($$) {
     my ($self,$indexer_objname)=@_;
 
@@ -226,8 +235,11 @@ sub indexer ($$) {
 
     $indexer_objname || throw $self "init - no 'indexer_objname'";
 
-    return XAO::Objects->new(objname => $indexer_objname) ||
-        throw $self "init - can't load object '$indexer_objname'";
+    return XAO::Objects->new(
+        objname     => $indexer_objname,
+        index_id    => $self->container_key,
+        index_obj   => $self,
+    ) || throw $self "init - can't load object '$indexer_objname'";
 }
 
 ###############################################################################

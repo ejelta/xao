@@ -1,5 +1,3 @@
-Make words that were ignored available to the caller (for displaying).
-
 ----------------
 
 Need to check sorting algorithm for compliance with the problem pointed
@@ -9,5 +7,3 @@ id lists. Otherwise joining will not work properly.
 
 One possible solution is to sort all ids first and then keep that order
 in all lists that are then by definition subsets of it.
-
-

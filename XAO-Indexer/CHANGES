@@ -1,4 +1,9 @@
 1.02
+    * 3/21/2005 - added /indexer/index_id/commit_interval variable to control
+      forced periodic commit during index updates (to ease up load on
+      database mirroring in MySQL).
+    * 3/21/2005 - changed /indexer/max_orderings to
+      /indexer/common/max_orderings (old name works too for compatibility)
     * 2/17/2005 - better diagnostic when failing to store too much data
 
 1.01 - 13-Jan-2005
