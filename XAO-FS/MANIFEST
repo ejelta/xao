@@ -1,3 +1,4 @@
+CHANGES
 LICENSE
 README
 TODO
@@ -41,6 +42,7 @@ testcases/config.pm
 testcases/dictionary.pm
 testcases/fields.pm
 testcases/index.pm
+testcases/linkage.pm
 testcases/lists.pm
 testcases/placeholders.pm
 testcases/search.pm

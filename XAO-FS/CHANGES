@@ -1,0 +1,9 @@
+1.01 - 20-Nov-2001
+    * added describe method for List
+    * added embeddable Config object
+    * fixed Makefile.PL to store test db password correctly
+    * started CHANGES file
+    * additional test case for container_object method (skv@xao.com)
+
+1.1 - 2-Nov-2001
+    * Initial public release
