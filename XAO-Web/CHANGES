@@ -1,4 +1,5 @@
 1.05 -
+    * Web::Clipboard - 'set' mode
     * Web::Utility - updated UPS tracking URL
     * Web::IdentifyUser - new id_cookie_type parameter
     * Web::FS - 'search' mode now supports collections

@@ -26,19 +26,45 @@ use XAO::Errors qw(XAO::DO::Web::Clipboard);
 use base XAO::Objects->load(objname => 'Web::Action');
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: Clipboard.pm,v 1.3 2002/05/19 20:00:01 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: Clipboard.pm,v 1.4 2003/10/02 03:51:05 am Exp $ =~ /(\d+\.\d+)/);
 
 sub check_mode ($$) {
     my $self = shift;
     my $args = get_args(\@_);
     my $mode = $args->{mode} || 'show';
 
-    if ($mode eq 'show') {
+    if ($mode eq 'set') {
+        $self->clipboard_set($args);
+    }
+    elsif ($mode eq 'show') {
         $self->clipboard_show($args);
     }
     else {
         throw XAO::E::DO::Web::Clipboard "check_mode - unknown mode '$mode'";
     }
+}
+
+###############################################################################
+
+=item 'set' => clipboard_set (%)
+
+Sets a value in the clipboard. Example:
+
+ <%Clipboard mode='set' name='foo' value='bar'%>
+
+If there is no 'value' argument it puts 'undef' into the clipboard, but
+does not remove the named record.
+
+=cut
+
+sub clipboard_set ($%) {
+    my $self = shift;
+    my $args = get_args(\@_);
+
+    my $name=$args->{name} ||
+        throw XAO::E::DO::Web::Clipboard "clipboard_set - no 'name' given";
+
+    $self->clipboard->put($name => $args->{value});
 }
 
 ###############################################################################
