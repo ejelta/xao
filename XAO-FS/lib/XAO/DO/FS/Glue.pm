@@ -50,7 +50,7 @@ use XAO::Objects;
 use base XAO::Objects->load(objname => 'Atom');
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: Glue.pm,v 1.19 2002/09/10 20:13:34 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: Glue.pm,v 1.20 2002/09/10 20:20:40 am Exp $ =~ /(\d+\.\d+)/);
 
 ###############################################################################
 
@@ -992,7 +992,7 @@ sub _build_search_query ($%) {
     my $wrapped;
     my $glue=$self->_glue;
     my %rev_classes;
-    foreach my $cn (reverse sort keys %classes) {
+    foreach my $cn (keys %classes) {
         my $ci=$classes{$cn};
         if(ref($ci)) {
             delete $ci->{max};
