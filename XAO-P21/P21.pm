@@ -186,13 +186,126 @@ sub avail {
 
 =item catalog
 
-Returns full catalog items list. See "items" for data layout and attributes order.
+Returns full catalog items list. By default, if no 'callback' function
+is provided it will return a reference to an array of hash references:
+
+ item_code      => item code
+ prod_group     => category
+ sales_group    => sales schedule referencing sell_schd table
+ vend_number    => secondary key for sales schedule matching
+ pkg_size       => package size
+ sales_unit     => sales unit
+ sku            => stock keeping unit
+ desc1          => description line 1
+ desc2          => description line 2
+ upc            => UPC
+ cat_page       => product flags
+ list_price     => list price
+ col1_price     => column 1 price
+ col2_price     => column 1 price
+ col3_price     => column 1 price
+ alt_units      => array of alternative units if any, each
+                   one in NAME/SIZE format
 
 =cut  
 
 sub catalog {
     my ($self, $callback) = @_;
-    $self->items($callback, 'catalog');
+    $self->call( sub {
+        my ($item_code, $prod_group, $sales_group, $vend_number,
+            $pkg_size, $sales_unit,
+            $sku, $desc1, $desc2, $upc, $cat_page,
+            $list_price, $col1_price, $col2_price, $col3_price,
+            @alt_units) = split /\t/, $_[0];
+        return {
+            item_code   => $item_code,
+            prod_group  => $prod_group,
+            sales_group => $sales_group,
+            vend_number => $vend_number,
+            pkg_size    => $pkg_size,
+            sales_unit  => $sales_unit,
+            sku         => $sku,
+            desc1       => $desc1,
+            desc2       => $desc2,
+            upc         => $upc,
+            cat_page    => $cat_page,
+            list_price  => $list_price,
+            col1_price  => $col1_price,
+            col2_price  => $col2_price,
+            col3_price  => $col3_price,
+            alt_units   => \@alt_units,
+        };
+    }, $callback, 'catalog');
+}
+
+###############################################################################
+
+=item cust_item
+
+Returns custom priced items in an array of hashes:
+
+  cust_code     => 
+  item_code     => 
+  sales_price   => 
+
+=cut  
+
+sub cust_item {
+    my $self=shift;
+    my $args=get_args(\@_);
+
+    my $callback=$args->{callback};
+
+    my $build=$args->{build} || sub {
+        my %row;
+        @row{qw(cust_code item_code sales_price)}=split('\t',$_[0]);
+        return \%row;
+    };
+
+    $self->call($build,$callback,'cust_item');
+}
+
+###############################################################################
+
+=item sell_schd
+
+Returns sell_schd dump:
+
+  disc_group                => code referenced by 'sales_group'
+  vend_number               => vendor number from catalog or '' for default
+  disc_basis_disp           => PIECE or COL1
+  disc_code_disp            => COL1 or LIST or PRICE
+  disc_type_disp            => MULT
+  break_1 .. break_8        => break levels
+  discount_1 .. discount_8  => break values
+
+=cut  
+
+sub sell_schd {
+    my $self=shift;
+    my $args=get_args(\@_);
+
+    my $callback=$args->{callback};
+
+    my $build=$args->{build} || sub {
+        my ($group,$vendor,$basis,$code,$type,$breaks,$discounts)=split('\t',$_[0]);
+        my @b=split(/\//,$breaks);
+        my @d=split(/\//,$discounts);
+        my %row=(
+            disc_group      => $group,
+            vend_number     => $vendor,
+            disc_basis_disp => $basis,
+            disc_code_disp  => $code,
+            disc_type_disp  => $type,
+        );
+        for(my $i=1; $i<=8; $i++) {
+            $row{"break_$i"}=$b[$i-1] || 0;
+            $row{"discount_$i"}=$d[$i-1] || 0;
+        }
+        return \%row;
+    };
+
+    $self->call($build,$callback,'sell_schd');
 }
 
 ###############################################################################
