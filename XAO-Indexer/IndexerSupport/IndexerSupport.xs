@@ -311,6 +311,8 @@ sorted_intersection_go(U8 list_num, U32 **lists, U32 *sizes) {
 
 MODULE = XAO::IndexerSupport		PACKAGE = XAO::IndexerSupport
 
+PROTOTYPES: ENABLE
+
  # Gets sorted array that is to be used in templated sorting of its
  # subsets later on.
  #
@@ -372,7 +374,7 @@ SV*
 sorted_intersection_do(av_ref)
         SV* av_ref;
     INIT:
-        AV*     av=SvRV(av_ref);
+        AV*     av=(AV*)SvRV(av_ref);
         U8      avl=av_len(av)+1;
         U8      i;
         U32*    lists[MAX_ISECT];

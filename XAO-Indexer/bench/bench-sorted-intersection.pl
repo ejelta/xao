@@ -12,7 +12,7 @@ my @saved_argv=@ARGV;
 my $full_count=10000;
 my $part_count=5000;
 my $word_count=5;
-my $run_count=100;
+my $run_count=300;
 my $no_sysinfo;
 my $with_perl;
 GetOptions(
@@ -50,6 +50,8 @@ if(!$no_sysinfo) {
     system '/bin/cat /proc/cpuinfo';
     print "============= uname -a\n";
     system '/bin/uname -a';
+    print "============= uptime\n";
+    system '/usr/bin/uptime';
     print "============= args\n";
     print "$0 ",join(' ',@saved_argv),"\n";
     print "full-count $full_count\n";
