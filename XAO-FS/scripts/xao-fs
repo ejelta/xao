@@ -7,7 +7,7 @@ xao-fs - XAO::FS database tool
 
 =head1 SYNOPSIS
 
-odb-tool --dsn=OS:MySQL_DBI:testdb [options] command [arguments]
+xao-fs --dsn=OS:MySQL_DBI:testdb [options] command [arguments]
 
  Options:
 
@@ -42,7 +42,7 @@ irrevocably drop huge lists instantly without any questions asked.
 
 Example:
 
- odb-tool --dsn=DBI:mysql:testdb -u user -p pass drop /People/jsilver
+ xao-fs --dsn=DBI:mysql:testdb -u user -p pass drop /People/jsilver
 
 =item init
 
@@ -51,7 +51,7 @@ minimal database in its place. B<Use with extreme care!>
 
 Example:
 
- odb-tool --dsn=DBI:mysql:testdb -u user -p pass init
+ xao-fs --dsn=DBI:mysql:testdb -u user -p pass init
 
 =head1 AUTHOR
 

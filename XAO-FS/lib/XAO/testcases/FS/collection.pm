@@ -7,6 +7,85 @@ use XAO::Objects;
 use base qw(XAO::testcases::FS::base);
 
 ##
+#  my $ingredients = $odb->collection('class' => 'Data::Ingredient') ;
+#  my $result = $ingredients->search(
+#                                    { orderby => ['ascend' => 'name'],
+#                                      distinct => 'name' }
+#                                    ) ;
+# 
+# ... doesn't seem to work correctly.  It returns a list containing a
+# large list of identical keys, like:
+# 
+# [ 5589, 5589, 5589, 5589 ... ]
+#
+sub test_bild_20030611_distinct {
+    my $self=shift;
+    my $odb=$self->get_odb;
+
+    my $c1=$odb->fetch('/Customers/c1');
+    $c1->build_structure(
+        Orders => {
+            type        => 'list',
+            class       => 'Data::Order',
+            key         => 'order_id',
+            structure   => {
+                name => {
+                    type        => 'text',
+                    maxlength   => 100,
+                }
+            },
+        },
+    );
+
+    my $orders1=$c1->get('Orders');
+    my $orders2=$odb->fetch('/Customers/c2/Orders');
+
+    my $nc=$orders1->get_new;
+    $nc->put(name => 'test1');
+    $orders1->put(test1_1_1 => $nc);
+    $orders1->put(test1_2_1 => $nc);
+    $orders1->put(test1_3_1 => $nc);
+    $orders2->put(test1_1_2 => $nc);
+    $orders2->put(test1_2_2 => $nc);
+    $nc->put(name => 'test2');
+    $orders1->put(test2_1_1 => $nc);
+    $orders1->put(test2_2_1 => $nc);
+    $orders1->put(test2_3_1 => $nc);
+    $orders2->put(test2_1_2 => $nc);
+    $orders2->put(test2_2_2 => $nc);
+    $nc->put(name => 'test3');
+    $orders1->put(test3_1_1 => $nc);
+    $nc->put(name => 'test4');
+    $orders2->put(test4_1_2 => $nc);
+
+    my $coll=$odb->collection(class => 'Data::Order');
+
+    my $sr=$coll->search({ orderby => [ ascend => 'name' ],
+                           distinct => 'name'
+                         });
+    my $t1c=0;
+    my $t2c=0;
+    my $t3c=0;
+    my $t4c=0;
+    foreach my $id (@$sr) {
+        my $cust_id=$coll->get($id)->container_key;
+        $t1c++ if $cust_id =~ /test1_/;
+        $t2c++ if $cust_id =~ /test2_/;
+        $t3c++ if $cust_id =~ /test3_/;
+        $t4c++ if $cust_id =~ /test4_/;
+        dprint "$id $cust_id";
+    }
+    $self->assert($t1c == 1,
+                  "Expected one occurance of test1, got $t1c");
+    $self->assert($t2c == 1,
+                  "Expected one occurance of test2, got $t2c");
+    $self->assert($t3c == 1,
+                  "Expected one occurance of test3, got $t3c");
+    $self->assert($t4c == 1,
+                  "Expected one occurance of test4, got $t4c");
+}
+
+##
 # This is a testcase for a bug reported by Bil on 12/17/2002. It allows
 # collection to get some sort of read-only clone object by passing array
 # reference to collection get() method. Should throw an error instead!

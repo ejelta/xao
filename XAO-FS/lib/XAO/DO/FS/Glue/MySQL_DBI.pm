@@ -31,7 +31,7 @@ use XAO::Objects;
 use base XAO::Objects->load(objname => 'FS::Glue::SQL_DBI');
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: MySQL_DBI.pm,v 1.19 2003/05/06 01:52:50 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: MySQL_DBI.pm,v 1.20 2003/06/12 22:34:00 am Exp $ =~ /(\d+\.\d+)/);
 
 ###############################################################################
 
@@ -271,9 +271,9 @@ fields.
 
 =cut
 
-sub add_table ($$$$) {
+sub add_table ($$$$$) {
     my $self=shift;
-    my ($table,$key,$connector)=@_;
+    my ($table,$key,$key_length,$connector)=@_;
     $key.='_';
     $connector.='_' if $connector;
 
@@ -283,7 +283,7 @@ sub add_table ($$$$) {
 
     my $sql="CREATE TABLE $table (" . 
             " unique_id INT UNSIGNED AUTO_INCREMENT NOT NULL PRIMARY KEY," .
-            " $key CHAR(30) NOT NULL," .
+            " $key CHAR($key_length) NOT NULL," .
             " INDEX $key($key)" .
             (defined($connector) ? ", $connector INT UNSIGNED NOT NULL" .
                                    ", INDEX $connector($connector)"
@@ -629,6 +629,7 @@ sub load_structure ($) {
                 refers      => $refers,
                 key_format  => $key_format,
                 key_unique_id => $uid,
+                key_length  => $maxlength,
             };
         }
         elsif($type eq 'connector') {

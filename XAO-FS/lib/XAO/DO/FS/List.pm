@@ -33,7 +33,7 @@ use XAO::Objects;
 use base XAO::Objects->load(objname => 'FS::Glue');
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: List.pm,v 1.14 2003/04/18 01:23:05 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: List.pm,v 1.15 2003/06/12 22:34:00 am Exp $ =~ /(\d+\.\d+)/);
 
 ###############################################################################
 
@@ -54,7 +54,7 @@ sub check_name ($$) {
     my $name=shift;
     return (defined($name) &&
            $name =~ /^[a-z0-9_]+$/i &&
-           length($name)<=30);
+           length($name)<=$self->key_length);
 }
 
 ###############################################################################
@@ -252,6 +252,19 @@ from.
 =cut
 
 # Implemented in Glue
+
+###############################################################################
+
+=item key_length
+
+Returns key length for the given list. Default is 30.
+
+=cut
+
+sub key_length ($) {
+    my $self=shift;
+    return $$self->{key_length} || 30;
+}
 
 ###############################################################################
 

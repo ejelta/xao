@@ -6,6 +6,58 @@ use Error qw(:try);
 
 use base qw(XAO::testcases::FS::base);
 
+sub test_key_length {
+    my $self=shift;
+
+    my $odb=$self->get_odb();
+
+    my $customer=$odb->fetch('/Customers/c1');
+    $self->assert(ref($customer),
+                  "Can't fetch /Customers/c1");
+
+    $customer->add_placeholder(
+        name        => 'Orders',
+        type        => 'list',
+        class       => 'Data::Order',
+        key         => 'order_id',
+        key_length  => 40,
+    );
+
+    my $orders=$customer->get('Orders');
+    my $no=$orders->get_new;
+
+    my $kl=$no->describe('order_id')->{key_length};
+    $self->assert($kl == 40,
+                  "Got wrong key length, method 1");
+
+    $kl=$orders->key_length;
+    $self->assert($kl == 40,
+                  "Got wrong key length, method 2");
+
+    $no->add_placeholder(
+        name        => 'name',
+        type        => 'text',
+        maxlength   => 10,
+    );
+
+    my $k1=('Z' x 35) . '11';
+    my $k2=('Z' x 35) . '22';
+
+    $no->put(name => 'k1');
+    $orders->put($k1 => $no);
+
+    $no->put(name => 'k2');
+    $orders->put($k2 => $no);
+
+    my $v1=$orders->get($k1)->get('name');
+    my $v2=$orders->get($k2)->get('name');
+
+    $self->assert($v1 eq 'k1',
+                  "Expected 'k1', got '$v1'");
+    $self->assert($v2 eq 'k2',
+                  "Expected 'k2', got '$v2'");
+}
+
 sub test_same_field_name {
     my $self=shift;
 

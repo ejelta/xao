@@ -1,3 +1,9 @@
+If transactions are supported - reverse the order of action in creating
+placeholder - create a record in Global_Fields first, then add fields
+and roll-back if unsuccessful.
+
+===============
+
 BUG (am, 3/31/2003): If we're searching on:
 
  [ 'Sub/name','cs','test' ],
@@ -26,7 +32,7 @@ limit on how many connections to read servers to keep/cycle through.
 
 ===============
 
-Multivalue put.
+(DONE) Multivalue put.
 
 ===============
 

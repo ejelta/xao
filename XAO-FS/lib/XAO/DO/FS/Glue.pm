@@ -50,7 +50,7 @@ use XAO::Objects;
 use base XAO::Objects->load(objname => 'Atom');
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: Glue.pm,v 1.30 2003/06/06 18:44:39 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: Glue.pm,v 1.31 2003/06/12 22:34:00 am Exp $ =~ /(\d+\.\d+)/);
 
 ###############################################################################
 
@@ -1690,6 +1690,7 @@ sub _list_setup ($) {
 
     my $kdesc=$$self->{class_description}->{fields}->{$$self->{key_name}};
     $$self->{key_format}=$kdesc->{key_format};
+    $$self->{key_length}=$kdesc->{key_length} || 30;
     $$self->{key_unique_id}=$kdesc->{key_unique_id};
 }
 
@@ -1920,6 +1921,10 @@ sub _add_list_placeholder ($%) {
         throw $self "_add_list_placeholder - key_format must include either <\$RANDOM\$> or <\$AUTOINC\$> ($key_format)";
     }
 
+    my $key_length=$args->{key_length} || 30;
+    $key_length < 255 ||
+        throw $self "_add_list_placeholder - key_length ($key_length) must be less then 255";
+
     XAO::Objects->load(objname => $class);
 
     my $table=$args->{table};
@@ -1942,22 +1947,23 @@ sub _add_list_placeholder ($%) {
                 throw $self "_add_list_placeholder - such table ($table) is already used";
         }
 
-        $driver->add_table($table,$key,$connector);
+        $driver->add_table($table,$key,$key_length,$connector);
 
         $$glue->{classes}->{$class}={
             table => $table,
             fields => {
                 $key => {
-                    type => 'key',
-                    refers => $self->objname,
-                    key_format => $key_format,
+                    type        => 'key',
+                    refers      => $self->objname,
+                    key_format  => $key_format,
+                    key_length  => $key_length,
                 }
             }
         };
         if(defined($connector)) {
             $$glue->{classes}->{$class}->{fields}->{$connector}={
-                type => 'connector',
-                refers => $self->objname,
+                type        => 'connector',
+                refers      => $self->objname,
             }
         }
 
@@ -1976,6 +1982,7 @@ sub _add_list_placeholder ($%) {
                          refers     => $self->objname,
                          key_format => $key_format,
                          key_seq    => 1,
+                         maxlength  => $key_length,
                        });
     $driver->store_row('Global_Fields',
                        'field_name',$connector,

@@ -1,4 +1,5 @@
 1.05 -
+    * a bug in MySQL_DBI treatment of 'distinct' option fixed
     * transact_*() methods and driver support for InnoDB
     * glue() method added to all Hash, List and Collection
     * Hash::collection_key() method added

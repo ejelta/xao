@@ -75,6 +75,9 @@ DESCRIPTION
         Returns the Glue object which was used to retrieve the current
         object from.
 
+    key_length
+        Returns key length for the given list. Default is 30.
+
     keys ()
         Returns unsorted list of all keys for all objects stored in that
         list.
