@@ -42,7 +42,7 @@ use vars qw(@ISA @EXPORT_OK @EXPORT $VERSION);
 @EXPORT_OK=qw(xao_test_all xao_test);
 @EXPORT=();
 
-($VERSION)=(q$Id: TestUtils.pm,v 1.2 2003/03/22 01:40:33 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: TestUtils.pm,v 1.3 2003/06/12 18:25:06 am Exp $ =~ /(\d+\.\d+)/);
 
 ###############################################################################
 
@@ -174,7 +174,7 @@ XAO::Utils::set_debug(1);
 
 my \$r=Test::Unit::TestRunner->new();
 \$r->start('$test');
-print "\n";
+print "\\n";
 #### GENERATED AUTOMATICALLY, DO NOT EDIT ####
 EOT
         close(F);
