@@ -105,8 +105,8 @@ foreach my $n (keys %{ExtUtils::Manifest::maniread()}) {
 }
 
 WriteMakefile(
-    'AUTHOR'        => 'XAO Inc. http://xao.com/',
-    'ABSTRACT'      => 'XAO Indexer',
+    'AUTHOR'        => 'Andrew Maltsev, http://ejelta.com/xao/',
+    'ABSTRACT'      => 'Fast full text search indexer for XAO::FS',
     'NAME'          => 'XAO::Indexer',
     'VERSION_FROM'	=> 'Indexer.pm',
     'PREREQ_PM'     => { 
@@ -127,6 +127,6 @@ sub MY::postamble
 config::    README
 
 README:     Indexer.pm
-	pod2text Indexer.pm > README
+	\@COLUMNS=80 pod2text Indexer.pm > README
 EOT
 }

@@ -1,5 +1,5 @@
 NAME
-    XAO::Indexer -- Data indexing for XAO::FS
+    XAO::Indexer -- Full text data indexing for XAO::FS
 
 SYNOPSIS
      my $keywords=$cgi->param('keywords');
@@ -8,9 +8,14 @@ SYNOPSIS
 
 DESCRIPTION
     XAO Indexer allows to build an optimised external index to collections
-    of data stored in a XAO Foundation Server database and then perform
-    keyword based searches.
+    of data stored in a XAO::FS database and then perform keyword based
+    searches.
 
+    It is being used with great success on collection of millions of records
+    on some sites, probably most notably on <http://ISBNdb.com/> where it
+    powers all the searches.
+
+PROBLEM & SOLUTION
     Searches are limited to just keywords, but allow to find many keywords
     in a specific sequence or just many keywords that belong to a specific
     collection, but could be in different properties of different objects.
@@ -23,12 +28,12 @@ DESCRIPTION
      ( (property2 match keyword1) and (property2 match keyword2) ) or
      ( (property2 match keyword1) and (property1 match keyword2) )
 
-    With bigger number of keywords and properties the expression becomes to
+    With bigger number of keywords and properties the expression becomes too
     big to be efficiently handled by SQL server and in some cases probably
     to be even parsed normally by an SQL server.
 
     In addition, such keyword searches are not optimised in SQL databases
-    usually and involve full table scans.
+    usually and frequently involve full table scans.
 
     XAO Indexer solves this problem by pre-building a specially formatted
     index table that has results for specific keywords. As an additional
@@ -74,9 +79,11 @@ DESCRIPTION
         debugging purposes mainly.
 
 AUTHORS
-    Copyright (c) 2003 XAO Inc.
+    Copyright (c) 2005 Andrew Maltsev
 
-    Andrew Maltsev <am@xao.com>
+    Copyright (c) 2003-2004 Andrew Maltsev, XAO Inc.
+
+    <am@ejelta.com> -- http://ejelta.com/xao/
 
 SEE ALSO
     Recommended reading: XAO::DO::Data::Index, XAO::DO::Indexer::Base,

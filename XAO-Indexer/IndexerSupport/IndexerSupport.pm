@@ -28,7 +28,7 @@ use vars qw(@ISA $VERSION);
 
 @ISA = qw(DynaLoader);
 
-($VERSION)=(q$Id: IndexerSupport.pm,v 1.4 2004/09/21 22:54:42 am Exp $ =~ /(\d+\.\d+)/);
+$VERSION=(0+sprintf('%u.%03u',(q$Id: IndexerSupport.pm,v 1.5 2005/01/14 02:56:42 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
 
 bootstrap XAO::IndexerSupport $VERSION;
 

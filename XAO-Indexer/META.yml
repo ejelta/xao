@@ -1,0 +1,15 @@
+# http://module-build.sourceforge.net/META-spec.html
+#XXXXXXX This is a prototype!!!  It will change in the future!!! XXXXX#
+name:         XAO-Indexer
+version:      1.01
+version_from: Indexer.pm
+installdirs:  site
+requires:
+    Error:                         0.14
+    Pod::Usage:                    1.12
+    Test::Unit:                    0.14
+    XAO::Base:                     1.04
+    XAO::FS:                       1.05
+
+distribution_type: module
+generated_by: ExtUtils::MakeMaker version 6.17
