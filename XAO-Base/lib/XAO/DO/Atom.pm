@@ -33,7 +33,7 @@ use XAO::Utils;
 use XAO::Errors;
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: Atom.pm,v 1.1 2002/02/12 03:46:00 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: Atom.pm,v 1.2 2002/03/06 02:09:59 am Exp $ =~ /(\d+\.\d+)/);
 
 ###############################################################################
 
@@ -78,7 +78,13 @@ sub throw ($@) {
     my $self=shift;
     my $text=join('',@_);
 
-    my $class=$self->{objname} ? 'XAO::DO::' . $self->{objname} : ref($self);
+    my $class;
+    if(eval { $self->{objname} } && !$@) {
+        $class='XAO::DO' . $self->{objname};
+    }
+    else {
+        $class=ref($self);
+    }
 
     XAO::Errors->throw_by_class($class,$text);
 }
