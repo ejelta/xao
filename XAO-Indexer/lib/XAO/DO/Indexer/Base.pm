@@ -263,28 +263,7 @@ sub search ($%) {
     ##
     # Joining all results together
     #
-    my $base;
-    ($base,@results)=sort { scalar(@$a) <=> scalar(@$b) } @results;
-    my @cursors;
-    my @final;
-    BASE_ID:
-    foreach my $id (@$base) {
-        RESULT:
-        for(my $i=0; $i<@results; $i++) {
-            my $rdata=$results[$i];
-            my $j=$cursors[$i] || 0;
-            for(; $j<@$rdata; $j++) {
-                if($id == $rdata->[$j]) {
-                    $cursors[$i]=$j;
-                    next RESULT;
-                }
-            }
-            next BASE_ID;
-        }
-        push(@final,$id);
-    }
-
-    return \@final;
+    return XAO::IndexerSupport::sorted_intersection(@results);
 }
 
 ###############################################################################
@@ -491,37 +470,6 @@ sub update ($%) {
     # Sorting and storing
     #
     dprint "Sorting and storing..";
-
-=pod
-
-I think the best idea is to create sorted lists of uniqueids for each
-ordering (complete lists of ids, not partial). And then have a C routine
-sort a subset using that master list. We should probably cache lists in
-case another partial index update is coming our way.
-
--------
-
-Another idea is to try and place the partial list of ids into the fully
-sorted list. That is, for each keyword we retrieve existing IDs anyway,
-so we sort our subset, take first -- take one in the middle and
-determine if it's above or below. And so on. If we do that taking ids
-from bottom and from top it should be relatively speedy.
-
-Depends on the fact, that the ordering is fully determined -- there is
-no "equal" state possible. Two pairs are always "greater" or "lesser",
-and consistently so.
-
--------------
-
-Second variant will probably be easier on the database AND allows to
-remove ids that do not exist any more from the database.
-
-On the other hand, second requires more storage to compare strings
-and/or some complicated caching solution. May be the first way is
-better. Going with it.
-
-=cut
-
     my $now=time;
 
     $index_object->glue->transact_begin;
@@ -730,7 +678,7 @@ better. Going with it.
     #
     dprint "Deleting older records..";
     if($is_partial) {
-        dprint "TODO - no deletion implementation yet for partials!";
+        dprint ".no deletion implementation yet for partials!";
     }
     else {
         my $sr=$data_list->search('create_time','ne',$now);

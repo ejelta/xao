@@ -20,6 +20,7 @@ This is a very specific module used by XAO::Indexer internally.
 package XAO::IndexerSupport;
 require 5.005;
 use strict;
+use XAO::Utils;
 
 require DynaLoader;
 
@@ -27,9 +28,68 @@ use vars qw(@ISA $VERSION);
 
 @ISA = qw(DynaLoader);
 
-($VERSION)=(q$Id: IndexerSupport.pm,v 1.1 2004/02/26 02:52:45 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: IndexerSupport.pm,v 1.2 2004/02/29 20:02:18 am Exp $ =~ /(\d+\.\d+)/);
 
 bootstrap XAO::IndexerSupport $VERSION;
+
+###############################################################################
+
+=item sorted_intersection
+
+C-optimized variant of finding the intersection of multiple arrays
+sorted in the same way (all being sub-sets of some master sorted
+set). Used when finding multiple words search results.
+
+=cut
+
+sub sorted_intersection (@) {
+    return [ ] if !@_;
+    return $_[0] if @_==1;
+    my @packed=map { pack('L*',@$_) } @_;
+    my $res=sorted_intersection_do(\@packed);
+    return [ unpack('L*',$res) ];
+}
+
+###############################################################################
+
+=item sorted_intersection_perl
+
+Pure-perl variant of finding the intersection of multiple arrays sorted
+in the same way (all being sub-sets of some master sorted set). Used
+when finding multiple words search results.
+
+Not used except for benchmarking.
+
+=cut
+
+sub sorted_intersection_perl (@) {
+    my ($base,@results)=sort { scalar(@$a) <=> scalar(@$b) } @_;
+
+    if(!@results) {
+        return $base;
+    }
+
+    my @cursors;
+    my @final;
+    BASE_ID:
+    foreach my $id (@$base) {
+        RESULT:
+        for(my $i=0; $i<@results; $i++) {
+            my $rdata=$results[$i];
+            my $j=$cursors[$i] || 0;
+            for(; $j<@$rdata; $j++) {
+                if($id == $rdata->[$j]) {
+                    $cursors[$i]=$j;
+                    next RESULT;
+                }
+            }
+            next BASE_ID;
+        }
+        push(@final,$id);
+    }
+
+    return \@final;
+}
 
 ###############################################################################
 
@@ -91,7 +151,7 @@ memory if the distribution is random.
 
 sub template_sort_prepare ($) {
     my $aref=shift;
-    XAO::IndexerSupport::template_sort_prepare_do(pack('L*',@$aref));
+    template_sort_prepare_do(pack('L*',@$aref));
 }
 
 ###############################################################################
@@ -119,7 +179,7 @@ random order.
 sub template_sort ($) {
     my $aref=shift;
     my $part=pack('L*',@$aref);
-    XAO::IndexerSupport::template_sort_do($part);
+    template_sort_do($part);
     return [ unpack('L*',$part) ];
 }
 
