@@ -50,7 +50,7 @@ use XAO::Objects;
 use base XAO::Objects->load(objname => 'Atom');
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: Glue.pm,v 1.26 2003/03/22 01:44:15 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: Glue.pm,v 1.27 2003/04/18 01:23:05 am Exp $ =~ /(\d+\.\d+)/);
 
 ###############################################################################
 
@@ -571,7 +571,10 @@ Returns list of values for either Hash or List.
 
 sub values ($) {
     my $self=shift;
-    $self->get($self->keys());
+    my @k=$self->keys;
+    eprint ref($self)."values - more then 100 keys, change algorithm to scanning"
+        if scalar(@k) > 100;
+    $self->get(@k);
 }
 
 ###############################################################################
@@ -1038,7 +1041,6 @@ following structure, not a string:
  values       => array of values to be substituted into the SQL query
  classes      => hash with all classes and their aliases
  fields_list  => list of all fiels names
- tables_list  => list of all tables, their aliases and class names
  fields_map   => hash with the map of 'condition field name' => 'sql name'
  distinct     => list of fields to be unique
  order_by     => list of fields to sort on
@@ -1061,6 +1063,7 @@ sub _build_search_query ($%) {
     # name into classes.
     #
     my $condition=$args->{conditions};
+    ### dprint "CONDITION: ",Dumper($condition);
     my %classes;
     my @values;
     my %fields_map;
@@ -1077,8 +1080,7 @@ sub _build_search_query ($%) {
         $clause='';
         my $class_name=$$self->{class_name} ||
             $self->throw("_build_search_query - no 'class_name', not a List or Collection?");
-        $classes{index}='a';
-        $classes{$class_name}=$classes{index}++;
+        $self->_build_search_field_class(\%classes,$class_name,1,"",1);
     }
 
     ##
@@ -1088,6 +1090,7 @@ sub _build_search_query ($%) {
     my @distinct;
     my @orderby;
     my $options=$args->{options};
+    my $debug;
     if($options) {
         foreach my $option (keys %$options) {
             if(lc($option) eq 'distinct') {
@@ -1130,6 +1133,17 @@ sub _build_search_query ($%) {
             elsif(lc($option) eq 'limit') {
                 # pass through, handled in the driver
             }
+            elsif(lc($option) eq 'index') {
+                my $fn=$options->{$option};
+                my ($sqlfn,$fdesc,$class_name,$class_tag)=
+                    $self->_build_search_field(\%classes,$fn);
+                $classes{center_class}=$class_name;
+                $classes{center_tag}=$class_tag;
+                $classes{center_weight}=1000;
+            }
+            elsif(lc($option) eq 'debug') {
+                $debug=$options->{$option};
+            }
             else {
                 $self->throw("_build_search_query - unknown option '$option'");
             }
@@ -1145,78 +1159,126 @@ sub _build_search_query ($%) {
     }
 
     ##
+    # Adding key name into fields we need.
+    #
+    my $key=$args->{key} ||
+        $self->throw("_build_search_query - no 'key' given");
+    my ($key_field)=$self->_build_search_field(\%classes,$key);
+
+    ##
+    # Removing unused top of the tree
+    #
+    my $top_class=$classes{top_class};
+    my $top_tag=$classes{top_tag};
+    my $up=$classes{up};
+    while(1) {
+        last if $up->{$top_class}->{$top_tag}->{name};
+        my $count=0;
+        my $ntc;
+        my $ntt;
+        foreach my $cin (keys %$up) {
+            foreach my $tin (keys %{$up->{$cin}}) {
+                if($up->{$cin}->{$tin}->{class} eq $top_class) {
+                    if(!$count) {
+                        $ntc=$cin;
+                        $ntt=$tin;
+                    }
+                    $count++;
+                }
+            }
+            last if $count>1;
+        }
+        last if $count>1;
+        delete $up->{$top_class};
+        $top_class=$classes{top_class}=$ntc;
+        $top_tag=$classes{top_tag}=$ntt;
+        $up->{$top_class}->{$top_tag}->{class}='';
+    }
+
+    ##
+    # Adding names to tables that are left in the tree but are not
+    # referred by any fields and therefore did not yet get their names.
+    #
+    foreach my $cin (keys %$up) {
+        foreach my $tin (keys %{$up->{$cin}}) {
+            if(!$up->{$cin}->{$tin}->{name}) {
+                my $ci=$classes{index}++;
+                $up->{$cin}->{$tin}->{name}=$ci;
+                $classes{names}->{$ci}={
+                    class       => $cin,
+                    tag         => $tin,
+                    weight      => 0,
+                    table       => $self->_class_description($cin)->{table},
+                };
+            }
+        }
+    }
+
+    ##
     # Translating classes into table names and adding glue to join
     # tables together into the clause.
     #
-    my @tables_list;
-    delete $classes{index};
-    my $previous;
-    my $wrapped;
+    # We link up tables that are above our center point and then link
+    # down the rest. This takes care of all tables in correct order. SQL
+    # engine can of course reverse or alter the order, but generally
+    # this should be pretty optimal way of joining.
+    #
+    my ($cc,$ct)=@classes{'center_class','center_tag'};
+    my $wrapped=$clause && substr($clause,0,1) eq '(';
     my $glue=$self->_glue;
-    my %rev_classes;
-    foreach my $cn (keys %classes) {
-        my $ci=$classes{$cn};
-        if(ref($ci)) {
-            delete $ci->{max};
-            foreach my $i (CORE::values %$ci) {
-                $rev_classes{$i}=$cn;
-            }
+    while(1) {
+        my ($uc,$ut,$cn)=@{$up->{$cc}->{$ct}}{'class','tag','name'};
+        last unless $uc;
+        if(!$wrapped) {
+            $clause="($clause)" if $clause;
+            $wrapped=1;
         }
-        else {
-            $rev_classes{$ci}=$cn;
+        my $conn=$glue->_connector_name($cc,$uc);
+        if($conn) {
+            $conn=$self->_driver->mangle_field_name($conn);
+            my $un=$up->{$uc}->{$ut}->{name};
+            $clause.=" AND " if $clause;
+            $clause.="$un.unique_id=$cn.$conn";
         }
+        $up->{$cc}->{$ct}->{done}=1;
+        $cc=$uc;
+        $ct=$ut;
     }
-    foreach my $ci (sort keys %rev_classes) {
-        my $cn=$rev_classes{$ci};
-        my $desc=$self->_class_description($cn);
-        my $table=$desc->{table};
-        my $item={ table => $table,
-                   class => $cn,
-                   index => $ci,
-                 };
-        push(@tables_list,$item);
-
-        if($previous) {
+    foreach my $cc (keys %$up) {
+        foreach my $ct (keys %{$up->{$cc}}) {
+            my ($uc,$ut,$cn,$d)=@{$up->{$cc}->{$ct}}{'class','tag','name','done'};
+            next unless $uc && !$d;
             if(!$wrapped) {
                 $clause="($clause)" if $clause;
                 $wrapped=1;
             }
 
-            my $upper_class=$glue->upper_class($cn);
-            my $conn=$glue->_connector_name($cn,$upper_class);
-            if($conn) {
-                $conn=$ci . '.' . $self->_driver->mangle_field_name($conn);
 
+            my $conn=$glue->_connector_name($cc,$uc);
+            if($conn) {
+                $conn=$self->_driver->mangle_field_name($conn);
+                my $un=$up->{$uc}->{$ut}->{name};
                 $clause.=" AND " if $clause;
-                $clause.="$classes{$upper_class}.unique_id=$conn";
+                $clause.="$cn.$conn=$un.unique_id";
             }
         }
-        $previous=1;
     }
 
     ##
-    # Adding key name into fields we need. Forming an array of field
-    # names with key guaranteed to be the first.
+    # Moving key to the first position in the list of fields
     #
-    my $key=$args->{key} || $self->throw("_build_search_query - no 'key' given");
-    if($key ne 'unique_id') {
-        ($key)=$self->_build_search_field(\%classes,$key);
-    }
-    else {
-        my $class_alias=$tables_list[0]->{index};
-        $key=$class_alias . '.' . $key;
-    }
-    delete $return_fields{$key};
-    my @fields_list=($key, keys %return_fields);
+    delete $return_fields{$key_field};
+    my @fields_list=($key_field, keys %return_fields);
     undef %return_fields;
 
     ##
     # Composing SQL query out of data we have.
     #
+    my $c_names=$classes{names};
     my $sql='SELECT ';
     $sql.=join(',',@fields_list) .
           ' FROM ' .
-          join(',',map { $_->{table} . ' AS ' . $_->{index} } @tables_list);
+          join(',',map { $c_names->{$_}->{table} . ' AS ' . $_ } keys %{$c_names});
     $sql.=' WHERE ' . $clause if $clause;
 
     ##
@@ -1230,7 +1292,7 @@ sub _build_search_query ($%) {
     if(@distinct) {
         $sql.=' GROUP BY ' . join(',',@distinct);
     }
-    elsif(@fields_list>1 || @tables_list>1) {
+    elsif(@fields_list>1 || scalar(keys %$c_names)>1) {
         $sql.=' GROUP BY ' . join(',',$fields_list[0]);
     }
 
@@ -1247,6 +1309,7 @@ sub _build_search_query ($%) {
     }
 
     ### dprint "SQL: $sql";
+    print STDERR "SEARCH SQL: $sql\n" if $debug;
 
     ##
     # Returning resulting hash
@@ -1258,7 +1321,6 @@ sub _build_search_query ($%) {
         classes => \%classes,
         fields_list => \@fields_list,
         fields_map => \%fields_map,
-        tables_list => \@tables_list,
         distinct => \@distinct,
         order_by => \@orderby,
         post_process => $post_process,
@@ -1282,125 +1344,176 @@ sub _build_search_field ($$$) {
     my $self=shift;
     my $classes=shift;
     my $lha=shift;
+    my $glue=$self->_glue;
 
-    my $class_name=$$self->{class_name} ||
-        $self->throw("_build_search_field - no 'class_name', not a List or Collection?");
+    my $up=$classes->{up};
+    $up=$classes->{up}={} unless $up;
 
-    $classes->{$class_name}=$classes->{index}++ unless $classes->{$class_name};
+    ##
+    # Optimizing stupid things like 'D/../E' into 'E'
+    #
+    $lha=$1.$2 while $lha=~/^(.*\/)?\w.*?\/\.\.\/(.*)$/;
 
-    my $class_index;
-
-    my $desc=$$self->{class_description};
+    ##
+    # Splitting field name into parts if it looks like path either
+    # absolute or relative. Real field name is the last element, popping
+    # it back into $lha.
+    #
     my @path=split(/\/+/,$lha);
     $lha=pop @path;
+
+    my $class_name;
+    my $class_tag=1;
+    if(@path && $path[0] eq '') {
+        $class_name='FS::Global';
+        shift @path;
+    }
+    else {
+        $class_name=$$self->{class_name} ||
+            $self->throw("_build_search_field - no 'class_name', not a List or Collection?");
+        while(@path && $path[0] eq '..') {
+            $class_name=$glue->upper_class($class_name) ||
+                throw $self "_build_search_field - no upper class for $class_name";
+            shift @path;
+        }
+    }
+
+    $self->_build_search_field_class($classes,$class_name,$class_tag,"",1);
+
+    my $class_desc=$self->_class_description($class_name);
+
     for(my $i=0; $i!=@path; $i++) {
         my $n=$path[$i];
 
-        my $fd=$desc->{fields}->{$n} ||
+        my $fd=$class_desc->{fields}->{$n} ||
             $self->throw("_build_search_field - unknown field '$n' in $lha");
         $fd->{type} eq 'list' ||
             $self->throw("_build_search_field - '$n' is not a list in $lha");
-        $class_name=$fd->{class};
-        $desc=$self->_class_description($class_name);
+        my $n_class=$fd->{class};
 
-        my $tag=$i+1==@path ? '' : $path[$i+1];
-        if($tag eq '*' || $tag=~/^\d+$/) {
+        my $n_tag=$i+1==@path ? '' : $path[$i+1];
+        if($n_tag eq '*') {
             $i++;
-
-            ##
-            # XXX - To fix this we need a lot of changes in the code, we
-            # need no single name based table dependency, but some sort
-            # of dependencies stack for each final field. Would be nice
-            # to have though!
-            #
-            $i+1==@path ||
-                throw $self "_build_search_field - modifiers supported on last element only !TODO! (".join('/',@path,$lha).")";
+            $classes->{tag_index}||='ta';
+            $n_tag=$classes->{tag_index}++;
+        }
+        elsif($n_tag=~/^\d+$/) {
+            $i++;
+        }
+        else {
+            $n_tag=1;
         }
 
-        if($tag eq '') {
-            if(exists $classes->{$class_name}) {
-                $class_index=$classes->{$class_name};
-                if(ref($class_index)) {
-                    $class_index=$class_index->{999} ||
-                                 $class_index->{$class_index->{max}} ||
-                        throw $self "_build_search_field - OOPS, can't find class index ($class_name,$lha)";
-                }
-            }
-            else {
-                $classes->{$class_name}=$classes->{index}++;
-            }
-        }
-        elsif($tag eq '*') {
-            $class_index=$classes->{index}++;
-            if(exists $classes->{$class_name}) {
-                my $d=$classes->{$class_name};
-                if(ref($d)) {
-                    my $m=$d->{max}+1;
-                    $d->{$m}=$class_index;
-                    $d->{max}=$m;
-                }
-                else {
-                    $d={
-                        max => 1000,
-                        999 => $d,
-                        1000 => $class_index,
-                    };
-                }
-                $classes->{$class_name}=$d;
-            }
-            else {
-                $classes->{$class_name}={
-                    max => 1000,
-                    1000 => $class_index,
-                };
-            }
-        }
-        elsif($tag =~ /^\d+$/) {
-            if(exists $classes->{$class_name}) {
-                my $d=$classes->{$class_name};
-                if(ref($d)) {
-                    if(exists $d->{$tag}) {
-                        $class_index=$d->{tag};
-                    }
-                    else {
-                        $class_index=$classes->{index}++;
-                        $d->{$tag}=$class_index;
-                        $d->{max}=$tag if $tag>$d->{max};
-                    }
-                }
-                else {
-                    $class_index=$classes->{index}++;
-                    $d={
-                        $tag    => $class_index,
-                        999     => $d,
-                        max     => $tag>999 ? $tag : 999,
-                    };
-                }
-                $classes->{$class_name}=$d;
-            }
-            else {
-                $class_index=$classes->{index}++;
-                $classes->{$class_name}={
-                    max => $tag,
-                    $tag => $class_index,
-                };
-            }
-        }
+        $self->_build_search_field_class($classes,$n_class,$n_tag,
+                                                  $class_name,$class_tag);
+        $class_name=$n_class;
+        $class_tag=$n_tag;
+        $class_desc=$self->_class_description($class_name);
     }
 
-    my $field_desc=$desc->{fields}->{$lha} ||
-        $self->throw("_build_search_field - unknown field '$lha'");
-
+    my $class_index=$up->{$class_name}->{$class_tag}->{name};
     if(!$class_index) {
-        my $ci=$classes->{$class_name};
-        $class_index=ref($ci) ? ($ci->{999} || $ci->{$ci->{max}}) : $ci;
-        $class_index ||
-            throw $self "_build_search_field - OOPS, can't get class_index ($class_name, $lha)";
+        $classes->{index}||='a';
+        $class_index=$classes->{index}++;
+        $up->{$class_name}->{$class_tag}->{name}=$class_index;
+        $classes->{names}->{$class_index}={
+            class       => $class_name,
+            tag         => $class_tag,
+            weight      => 0,
+            table       => $class_desc->{table},
+        };
     }
 
-    $lha=$class_index . '.' . $self->_driver->mangle_field_name($lha);
+    ##
+    # Special condition for 'unique_id' field names
+    #
+    my $field_desc=$lha eq 'unique_id' ? {} : $class_desc->{fields}->{$lha};
+    $field_desc || $self->throw("_build_search_field - unknown field '$lha'");
 
-    ($lha,$field_desc);
+    ##
+    # Counting number of fields using that table, index have more weight
+    # and unique index even more. If not overriden in options that is
+    # going to be out center table.
+    #
+    my $inc=$field_desc->{unique} ? 20 : ($field_desc->{index} ? 10 : 1);
+    my $weight=$classes->{names}->{$class_index}->{weight}+=$inc;
+    if(!$classes->{center_weight} || $classes->{center_weight}<$weight) {
+        $classes->{center_weight}=$weight;
+        $classes->{center_class}=$class_name;
+        $classes->{center_tag}=$class_tag;
+    }
+
+    ##
+    # We don't need to mangle field name if it's a unique_id field
+    #
+    if($lha eq 'unique_id') {
+        $lha=$class_index . '.' . $lha;
+    }
+    else {
+        $lha=$class_index . '.' . $self->_driver->mangle_field_name($lha);
+    }
+
+    return ($lha,$field_desc,$class_name,$class_tag);
+}
+
+###############################################################################
+
+sub _build_search_field_class ($$$$$$) {
+    my ($self,$classes,$n_class,$n_tag,$p_class,$p_tag)=@_;
+
+    my $up=$classes->{up};
+
+    if(!$p_class && (!$up->{$n_class} || !$up->{$n_class}->{$n_tag})) {
+        if(!$classes->{top_class}) {
+            $classes->{top_class}=$n_class;
+            $classes->{top_tag}=$n_tag;
+        }
+        elsif($classes->{top_class} ne $n_class) {
+            my $uc=$classes->{top_class};
+            while($uc ne $n_class) {
+                $uc=$self->_glue->upper_class($uc);
+                last unless $uc;
+                $up->{$uc}->{1}={
+                    class   => '',
+                    tag     => 1,
+                };
+                my ($ctc,$ctt)=@{$classes}{'top_class','top_tag'};
+                @{$up->{$ctc}->{$ctt}}{'class','tag'}=($uc,1);
+                @{$classes}{'top_class','top_tag'}=($uc,$uc eq $n_class ? $n_tag : 1);
+            }
+            if(!$uc) {
+                $uc=$n_class;
+                my $ut=$n_tag;
+                while(1) {
+                    if(!$up->{$uc} || !$up->{$uc}->{$ut}) {
+                        $up->{$uc}->{$ut}={
+                            class   => $self->_glue->upper_class($uc),
+                            tag     => 1,
+                        };
+                        $uc=$up->{$uc}->{$ut}->{class};
+                        $ut=1;
+                    }
+                    last if $up->{$uc}->{$ut};
+                }
+            }
+        }
+        elsif($classes->{top_tag} ne $n_tag) {
+            my $uc=$classes->{top_class};
+            $uc=$self->_glue->upper_class($uc) ||
+                throw $self "_build_search_field_class - no upper class for $uc";
+            $up->{$uc}->{1}={
+                class   => '',
+                tag     => 1,
+            };
+        }
+    }
+
+    return if $up->{$n_class} && $up->{$n_class}->{$n_tag};
+
+    $up->{$n_class}->{$n_tag}={
+        class => $p_class,
+        tag   => $p_tag,
+    };
 }
 
 ###############################################################################
@@ -1419,11 +1532,6 @@ sub _build_search_clause ($$$$$$) {
     my $fields_map=shift;
     my $post_process=shift;
     my $condition=shift;
-
-    ##
-    # Initial index for classes is 'a'
-    #
-    $classes->{index}='a' unless $classes->{index};
 
     ##
     # Checking if the condition has exactly three elements
@@ -1466,7 +1574,6 @@ sub _build_search_clause ($$$$$$) {
                                             $fields_map,
                                             $post_process,
                                             $rha);
-
 
         my $clause;
         if($op eq 'or' || $op eq '||') {
@@ -1527,6 +1634,9 @@ sub _build_search_clause ($$$$$$) {
     elsif($op eq 'cs') {
         $clause="$field LIKE '" . '%' . $rha_escaped . '%' . "'";
     }
+    elsif($op eq 'sw') {
+        $clause="$field LIKE '" . $rha_escaped . '%' . "'";
+    }
     elsif($op eq 'ws') {
         my $tf;
         ($clause,$tf)=$self->_driver->search_clause_ws($field,$rha,$rha_escaped);
@@ -1550,10 +1660,10 @@ sub _build_search_clause ($$$$$$) {
         }
     }
     else {
-        $self->throw("_build_search_clause - unknown operator '$op'");
+        throw $self "_build_search_clause - unknown operator '$op'";
     }
 
-    $clause;
+    return $clause;
 }
 
 ###############################################################################

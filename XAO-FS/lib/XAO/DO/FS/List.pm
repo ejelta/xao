@@ -33,7 +33,7 @@ use XAO::Objects;
 use base XAO::Objects->load(objname => 'FS::Glue');
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: List.pm,v 1.13 2003/03/14 02:50:20 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: List.pm,v 1.14 2003/04/18 01:23:05 am Exp $ =~ /(\d+\.\d+)/);
 
 ###############################################################################
 
@@ -406,7 +406,7 @@ translated to the same database query:
                      'or',
                      [ 'name', 'wq', 'ugly' ]);
 
-It is possible to search on properties of some objects inner to the
+It is possible to search on properties of some objects related to the
 objects in the list. Let's say you have a list with specification values
 inside of a product. To search for products having specific value in
 their specification you would then do:
@@ -414,6 +414,59 @@ their specification you would then do:
  my $r=$list->search(['Specification/name', 'eq', 'Width'],
                      'and',
                      ['Specification/value', 'eq', '123']);
+
+You are not limited to object down the tree, you can search on object up
+the tree as well. Obviously this is mostly useful for collection objects
+because otherwise there is a single object on top and search turns into
+boolean yes/no ordeal.
+
+Example:
+
+ my $r=$invoices->search([ '/Customers/name', 'cs', 'John' ],
+                         'and',
+                         [ '../gross_premium', 'lt', 1000 ]);
+
+Sometimes it might be necessary to check is a pair of objects inside of
+some container have specific properties. This can be achieved with
+instance specificators:
+
+ my $r=$products->search([ [ 'Spec/1/name', 'eq', 'Width' ],
+                           'and',
+                           [ 'Spec/1/value', 'eq', '123' ],
+                         ],
+                         'and',
+                         [ [ 'Spec/2/name', 'eq', 'Height' ],
+                           'and',
+                           [ 'Spec/2/value', 'eq', '345' ],
+                         ]);
+
+Numbers 1 and 2 here suggest that first name/value pair must be checked
+on the same object, while the second - on another. Numbers do not have
+any meaning by themselves - 1 and 2 can be substituted with 234 and 345
+without changing effect in any way. Some very complex criteria can
+be expressed this way and in most cases execution by the underlying
+database layer will be quite optimal as no postprocessing is usually
+required.
+
+Another example is to use asterisk which means "assume a new instance
+every time". This can be useful if we want to find an object which
+container contains a couple of objects each satisfying some simple
+criteria. For instance, to find an imaginary person profile that has
+both sound and image attached:
+
+ my $r=$profiles->search([ 'Files/*/mime_type', 'sw', 'image/' ],
+                         'and',
+                         [ 'Files/*/mime_type', 'sw', 'audio/' ]);
+
+In theory bizarre cases like this should work as well, although no good
+example of real life usage comes to mind:
+
+ my $r=$list->search([ '../../A/1/B/2/C/name', 'cs', 't1' ],
+                     'and',
+                     [ '/X/A/2/B/1/C/desc', 'eq', 't2' ]);
+
+See also 'index' option below for a way to suggest a most effective
+index.
 
 This can be extended as deep as you want. See also collection()
 method on Glue and L<XAO::DO::FS::Collection> for
@@ -456,10 +509,19 @@ True if less.
 
 True if not equal.
 
+=item sw
+
+True if property starts with the given string. For example ['name',
+'sw', 'mar'] will match 'Marie Ann', but will not match 'Ann Marie'.
+
+In most databases (MySQL included) this type of search is optimized
+using indexes if they are available. Consider making the field indexable
+if you plan to perform this type of search frequently.
+
 =item wq
 
 True if property contains the given word completely. For example
-['name', 'wq', 'ann'] would math 'Ann Peters' and 'Marie Ann', but
+['name', 'wq', 'ann'] would match 'Ann Peters' and 'Marie Ann', but
 would not match 'Annette'.
 
 For best performance please make this kind of search only on fields of
@@ -551,6 +613,33 @@ field. Example:
                                     'distinct' => 'color'
                                 }); 
 
+=item debug
+
+Turns on debug messages in the underlying driver. Messages will be
+printed to standard error stream and their content depends on the
+specific driver. Usually that would be a fully prepared SQL query just
+before sending it to the SQL engine.
+
+=item index
+
+Accepts one argument -- a field name (or a path to a field) that should
+be used as an index. Normally you do not need to use this option as
+in most cases underlying driver/database will make a right decision
+automatically. This might make sense together with 'debug' option and
+manual checking of specific queries performance.
+
+Example which might make sense if you know for sure that restriction by
+image will significantly reduce number of hits, while ages range leaves
+too many matches open for checks.
+
+ my $r=$list->search([ [ 'age', 'gt', 10 ],
+                       'and',
+                       [ 'age', 'lt', 60 ],
+                     ],
+                     'and',
+                     [ 'Files/mime_type', 'sw', 'image/' ],
+                     { index => 'Files/mime_type' });
+
 =item limit
 
 Indicates that you are only interested in some limited number of results
@@ -565,6 +654,8 @@ underlying database does not support this feature.
                             });
 
 =item result
+
+Note: [Not completely implemented yet]
 
 Be default search() method returns a reference to an array of object
 keys. Result options allows you to alter that behavior.

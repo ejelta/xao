@@ -203,6 +203,24 @@ timethese($count, {
 });
 
 $i1=$i2=$i3=0;
+timethese($count/4, {
+    transact => sub {
+        $list1->glue->transact_begin;
+        $list1->put(++$i1 => $list1_obj);
+        my $newl2=$list1->get($i1)->get('List2');
+        $newl2->put(++$i2 => $list2_obj);
+        my $newl3=$newl2->get($i2)->get('List3');
+        $newl3->put(++$i3 => $list3_obj);
+        my $newl3o=$newl3->get($i3);
+        $newl3o->put(int3 => 123123123);
+        $newl3o->put(int3_255 => 123);
+        $newl3o->put(str3_100 => 'x' x 50);
+        $newl3o->put(str3_10000 => 'x' x 5000);
+        $list1->glue->transact_commit;
+    },
+});
+
+$i1=$i2=$i3=0;
 timethese($count, {
     rd_l1_v => sub {
         my $obj=$list1->get(++$i1);

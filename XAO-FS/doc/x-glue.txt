@@ -280,7 +280,6 @@ PUBLIC METHODS
          values       => array of values to be substituted into the SQL query
          classes      => hash with all classes and their aliases
          fields_list  => list of all fiels names
-         tables_list  => list of all tables, their aliases and class names
          fields_map   => hash with the map of 'condition field name' => 'sql name'
          distinct     => list of fields to be unique
          order_by     => list of fields to sort on

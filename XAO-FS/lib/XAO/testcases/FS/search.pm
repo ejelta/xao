@@ -5,6 +5,489 @@ use XAO::Objects;
 
 use base qw(XAO::testcases::FS::base);
 
+sub test_real_deep {
+    my $self=shift;
+
+    my $odb=$self->get_odb();
+
+    @XAO::DO::Data::A::ISA='XAO::DO::FS::Hash';
+    $INC{'XAO/DO/Data/A.pm'}='XAO/DO/FS/Hash.pm';
+    @XAO::DO::Data::B::ISA='XAO::DO::FS::Hash';
+    $INC{'XAO/DO/Data/B.pm'}='XAO/DO/FS/Hash.pm';
+    @XAO::DO::Data::C::ISA='XAO::DO::FS::Hash';
+    $INC{'XAO/DO/Data/C.pm'}='XAO/DO/FS/Hash.pm';
+    @XAO::DO::Data::D::ISA='XAO::DO::FS::Hash';
+    $INC{'XAO/DO/Data/D.pm'}='XAO/DO/FS/Hash.pm';
+    @XAO::DO::Data::E::ISA='XAO::DO::FS::Hash';
+    $INC{'XAO/DO/Data/E.pm'}='XAO/DO/FS/Hash.pm';
+    @XAO::DO::Data::F::ISA='XAO::DO::FS::Hash';
+    $INC{'XAO/DO/Data/F.pm'}='XAO/DO/FS/Hash.pm';
+    @XAO::DO::Data::G::ISA='XAO::DO::FS::Hash';
+    $INC{'XAO/DO/Data/G.pm'}='XAO/DO/FS/Hash.pm';
+    @XAO::DO::Data::X::ISA='XAO::DO::FS::Hash';
+    $INC{'XAO/DO/Data/X.pm'}='XAO/DO/FS/Hash.pm';
+
+    dprint "Building structure";
+
+    $odb->fetch('/')->build_structure(
+        X => {
+            type        => 'list',
+            class       => 'Data::X',
+            key         => 'x_id',
+            structure   => {
+                A => {
+                    type        => 'list',
+                    class       => 'Data::A',
+                    key         => 'a_id',
+                    structure   => {
+                        B => {
+                            type        => 'list',
+                            class       => 'Data::B',
+                            key         => 'b_id',
+                            structure   => {
+                                C => {
+                                    type        => 'list',
+                                    class       => 'Data::C',
+                                    key         => 'c_id',
+                                    structure   => {
+                                        name => {
+                                            type        => 'text',
+                                            maxlength   => 50,
+                                        },
+                                        desc => {
+                                            type        => 'text',
+                                            maxlength   => 300,
+                                        },
+                                    },
+                                },
+                                name => {
+                                    type        => 'text',
+                                    maxlength   => 50,
+                                },
+                                desc => {
+                                    type        => 'text',
+                                    maxlength   => 300,
+                                },
+                            },
+                        },
+                        name => {
+                            type        => 'text',
+                            maxlength   => 50,
+                            index       => 1,
+                        },
+                        desc => {
+                            type        => 'text',
+                            maxlength   => 300,
+                        },
+                    },
+                },
+                D => {
+                    type        => 'list',
+                    class       => 'Data::D',
+                    key         => 'd_id',
+                    structure   => {
+                        E => {
+                            type        => 'list',
+                            class       => 'Data::E',
+                            key         => 'e_id',
+                            structure   => {
+                                name => {
+                                    type        => 'text',
+                                    maxlength   => 50,
+                                },
+                                desc => {
+                                    type        => 'text',
+                                    maxlength   => 300,
+                                },
+                            },
+                        },
+                        name => {
+                            type        => 'text',
+                            maxlength   => 50,
+                            index       => 1,
+                            unique      => 1,
+                        },
+                        desc => {
+                            type        => 'text',
+                            maxlength   => 300,
+                        },
+                    },
+                },
+                F => {
+                    type        => 'list',
+                    class       => 'Data::F',
+                    key         => 'f_id',
+                    structure   => {
+                        G => {
+                            type        => 'list',
+                            class       => 'Data::G',
+                            key         => 'g_id',
+                            structure   => {
+                                name => {
+                                    type        => 'text',
+                                    maxlength   => 50,
+                                },
+                                desc => {
+                                    type        => 'text',
+                                    maxlength   => 300,
+                                },
+                            },
+                        },
+                        name => {
+                            type        => 'text',
+                            maxlength   => 50,
+                        },
+                        desc => {
+                            type        => 'text',
+                            maxlength   => 300,
+                        },
+                    },
+                },
+                name => {
+                    type        => 'text',
+                    maxlength   => 50,
+                },
+                desc => {
+                    type        => 'text',
+                    maxlength   => 300,
+                },
+            },
+        },
+    );
+
+    dprint "Structure done, filling up..";
+    srand(876543);
+    my @wordlist=qw(qwe wer ert rty tyu yui uio iop op[ p[] []\
+                    asdf sdfg dfgh fghj ghjk hjkl jkl; kl;'
+                    zxcvb xcvbn cvbnm vbnm bnm. nm./
+                    qwerty wertyu ertui adsfa awerq adf qtwt ljl
+                    qwer qw);
+    my $rname=sub {
+        my $name='';
+        for(1..5) {
+            $name.=' ' if $name;
+            $name.=$wordlist[rand(@wordlist)];
+        }
+        return substr($name,0,50);
+    };
+    my $rdesc=sub {
+        my $name='';
+        for(1..20) {
+            $name.=' ' if $name;
+            $name.=$wordlist[rand(@wordlist)];
+        }
+        return substr($name,0,300);
+    };
+
+    my $xlist=$odb->fetch('/X');
+    my $xnew=$xlist->get_new;
+    my $on='a001';
+    for(1..5) {
+        $xnew->put(
+            name    => &$rname,
+            desc    => &$rdesc,
+        );
+        my $xid=$on++;
+        $xlist->put($xid => $xnew);
+        ## dprint ".xid=$xid";
+        my $xobj=$xlist->get($xid);
+        my $alist=$xobj->get('A');
+        my $anew=$alist->get_new;
+        for(1..5) {
+            $anew->put(
+                name    => &$rname,
+                desc    => &$rdesc,
+            );
+            my $aid=$on++;
+            $alist->put($aid => $anew);
+            ## dprint "..aid=$aid";
+            my $aobj=$alist->get($aid);
+            my $blist=$aobj->get('B');
+            my $bnew=$blist->get_new;
+            for(1..5) {
+                $bnew->put(
+                    name    => &$rname,
+                    desc    => &$rdesc,
+                );
+                my $bid=$on++;
+                $blist->put($bid => $bnew);
+                ## dprint "...bid=$bid";
+                my $bobj=$blist->get($bid);
+                my $clist=$bobj->get('C');
+                my $cnew=$clist->get_new;
+                for(1..5) {
+                    $cnew->put(
+                        name    => &$rname,
+                        desc    => &$rdesc,
+                    );
+                    my $cid=$on++;
+                    $clist->put($cid => $cnew);
+                    ## dprint "....cid=$cid";
+                    my $cobj=$clist->get($cid);
+                }
+            }
+        }
+        my $dlist=$xobj->get('D');
+        my $dnew=$dlist->get_new;
+        for(1..5) {
+            $dnew->put(
+                name    => &$rname,
+                desc    => &$rdesc,
+            );
+            my $did=$on++;
+            $dlist->put($did => $dnew);
+            ## dprint "..did=$did";
+            my $dobj=$dlist->get($did);
+            my $elist=$dobj->get('E');
+            my $enew=$elist->get_new;
+            for(1..5) {
+                $enew->put(
+                    name    => &$rname,
+                    desc    => &$rdesc,
+                );
+                my $eid=$on++;
+                $elist->put($eid => $enew);
+                ## dprint "...eid=$eid";
+            }
+        }
+        my $flist=$xobj->get('F');
+        my $fnew=$flist->get_new;
+        for(1..5) {
+            $fnew->put(
+                name    => &$rname,
+                desc    => &$rdesc,
+            );
+            my $fid=$on++;
+            $flist->put($fid => $fnew);
+            ## dprint "..fid=$fid";
+            my $fobj=$flist->get($fid);
+            my $glist=$fobj->get('G');
+            my $gnew=$glist->get_new;
+            for(1..5) {
+                $gnew->put(
+                    name    => &$rname,
+                    desc    => &$rdesc,
+                );
+                my $gid=$on++;
+                $glist->put($gid => $gnew);
+                ## dprint "...gid=$gid";
+            }
+        }
+    }
+    dprint "Done building test data set, starting tests..";
+
+    my %matrix=(
+        t1 => {
+            args    => [
+                [ 'name', 'wq', 'qwerty' ],
+                'and',
+                [ 'desc', 'wq', 'qwerty' ],
+            ],
+            class   => 'Data::B',
+            result  => '105,13,21,27,3,41,43,75,9',
+            sort    => 1,
+        },
+        t2 => {
+            args    => [
+                [ 'name', 'wq', 'qwerty' ],
+                'and',
+                [ 'desc', 'wq', 'qwerty' ],
+                { orderby => 'C/name' },
+            ],
+            class   => 'Data::B',
+            result  => '9,13,21,41,43,3,27,75,105',
+        },
+        t3 => {
+            args    => [
+                [ 'C/name', 'sw', 'q' ],
+                'and',
+                [ '../desc', 'sw', 'w' ],
+                { orderby => '/X/A/B/name' },
+            ],
+            class   => 'Data::B',
+            result  => '108,33,106,109',
+        },
+        t3_1 => {
+            args    => [
+                [ 'C/name', 'sw', 'q' ],
+                'and',
+                [ '../desc', 'sw', 'w' ],
+                { orderby => '/X/A/B/name',
+                  index   => '../../A/name',
+                },
+            ],
+            class   => 'Data::B',
+            result  => '108,33,106,109',
+        },
+        t3_2 => {
+            args    => [
+                [ 'C/name', 'sw', 'q' ],
+                'and',
+                [ '../desc', 'sw', 'w' ],
+                { orderby => 'C/../name',
+                  index   => '../B/C/name',
+                },
+            ],
+            class   => 'Data::B',
+            result  => '108,33,106,109',
+        },
+        t4 => {
+            args    => [
+                [ [ '/X/F/G/name','sw','a' ],
+                  'or',
+                  [ '../../D/E/name','sw','b' ],
+                ],
+                'and',
+                [ 'C/desc', 'sw', 'qwerty' ],
+            ],
+            class   => 'Data::B',
+            result  => '100,109,2,27,30,71,80,84,90,91',
+            sort    => 1,
+        },
+        t4_1 => {
+            args    => [
+                [ [ '/X/F/G/name','sw','a' ],
+                  'or',
+                  [ '../../D/E/name','sw','b' ],
+                ],
+                'and',
+                [ 'C/desc', 'sw', 'qwerty' ],
+            ],
+            uri     => '/X/a001/A/a002/B',
+            result  => 'a009',
+            sort    => 1,
+        },
+        t4_2 => {
+            args    => [
+                [ [ '/X/F/G/name','sw','a' ],
+                  'or',
+                  [ '../../D/E/name','sw','b' ],
+                ],
+                'and',
+                [ 'C/desc', 'sw', 'qwerty' ],
+                { index => '/X/name',
+                  orderby => [ descend => '/X/A/B/name' ],
+                }
+            ],
+            uri     => '/X/a217/A/a218/B',
+            result  => 'a243,a225',
+        },
+        t5 => {
+            args    => [
+                [ '/project','cs','new' ],
+            ],
+            uri     => '/X/a217/A/a218/B',
+            result  => 'a219,a225,a231,a237,a243',
+            sort    => 1,
+        },
+        t5_1 => {
+            args    => [
+                [ '/project','eq','new' ],
+            ],
+            uri     => '/X/a217/A/a218/B',
+            result  => '',
+            sort    => 1,
+        },
+        t6 => {
+            args    => [
+                [ '/project','cs','new' ],
+                { orderby   => 'name',
+                  limit     => 10,
+                },
+            ],
+            class   => 'Data::E',
+            result  => '14,57,23,90,103,33,105,22,80,27',
+        },
+        t6_1 => {
+            args    => [
+                [ '/project','cs','new' ],
+                { orderby   => 'name',
+                  limit     => 10,
+                  index     => '/X/D/name',
+                },
+            ],
+            class   => 'Data::E',
+            result  => '14,57,23,90,103,33,105,22,80,27',
+        },
+        t7 => {
+            args    => [
+                [ 'B/*/C/*/name', 'sw', 'e' ],
+                'and',
+                [ 'B/*/C/*/name', 'sw', 'r' ],
+            ],
+            class   => 'Data::A',
+            result  => '1,10,11,13,15,16,17,23,5,6,9',
+            sort    => 1,
+        },
+        t7_1 => {
+            args    => [
+                [ 'B/*/C/1/name', 'sw', 'e' ],
+                'and',
+                [ 'B/*/C/1/name', 'sw', 'r' ],
+            ],
+            class   => 'Data::A',
+            result  => '',
+            sort    => 1,
+        },
+        t7_2 => {
+            args    => [
+                [ 'B/1/C/*/name', 'sw', 'er' ],
+                'and',
+                [ 'B/1/C/*/name', 'sw', 'rt' ],
+            ],
+            class   => 'Data::A',
+            result  => '11,15,23',
+            sort    => 1,
+        },
+        t7_3 => {
+            args    => [
+                [ 'B/C/*/name', 'sw', 'er' ],
+                'and',
+                [ 'B/C/*/name', 'sw', 'rt' ],
+            ],
+            class   => 'Data::A',
+            result  => '11,15,23',
+            sort    => 1,
+        },
+        t7_4 => {
+            args    => [
+                [ 'B/C/1/name', 'sw', 'er' ],
+                'and',
+                [ 'B/C/2/name', 'sw', 'rt' ],
+            ],
+            class   => 'Data::A',
+            result  => '11,15,23',
+            sort    => 1,
+        },
+        t7_5 => {
+            args    => [
+                [ 'B/3/C/1/name', 'sw', 'er' ],
+                'and',
+                [ 'B/3/C/1/name', 'sw', 'rt' ],
+            ],
+            class   => 'Data::A',
+            result  => '',
+            sort    => 1,
+        },
+    );
+
+    foreach my $test_id (sort keys %matrix) {
+        my $test_data=$matrix{$test_id};
+        my $list;
+        if($test_data->{class}) {
+            $list=$odb->collection(class => $test_data->{class});
+        }
+        else {
+            $list=$odb->fetch($test_data->{uri});
+        }
+        my $sr=$list->search(@{$test_data->{args}});
+        my $got=join(",",$test_data->{sort} ? (sort @$sr) : @$sr);
+        my $expect=$test_data->{result};
+        $self->assert($got eq $expect,
+                      "Test '$test_id' is wrong: got='$got', expect='$expect'");
+    }
+}
+
 sub test_search {
     my $self=shift;
 
