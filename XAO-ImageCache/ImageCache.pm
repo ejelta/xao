@@ -57,7 +57,7 @@ use File::Copy;
 # Package version
 #
 
-($VERSION)=(q$Id: ImageCache.pm,v 1.4 2002/06/18 01:36:33 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: ImageCache.pm,v 1.5 2002/11/07 21:32:15 am Exp $ =~ /(\d+\.\d+)/);
 
 sub DESTROY {
     my $self = shift;
@@ -496,28 +496,33 @@ sub download ($$) {
             }
         }
 
-        # Now checking if the source file we have is newer then what's in
-        # the cache and updating the cache in that case.
-        #
-        my $mtime_cache=(stat($img_cache_file))[9];
-        if($mtime_cache < $mtime_src) {
-            if($self->{size}) {
-                $self->resize($img_src_file, $img_cache_file);
-            }
-            else {
-                copy($img_src_file, $img_cache_file);
-            }
-        }
-
-        # Create thumbnail from the image source file if necessary
-        #
-        if($thm_cache_file && !$thm_src_url) {
-            $mtime_cache=(stat($thm_cache_file))[9];
+        if($img_src_file) {
+            # Now checking if the source file we have is newer then what's in
+            # the cache and updating the cache in that case.
+            #
+            my $mtime_cache=(stat($img_cache_file))[9];
             if($mtime_cache < $mtime_src) {
-                $self->thumbnail($img_src_file, $thm_cache_file);
+                if($self->{size}) {
+                    $self->resize($img_src_file, $img_cache_file);
+                }
+                else {
+                    copy($img_src_file, $img_cache_file);
+                }
+            }
+
+            # Create thumbnail from the image source file if necessary
+            #
+            if($thm_cache_file && !$thm_src_url) {
+                $mtime_cache=(stat($thm_cache_file))[9];
+                if($mtime_cache < $mtime_src) {
+                    $self->thumbnail($img_src_file, $thm_cache_file);
+                }
             }
         }
     }
+
+    $img_fnm='' unless $img_src_file;
+    $thm_fnm='' unless $thm_src_file;
 
     return ($img_fnm, $thm_fnm);
 }
