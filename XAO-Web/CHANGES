@@ -1,3 +1,7 @@
+1.06 -
+    * Web::MultiPageNav passes its arguments down to its templates
+    * Web::Redirect supports 'permanent' option
+
 1.05 - 12-Nov-2003
     * Web::FS - allow orderby on deep fields like 'Cont/value'
     * Web::Clipboard - 'set' mode
