@@ -64,8 +64,10 @@ use strict;
 use XAO::Utils;
 use XAO::Objects;
 
-use vars qw(@ISA);
-@ISA=XAO::Objects->load(objname => 'FS::Glue');
+use base XAO::Objects->load(objname => 'FS::Glue');
+
+use vars qw($VERSION);
+($VERSION)=(q$Id: Hash.pm,v 1.3 2002/01/04 01:41:27 am Exp $ =~ /(\d+\.\d+)/);
 
 ###############################################################################
 
