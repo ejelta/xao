@@ -105,21 +105,22 @@ sub items {
     $self->call( sub {
         my ($item_code, $prod_group, $pkg_size, $sales_unit,
             $sku, $list_price, $alt_ut_name, $alt_ut_size,
-            $desc1, $desc2, $upc) = split /\t/, $_[0];
+            $desc1, $desc2, $upc, $page) = split /\t/, $_[0];
         {
-            item_code	=> $item_code,
-            prod_group	=> $prod_group,
-            pkg_size	=> $pkg_size,
-            sales_unit	=> $sales_unit,
+            item_code   => $item_code,
+            prod_group  => $prod_group,
+            pkg_size    => $pkg_size,
+            sales_unit  => $sales_unit,
             sku         => $sku,
-            list_price	=> $list_price,
-            alt_ut_name	=> $alt_ut_name,
-            alt_ut_size	=> $alt_ut_size,
-            desc1   	=> $desc1,
-            desc2	    => $desc2,
+            list_price  => $list_price,
+            alt_ut_name => $alt_ut_name,
+            alt_ut_size => $alt_ut_size,
+            desc1       => $desc1,
+            desc2       => $desc2,
             upc         => $upc,
+            page        => $page,
         }
-        }, $callback, $table || 'items');
+    }, $callback, $table || 'items');
 }
 
 =head1 avail
@@ -220,19 +221,19 @@ sub custinfo {
                      $first_sale
                     ) = split '\t', $_[0];
                  {
-                     bill_to_name	=> $bill_to_name,
-                     cust_code	=> $cust_code,
-                     bill_to_addr1	=> $bill_to_addr1,
-                     bill_to_addr2	=> $bill_to_addr2,
-                     bill_to_addr3	=> $bill_to_addr3,
-                     bill_to_city	=> $bill_to_city,
-                     bill_to_state	=> $bill_to_state,
-                     bill_to_zip	=> $bill_to_zip,
-                     telephone	=> $telephone,
-                     aux_fax	=> $aux_fax,
-                     email_address	=> $email_address,
-                     slm_number	=> $slm_number,
-                     first_sale	=> $first_sale,
+                     bill_to_name       => $bill_to_name,
+                     cust_code  => $cust_code,
+                     bill_to_addr1      => $bill_to_addr1,
+                     bill_to_addr2      => $bill_to_addr2,
+                     bill_to_addr3      => $bill_to_addr3,
+                     bill_to_city       => $bill_to_city,
+                     bill_to_state      => $bill_to_state,
+                     bill_to_zip        => $bill_to_zip,
+                     telephone  => $telephone,
+                     aux_fax    => $aux_fax,
+                     email_address      => $email_address,
+                     slm_number => $slm_number,
+                     first_sale => $first_sale,
                  }
                  }, $callback, 'custinfo', @$custinfo);
 }
@@ -427,12 +428,12 @@ sub list_all_open_orders {
                          $open
                         ) = split /\t/, $_[0];
                      {
-                         cust_po	=> $cust_po,
-                         ord_number	=> $ord_number,
-                         ord_date	=> $ord_date,
-                         req_date	=> $req_date,
-                         totalqty  	=> $total,
-                         openqty	=> $open,
+                         cust_po        => $cust_po,
+                         ord_number     => $ord_number,
+                         ord_date       => $ord_date,
+                         req_date       => $req_date,
+                         totalqty       => $total,
+                         openqty        => $open,
                      }
                      }, $param{callback},
                      'list_all_open_orders',
@@ -472,15 +473,15 @@ sub view_open_order_details {
                          $disposition_desc,
                         ) = split /\t/, $_[0];
                      {
-                         item	=> $item,
-                         desc	=> $desc,
-                         ord_qty	=> $ord_qty,
-                         unit	=> $unit,
-                         net_price	=> $net_price,
-                         open_qty	=> $open_qty,
-                         open_value	=> $open_value,
-                         exp_date	=> $exp_date,
-                         last_shipment	=> $last_shipment,
+                         item   => $item,
+                         desc   => $desc,
+                         ord_qty        => $ord_qty,
+                         unit   => $unit,
+                         net_price      => $net_price,
+                         open_qty       => $open_qty,
+                         open_value     => $open_value,
+                         exp_date       => $exp_date,
+                         last_shipment  => $last_shipment,
                          disposition => $disposition,
                          disposition_desc => $disposition_desc,
                      }
@@ -543,15 +544,15 @@ sub list_open_ar {
                           $disc_date,
                           $due_date ) = split /\t/, $_[0];
                      {
-                     invnumber	=> $invnumber,
-                     invdate	=> $invdate,
-                     cust_po	=> $cust_po,
-                     amount	=> $amount,
-                     amount_open	=> $amount_open,
-                     order	=> $order,
-                     invoice	=> $invoice,
-                     disc_date	=> $disc_date,
-                     due_date	=> $due_date,
+                     invnumber  => $invnumber,
+                     invdate    => $invdate,
+                     cust_po    => $cust_po,
+                     amount     => $amount,
+                     amount_open        => $amount_open,
+                     order      => $order,
+                     invoice    => $invoice,
+                     disc_date  => $disc_date,
+                     due_date   => $due_date,
                      }
                      }, $param{callback}, 
                      'list_open_ar', $param{customer} || '?' );
