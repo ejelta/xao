@@ -1,0 +1,31 @@
+README
+CHANGES
+Makefile.PL
+MANIFEST
+MANIFEST.SKIP
+P21.pm
+test.pl
+ ------------------------------------
+samples/avail.pl
+samples/cleanup.pl
+samples/get-customer1.pl
+samples/get-customer2.pl
+samples/get-invoice.pl
+samples/get-item1.pl
+samples/list-ar1.pl
+samples/list-det1.pl
+samples/list-invoices1.pl
+samples/list-invoices2.pl
+samples/match.pl
+samples/modcust.pl
+samples/price.pl
+samples/show_spool.pl
+samples/submit.pl
+ ------------------------------------
+server/catalog.p
+server/custinfo.p
+server/custinfo1.p
+server/items.p
+server/modcust.p
+server/price.p
+server/xaotst.pl
