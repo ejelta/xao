@@ -1,4 +1,5 @@
-^.cvsignore$
+^\.cvsignore$
+^\.config$
 Makefile$
 .*\.old$
 blib/

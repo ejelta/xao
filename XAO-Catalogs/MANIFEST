@@ -1,5 +1,21 @@
-Catalogs.pm
+README
 MANIFEST
 MANIFEST.SKIP
 Makefile.PL
+test.pl
+ --------------------------------------------------------
+Catalogs.pm
+ --------------------------------------------------------
 lib/XAO/DO/ImportMap/Base.pm
+lib/XAO/DO/ImportMap/Sample.pm
+lib/XAO/DO/Data/Catalog.pm
+lib/XAO/DO/Data/CatalogCategoryMap.pm
+lib/XAO/DO/Data/CatalogData.pm
+ --------------------------------------------------------
+sample.xml
+scripts/xao-ifilter-sample
+scripts/xao-import-map
+ --------------------------------------------------------
+testcases/Catalogs.pm
+testcases/base.pm
+testcases/testroot/projects/test/objects/Config.pm

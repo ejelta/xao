@@ -1,0 +1,54 @@
+NAME
+    XAO::DO::Catalogs - XAO catalog exchange module
+
+SYNOPSIS
+     xao-ifilter-sample --debug sample_site sample.xml
+     xao-import-map --debug sample_site sample
+
+DESCRIPTION
+    XAO Catalogs is a Perl module that supports integrating multiple
+    manufacturers' catalogs into a single products database. This can be
+    used for eCommerce sites, data integration projects, and search and
+    comparison engines.
+
+METHODS
+    XAO::DO::Catalogs contains only minor utility methods, all real
+    functionality is in ImportMap::Base and specific import maps based on
+    it.
+
+    build_structure ()
+        Builds supporting structure in the database. Does not destroy
+        existing data -- safe to call on already populated database.
+
+        Usually should be called in Config.pm's build_structure() method.
+
+    data_structure ()
+        Returns a reference to a hash that describes database structure.
+        Usually you would add it to your database description in Config.pm:
+
+         my $cobj=XAO::Objects->new(objname => 'Catalogs');
+
+         my %structure=(
+             MyData => {
+                 ...
+             },
+
+             %{$cobj->data_structure},
+
+             MyOtherData => {
+                 ...
+             }
+         );
+
+        If that looks ugly (it is ugly) then look at the build_structure()
+        method description instead.
+
+AUTHOR
+    Copyright (c) 2001-2002 XAO, Inc.
+
+    Andrew Maltsev <am@xao.com>.
+
+SEE ALSO
+    Recommended reading: the XAO::DO::ImportMap::Base manpage, the
+    XAO::Objects manpage, the XAO::Web manpage, the XAO::Commerce manpage.
+
