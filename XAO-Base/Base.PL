@@ -50,8 +50,8 @@ exit(0);
 ###############################################################################
 __DATA__
 ####################################################################
-###### THIS IS AUTOMATICALLY GENERATED FILE -- DO NOT EDIT IT ######
-############ RE-INSTALL XAO::BASE PACKAGE TO UPDATE IT #############
+###### This is automatically generated file -- do not edit it ######
+############ Re-install XAO::Base package to update it #############
 ####################################################################
 package XAO::Base;
 use strict;

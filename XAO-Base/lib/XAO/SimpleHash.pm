@@ -1,6 +1,6 @@
 # Base of all hash-like objects.
 #
-package Symphero::SimpleHash;
+package XAO::SimpleHash;
 use strict;
 use Carp;
 
@@ -26,7 +26,6 @@ sub exists ($$);   # has URI support
 sub keys ($);      # has URI support
 sub values ($);    # has URI support
 sub contains ($$);
-sub value ($);     # Pure virtual
 
 #
 # Java style API
@@ -131,7 +130,7 @@ sub defined ($$)
   foreach my $key (@uri)
   {
     my $ref = ref($value);
-    return undef unless ($ref eq 'HASH' || $ref eq 'Symphero::SimpleHash')
+    return undef unless ($ref eq 'HASH' || $ref eq ref($self))
                      && defined $value->{$key};
     $value = $value->{$key};
   }
@@ -208,7 +207,7 @@ sub getref ($$)
   foreach my $key (@uri)
   {
     my $ref = ref($value);
-    if ($ref eq 'HASH' || $ref eq 'Symphero::SimpleHash')
+    if ($ref eq 'HASH' || $ref eq ref($self))
     {
       $value = $value->{$key};
     }
@@ -223,24 +222,20 @@ sub getref ($$)
 #
 # Checks whether we contain given key or not.
 #
-sub exists ($$)
-{ 
-  my ($self, $name) = @_;
+sub exists ($$) { 
+    my ($self, $name) = @_;
 
-  my @uri = $self->_uri_parser($name);
+    my $value=$self;
+    foreach my $key ($self->_uri_parser($name)) {
+        my $r=ref($value);
+        return undef unless ($r eq 'HASH' || $r eq ref($self)) &&
+                            CORE::exists $value->{$key};
+        $value=$value->{$key};
+    }
 
-  return exists $self->{$uri[0]} unless $#uri > 0;
-
-  my $value=$self;
-  foreach my $key (@uri)
-  {
-    my $ref = ref($value);
-    return undef unless ($ref eq 'HASH' || $ref eq 'Symphero::SimpleHash')
-                     && exists $value->{$key};
-    $value = $value->{$key};
-  }
-  1;
+    1;
 }
+
 ###############################################################################
 #
 # The same as exists(), method name compatibility with Java hash.
@@ -258,6 +253,8 @@ sub values ($)
 { 
   my ($self, $key) = @_;
 
+  return CORE::values %{$self} unless defined($key);
+
   my @uri      = $self->_uri_parser($key);
   my $last_idx = $#uri;
 
@@ -268,7 +265,7 @@ sub values ($)
   foreach my $key (@uri)
   {
     my $ref = ref($value);
-    if ($ref eq 'HASH' || $ref eq 'Symphero::SimpleHash')
+    if ($ref eq 'HASH' || $ref eq ref($self))
     {
       $value = $value->{$key};
     }
@@ -278,7 +275,7 @@ sub values ($)
     }
     if ($i == $last_idx)
     {
-      return ref($value) eq 'HASH' ? values %{$value} : undef;
+      return ref($value) eq 'HASH' ? CORE::values %{$value} : undef;
     }
     $i++;
   }
@@ -300,6 +297,8 @@ sub keys ($)
 {
   my ($self, $key) = @_;
 
+  return CORE::keys %{$self} unless defined($key);
+
   my @uri      = $self->_uri_parser($key);
   my $last_idx = $#uri;
 
@@ -310,7 +309,7 @@ sub keys ($)
   foreach my $key (@uri)
   {
     my $ref = ref($value);
-    if ($ref eq 'HASH' || $ref eq 'Symphero::SimpleHash')
+    if ($ref eq 'HASH' || $ref eq ref($self))
     {
       $value = $value->{$key};
     }
@@ -320,42 +319,41 @@ sub keys ($)
     }
     if ($i == $last_idx)
     {
-      return ref($value) eq 'HASH' ? keys %{$value} : undef;
+      return ref($value) eq 'HASH' ? CORE::keys %{$value} : undef;
     }
     $i++;
   }
 }
+
 ###############################################################################
 #
 # Deleting given key from the 'hash'.
 #
-sub delete ($$)
-{ 
-  my ($self, $key) = @_;
+sub delete ($$) { 
+    my ($self, $key) = @_;
 
-  my @uri      = $self->_uri_parser($key);
-  my $last_idx = $#uri;
+    my @uri      = $self->_uri_parser($key);
+    my $last_idx = $#uri;
 
-  return delete $self->{$uri[0]} unless $last_idx > 0;
+    return delete $self->{$uri[0]} unless $last_idx > 0;
 
-  my $i=0;
-  my $value=$self;
-  foreach my $key (@uri)
-  {
-    if ($i < $last_idx)
-    {
-      return undef unless ref($value->{$key}) eq 'HASH';
-      $value = $value->{$key};
+    my $i=0;
+    my $value=$self;
+    foreach my $key (@uri) {
+        if ($i < $last_idx) {
+            return undef unless ref($value->{$key}) eq 'HASH';
+            $value = $value->{$key};
+        }
+        else {
+            return (ref($value) eq 'HASH' && CORE::exists $value->{$key})
+                ? CORE::delete $value->{$key} : undef;
+        }
+        $i++;
     }
-    else
-    {
-      ref($value) eq 'HASH' && exists $value->{$key} ? return delete $value->{$key}
-                                                     : return undef;
-    }
-    $i++;
-  }
-  '';
+
+    '';
 }
+
 ###############################################################################
 #
 # The same as delete(), method name compatibility with Java hash.
@@ -389,42 +387,31 @@ sub containsValue ($$)
   $self->contains(@_);
 }
 ###############################################################################
-#
-# Returns the value of the object as a whole. Supposed to be overriden
-# in derived objects and has no meaning here.
-#
-sub value ($)
-{
-  my $self = shift;
-  carp ref($self) . '::value - pure virtual method called';
-  undef;
-}
-###############################################################################
-sub _uri_parser
-{
-  my ($self, $uri) = @_;
-  $uri =~ s/^\/+//; # get rid of leading  slashes
-  $uri =~ s/\/+$//; # get rid of trailing slashes
-  split(/\/+/, $uri);
+sub _uri_parser {
+    my ($self, $uri) = @_;
+    die "No URI passed" unless defined($uri);
+    $uri =~ s/^\/+//; # get rid of leading  slashes
+    $uri =~ s/\/+$//; # get rid of trailing slashes
+    split(/\/+/, $uri);
 }
 ###############################################################################
 #
 # That's it
 #
 use vars qw($VERSION);
-($VERSION)=('$Id: SimpleHash.pm,v 1.1 2001/10/23 00:45:09 am Exp $' =~ /(\d+\.\d+)/);
+($VERSION)=('$Id: SimpleHash.pm,v 1.2 2001/10/23 01:47:47 am Exp $' =~ /(\d+\.\d+)/);
 1;
 __END__
 
 =head1 NAME
 
-Symphero::SimpleHash - Simple 2D hash manipulations
+XAO::SimpleHash - Simple 2D hash manipulations
 
 =head1 SYNOPSIS
 
-  use Symphero::SimpleHash;
+  use XAO::SimpleHash;
 
-  my $h=new Symphero::SimpleHash a => 11, b => 12, c => 13;
+  my $h=new XAO::SimpleHash a => 11, b => 12, c => 13;
 
   $h->put(d => 14);
 
@@ -532,13 +519,6 @@ Note that leading and trailing slashes are optional in URI.
 
 =item *
 
-sub value ($)
-       
-Pure virtual method which is supposed to be overriden in all derived
-classes. Should return the value an object as a whole.
-
-=item *
-
 sub values ($)
        
 Returns array of values in the same order as $hash->keys returns keys
@@ -546,7 +526,7 @@ Returns array of values in the same order as $hash->keys returns keys
 
 =head1 JAVA STYLE API
 
-In addition to normal Perl style API outlined above Symphero::SimpleHash
+In addition to normal Perl style API outlined above XAO::SimpleHash
 allows developer to use Java style API. Here is the mapping between Perl
 API and Java API:
 
