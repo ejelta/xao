@@ -4,6 +4,7 @@
     * fixed Makefile.PL to store test db password correctly
     * started CHANGES file
     * additional test case for container_object method (skv@xao.com)
+    * uri() fixed on objects created by container_object()
 
 1.1 - 2-Nov-2001
     * Initial public release

@@ -72,17 +72,28 @@ sub container_object ($) {
     }
 
     my $list_base_name=$self->_glue->upper_class($base_name);
-
     my $key_name=$self->_glue->_list_key_name($base_name,$list_base_name);
 
-    XAO::Objects->new(objname => $base_name,
-                           glue => $self->_glue,
-                           unique_id => $base_id,
-                           key_name => $key_name,
-                           list_base_name => $list_base_name,
-                          );
-}
+    ##
+    # This is an optimisation for the case where current object has an
+    # URI already. It might not have it if container_object() is called
+    # from new() to determine URI in case of Collection.
+    #
+    my $uri=$self->uri;
+    if(defined($uri)) {
+        $uri=~/^((\/\w+)*)\/(\w+)$/ || $self->throw("container_object - wrong uri ($uri)");
+        $uri=$1;
+    }
 
+    XAO::Objects->new(
+        objname => $base_name,
+        glue => $self->_glue,
+        unique_id => $base_id,
+        key_name => $key_name,
+        list_base_name => $list_base_name,
+        uri => $uri,
+    );
+}
 
 ###############################################################################
 
@@ -163,16 +174,17 @@ sub get ($$) {
         my $id=$self->_find_unique_id($_) ||
             $self->throw("get - no such object ($_)");
 
-        XAO::Objects->new(objname => $$self->{class_name},
-                               glue => $self->_glue,
-                               uri => $self->uri($_),
-                               unique_id => $id,
-                               key_name => $$self->{key_name},
-                               key_value => $_,
-                               list_base_name => $$self->{base_name},
-                               list_base_id => $$self->{base_id},
-                               list_key_value => $$self->{key_value},
-                              );
+        XAO::Objects->new(
+            objname => $$self->{class_name},
+            glue => $self->_glue,
+            uri => $self->uri($_),
+            unique_id => $id,
+            key_name => $$self->{key_name},
+            key_value => $_,
+            list_base_name => $$self->{base_name},
+            list_base_id => $$self->{base_id},
+            list_key_value => $$self->{key_value},
+        );
     } @_;
 
     @_==1 ? $results[0] : @results;
@@ -234,7 +246,20 @@ sub new ($%) {
     $$self->{base_name}=$args->{base_name};
     $$self->{base_id}=$args->{base_id};
     $$self->{key_value}=$args->{key_value};
+
     $self->_list_setup();
+
+    if(! defined($$self->{uri})) {
+        my $uri=$$self->{key_value};
+        my $p=$self;
+        while(defined($p=$p->container_object)) {
+            my $ck=$p->container_key();
+            $ck='' unless defined($ck);
+            $uri=$ck . '/' . $uri;
+        }
+        $$self->{uri}=$uri;
+    }
+
     $self;
 }
 

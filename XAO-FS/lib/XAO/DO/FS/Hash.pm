@@ -326,12 +326,26 @@ sub container_object ($) {
     my $list_base_name=$$self->{list_base_name} ||
         $self->throw("container_object - the object was not retrieved from the database");
 
-    XAO::Objects->new(objname => 'FS::List',
-                      glue => $self->_glue,
-                      class_name => $self->objname,
-                      base_name => $list_base_name,
-                      base_id => $self->_hash_list_base_id(),
-                      key_value => $self->_hash_list_key_value());
+    ##
+    # This is an optimisation for the case where current object has an
+    # URI already. It might not have it if container_object() is called
+    # from new() to determine URI in case of Collection.
+    #
+    my $uri=$self->uri;
+    if(defined($uri)) {
+        $uri=~/^((\/\w+)*)\/(\w+)$/ || $self->throw("container_object - wrong uri ($uri)");
+        $uri=$1;
+    }
+
+    XAO::Objects->new(
+        objname => 'FS::List',
+        glue => $self->_glue,
+        class_name => $self->objname,
+        base_name => $list_base_name,
+        base_id => $self->_hash_list_base_id(),
+        key_value => $self->_hash_list_key_value(),
+        uri => $uri,
+    );
 }
 
 ###############################################################################
