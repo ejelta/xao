@@ -34,7 +34,7 @@ use XAO::Objects;
 use base XAO::Objects->load(objname => 'Web::Action');
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: Utility.pm,v 1.8 2002/04/25 18:52:14 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: Utility.pm,v 1.9 2002/11/21 20:04:24 am Exp $ =~ /(\d+\.\d+)/);
 
 sub check_mode ($$) {
     my $self=shift;
@@ -215,9 +215,9 @@ do not need to worry about that.
 
 =cut
 
-sub pass_cgi_params ($%)
-{ my $self=shift;
-  my $args=get_args(\@_);
+sub pass_cgi_params ($%) {
+    my $self=shift;
+    my $args=get_args(\@_);
 
     ##
     # Creating list of exceptions
@@ -237,23 +237,24 @@ sub pass_cgi_params ($%)
         $except{$param}=1;
     }
 
-  ##
-  # Expanding parameters in list
-  #
-  my @params;
-  foreach my $param (split(/[,\s]/,$args->{params}))
-   { $param=~s/\s//gs;
-     next unless length($param);
-     if(index($param,'*') != -1)
-      { $param=substr($param,0,index($param,'*'));
-        foreach my $p ($self->cgi->param)
-         { next unless index($p,$param) == 0;
-           push @params,$p;
-         }
-        next;
-      }
-     push @params,$param;
-   }
+    ##
+    # Expanding parameters in list
+    #
+    my @params;
+    foreach my $param (split(/[,\s]/,$args->{params})) {
+        $param=~s/\s//gs;
+        next unless length($param);
+        if(index($param,'*') != -1) {
+            $param=substr($param,0,index($param,'*'));
+            foreach my $p ($self->cgi->param) {
+                next unless defined $p;
+                next unless index($p,$param) == 0;
+                push @params,$p;
+            }
+            next;
+        }
+        push @params,$param;
+    }
 
     ##
     # Creating HTML code that will pass these parameters.
