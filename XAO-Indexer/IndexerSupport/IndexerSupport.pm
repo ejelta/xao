@@ -28,7 +28,7 @@ use vars qw(@ISA $VERSION);
 
 @ISA = qw(DynaLoader);
 
-($VERSION)=(q$Id: IndexerSupport.pm,v 1.3 2004/03/04 03:26:44 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: IndexerSupport.pm,v 1.4 2004/09/21 22:54:42 am Exp $ =~ /(\d+\.\d+)/);
 
 bootstrap XAO::IndexerSupport $VERSION;
 
@@ -154,7 +154,19 @@ sub sorted_intersection_pos ($$) {
     my ($marr,$rawdata)=@_;
 
     my @wnums=map { defined($marr->[$_-1]) ? ($_) : () } (1..scalar(@$marr));
-    my @lists=map { pack('L*',unpack('w*',$rawdata->{$marr->[$_-1]})) } @wnums;
+
+    ##
+    # This can fail because of problems in the raw data
+    #
+    my @lists;
+    my $error;
+    eval {
+        @lists=map { pack('L*',unpack('w*',$rawdata->{$marr->[$_-1]})) } @wnums;
+    };
+    if($@) {
+        eprint "Indexer raw data error ($@)";
+        return [ ];
+    }
 
     my $res=sorted_intersection_pos_do(\@wnums,\@lists);
 

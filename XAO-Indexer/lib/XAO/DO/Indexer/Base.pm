@@ -28,6 +28,7 @@ Methods are:
 ###############################################################################
 package XAO::DO::Indexer::Base;
 use strict;
+use Error qw(:try);
 use XAO::Utils;
 use XAO::Objects;
 use XAO::Projects qw(get_current_project);
@@ -130,6 +131,9 @@ sub search ($%) {
 
     my $index_object=$args->{index_object} ||
         throw $self "search - no 'index_object'";
+
+    eval 'use Compress::LZO';
+    dprint "No Compress::LZO, comression won't work" if $@;
 
     my $str=$args->{search_string};
     $str='' unless defined $str;
@@ -300,12 +304,33 @@ sub search_simple ($$$$) {
     return [ ] unless @$sr;
 
     my $iddata=$data_list->get($sr->[0])->get("id_$oseq");
+
+    ##
+    # Decompressing if required
+    #
     if(unpack('w',$iddata) == 0) {
         my $zz=substr($iddata,1);
         $iddata=Compress::LZO::decompress($zz);
+        if(!defined $iddata) {
+            eprint "Can't decompress data for kw='$keyword', sorting='$oseq'";
+            return [ ];
+        }
     }
 
-    return [ unpack('w*',$iddata) ];
+    ##
+    # Sometimes the data gets damaged or is in the process of being
+    # updated. This can lead to unparsable results.
+    #
+    my $result;
+    try {
+        $result=[ unpack('w*',$iddata) ];
+    }
+    otherwise {
+        my $e=shift;
+        eprint "Bad indexer data for kw='$keyword', sorting='$oseq': $e";
+        $result=[ ];
+    };
+    return $result;
 }
 
 ###############################################################################
