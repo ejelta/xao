@@ -1,4 +1,7 @@
 1.04 - XXX
+    * XAO::Page - new 5 times faster C parser is used
+    * XAO::PageSupport - new parser that supports '' and {''}
+    * XAO::Page - caching of parsed templates re-enabled
     * Web::IdentifyUser - calls login_check for external checks
     * Web::Page - cache() method moved to Web::Config to make it
       available for generic use from not Page based objects. Page has an

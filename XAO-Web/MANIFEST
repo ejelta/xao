@@ -67,6 +67,7 @@ testcases/WebCondition.pm
 testcases/WebConfig.pm
 testcases/WebDebug.pm
 testcases/WebFS.pm
+testcases/WebUtility.pm
 testcases/Web.pm
 testcases/WebSetArg.pm
  --------------------------------- Test installation tree

@@ -180,7 +180,7 @@ use XAO::Errors qw(XAO::DO::Web::FS);
 use base XAO::Objects->load(objname => 'Web::Action');
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: FS.pm,v 1.26 2002/06/04 23:11:08 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: FS.pm,v 1.27 2002/06/24 18:14:16 am Exp $ =~ /(\d+\.\d+)/);
 
 ###############################################################################
 
@@ -617,30 +617,15 @@ sub search ($;%) {
         );
     }
     else {
-        #
-        # Display header
-        #
-        my $header = '';
-        if    ($args->{'header.template'}) {
-            $basetype = 'template';
-            $header   = $args->{'header.template'};
-        }
-        elsif ($args->{'header.path'}) {
-            $basetype = 'path';
-            $header   = $args->{'header.path'};
-        }
-        $page->display(
-            merge_refs(
-                $args,
-                {
-                    $basetype      => $header,
-                    START_ITEM     => $start_item,
-                    ITEMS_PER_PAGE => $items_per_page,
-                    TOTAL_ITEMS    => $total,
-                    LIMIT_REACHED  => $limit_reached,
-                }
-            )
-        ) if $header;
+        
+        $page->display(merge_refs($args, {
+            template        => $args->{'header.template'},
+            path            => $args->{'header.path'},
+            START_ITEM      => $start_item,
+            ITEMS_PER_PAGE  => $items_per_page,
+            TOTAL_ITEMS     => $total,
+            LIMIT_REACHED   => $limit_reached,
+        })) if $args->{'header.path'} || $args->{'header.template'};
 
         #
         # Display items
@@ -655,42 +640,34 @@ sub search ($;%) {
                 shift @fields unless length($fields[0]);
             }
         }
+        my @ucfields=map { uc($_) } @fields;
 
         my $have_sep=($args->{'separator.path'} || $args->{'separator.template'});
 
-        my $count = 1;
-        $basetype = $args->{template} ? 'template' : 'path';
-        #dprint "\n*** Search Results *" . scalar(@$ra_ids) . " matches*";
-        #dprint "    (use $basetype: $args->{$basetype})" if $basetype eq 'path';
+        my $count=1;
+        my $pass=merge_refs($args);
         foreach my $id (@$ra_ids) {
-            #dprint "    $count> show $id";
-            my %pass = (
-                $basetype   => $args->{$basetype},
-                ID          => $id,
-                COUNT       => $count,
-                MATCH_NUMBER => $count + ($start_item-1),
-            );
-            if ($args->{fields}) {
-                my $item = $list->get($id);
-		        my %v;
-		        @v{@fields}=$item->get(@fields);
-                foreach (@fields) {
-                    my $uckey = uc($_);
-                    $pass{$uckey} = $v{$_} unless defined $pass{$uckey};
-                    $pass{$uckey} = '' unless defined $pass{$uckey};
-                }
+            @{$pass}{qw(ID COUNT MATCH_NUMBER)}=
+                ($id,$count,$count+($start_item-1));
+
+            if(@fields) {
+                my $item=$list->get($id);
+                @{$pass}{@ucfields}=$item->get(@fields);
             }
-            $page->display(merge_refs($args,\%pass));
+            $page->display($pass);
 
             ##
             # Displaying separator if given.
             #
             if($have_sep && $count < scalar(@$ra_ids)) {
-                $page->display(merge_refs($args,\%pass,{
+                $page->display(merge_refs($pass,{
                     path        => $args->{'separator.path'},
                     template    => $args->{'separator.template'},
                 }));
             }
+
+            #dprint "count=$count time=".time unless $count%100;
+            #last if $count>10000;
         }
         continue {
             $count++;
