@@ -45,7 +45,7 @@ sub new ($@);
 # Package version for checks and reference
 #
 use vars qw($VERSION);
-($VERSION)=(q$Id: Config.pm,v 1.8 2003/08/09 02:36:42 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: Config.pm,v 1.9 2003/09/26 00:49:45 am Exp $ =~ /(\d+\.\d+)/);
 
 ###############################################################################
 
@@ -96,7 +96,8 @@ sub add_cookie ($@) {
             next unless ref($c) && ref($c) eq 'HASH';
             next unless $c->{-name} eq $cookie->{-name} &&
                         $c->{-path} eq $cookie->{-path} &&
-                        $c->{-domain} eq $cookie->{-domain};
+                        ((!defined($c->{-domain}) && !defined($cookie->{-domain})) ||
+                         $c->{-domain} eq $cookie->{-domain});
             $self->{cookies}->[$i]=$cookie;
             return $cookie;
         }

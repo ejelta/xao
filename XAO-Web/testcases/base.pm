@@ -9,6 +9,11 @@ use XAO::Projects qw(:all);
 
 use base qw(Test::Unit::TestCase);
 
+sub siteconfig {
+    my $self=shift;
+    return $self->{siteconfig};
+}
+
 sub set_up {
     my $self=shift;
 
@@ -28,6 +33,8 @@ sub set_up {
     $config->embedded('web')->enable_special_access();
     $config->cgi($cgi);
     $config->embedded('web')->disable_special_access();
+
+    $self->{siteconfig}=$config;
 
     push @INC,$root;
 }

@@ -295,7 +295,7 @@ use XAO::Objects;
 use base XAO::Objects->load(objname => 'Web::Action');
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: IdentifyUser.pm,v 1.22 2003/05/28 01:42:20 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: IdentifyUser.pm,v 1.23 2003/09/26 00:49:45 am Exp $ =~ /(\d+\.\d+)/);
 
 ###############################################################################
 
@@ -332,10 +332,15 @@ Checks identification/verification status of the user.
 
 To determine identification status, first check clipboard to determine
 if there is such object present. If so, then that object identifies the
-user. If not, then check whether there is a identification cookie and
+user.
+
+If not, then depending on 'identify_by' parameter (that defaults to
+'id') check whether there is an identification cookie or key cookie and
 if so, perform a search for object in database. If this search yields
 a positive result, the user's status is 'identified' and an attempt to
 verify user is made, otherwise the status is 'anonymous'.
+
+Identification by key only works when keys are stored in a separate list.
 
 Once identity is established, to determine verification status, first
 check the clipboard to determine if there is a 'verified' flag set. If
@@ -421,7 +426,7 @@ sub check {
             }
             otherwise {
                 my $e=shift;
-                eprint "$e";
+                dprint "IGNORED(OK): $e";
             };
 
             $d{object} || return $self->display_results($args,'anonymous');
@@ -639,7 +644,7 @@ sub find_user ($$$) {
         }
         otherwise {
             my $e=shift;
-            eprint "$e";
+            dprint "IGNORED(OK): $e";
         };
 
         return undef unless $d{object};
@@ -891,6 +896,9 @@ sub logout{
     ##
     # Resetting cookies regardless, even if we're not currently logged
     # in.
+    #
+    # Not sure, but setting value to an empty string triggered a bug
+    # somewhere, setting it to '0' instead and expiring it 'now'.
     #
     if($config->{vf_key_prop} && $config->{vf_key_cookie}) {
         $self->siteconfig->add_cookie(

@@ -62,7 +62,7 @@ use XAO::Errors qw(XAO::DO::Web::FilloutForm);
 use base XAO::Objects->load(objname => 'Web::Page');
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: FilloutForm.pm,v 1.14 2003/09/18 16:48:17 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: FilloutForm.pm,v 1.15 2003/09/26 00:49:45 am Exp $ =~ /(\d+\.\d+)/);
 
 sub setup ($%);
 sub field_desc ($$);
@@ -306,7 +306,7 @@ sub display ($;%) {
         elsif($style eq 'phone') {      # +99 (123) 456-78-90 x 123
             $fdata->{maxlength}=30 unless $fdata->{maxlength};
             if(length($value)) {
-                my ($p,$e)=split(/[a-zA-Z]/,$value);
+                my ($p,$e)=split(/[a-zA-Z]+/,$value);
 
                 $p=~s/\D//g;
                 $e||='';
