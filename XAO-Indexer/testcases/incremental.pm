@@ -22,12 +22,21 @@ sub test_incremental {
     #
     my $index_list=$odb->fetch('/Indexes');
     my $index_new=$index_list->get_new;
-    $index_new->put(indexer_objname => 'Indexer::IncrFoo');
+    $index_new->put(
+        indexer_objname => 'Indexer::IncrFoo',
+        compression     => 0,
+    );
     $index_list->put(foo => $index_new);
     my $foo_index=$index_list->get('foo');
     dprint "Updating foo index (incrementally)";
+    my $iter_count=0;
     while($foo_index->update) {
-        #
+        ++$iter_count;
+        dprint "Iteration $iter_count";
+        if($iter_count>0 && $iter_count<10) {
+            dprint ".changing compression to ".$iter_count;
+            $foo_index->put(compression => $iter_count);
+        }
     }
 
     ##

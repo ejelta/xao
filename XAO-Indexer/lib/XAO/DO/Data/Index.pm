@@ -153,6 +153,11 @@ sub data_structure ($) {
             type        => 'text',
             maxlength   => 100,
         },
+        compression => {
+            type        => 'integer',
+            minvalue    => 0,
+            maxvalue    => 99,
+        },
     };
 }
 
@@ -270,10 +275,6 @@ sub search_by_string ($$$;$) {
 
 Updates the index with the current data. Exactly what data it is based
 on depends entirely on the corresponding indexer object.
-
-The update usually takes significant time, there is no way to update
-only a part of the index, the whole index and all orderings are updated
-at once.
 
 With drivers that support transactions the update is wrapped into a
 transaction, so that index data is consistent while being updated.

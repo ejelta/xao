@@ -280,7 +280,12 @@ sub search_multi ($$$$) {
         last unless defined $kw;
         my $sr=$data_list->search('keyword','eq',$kw);
         return [ ] unless @$sr;
-        $rawdata{$kw}=$data_list->get($sr->[0])->get("idpos_$oseq");
+        my $r=$data_list->get($sr->[0])->get("idpos_$oseq");
+        if(unpack('w',$r) == 0) {
+            my $zz=substr($r,1);
+            $r=Compress::LZO::decompress($zz);
+        }
+        $rawdata{$kw}=$r;
     }
 
     return XAO::IndexerSupport::sorted_intersection_pos($marr,\%rawdata);
@@ -295,6 +300,11 @@ sub search_simple ($$$$) {
     return [ ] unless @$sr;
 
     my $iddata=$data_list->get($sr->[0])->get("id_$oseq");
+    if(unpack('w',$iddata) == 0) {
+        my $zz=substr($iddata,1);
+        $iddata=Compress::LZO::decompress($zz);
+    }
+
     return [ unpack('w*',$iddata) ];
 }
 
@@ -308,7 +318,23 @@ sub update ($%) {
         throw $self "update - no 'index_object'";
 
     ##
-    # For compatibility reasons we need to call it in scalar context.
+    # Checking if we need to compress the data
+    #
+    my $compression=$index_object->get('compression');
+    if($compression) {
+        eval {
+            use Compress::LZO;
+        };
+        if($@) {
+            throw $self "update - need Compress::LZO for compression ($compression)";
+        }
+        if($compression<1 || $compression>9) {
+            throw $self "update - compression level must be between 1 and 9";
+        }
+    }
+
+    ##
+    # For compatibility reasons we need to call it in array context.
     #
     my @carr=$self->get_collection($args);
     my $cinfo;
@@ -502,6 +528,12 @@ sub update ($%) {
                 if(length($posdata)) {
                     my $kw_count=$kw_data{counts}->{$kw};
                     my $kwd_new=merge_refs($kwd);
+
+                    if(unpack('w',$posdata) == 0) {
+                        my $zz=substr($posdata,1);
+                        $posdata=Compress::LZO::decompress($zz);
+                    }
+
                     my @dstr=unpack('w*',$posdata);
                     my $i=0;
                     while($i<@dstr) {
@@ -569,6 +601,18 @@ sub update ($%) {
                                         : ()
                         } @{$kwd->{$id}}
                     );
+            }
+
+            ##
+            # Compressing the data if required
+            #
+            if($compression) {
+                #dprint "COMPR.bef: id=".length($iddata)." idpos=".length($posdata);
+                my $z=Compress::LZO::compress($iddata,$compression);
+                $iddata=(pack('w',0) . $z) if defined $z;
+                $z=Compress::LZO::compress($posdata,$compression);
+                $posdata=(pack('w',0) . $z) if defined $z;
+                #dprint "COMPR.aft: id=".length($iddata)." idpos=".length($posdata);
             }
 
             ##
