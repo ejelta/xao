@@ -13,7 +13,7 @@ lib/XAO/Errors.pm
 lib/XAO/Objects.pm
 lib/XAO/Projects.pm
 lib/XAO/SimpleHash.pm
-lib/XAO/UnitTest.pm
+lib/XAO/TestUtils.pm
 lib/XAO/Utils.pm
  ------------------------------------------- Dynamic Objects
 lib/XAO/DO/Atom.pm

@@ -1,13 +1,13 @@
 =head1 NAME
 
-XAO::UnitTest - testing framework for XAO modules
+XAO::TestUtils - testing framework for XAO modules
 
 =head1 SYNOPSIS
 
 In your Makefile.PL:
 
  test::
-        \$(PERL) -MXAO::UnitTest=xao_all_tests \\
+        \$(PERL) -MXAO::TestUtils=xao_all_tests \\
                  -e'xao_all_tests("XAO::testcases::FS")'
 
 =head1 DESCRIPTION
@@ -16,7 +16,7 @@ This module is intended for use only in testing of XAO modules and
 modules based on XAO.
 
 For instance XAO::FS installs a set of tests in system perl
-directories. XAO::UnitTest and these tests can then be used for testing
+directories. XAO::TestUtils and these tests can then be used for testing
 third party database drivers against this standard set of tests.
 
 Method details:
@@ -26,7 +26,7 @@ Method details:
 =cut
 
 ###############################################################################
-package XAO::UnitTest;
+package XAO::TestUtils;
 use strict;
 use Test::Harness;
 use XAO::Utils;
@@ -42,7 +42,7 @@ use vars qw(@ISA @EXPORT_OK @EXPORT $VERSION);
 @EXPORT_OK=qw(xao_test_all xao_test);
 @EXPORT=();
 
-($VERSION)=(q$Id: UnitTest.pm,v 1.1 2003/03/11 02:37:16 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: TestUtils.pm,v 1.1 2003/03/14 00:00:06 am Exp $ =~ /(\d+\.\d+)/);
 
 ###############################################################################
 
@@ -54,7 +54,7 @@ using XAO::Utils set_debug() method.
 
 Can be called from command line:
 
- perl -MXAO::UnitTest=xao_test_all -e'xao_test_all(1,"testcases")'
+ perl -MXAO::TestUtils=xao_test_all -e'xao_test_all(1,"testcases")'
 
 Test execution is the same as for run_tests() method, see below.
 
@@ -100,7 +100,7 @@ sub xao_test_all ($;@) {
 Runs given tests in the given sequence. Tests are given as corresponding
 unit package names. Example:
 
- run_tests('testcases::basic','testcases::lists');
+ xao_test('testcases::basic','testcases::lists');
 
 It will create 'ta' directory in the current directory and will
 store two files for each test case in there - one suitable for 'make
@@ -121,16 +121,22 @@ sub xao_test (@) {
     my $prefix_count;
     my $prefix;
     foreach my $test (@_) {
+        dprint "test=$test";
         my @p=split(/::/,$test);
         if(defined $prefix) {
-            $prefix_count-- while $prefix_count &&
-                                  $prefix ne join('::',@p[0..$prefix_count]);
+            while($prefix_count) {
+                my $np=join('::',@p[0..$prefix_count]);
+                last if length($np) <= length($prefix) &&
+                        $np eq substr($prefix,0,length($np));
+                $prefix_count--;
+            }
         }
         else {
             $prefix_count=scalar(@p)-1;
         }
         last if $prefix_count<0;
         $prefix=join('::',@p[0..$prefix_count]);
+        dprint "prefix=$prefix test=$test";
     }
     dprint "prefix=$prefix, prefix_count=$prefix_count";
 

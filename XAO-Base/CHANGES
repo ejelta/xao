@@ -1,5 +1,5 @@
 1.05 -
-    * XAO::UnitTest - new module, automated testing for XAO packages
+    * XAO::TestUtils - new module, automated testing for XAO packages
     * XAO::DO::Embeddable - optional base class for embeddable configs
     * XAO::Utils - fround() function added
 
