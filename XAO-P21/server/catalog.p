@@ -16,9 +16,11 @@ FOR EACH catalog NO-LOCK:
         catalog.upc_code                d_d
         catalog.cat_page                d_d
         catalog.prices_list_price       d_d
+        catalog.prices_std_cost         d_d
         catalog.prices_col1_price       d_d
         catalog.prices_col2_price       d_d
-        catalog.prices_col3_price
+        catalog.prices_col3_price       d_d
+        catalog.catg_list
     .
 
     FOR EACH item_unit_data WHERE item_unit_data.item_rec = catalog.frecno
