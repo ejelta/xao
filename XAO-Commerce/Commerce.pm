@@ -37,7 +37,7 @@ method information.
 
 =item *
 
-XAO::DO::Web::PayMethod: a child of Web::FS, keeps product information.
+XAO::DO::Web::Product: a child of Web::FS, keeps product information.
 
 =item *
 
