@@ -121,6 +121,9 @@ member object, then the following might be used:
 
  user_prop => 'Nicknames/nickname'
 
+See also how 'id' and 'data' clipboard parameters are populated in that
+case.
+
 =item pass_prop
 
 Password attribute of user object.
@@ -219,7 +222,7 @@ use XAO::Objects;
 use base XAO::Objects->load(objname => 'Web::Action');
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: IdentifyUser.pm,v 1.18 2003/01/12 10:26:52 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: IdentifyUser.pm,v 1.19 2003/01/14 05:25:40 am Exp $ =~ /(\d+\.\d+)/);
 
 ###############################################################################
 
