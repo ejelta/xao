@@ -9,18 +9,19 @@ use Errno qw/EINTR EAGAIN/;
 use POSIX qw(:sys_wait_h setsid);
 
 $VERSION='0.05';
-$REVISION='$Id: xaosrv.pl,v 1.8 2002/12/04 20:25:47 am Exp $';
+$REVISION='$Id: xaosrv.pl,v 1.9 2003/05/30 19:23:48 am Exp $';
 
-if(@ARGV!=1) {
-    print "Usage: $0 SystemUnit\n";
+if(@ARGV<1) {
+    print "Usage: $0 SystemUnit [TCP port]\n";
     exit 1;
 }
 my $systemunit=int(shift @ARGV);
+my $tcpport=int($ARGV[0] || 9010);
 
 my $spooldir="/tmp/webord$systemunit";
 my $p21dir="/opt/xao/p21";
 
-my $ServerName='xaosrv ' . $systemunit;
+my $ServerName='xaosrv ' . $systemunit . ' ' . $tcpport;
 $0 = $ServerName;
 
 my $Debug = $ENV{DEBUG};
@@ -58,16 +59,15 @@ sub open_query {
 }
 
 sub open_local_query {
+    my $script=shift;
     local *IN;
-    $ENV{'PROCNAME'}=shift;
-    my $envn=0; 
-    foreach (@_) {
-        $ENV{"P$envn"}=$_;
-        ++$envn;
+    for(my $i=0; $i!=@_; $i++) {
+        $ENV{"P$i"}=$_[0];
     }
-    $ENV{ORIGIN}='P21';
-    open IN, qq(/usr/lpp/p21pro/bin/p21pro -S $systemunit -P $p21dir/www.p -p -b|) ||
-        die $!;
+    open IN, qq(/usr/lpp/p21pro/bin/p21pro) .
+             qq( -S $systemunit) .
+             qq( -d /usr/lpp/p21pro/src:/usr/lpp/p21pro/src/include) .
+             qq( -p "-p $p21dir/$script.p -b"|) || die $!;
     *IN;  
 }
 
@@ -87,7 +87,10 @@ open STDOUT, ">/dev/null" or die "$!";
 reopen_log;
 my $pid=fork;
 die "$!" unless defined $pid;
-exit if $pid;
+if($pid) {
+    print "XAO P21 Server Started\n";
+    exit 0;
+}
 POSIX::setsid;
 $pid=fork;
 die "$!" unless defined $pid;
@@ -112,7 +115,7 @@ $SIG{HUP}=\&reopen_log;
 
 my $server = IO::Socket::INET->new( Proto => 'tcp',
                                     Listen => 10,
-                                    LocalPort => 9010,
+                                    LocalPort => $tcpport,
                                     Reuse => 1,
                                     LocalAddr => '127.0.0.1'
                                   );
@@ -375,6 +378,8 @@ Output: price for one unit, multiplier.
         elsif ($opcode eq 'cleanup_spool') {
             foreach my $file (@args) {
             	next unless $file =~ /^\w+[\w\.-]*$/;
+		my $mtime=(stat("$spooldir/$file"))[9];
+		next unless (time - $mtime) > 5*86400;
             	unlink("$spooldir/$file");
             }
         }

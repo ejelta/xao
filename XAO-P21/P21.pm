@@ -274,6 +274,7 @@ sub cust_item {
     my $build=$args->{build} || sub {
         my %row;
         @row{qw(cust_code item_code part_number sales_price int_desc)}=split('\t',$_[0]);
+        $row{int_desc}||='';
         return \%row;
     };
 
