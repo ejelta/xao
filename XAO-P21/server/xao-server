@@ -7,7 +7,7 @@ use Getopt::Long;
 
 use vars qw($VERSION $REVISION);
 $VERSION='0.05';
-$REVISION='$Id: xao-server,v 1.1 2003/08/26 02:12:10 am Exp $';
+$REVISION='$Id: xao-server,v 1.2 2003/11/20 01:15:20 am Exp $';
 
 sub chld_handler ();
 sub dprint (@);
@@ -402,6 +402,29 @@ Output: price for one unit, multiplier.
                    qq( -p "-p $p21dir/modcust.p -b" > /dev/null) || die $!;
         }
 
+=head1 ord_past
+
+Returns info about ordered items shipped past specified date.
+Date is given as year, month date -- three integers.
+
+=cut  
+
+        elsif ($opcode eq "ord_past") {
+            if(@args<3) {
+                printsock "ERROR: Bad syntax, expected YYYY MM DD\n";
+            }
+            else {
+                $ENV{"P0"}=$args[0];
+                $ENV{"P1"}=$args[1];
+                $ENV{"P2"}=$args[2];
+                my $in = open_stream 'ord_past';
+                while(<$in>) {
+                    s/\t/ /g; s/\001/\t/g;
+                    printsock "$_";
+                }
+            }
+        }
+
 =head1 ping
 
 Simply asks for 'PONG' and updates server's pid file timestamp so
@@ -463,7 +486,7 @@ sub open_stream ($) {
              qq( -S $systemunit) .
              qq( -d /usr/lpp/p21pro/src:/usr/lpp/p21pro/src/include) .
              qq( -p "-p $p21dir/$script.p -b"|) || die $!;
-    *IN;  
+    return *IN;  
 }
 
 sub open_query (@) {
