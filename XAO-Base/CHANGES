@@ -1,5 +1,7 @@
 1.02 - 3-Jan-2002
     * minor fixes
+    * line counter in Objects.pm fixed, was off by one line in
+      error messages
 
 1.01 - 4-Dec-2001
     * fixed SimpleHash->new

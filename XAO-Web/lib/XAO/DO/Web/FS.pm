@@ -172,7 +172,7 @@ use XAO::Errors qw(XAO::DO::Web::FS);
 use base XAO::Objects->load(objname => 'Web::Action');
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: FS.pm,v 1.8 2002/01/22 06:26:03 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: FS.pm,v 1.9 2002/02/04 03:43:55 am Exp $ =~ /(\d+\.\d+)/);
 
 ###############################################################################
 
@@ -393,6 +393,12 @@ the number of elements in the list.
 At least 'ID' and 'NUMBER' are supplied to the element template.
 Additional arguments depend on 'field' content.
 
+To help in displaying selection lists show_list() accepts 'current'
+argument. If ID of a list element is the same as the value of 'current'
+it will pass true value in IS_CURRENT parameter to the element
+template. 'Current' argument will be passed through as CURRENT parameter
+as well.
+
 =cut
 
 sub show_list ($%) {
@@ -402,6 +408,8 @@ sub show_list ($%) {
     my $list=$self->get_object($args);
     $list->objname eq 'FS::List' ||
         throw XAO::E::DO::Web::FS "show_list - not a list";
+
+    my $current=$args->{current} || '';
 
     my @keys=$list->keys;
     my @fields;
@@ -420,6 +428,7 @@ sub show_list ($%) {
         path        => $args->{'header.path'},
         template    => $args->{'header.template'},
         NUMBER      => scalar(@keys),
+        CURRENT     => $current,
     })) if $args->{'header.path'} || $args->{'header.template'};
 
     foreach my $id (@keys) {
@@ -427,6 +436,8 @@ sub show_list ($%) {
             path        => $args->{path},
             ID          => $id,
             NUMBER      => scalar(@keys),
+            CURRENT     => $current,
+            IS_CURRENT  => $current && $current eq $id ? 1 : 0,
         );
         if(@fields) {
             my %t;
@@ -442,6 +453,7 @@ sub show_list ($%) {
         path        => $args->{'footer.path'},
         template    => $args->{'footer.template'},
         NUMBER      => scalar(@keys),
+        CURRENT     => $current,
     })) if $args->{'footer.path'} || $args->{'footer.template'};
 }
 
