@@ -132,11 +132,11 @@ if($update) {
     dprint "Updating indexes";
     foreach my $index_id ($all ? $index_list->keys : @ARGV) {
         dprint "Updating index '$index_id'";
-        my $ucount;
+        my ($ucount,$is_partial);
         do {
-            $ucount=$index_list->get($index_id)->update;
+            ($ucount,$is_partial)=$index_list->get($index_id)->update;
             dprint ".updated $ucount IDs";
-        } while($complete && $ucount);
+        } while($complete && $ucount && $is_partial);
     }
     exit 0;
 }

@@ -629,7 +629,7 @@ sub update ($%) {
     dprint "Done";
     $index_object->glue->transact_commit;
 
-    return $coll_ids_total;
+    return wantarray ? ($coll_ids_total,$is_partial) : $coll_ids_total;
 }
 
 ###############################################################################
