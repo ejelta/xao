@@ -5,29 +5,39 @@
 
 Thanks for your interest in XAO Commerce.
 
-  <FORM METHOD="GET" ACTION="/order/add.html">
-
-<TABLE BORDER="0" WIDTH="100" CELLSPACING="10">
+<FORM METHOD="GET" ACTION="/order/add.html">
+<TABLE BORDER="0" WIDTH="150" CELLPADDING="2" CELLSPACING="0">
   <TR>
-    <TD>Product ID:</TD>
+    <TD COLSPAN="3"><STRONG>INSTANT ORDER:</STRONG></TD>
+  </TR>
+  <TR>
+    <TH>&nbsp;</TH>
+    <TH>Product ID</TH>
+    <TH>Quantity</TH>
+  </TR>
+  <TR>
+    <TD>1.</TD>
     <TD><INPUT TYPE="text" NAME="item1"></TD>
-    <TD>Quantity:</TD>
-    <TD><INPUT TYPE="TEXT" NAME="quantity1" VALUE="1" SIZE="6" MAXLENGTH="5"></TD>
+    <TD><INPUT TYPE="text" NAME="quantity1" VALUE="1" SIZE="4" MAXLENGTH="3"></TD>
   </TR>
   <TR>
-    <TD>Product ID:</TD>
+    <TD>2.</TD>
     <TD><INPUT TYPE="text" NAME="item2"></TD>
-    <TD>Quantity:</TD>
-    <TD><INPUT TYPE="TEXT" NAME="quantity2" VALUE="1" SIZE="6" MAXLENGTH="5"></TD>
+    <TD><INPUT TYPE="text" NAME="quantity2" VALUE="1" SIZE="4" MAXLENGTH="3"></TD>
   </TR>
   <TR>
-    <TD>Product ID:</TD>
+    <TD>3.</TD>
     <TD><INPUT TYPE="text" NAME="item3"></TD>
-    <TD>Quantity:</TD>
-    <TD><INPUT TYPE="TEXT" NAME="quantity3" VALUE="1" SIZE="6" MAXLENGTH="5"></TD>
+    <TD><INPUT TYPE="text" NAME="quantity3" VALUE="1" SIZE="4" MAXLENGTH="3"></TD>
+  </TR>
+  <TR>
+    <TD>4.</TD>
+    <TD><INPUT TYPE="text" NAME="item4"></TD>
+    <TD><INPUT TYPE="text" NAME="quantity4" VALUE="1" SIZE="4" MAXLENGTH="3"></TD>
+  </TR>
+  <TR>
+    <TD COLSPAN="3"><STRONG><INPUT TYPE="SUBMIT" Value="Add to Order"></STRONG></TD>
   </TR>
 </TABLE>
-<INPUT TYPE="SUBMIT" Value="Add to Order">
-
-  </FORM>
+</FORM>
 <%Page path="/bits/footer"%>
