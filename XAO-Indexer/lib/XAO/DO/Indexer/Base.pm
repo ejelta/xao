@@ -453,6 +453,13 @@ sub update ($%) {
     my %o_finish;
 
     ##
+    # Data length limits
+    #
+    my $maxlen_id=$data_list->get_new->describe('id_1')->{'maxlength'};
+    my $maxlen_idpos=$data_list->get_new->describe('idpos_1')->{'maxlength'};
+    dprint ".maxlen_id=$maxlen_id maxlen_idpos=$maxlen_idpos";
+
+    ##
     # As the list can potentially be huge, we go one ordering at a time,
     # thus probably re-doing the same record -- which is fine for large
     # datasets we're dealing with.
@@ -648,6 +655,14 @@ sub update ($%) {
                 $posdata=(pack('w',0) . $z) if defined $z && length($z)<length($posdata);
                 #dprint "COMPR.aft: id=".length($iddata)." idpos=".length($posdata);
             }
+
+            ##
+            # Checking length before storing
+            #
+            length($iddata) <= $maxlen_id ||
+                throw $self "update - id data too long (".length($iddata).">$maxlen_id), kw='$kw', count=".$kw_data{'counts'}->{$kw};
+            length($posdata) <= $maxlen_idpos ||
+                throw $self "update - pos data too long (".length($posdata).">$maxlen_idpos), kw='$kw', count=".$kw_data{'counts'}->{$kw};
 
             ##
             # Storing
