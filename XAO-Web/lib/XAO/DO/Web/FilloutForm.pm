@@ -62,7 +62,7 @@ use XAO::Errors qw(XAO::DO::Web::FilloutForm);
 use base XAO::Objects->load(objname => 'Web::Page');
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: FilloutForm.pm,v 1.7 2002/10/03 06:42:00 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: FilloutForm.pm,v 1.8 2003/01/23 03:25:58 am Exp $ =~ /(\d+\.\d+)/);
 
 sub setup ($%);
 sub field_desc ($$);
@@ -118,6 +118,7 @@ sub new ($%) {
 #  pre_check_form => pre_check_form subroutine reference 
 #  check_form =>     check_form subroutine reference
 #  submit_name =>    name of the submit button
+#  keep_form =>      display form template even when the form is complete
 #
 # Call to this subroutine is not required from derived objects, use
 # method overriding instead when possible!
@@ -137,7 +138,7 @@ sub setup ($%) {
     #  extra_data  - passed to handlers as is.
     #  submit_name - name of submit button for pre-filled forms (change form).
     #
-    my @names=qw(extra_data submit_name form_ok pre_check_form check_form);
+    my @names=qw(extra_data submit_name form_ok pre_check_form check_form keep_form);
     @{$self}{@names}=@{$args}{@names};
     my $values=$args->{values} || {};
     foreach my $fdata (@{$self->{fields}}) {
@@ -181,26 +182,6 @@ sub setup_fields ($%) {
     }
 
     $self->{fields}=\@copy;
-}
-
-##
-# Retrieving field description.
-#
-sub field_desc ($$) {
-    my $self=shift;
-    my $name=shift;
-    my $fields=$self->{fields};
-    $fields || throw XAO::E::DO::Web::FilloutForm
-                     "field_desc - has not set fields for FilloutForm";
-    if(ref($fields) eq 'ARRAY') {
-        foreach my $fdata (@{$fields}) {
-            return $fdata if $fdata->{name} eq $name;
-        }
-    }
-    else {
-        return $fields->{$name} if $fields->{$name};
-    }
-    throw XAO::E::DO::Web::FilloutForm "field_desc - unknown field '$name' referred";
 }
 
 ###############################################################################
@@ -570,9 +551,13 @@ sub display ($;%) {
         }
     }
 
-    # If there were errors then displaying the form.
+    ##
+    # If there were errors then displaying the form. We also display
+    # the form here if it is not yet filled out and if it is, but we we
+    # asked to keep displaying it using 'keep_form' setup parameter.
     #
-    if(!$filled || $errstr) {
+    my $keep_form=$self->{keep_form};
+    if(!$filled || $errstr || $keep_form) {
         my $eh;
         my $et;
         if($errstr && $filled) {
@@ -591,12 +576,39 @@ sub display ($;%) {
             'ERRSTR.HTML' => $eh || '',
             %formparams,
         }));
-        return;
+        return unless $keep_form && !$errstr && $filled;
     }
 
+    ##
     # Our form is correct!
     #
     $self->form_ok(merge_refs($args,\%formparams));
+}
+
+###############################################################################
+
+=item field_desc ($)
+
+Returns field description by name. This is the correct way to get to the
+value of a field from check_form() or form_ok() methods.
+
+=cut
+
+sub field_desc ($$) {
+    my $self=shift;
+    my $name=shift;
+    my $fields=$self->{fields};
+    $fields || throw XAO::E::DO::Web::FilloutForm
+                     "field_desc - has not set fields for FilloutForm";
+    if(ref($fields) eq 'ARRAY') {
+        foreach my $fdata (@{$fields}) {
+            return $fdata if $fdata->{name} eq $name;
+        }
+    }
+    else {
+        return $fields->{$name} if $fields->{$name};
+    }
+    throw XAO::E::DO::Web::FilloutForm "field_desc - unknown field '$name' referred";
 }
 
 ##

@@ -1,3 +1,8 @@
+Make sure that there is a glue() method available on both Lists and
+Hashes and that fetch() also works on all of them.
+
+===============
+
 Polymorphism. See letter from Jean-Michel Hiver for details and ideas.
 
 ===============

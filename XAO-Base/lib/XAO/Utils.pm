@@ -32,14 +32,13 @@ sub set_debug ($);
 sub dprint (@);
 sub eprint (@);
 sub t2ht ($);
-sub t2hu ($);
 sub t2hf ($);
 sub t2hq ($);
 sub get_args (@);
 sub merge_refs (@);
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: Utils.pm,v 1.6 2003/01/10 21:33:58 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: Utils.pm,v 1.7 2003/01/23 03:25:57 am Exp $ =~ /(\d+\.\d+)/);
 
 ###############################################################################
 # Export control
@@ -51,7 +50,7 @@ require Exporter;
     all => \@EXPORT_OK,
     args => [qw(get_args merge_refs)],
     debug => [qw(dprint eprint)],
-    html => [qw(t2ht t2hq t2hf t2hu)],
+    html => [qw(t2ht t2hq t2hf)],
     keys => [qw(generate_key repair_key)],
     none => [],
 );
@@ -297,13 +296,14 @@ Escapes text to be be included into URL parameters.
 
 All symbols from 0x0 to 0x1f and from 0x80 to 0xff as well as the
 symbols from [&?<>"=%#+] are substituted to %XX hexadecimal codes
-interpreted by all standard CGI tools.
+interpreted by all standard CGI tools. The same conversion may be used
+for URLs themselves.
 
 =cut
 
 sub t2hq ($) {
     my $text=shift;
-    $text=~s/([\x00-\x20\x80-\xff\&\?<>"=%#+])/"%".unpack("H2",$1)/sge;
+    $text=~s/([\x00-\x20\x80-\xff\&\?<>;"=%#+])/"%".unpack("H2",$1)/sge;
     $text;
 }
 
@@ -324,25 +324,6 @@ sub t2ht ($) {
     $text=~s/&/&amp;/sg;
     $text=~s/</&lt;/sg;
     $text=~s/>/&gt;/sg;
-    return $text;
-}
-
-###############################################################################
-
-=item t2hu ($)
-
-Escapes text to be be included into URLs. Examples:
-
- a b c.html     ->> a%20b%20c.html
-
-All symbols from 0x0 to 0x20 and from 0x80 to 0xff are substituted with
-their codes in %xx format.
-
-=cut
-
-sub t2hu ($) {
-    my $text=$_[0];
-    $text=~s/([\000-\040\200-\377])/sprintf('%%%02X',ord($1))/ge;
     return $text;
 }
 

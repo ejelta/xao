@@ -6,7 +6,7 @@
 #  ./test.pl placeholders fields
 # to test only "placeholders" and "fields".
 #
-use Test::Unit::ExceptionFailure;
+use Test::Unit::HarnessUnit;
 
 ##
 # List of exceptions that are in testcases, but are not test cases.

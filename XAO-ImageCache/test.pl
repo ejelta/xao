@@ -7,9 +7,7 @@
 #  ./test.pl placeholders fields
 # to test only "placeholders" and "fields".
 #
-use Test::Unit::ExceptionFailure;
-eval "use XAO::FS";
-if($@) { die "Can't find XAO::FS - call as ``perl -Mblib $0''\n" }
+use Test::Unit::HarnessUnit;
 
 eval "use XAO::ImageCache";
 if($@) { die "Can't find XAO::ImageCache - call as ``perl -Mblib $0''\n" }

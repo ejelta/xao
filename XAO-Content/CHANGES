@@ -1,5 +1,8 @@
 Revision history for Perl extension XAO::DO::Web::Content
 
+1.01:
+    * Fixed a bug limiting initial text to 10000 characters.
+
 1.0: 18-Mar-2002
 
     Initial public release
