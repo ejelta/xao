@@ -67,7 +67,7 @@ use XAO::Objects;
 use base XAO::Objects->load(objname => 'FS::Glue');
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: Hash.pm,v 1.5 2002/03/19 03:37:08 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: Hash.pm,v 1.6 2002/06/08 01:08:22 am Exp $ =~ /(\d+\.\d+)/);
 
 ###############################################################################
 
@@ -914,10 +914,10 @@ sub put ($$$) {
     }
     elsif($type eq 'integer' || $type eq 'real') {
         !defined($field->{minvalue}) || $value>=$field->{minvalue} ||
-            $self->throw("put - value ($value) is bigger then $field->{minvalue} for $name");
+            $self->throw("put - value ($value) is less then $field->{minvalue} for $name");
 
         !defined($field->{maxvalue}) || $value<=$field->{maxvalue} ||
-            $self->throw("put - value ($value) is less then $field->{maxvalue} for $name");
+            $self->throw("put - value ($value) is bigger then $field->{maxvalue} for $name");
 
         if($$self->{detached}) {
             $$self->{data}->{$name}=$value;

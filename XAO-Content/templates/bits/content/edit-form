@@ -5,11 +5,8 @@
 
 <%Condition
   a.arg="INSTRUCTION"
-  a.template={<P>
-<STRONG>Instruction:</STRONG>
-<BR>
-<%INSTRUCTION%>
-}
+  a.path="/bits/content/edit-form-instruction"
+  a.pass
 %>
 
 <FORM METHOD="POST" ACTION="<%Utility mode="current-url"%>">

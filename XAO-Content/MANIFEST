@@ -19,6 +19,7 @@ templates/bits/content/add-form
 templates/bits/content/add-success
 templates/bits/content/content-info
 templates/bits/content/edit-form
+templates/bits/content/edit-form-instruction
 templates/bits/content/edit-show
 templates/bits/content/edit-store
 templates/bits/content/edit-store-success
