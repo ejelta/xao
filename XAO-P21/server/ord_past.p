@@ -10,15 +10,13 @@ ASSIGN base_date=date(INTEGER(OS-GETENV("P1")),
 
 ASSIGN d_d="\001".
 
-FOR EACH p21.ord_line WHERE ord_line.entry_date GT base_date NO-LOCK:
-    FIND FIRST p21.order WHERE order.ord_number EQ ord_line.ord_number.
-    IF AVAILABLE p21.order THEN DO:
+FOR EACH wbw_line WHERE wbw_line.inv_date GT base_date NO-LOCK:
+    IF wbw_line.inv_date NE ? THEN
         PUT UNFORMATTED
-            order.cust_code     d_d
-            order.ord_date      d_d
-            ord_line.ord_number d_d
-            ord_line.item_code  d_d
-            ord_line.entry_date d_d
+            wbw_line.cust_code      d_d
+            wbw_line.inv_date       d_d
+            wbw_line.ord_number     d_d
+            wbw_line.item_code      d_d
+            wbw_line.inv_date       d_d
         SKIP.
-    END.
 END.
