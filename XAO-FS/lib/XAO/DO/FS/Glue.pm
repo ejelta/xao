@@ -1030,7 +1030,7 @@ sub _build_search_query ($%) {
         }
     }
 
-    dprint "SQL: $sql";
+    # dprint "SQL: $sql";
 
     ##
     # Returning resulting hash
