@@ -27,15 +27,14 @@ if we look at it this way.
 ###############################################################################
 package XAO::DO::FS::Glue::MySQL_DBI;
 use strict;
+use Error qw(:try);
 use XAO::Utils qw(:debug :args :keys);
 use XAO::Objects;
-use DBI;
-use DBD::mysql;
 
-use base XAO::Objects->load(objname => 'Atom');
+use base XAO::Objects->load(objname => 'FS::Glue::SQL_DBI');
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: MySQL_DBI.pm,v 1.13 2002/05/17 05:19:03 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: MySQL_DBI.pm,v 1.14 2002/07/05 21:12:38 am Exp $ =~ /(\d+\.\d+)/);
 
 ###############################################################################
 
@@ -59,30 +58,21 @@ sub new ($%) {
 
     my $self=$proto->SUPER::new($args);
 
-    ##
-    # Connecting to the database
-    #
-    my $user=$args->{user};
-    my $password=$args->{password};
     my $dsn=$args->{dsn};
     $dsn || $self->throw("new - required parameter missed 'dsn'");
     $dsn=~/^OS:(\w+):(\w+)(;.*)?$/ || $self->throw("new - bad format of 'dsn' ($dsn)");
-    $1 eq 'MySQL_DBI' || $self->throw("new - driver type is not MySQL_DBI");
+    my $driver=$1;
     my $dbname=$2;
     my $dbopts=$3 || '';
-    my $dbh=DBI->connect("DBI:mysql:$dbname$dbopts",$user,$password) ||
-            $self->throw("new - can't connect to the database ($dsn,$user,***)");
-    $self->{dbh}=$dbh;
-    my $v=$dbh->{mysql_serverinfo} || $dbh->{serverinfo};
-    if(!$v || $v !~ /^(\d+)\.(\d+)(\.(\d+))?/ || $1<3 || $2<23) {
-        $self->{no_null_indexes}=1;
-        eprint "Disabling NULL indexes, older MySQL found";
-    }
 
-    ##
-    # Returning resulting object
-    #
-    $self;
+    $driver =~ '^MySQL' ||
+        throw $self "new - wrong driver type ($driver)";
+
+    $self->sql_connect(dsn => "DBI:mysql:$dbname$dbopts",
+                       user => $args->{user},
+                       password => $args->{password});
+
+    return $self;
 }
 
 ###############################################################################
@@ -91,7 +81,7 @@ sub new ($%) {
 
 Adds new integer field to the given table. First parameter is table
 name, then field name, then index flag, then unique flag, then minimal
-value and then maximum value.
+value and then maximum value and default value.
 
 B<Note:> Indexes only work with MySQL 3.23 and later.
 
@@ -99,7 +89,7 @@ B<Note:> Indexes only work with MySQL 3.23 and later.
 
 sub add_field_integer ($$$$$) {
     my $self=shift;
-    my ($table,$name,$index,$unique,$min,$max,$connected)=@_;
+    my ($table,$name,$index,$unique,$min,$max,$default,$connected)=@_;
     $name.='_';
 
     $min=-0x80000000 unless defined $min;
@@ -138,25 +128,23 @@ sub add_field_integer ($$$$$) {
         }
     }
 
-    $sql.=' NOT NULL' if $self->{no_null_indexes};
+    $sql.=" NOT NULL DEFAULT $default";
 
     $sql="ALTER TABLE $table ADD $name $sql";
 
-    $self->{dbh}->do($sql) || $self->throw_sql('add_field_integer');
+    $self->sql_do($sql);
 
     if(($index || $unique) && (!$unique || !$connected)) {
         my $usql=$unique ? " UNIQUE" : "";
         $sql="ALTER TABLE $table ADD$usql INDEX fsi__$name ($name)";
         #dprint ">>>$sql<<<";
-        $self->{dbh}->do($sql) ||
-            $self->throw_sql('add_field_text');
+        $self->sql_do($sql);
     }
 
     if($unique && $connected) {
         $sql="ALTER TABLE $table ADD UNIQUE INDEX fsu__$name (parent_unique_id_,$name)";
         #dprint ">>>$sql<<<";
-        $self->{dbh}->do($sql) ||
-            $self->throw_sql('add_field_text');
+        $self->sql_do($sql);
     }
 }
 
@@ -166,7 +154,7 @@ sub add_field_integer ($$$$$) {
 
 Adds new real field to the given table. First parameter is table name,
 then field name, then index flag, then unique flag, then optional
-minimal value and then optional maximum value.
+minimal value and then optional maximum value and default value.
 
 B<Note:> Indexes only work with MySQL 3.23 and later.
 
@@ -174,28 +162,24 @@ B<Note:> Indexes only work with MySQL 3.23 and later.
 
 sub add_field_real ($$$;$$) {
     my $self=shift;
-    my ($table,$name,$index,$unique,$min,$max,$connected)=@_;
+    my ($table,$name,$index,$unique,$min,$max,$default,$connected)=@_;
     $name.='_';
 
-    my $sql="ALTER TABLE $table ADD $name DOUBLE";
+    my $sql="ALTER TABLE $table ADD $name DOUBLE NOT NULL DEFAULT $default";
 
-    $sql.=' NOT NULL' if $self->{no_null_indexes};
-
-    $self->{dbh}->do($sql) || $self->throw_sql('add_field_real');
+    $self->sql_do($sql);
 
     if(($index || $unique) && (!$unique || !$connected)) {
         my $usql=$unique ? " UNIQUE" : "";
         $sql="ALTER TABLE $table ADD$usql INDEX fsi__$name ($name)";
         #dprint ">>>$sql<<<";
-        $self->{dbh}->do($sql) ||
-            $self->throw_sql('add_field_text');
+        $self->sql_do($sql);
     }
 
     if($unique && $connected) {
         $sql="ALTER TABLE $table ADD UNIQUE INDEX fsu__$name (parent_unique_id_,$name)";
         #dprint ">>>$sql<<<";
-        $self->{dbh}->do($sql) ||
-            $self->throw_sql('add_field_text');
+        $self->sql_do($sql);
     }
 }
 
@@ -204,9 +188,9 @@ sub add_field_real ($$$;$$) {
 =item add_field_text ($$$$$)
 
 Adds new text field to the given table. First is table name, then field
-name, then index flag, then unique flag, maximum length and 'connected'
-flag. Depending on maximum length it will create CHAR, TEXT, MEDIUMTEXT
-or LONGTEXT.
+name, then index flag, then unique flag, maximum length, default value
+and 'connected' flag. Depending on maximum length it will create CHAR,
+TEXT, MEDIUMTEXT or LONGTEXT.
 
 'Connected' flag must be set if that table holds elements deeper into
 the tree then the top level.
@@ -218,7 +202,7 @@ later.
 
 sub add_field_text ($$$$$$) {
     my $self=shift;
-    my ($table,$name,$index,$unique,$max,$connected)=@_;
+    my ($table,$name,$index,$unique,$max,$default,$connected)=@_;
     $name.='_';
 
     my $sql;
@@ -232,12 +216,8 @@ sub add_field_text ($$$$$$) {
         $sql="LONGTEXT";
     }
 
-    $sql.=' NOT NULL' if $self->{no_null_indexes};
-
-    #dprint ">>ALTER TABLE $table ADD $name $sql<<";
-
-    $self->{dbh}->do("ALTER TABLE $table ADD $name $sql") ||
-        throw_sql $self 'add_field_text';
+    $self->sql_do("ALTER TABLE $table ADD $name $sql NOT NULL DEFAULT ?",
+                  $default);
 
     !$unique || $max<=255 ||
         throw $self "add_field_text - property is too long to make it unique ($max)";
@@ -248,15 +228,13 @@ sub add_field_text ($$$$$$) {
         my $usql=$unique ? " UNIQUE" : "";
         $sql="ALTER TABLE $table ADD$usql INDEX fsi__$name ($name)";
         #dprint ">>>$sql<<<";
-        $self->{dbh}->do($sql) ||
-            $self->throw_sql('add_field_text');
+        $self->sql_do($sql);
     }
 
     if($unique && $connected) {
         $sql="ALTER TABLE $table ADD UNIQUE INDEX fsu__$name (parent_unique_id_,$name)";
         #dprint ">>>$sql<<<";
-        $self->{dbh}->do($sql) ||
-            $self->throw_sql('add_field_text');
+        $self->sql_do($sql);
     }
 }
 
@@ -284,7 +262,7 @@ sub add_table ($$$$) {
                                  : "") .
             ")";
 
-    $self->{dbh}->do($sql) || $self->throw_sql('add_table');
+    $self->sql_do($sql);
 }
 
 ###############################################################################
@@ -299,9 +277,7 @@ sub delete_row ($$$) {
     my $self=shift;
     my ($table,$uid)=@_;
 
-    my $sth=$self->{dbh}->prepare("DELETE FROM $table WHERE unique_id=?");
-    $sth && $sth->execute(''.$uid) && $sth->finish ||
-        $self->throw_sql('drop_row');
+    $self->sql_do("DELETE FROM $table WHERE unique_id=?",$uid);
 }
 
 ###############################################################################
@@ -314,13 +290,7 @@ will do that for you.
 =cut
 
 sub disconnect ($) {
-    my $self=shift;
-    my $dbh=$self->{dbh};
-	if($dbh) {
-        $self->unlock_tables();
-        $dbh->disconnect();
-        delete $self->{dbh};
-    }
+    shift->sql_disconnect;
 }
 
 ###############################################################################
@@ -344,19 +314,16 @@ sub drop_field ($$$$$$) {
     if($index && (!$unique || !$connected)) {
         my $sql="ALTER TABLE $table DROP INDEX fsi__$name";
         # dprint ">>>$sql<<<";
-        $self->{dbh}->do($sql) ||
-            throw_sql $self 'drop_field';
+        $self->sql_do($sql);
     }
 
     if($unique && $connected) {
         my $sql="ALTER TABLE $table DROP INDEX fsu__$name";
         # dprint ">>>$sql<<<";
-        $self->{dbh}->do($sql) ||
-            throw_sql $self 'drop_field';
+        $self->sql_do($sql);
     }
 
-    $self->{dbh}->do("ALTER TABLE $table DROP $name") ||
-        throw_sql $self 'drop_field';
+    $self->sql_do("ALTER TABLE $table DROP $name");
 }
 
 ###############################################################################
@@ -372,8 +339,7 @@ sub drop_table ($$) {
     my $self=shift;
     my $table=shift;
 
-    my $sth=$self->{dbh}->prepare("DROP TABLE $table");
-    $sth && $sth->execute && $sth->finish || $self->throw_sql('drop_table');
+    $self->sql_do("DROP TABLE $table");
 }
 
 ###############################################################################
@@ -387,30 +353,26 @@ objects database.
 
 sub initialize_database ($) {
     my $self=shift;
-    my $dbh=$self->{dbh};
 
-    my $sth=$dbh->prepare('SHOW TABLES');
-    $sth && $sth->execute() || throw_sql $self 'initialize_database';
-    my %tables;
-    while(my ($table)=$sth->fetchrow_array()) {
-        $tables{$table}=1;
-        $dbh->do("DROP TABLE $table") || throw_sql $self 'initialize_database';
+    my $sth=$self->sql_execute('SHOW TABLES');
+    while(my $row=$self->sql_fetch_row($sth)) {
+        $self->sql_do("DROP TABLE $row->[0]");
     }
-    $sth->finish;
+    $self->sql_finish($sth);
 
     my @initseq=(
         <<'END_OF_SQL',
 CREATE TABLE Global_Fields (
   unique_id INT unsigned NOT NULL AUTO_INCREMENT,
-  table_name_ CHAR(30) NOT NULL default '',
-  field_name_ CHAR(30) NOT NULL default '',
-  type_ CHAR(20) NOT NULL default '',
-  refers_ CHAR(30) default NULL,
-  index_ TINYINT default NULL,
-  default_ CHAR(30) default NULL,
-  maxlength_ INT unsigned default NULL,
-  maxvalue_ DOUBLE default NULL,
-  minvalue_ DOUBLE default NULL,
+  table_name_ CHAR(30) NOT NULL DEFAULT '',
+  field_name_ CHAR(30) NOT NULL DEFAULT '',
+  type_ CHAR(20) NOT NULL DEFAULT '',
+  refers_ CHAR(30) DEFAULT NULL,
+  index_ TINYINT DEFAULT NULL,
+  default_ CHAR(30) DEFAULT NULL,
+  maxlength_ INT UNSIGNED DEFAULT NULL,
+  maxvalue_ DOUBLE DEFAULT NULL,
+  minvalue_ DOUBLE DEFAULT NULL,
   PRIMARY KEY  (table_name_,field_name_),
   UNIQUE KEY unique_id (unique_id)
 )
@@ -420,20 +382,9 @@ INSERT INTO Global_Fields VALUES (1,'Global_Data','project',
                                   'text','',0,'',40,NULL,NULL)
 END_OF_SQL
         <<'END_OF_SQL',
-CREATE TABLE Global_Dictionary (
-  table_name varchar(20) NOT NULL default '',
-  field_name varchar(20) NOT NULL default '',
-  strip varchar(100) NOT NULL default '',
-  table_uid int(10) unsigned NOT NULL default '0',
-  INDEX (table_name,field_name),
-  INDEX (strip(8)),
-  INDEX (table_uid)
-)
-END_OF_SQL
-        <<'END_OF_SQL',
 CREATE TABLE Global_Data (
   unique_id INT UNSIGNED NOT NULL AUTO_INCREMENT,
-  project_ char(40),
+  project_ char(40) NOT NULL DEFAULT '',
   PRIMARY KEY (unique_id)
 )
 END_OF_SQL
@@ -443,8 +394,8 @@ END_OF_SQL
         <<'END_OF_SQL',
 CREATE TABLE Global_Classes (
   unique_id int(10) unsigned NOT NULL AUTO_INCREMENT,
-  class_name_ char(100) NOT NULL default '',
-  table_name_ char(30) NOT NULL default '',
+  class_name_ char(100) NOT NULL DEFAULT '',
+  table_name_ char(30) NOT NULL DEFAULT '',
   PRIMARY KEY  (unique_id),
   UNIQUE KEY  (class_name_)
 )
@@ -455,7 +406,7 @@ END_OF_SQL
     );
 
     foreach my $clause (@initseq) {
-        $dbh->do($clause) || throw_sql $self 'initialize_database';
+        $self->sql_do($clause);
     }
 }
 
@@ -477,16 +428,14 @@ sub list_keys ($$$$$) {
 
     my $sth;
     if($conn_name) {
-        $sth=$self->{dbh}->prepare("SELECT $key FROM $table" .
-                                   " WHERE $conn_name=?");
-        $sth->execute($conn_value) || $self->throw_sql('list_keys');
+        $sth=$self->sql_execute("SELECT $key FROM $table WHERE $conn_name=?",
+                                $conn_value);
     }
     else {
-        $sth=$self->{dbh}->prepare("SELECT $key FROM $table");
-        $sth->execute() || $self->throw_sql();
+        $sth=$self->sql_execute("SELECT $key FROM $table");
     }
 
-    [ map { $_->[0] } @{$sth->fetchall_arrayref([0])} ];
+    return $self->sql_first_column($sth);
 }
 
 ###############################################################################
@@ -511,17 +460,14 @@ sub load_structure ($) {
     # Loading fields descriptions from the database.
     #
     my %fields;
-    my $dbh=$self->{dbh};
-    my $sth=$dbh->prepare("SELECT table_name_,field_name_,type_," .
-                                 "refers_,index_,default_," .
-                                 "maxlength_,minvalue_,maxvalue_" .
-                          " FROM Global_Fields");
-    $sth && $sth->execute() ||
-        throw_sql $self 'load_structure';
+    my $sth=$self->sql_execute("SELECT table_name_,field_name_,type_," .
+                                      "refers_,index_,default_," .
+                                      "maxlength_,minvalue_,maxvalue_" .
+                               " FROM Global_Fields");
 
-    while(my ($table,$field,$type,
-              $refers,$index,$default,
-              $maxlength,$minvalue,$maxvalue)=$sth->fetchrow_array) {
+    while(my $row=$self->sql_fetch_row($sth)) {
+        my ($table,$field,$type,$refers,$index,$default,
+            $maxlength,$minvalue,$maxvalue)=@$row;
         my $data;
         if($type eq 'list') {
             $refers || $self->throw("load_structure - no class name at Global_Fields($table,$field,..)");
@@ -568,23 +514,24 @@ sub load_structure ($) {
         }
         $fields{$table}->{$field}=$data;
     }
-    $sth->finish();
+    $self->sql_finish($sth);
 
     ##
     # Now loading classes translation table and putting fields
     # descriptions inside of it as well.
     #
-    $sth=$dbh->prepare("SELECT class_name_,table_name_ FROM Global_Classes");
-    $sth && $sth->execute() || $self->throw("load_structure - SQL error");
+    $sth=$self->sql_execute("SELECT class_name_,table_name_ FROM Global_Classes");
     my %classes;
-    while(my ($class,$table)=$sth->fetchrow_array) {
+    while(my $row=$self->sql_fetch_row($sth)) {
+        my ($class,$table)=@$row;
         my $f=$fields{$table};
         $f || $self->throw("load_structure - no description for $table table (class $class)");
-        $classes{$class}={ table => $table,
-                           fields => $f
-                         };
+        $classes{$class}={
+            table   => $table,
+            fields  => $f,
+        };
     }
-    $sth->finish();
+    $self->sql_finish($sth);
 
     ##
     # Resulting structure
@@ -630,13 +577,8 @@ sub retrieve_fields ($$$$) {
     my $sql=join(',',@names);
     $sql="SELECT $sql FROM $table WHERE unique_id=?";
 
-    my $sth=$self->{dbh}->prepare($sql);
-    $sth && $sth->execute($unique_id) || $self->throw_sql("retrieve_field");
-
-    my $row=$sth->fetchrow_arrayref;
-    $sth->finish;
-
-    $row;
+    my $sth=$self->sql_execute($sql,$unique_id);
+    return $self->sql_first_row($sth);
 }
 
 ###############################################################################
@@ -661,16 +603,20 @@ sub search ($%) {
 
     # dprint "SQL: $sql";
 
-    my $sth=$self->{dbh}->prepare($sql);
-    $sth && $sth->execute(@{$query->{values}}) || $self->throw_sql('search');
+    my $sth=$self->sql_execute($sql,$query->{values});
 
-    my @results;
-    while(my @row=$sth->fetchrow_array) {
-        push @results,\@row;
+    if(scalar(@{$query->{fields_list}})>1) {
+        my @results;
+        while(my $row=$self->sql_fetch_row($sth)) {
+            push @results,$row;
+        }
+        $self->sql_finish($sth);
+        return \@results;
     }
-    $sth->finish;
+    else {
+        return $self->sql_first_column($sth);
+    }
 
-    \@results;
 }
 
 ###############################################################################
@@ -709,19 +655,6 @@ sub search_clause_ws ($$$) {
 
 ###############################################################################
 
-=item setup_dictionary ($$$)
-
-Supposed to set up dictionary tables if required. For MySQL driver it
-does nothing as all dictionaries are stored in the same table currently
-and this table is created when initial database layout is created.
-
-=cut
-
-sub setup_dictionary ($$$$) {
-}
-
-###############################################################################
-
 =item store_row ($$$$$$$)
 
 Stores complete row of data into the given table. New name is generated
@@ -753,7 +686,8 @@ sub store_row ($$$$$$$) {
                               $key_name,$key_value,
                               $conn_name,$conn_value,
                               1);
-    } else {
+    }
+    else {
         while(1) {
             $key_value=generate_key();
             #$key_value=sprintf('%5.2f',rand(100));
@@ -766,7 +700,8 @@ sub store_row ($$$$$$$) {
 
     if($uid) {
         $self->update_row($table,$uid,$row);
-    } else {
+    }
+    else {
         my @fn=($key_name, map { $_.'_' } keys %{$row});
         my @fv=($key_value, values %{$row});
         if($conn_name && $conn_value) {
@@ -780,8 +715,7 @@ sub store_row ($$$$$$$) {
         $sql.=join(',',('?') x scalar(@fn));
         $sql.=')';
 
-        my $sth=$self->{dbh}->prepare($sql);
-        $sth && $sth->execute(@fv) || $self->throw_sql('store_row');
+        $self->sql_do($sql,\@fv);
     }
 
     $self->unlock_tables($table);
@@ -806,75 +740,16 @@ sub unique_id ($$$$$$$) {
 
     my $sth;
     if(defined($conn_name) && defined($conn_value)) {
-        $sth=$self->{dbh}->prepare("SELECT unique_id FROM $table WHERE $conn_name=? AND $key_name=?");
-        $sth && $sth->execute(''.$conn_value,''.$key_value) ||
-            $self->throw_sql("unique_id");
-    } else {
-        $sth=$self->{dbh}->prepare("SELECT unique_id FROM $table WHERE $key_name=?");
-        $sth && $sth->execute(''.$key_value) ||
-            $self->throw_sql("unique_id");
+        $sth=$self->sql_execute("SELECT unique_id FROM $table WHERE $conn_name=? AND $key_name=?",
+                                ''.$conn_value,''.$key_value);
+    }
+    else {
+        $sth=$self->sql_execute("SELECT unique_id FROM $table WHERE $key_name=?",
+                                ''.$key_value);
     }
 
-    my $row=$sth->fetchrow_arrayref;
-    $sth->finish;
-    $row ? $row->[0] : undef;
-}
-
-###############################################################################
-
-=item update_dictionary ($table $uid $name $value)
-
-Updates dictionary for the given field. Dictionary is supported by two
-tables Global_Dictionary and Global_Backrefs. The first table is
-dictionary itself, while the second holds references that allow to
-delete/modify records in the dictionary quicker.
-
-Here is an example content of Global_Dictionary with two names ('John
-Silver' and 'John Doe') encoded. It assumes that unique_id's of rows
-that holds `John Silver' and 'John Doe' in Customers table are 15 and 25
-respectfully.
-
- | unique_id | table_name | field_name | strip  |  ids  |
- +-----------+------------+------------+--------+-------+
- |         1 | Customers  | name       | john   | 15,25 |
- |         2 | Customers  | name       | silver | 15    |
- |         3 | Customers  | name       | doe    | 25    |
-
-Structure of Global_Backrefs for the same data:
-
- | unique_id | table_name | table_uid | field_name | ids |
- +-----------+------------+-----------+------------+-----+
- |         1 | Customers  | 15        | name       | 1,2 |
- |         2 | Customers  | 25        | name       | 1,3 |
-
-=cut
-
-sub update_dictionary ($$$$$) {
-    my $self=shift;
-    my ($table,$uid,$name,$strips)=@_;
-    $name.='_';
-
-    $self->lock_tables('Global_Dictionary');
-
-    my %rows;
-    my $dbh=$self->{dbh};
-    my $sth=$dbh->prepare('DELETE FROM Global_Dictionary' .
-                          ' WHERE table_name=? AND field_name=? AND table_uid=?');
-    $sth && $sth->execute($table,$name,$uid) ||
-        $self->throw_sql('update_dictionary');
-
-    $sth=$dbh->prepare('INSERT INTO Global_Dictionary' .
-                       ' (table_name,field_name,strip,table_uid)' .
-                       ' VALUES (?,?,?,?)');
-    my %inserted;
-    foreach my $strip (@{$strips}) {
-        next if $inserted{$strip};
-        $inserted{$strip}=1;
-        $sth && $sth->execute($table,$name,$strip,$uid) ||
-            $self->throw_sql('update_dictionary');
-    }
-
-    $self->unlock_tables();
+    my $row=$self->sql_first_row($sth);
+    return $row ? $row->[0] : undef;
 }
 
 ###############################################################################
@@ -890,11 +765,17 @@ Stores new value into single data field. Example:
 sub update_field ($$$$$) {
     my $self=shift;
     my ($table,$unique_id,$name,$value)=@_;
+
+    $unique_id ||
+        throw $self "update_field($table,..,$name,..) - no unique_id given";
+
     $name.='_';
-    $unique_id || $self->throw("update_field($table,..,$name,..) - no unique_id given");
-    my $sth=$self->{dbh}->prepare("UPDATE $table SET $name=? WHERE unique_id=?");
-    $sth && $sth->execute(defined($value) ? ''.$value : undef,''.$unique_id) ||
-        $self->throw_sql("update_field");
+
+    defined($value) ||
+        throw $self "update_field($table,..,$name,..) - undefined value given";
+
+    $self->sql_do("UPDATE $table SET $name=? WHERE unique_id=?",
+                  ''.$value,$unique_id);
 }
 
 ###############################################################################
@@ -959,9 +840,7 @@ sub update_row ($$$$) {
     $sql.=join(',',map { "${_}_=?" } keys %{$row});
     $sql.=' WHERE unique_id=?';
 
-    my $sth=$self->{dbh}->prepare($sql);
-    $sth && $sth->execute(values %{$row},$uid) ||
-        $self->throw_sql('update_row');
+    my $sth=$self->sql_do($sql,values %$row,$uid);
 }
 
 ###################################################################### PRIVATE
@@ -970,14 +849,13 @@ sub lock_tables ($@) {
     my $self=shift;
     my $sql='LOCK TABLES ';
     $sql.=join(',',map { "$_ WRITE" } @_);
-    $self->{dbh}->do($sql) || $self->throw_sql('lock_tables');
+    $self->sql_do($sql);
 }
 
 sub unlock_tables ($) {
     my $self=shift;
-    return unless $self->{dbh};
-    $self->{dbh}->do('UNLOCK TABLES') ||
-        die 'unlock_tables - failed';
+    return unless $self->sql_connected;
+    $self->sql_do_no_error('UNLOCK TABLES');
 }
 
 sub throw ($@) {
@@ -986,15 +864,9 @@ sub throw ($@) {
     $self->SUPER::throw(@_);
 }
 
-sub throw_sql ($$) {
-    my $self=shift;
-    my $method=shift;
-    $self->throw($method . ' - SQL error (' . $self->{dbh}->errstr . ')');
-}
-
 sub DESTROY ($) {
     my $self=shift;
-	$self->disconnect();
+	$self->sql_disconnect();
 }
 
 ###############################################################################
@@ -1005,13 +877,16 @@ __END__
 
 =head1 AUTHORS
 
-Xao, Inc. (c) 2001. This module was developed by Andrew Maltsev
-<am@xao.com> with help and valuable comments from other team members.
+Copyright (c) 2001,2002 XAO, Inc.
+
+This module was developed by Andrew Maltsev <am@xao.com> with the help
+and valuable comments from other team members.
 
 =head1 SEE ALSO
 
 Further reading:
 L<XAO::FS>,
+L<XAO::DO::FS::Glue::SQL_DBI>,
 L<XAO::DO::FS::Glue>.
 
 =cut

@@ -326,7 +326,7 @@ sub test_unique {
     my $list=$odb->fetch('/Customers');
     $list->destroy();
 
-    foreach my $type (qw(text words integer real)) {
+    foreach my $type (qw(text integer real)) {
 
         my $c=$list->get_new();
 
@@ -384,7 +384,7 @@ sub test_unique {
     }
 }
 
-=cut
+=pod
 
 ##
 # Checking how 'unique' works for second level objects. The trick with
@@ -411,7 +411,7 @@ sub test_unique_2 {
 
     my $order=$c1->get('Orders')->get_new;
 
-    foreach my $type (qw(text words integer real)) {
+    foreach my $type (qw(text integer real)) {
         $order->add_placeholder(
             name    => 'foo',
             type    => $type,
@@ -474,7 +474,7 @@ sub test_unique_2 {
     }
 }
 
-=pod
+=cut
 
 sub test_get_multi {
     my $self=shift;
@@ -546,6 +546,10 @@ sub test_null {
     $cust->add_placeholder(name     => 'real',
                            type     => 'real',
                           );
+    $cust->add_placeholder(name     => 'int1',
+                           type     => 'integer',
+                           default  => 10000,
+                          );
     $cust->add_placeholder(name     => 'int2',
                            type     => 'integer',
                            minvalue => 1000,
@@ -562,21 +566,25 @@ sub test_null {
         },
         t2  => {
             name    => 'integer',
-            default => 0
+            default => 0,
         },
         t3  => {
-            name    => 'int2',
-            default => 1000
+            name    => 'int1',
+            default => 10000,
         },
         t4  => {
+            name    => 'int2',
+            default => 1000,
+        },
+        t5  => {
             name    => 'real',
             default => 0,
         },
-        t5  => {
+        t6  => {
             name    => 'real2',
             default => 256,
         },
-        t6  => {
+        t7  => {
             name    => 'text2',
             default => 'test',
         },
@@ -622,16 +630,6 @@ sub test_null {
         $self->assert($got eq $expect,
                       "Expect $expect, got $got for name=$name (put undef)");
 
-        $c->put($name => '');
-
-        $c=$clist->get('c2');
-
-        $got=$c->get($name);
-        $self->assert(defined($got),
-                      "Got 'undef' for name=$name (put undef, detached)");
-        $self->assert($got eq $expect,
-                      "Expect $expect, got $got for name=$name (put empty)");
-
         $c->put($name => $expect);
 
         $c=$clist->get('c2');
@@ -670,14 +668,6 @@ sub test_null {
         $self->assert($got eq $expect,
                       "Expect $expect, got $got for name=$name (put undef, detached)");
 
-        $c->put($name => '');
-
-        $got=$c->get($name);
-        $self->assert(defined($got),
-                      "Got 'undef' for name=$name (put undef, detached)");
-        $self->assert($got eq $expect,
-                      "Expect $expect, got $got for name=$name (put empty, detached)");
-
         $c->put($name => $expect);
 
         $got=$c->get($name);
@@ -688,7 +678,5 @@ sub test_null {
 
     }
 }
-
-=cut
 
 1;

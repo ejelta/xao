@@ -30,22 +30,23 @@ METHODS
     add_field_integer ($$$$)
         Adds new integer field to the given table. First parameter is table
         name, then field name, then index flag, then unique flag, then
-        minimal value and then maximum value.
+        minimal value and then maximum value and default value.
 
         Note: Indexes only work with MySQL 3.23 and later.
 
     add_field_real ($$;$$)
         Adds new real field to the given table. First parameter is table
         name, then field name, then index flag, then unique flag, then
-        optional minimal value and then optional maximum value.
+        optional minimal value and then optional maximum value and default
+        value.
 
         Note: Indexes only work with MySQL 3.23 and later.
 
     add_field_text ($$$$$)
         Adds new text field to the given table. First is table name, then
-        field name, then index flag, then unique flag, maximum length and
-        'connected' flag. Depending on maximum length it will create CHAR,
-        TEXT, MEDIUMTEXT or LONGTEXT.
+        field name, then index flag, then unique flag, maximum length,
+        default value and 'connected' flag. Depending on maximum length it
+        will create CHAR, TEXT, MEDIUMTEXT or LONGTEXT.
 
         'Connected' flag must be set if that table holds elements deeper
         into the tree then the top level.
@@ -119,12 +120,6 @@ METHODS
         a word if database supports it or undef otherwise. For MySQL returns
         REGEXP clause.
 
-    setup_dictionary ($$$)
-        Supposed to set up dictionary tables if required. For MySQL driver
-        it does nothing as all dictionaries are stored in the same table
-        currently and this table is created when initial database layout is
-        created.
-
     store_row ($$$$$$$)
         Stores complete row of data into the given table. New name is
         generated in the given key field if there is no name given.
@@ -142,30 +137,6 @@ METHODS
     unique_id ($$$$$)
         Looks up row unique ID by given key name and value (required) and
         connector name and value (optional for top level lists).
-
-    update_dictionary ($table $uid $name $value)
-        Updates dictionary for the given field. Dictionary is supported by
-        two tables Global_Dictionary and Global_Backrefs. The first table is
-        dictionary itself, while the second holds references that allow to
-        delete/modify records in the dictionary quicker.
-
-        Here is an example content of Global_Dictionary with two names
-        ('John Silver' and 'John Doe') encoded. It assumes that unique_id's
-        of rows that holds `John Silver' and 'John Doe' in Customers table
-        are 15 and 25 respectfully.
-
-         | unique_id | table_name | field_name | strip  |  ids  |
-         +-----------+------------+------------+--------+-------+
-         |         1 | Customers  | name       | john   | 15,25 |
-         |         2 | Customers  | name       | silver | 15    |
-         |         3 | Customers  | name       | doe    | 25    |
-
-        Structure of Global_Backrefs for the same data:
-
-         | unique_id | table_name | table_uid | field_name | ids |
-         +-----------+------------+-----------+------------+-----+
-         |         1 | Customers  | 15        | name       | 1,2 |
-         |         2 | Customers  | 25        | name       | 1,3 |
 
     update_field ($$$$) {
         Stores new value into single data field. Example:
@@ -187,9 +158,12 @@ METHODS
          $self->_driver->update_row($table,$unique_id,\%row);
 
 AUTHORS
-    Xao, Inc. (c) 2001. This module was developed by Andrew Maltsev
-    <am@xao.com> with help and valuable comments from other team members.
+    Copyright (c) 2001,2002 XAO, Inc.
+
+    This module was developed by Andrew Maltsev <am@xao.com> with the help
+    and valuable comments from other team members.
 
 SEE ALSO
-    Further reading: the XAO::FS manpage, the XAO::DO::FS::Glue manpage.
+    Further reading: the XAO::FS manpage, the XAO::DO::FS::Glue::SQL_DBI
+    manpage, the XAO::DO::FS::Glue manpage.
 

@@ -23,7 +23,7 @@ sub test_search {
                                index => 1);
 
     $customer->add_placeholder(name => 'long',
-                               type => 'words',
+                               type => 'text',
                                maxlength => 1000);
 
     ##

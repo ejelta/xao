@@ -50,7 +50,7 @@ use XAO::Objects;
 use base XAO::Objects->load(objname => 'Atom');
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: Glue.pm,v 1.16 2002/06/04 23:11:48 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: Glue.pm,v 1.17 2002/07/05 21:12:38 am Exp $ =~ /(\d+\.\d+)/);
 
 ###############################################################################
 
@@ -567,13 +567,11 @@ sub _field_default ($$) {
 
     my $desc=shift || $self->_field_description($field);
 
-#dprint "Checking default for '$field', stored=",$desc->{default};
-
     return $desc->{default} if defined($desc->{default});
 
     my $type=$desc->{type};
     my $default;
-    if($type eq 'text' || $type eq 'words') {
+    if($type eq 'text') {
         $default='';
     }
     elsif($type eq 'integer' || $type eq 'real') {
@@ -598,8 +596,6 @@ sub _field_default ($$) {
     }
 
     $desc->{default}=$default;
-
-#dprint "Checking default for '$field', calculated=",$desc->{default};
 
     return $default;
 }
@@ -713,20 +709,6 @@ sub _store_data_field ($$$$$) {
     my ($name,$value)=@_;
     my $table=$self->_class_description->{table};
     $self->_driver->update_field($table,$$self->{unique_id},$name,$value);
-}
-
-###############################################################################
-
-##
-# Stores dictionary field (type=='words')
-#
-sub _store_dictionary_field ($$$$$) {
-    my $self=shift;
-    my ($name,$value)=@_;
-    my $table=$self->_class_description->{table};
-    $self->_driver->update_field($table,$$self->{unique_id},$name,$value);
-    $self->_driver->update_dictionary($table,$$self->{unique_id},
-                                      $name,$self->_split_words($value));
 }
 
 ###############################################################################
@@ -865,16 +847,21 @@ sub _list_search ($%) {
     ##
     # Post-processing results if required. The only way to get here
     # currently is if database driver does not support regex'es and
-    # ws/wq search was erformed on non-dictionary field.
+    # ws/wq search was performed.
     #
     if($query->{post_process}) {
         $self->throw('TODO; post-processing not supported yet, mail am@xao.com');
     }
 
     ##
-    # Done
+    # Done.
     #
-    [ map { $_->[0] } @$list ];
+    if(@{$query->{fields_list}} > 1) {
+        return [ map { $_->[0] } @$list ];
+    }
+    else {
+        return $list;
+    }
 }
 
 ###############################################################################
@@ -1375,35 +1362,25 @@ sub _build_search_clause ($$$$$$) {
         $clause="$field LIKE '" . '%' . $rha_escaped . '%' . "'";
     }
     elsif($op eq 'ws') {
-        if($field_desc->{type} eq 'words') {
-            $self->throw("Not implemented ws on words");
+        my $tf;
+        ($clause,$tf)=$self->_driver->search_clause_ws($field,$rha,$rha_escaped);
+        if(!$clause) {
+            $clause="$field LIKE '" . '%' . $rha_escaped . '%' . "'";
+            $$post_process=1;
         }
-        else {
-            my $tf;
-            ($clause,$tf)=$self->_driver->search_clause_ws($field,$rha,$rha_escaped);
-            if(!$clause) {
-                $clause="$field LIKE '" . '%' . $rha_escaped . '%' . "'";
-                $$post_process=1;
-            }
-            elsif(defined($tf)) {
-                push(@$values,$tf);
-            }
+        elsif(defined($tf)) {
+            push(@$values,$tf);
         }
     }
     elsif($op eq 'wq') {
-        if($field_desc->{type} eq 'words') {
-            $self->throw("Not implemented wq on words");
+        my $tf;
+        ($clause,$tf)=$self->_driver->search_clause_wq($field,$rha,$rha_escaped);
+        if(!$clause) {
+            $clause="$field LIKE '" . '%' . $rha_escaped . '%' . "'";
+            $$post_process=1;
         }
-        else {
-            my $tf;
-            ($clause,$tf)=$self->_driver->search_clause_wq($field,$rha,$rha_escaped);
-            if(!$clause) {
-                $clause="$field LIKE '" . '%' . $rha_escaped . '%' . "'";
-                $$post_process=1;
-            }
-            elsif(defined($tf)) {
-                push(@$values,$tf);
-            }
+        elsif(defined($tf)) {
+            push(@$values,$tf);
         }
     }
     else {
@@ -1497,31 +1474,7 @@ sub _list_store_object ($$$) {
                              $$self->{connector_name},$$self->{base_id},
                              \%fields);
 
-    my $uid;
-    foreach my $fn (keys %{$desc->{fields}}) {
-        next unless $desc->{fields}->{$fn}->{type} eq 'words';
-        if(!$uid) {
-            $uid=$driver->unique_id($table,
-                                    $$self->{key_name},$name,
-                                    $$self->{connector_name},$$self->{base_id});
-        }
-        $driver->update_dictionary($table,$uid,
-                                   $fn,$self->_split_words($fields{$fn}));
-    }
-
     $name;
-}
-
-##
-# Splits text string to words and returns array reference
-#
-sub _split_words ($$) {
-    my $self=shift;
-    my $text=shift;
-    [ defined($text)
-        ? map { length($_) ? (lc($_)) : () } split(/\W+/,$text)
-        : ''
-    ];
 }
 
 ##
@@ -1530,11 +1483,6 @@ sub _split_words ($$) {
 sub _add_data_placeholder ($%) {
     my $self=shift;
     my $args=get_args(\@_);
-
-    ##
-    # Temporarily make words -> text until words handling is fixed.
-    #
-    $args->{type}='text' if $args->{type} eq 'words';
 
     my $name=$args->{name};
     my $type=$args->{type};
@@ -1558,52 +1506,48 @@ sub _add_data_placeholder ($%) {
     my $connected=(!$upper_class || $upper_class eq 'FS::Global') ? 0 : 1;
 
     ##
+    # Checking or setting the default value.
+    #
+    $fdesc{default}=$self->_field_default($name,\%fdesc);
+
+    ##
     # Adding...
     #
     if($type eq 'words') {
-        $fdesc{maxlength}=100 unless $fdesc{maxlength};
-        $driver->add_field_text($table,$name,$fdesc{index},$fdesc{unique},
-                                $fdesc{maxlength},$connected);
-        $driver->setup_dictionary($table,$name,$fdesc{maxlength});
+        throw $self "_add_data_placeholder - 'words' not supported any more";
     }
     elsif ($type eq 'text') {
         $fdesc{maxlength}=100 unless $fdesc{maxlength};
+
+        my $dl=length($fdesc{default});
+        $dl <= 30 ||
+            throw $self "_add_data_placeholder - default text is longer then 30 characters";
+        $dl <= $fdesc{maxlength} ||
+            throw $self "_add_data_placeholder - default text is longer then maxlength ($fdesc{maxlength})";
+
         $driver->add_field_text($table,$name,$fdesc{index},$fdesc{unique},
-                                $fdesc{maxlength},$connected);
+                                $fdesc{maxlength},$fdesc{default},$connected);
     }
     elsif ($type eq 'integer') {
         $fdesc{minvalue}=-0x80000000 unless defined($fdesc{minvalue});
         $fdesc{maxvalue}=0x7FFFFFFF unless defined($fdesc{maxvalue});
         $driver->add_field_integer($table,$name,$fdesc{index},$fdesc{unique},
-                                   $fdesc{minvalue},$fdesc{maxvalue},$connected);
+                                   $fdesc{minvalue},$fdesc{maxvalue},$fdesc{default},$connected);
     }
     elsif ($type eq 'real') {
         $fdesc{minvalue}+=0 if defined($fdesc{minvalue});
         $fdesc{maxvalue}+=0 if defined($fdesc{maxvalue});
         $driver->add_field_real($table,$name,$fdesc{index},$fdesc{unique},
-                                $fdesc{minvalue},$fdesc{maxvalue},$connected);
+                                $fdesc{minvalue},$fdesc{maxvalue},$fdesc{default},$connected);
     }
     else {
         $self->throw("_add_data_placeholder - unknown type ($type)");
     }
 
     ##
-    # Updating in-memory data with our new field and setting default
-    # value for it.
+    # Updating in-memory data with our new field.
     #
-    $fdesc{default}=$self->_field_default($name,\%fdesc);
     $desc->{fields}->{$name}=\%fdesc;
-
-    ##
-    # Checking default value length
-    #
-    if($type eq 'text' || $type eq 'words') {
-        my $dl=length($fdesc{default});
-        $dl <= 30 ||
-            throw $self "_add_data_placeholder - default text is longer then 30 characters";
-        $dl <= $fdesc{maxlength} ||
-            throw $self "_add_data_placeholder - default text is longer then maxlength ($fdesc{maxlength})";
-    }
 
     ##
     # Updating Global_Fields
