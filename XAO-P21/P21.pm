@@ -105,7 +105,7 @@ sub items {
     $self->call( sub {
         my ($item_code, $prod_group, $pkg_size, $sales_unit,
             $sku, $list_price, $alt_ut_name, $alt_ut_size,
-            $desc1, $desc2, $upc) = split /\t/, $_[0];
+            $desc1, $desc2, $upc, $page) = split /\t/, $_[0];
         {
             item_code	=> $item_code,
             prod_group	=> $prod_group,
@@ -118,8 +118,9 @@ sub items {
             desc1   	=> $desc1,
             desc2	    => $desc2,
             upc         => $upc,
+            page        => $page,
         }
-        }, $callback, $table || 'items');
+    }, $callback, $table || 'items');
 }
 
 =head1 avail
