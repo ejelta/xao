@@ -76,6 +76,8 @@ DESCRIPTION
                                 class => 'Data::Order',
                                 key => 'order_id');
 
+        ....
+
          my $orders_list=$hash->get('Orders');
 
     objtype ()

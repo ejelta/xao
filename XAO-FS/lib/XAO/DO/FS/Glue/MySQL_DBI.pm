@@ -13,10 +13,7 @@ in MySQL specific way. The module uses DBD/DBI interface; whenever
 possible it is recommended to use direct MySQL module that works
 directly with database without DBD/DBI layer in between.
 
-This is the lowest level XAO::FS knows about. Underneath of it are
-DBD::mysql, DBI, database itself, operationg system, hardware, atoms,
-protons, gluons and so on and on and on.. The level might be not so low
-if we look at it this way.
+This is the lowest level XAO::FS knows about.
 
 =head1 METHODS
 
@@ -34,7 +31,7 @@ use XAO::Objects;
 use base XAO::Objects->load(objname => 'FS::Glue::SQL_DBI');
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: MySQL_DBI.pm,v 1.14 2002/07/05 21:12:38 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: MySQL_DBI.pm,v 1.15 2002/10/29 09:23:59 am Exp $ =~ /(\d+\.\d+)/);
 
 ###############################################################################
 
@@ -344,6 +341,31 @@ sub drop_table ($$) {
 
 ###############################################################################
 
+=item increment_key_seq ($)
+
+Increments the value of key_seq in Global_Fields table identified by the
+given row unique ID. Returns previous value.
+
+=cut
+
+sub increment_key_seq ($$) {
+    my $self=shift;
+    my $uid=shift;
+
+    my $sth=$self->sql_execute('SELECT key_seq_ FROM Global_Fields WHERE unique_id=?',$uid);
+    my $seq=$self->sql_first_row($sth)->[0];
+    if(!$seq) {
+        $self->sql_do('UPDATE Global_Fields SET key_seq_=2 WHERE unique_id=?',$uid);
+        return 1;
+    }
+    else {
+        $self->sql_do('UPDATE Global_Fields SET key_seq_=key_seq_+1 WHERE unique_id=?',$uid);
+        return $seq;
+    }
+}
+
+###############################################################################
+
 =item initialize_database ($)
 
 Removes all data from all tables and creates minimal tables that support
@@ -363,11 +385,13 @@ sub initialize_database ($) {
     my @initseq=(
         <<'END_OF_SQL',
 CREATE TABLE Global_Fields (
-  unique_id INT unsigned NOT NULL AUTO_INCREMENT,
+  unique_id INT UNSIGNED NOT NULL AUTO_INCREMENT,
   table_name_ CHAR(30) NOT NULL DEFAULT '',
   field_name_ CHAR(30) NOT NULL DEFAULT '',
   type_ CHAR(20) NOT NULL DEFAULT '',
   refers_ CHAR(30) DEFAULT NULL,
+  key_format_ CHAR(100) DEFAULT NULL,
+  key_seq_ INT UNSIGNED DEFAULT NULL,
   index_ TINYINT DEFAULT NULL,
   default_ CHAR(30) DEFAULT NULL,
   maxlength_ INT UNSIGNED DEFAULT NULL,
@@ -379,7 +403,7 @@ CREATE TABLE Global_Fields (
 END_OF_SQL
         <<'END_OF_SQL',
 INSERT INTO Global_Fields VALUES (1,'Global_Data','project',
-                                  'text','',0,'',40,NULL,NULL)
+                                  'text','',NULL,NULL,0,'',40,NULL,NULL)
 END_OF_SQL
         <<'END_OF_SQL',
 CREATE TABLE Global_Data (
@@ -401,7 +425,7 @@ CREATE TABLE Global_Classes (
 )
 END_OF_SQL
         <<'END_OF_SQL',
-INSERT INTO Global_Classes VALUES (2,'FS::Global','Global_Data')
+INSERT INTO Global_Classes VALUES (1,'FS::Global','Global_Data')
 END_OF_SQL
     );
 
@@ -457,17 +481,31 @@ sub load_structure ($) {
     my $self=shift;
 
     ##
+    # Checking if Global_Fields table has key_format_ and key_seq_
+    # fields. Adding them if it does not.
+    #
+    my $sth=$self->sql_execute("DESC Global_Fields");
+    my $flist=$self->sql_first_column($sth);
+    if(! grep { $_ eq 'key_format_' } @$flist) {
+        $self->sql_do('ALTER TABLE Global_Fields ADD key_format_ CHAR(100) DEFAULT NULL');
+    }
+    if(! grep { $_ eq 'key_seq_' } @$flist) {
+        $self->sql_do('ALTER TABLE Global_Fields ADD key_seq_ INT UNSIGNED DEFAULT NULL');
+    }
+
+    ##
     # Loading fields descriptions from the database.
     #
     my %fields;
-    my $sth=$self->sql_execute("SELECT table_name_,field_name_,type_," .
-                                      "refers_,index_,default_," .
-                                      "maxlength_,minvalue_,maxvalue_" .
-                               " FROM Global_Fields");
+    $sth=$self->sql_execute("SELECT unique_id,table_name_,field_name_," .
+                                   "type_,refers_,key_format_," .
+                                   "index_,default_," .
+                                   "maxlength_,minvalue_,maxvalue_" .
+                            " FROM Global_Fields");
 
     while(my $row=$self->sql_fetch_row($sth)) {
-        my ($table,$field,$type,$refers,$index,$default,
-            $maxlength,$minvalue,$maxvalue)=@$row;
+        my ($uid,$table,$field,$type,$refers,$key_format,
+            $index,$default,$maxlength,$minvalue,$maxvalue)=@$row;
         my $data;
         if($type eq 'list') {
             $refers || $self->throw("load_structure - no class name at Global_Fields($table,$field,..)");
@@ -480,7 +518,9 @@ sub load_structure ($) {
             $refers || $self->throw("load_structure - no class name at Global_Fields($table,$field,..)");
             $data={
                 type        => $type,
-                refers      => $refers
+                refers      => $refers,
+                key_format  => $key_format,
+                key_unique_id => $uid,
             };
         }
         elsif($type eq 'connector') {
@@ -565,7 +605,7 @@ it.
 
 =cut
 
-sub retrieve_fields ($$$$) {
+sub retrieve_fields ($$$@) {
     my $self=shift;
     my $table=shift;
     my $unique_id=shift;
@@ -678,26 +718,35 @@ sub store_row ($$$$$$$) {
     $key_name.='_';
     $conn_name.='_' if $conn_name;
 
-    $self->lock_tables($table);
+    ##
+    # We need to lock Global_Fields too as it might be used in AUTOINC
+    # key formats.
+    #
+    my @ltab=$table eq 'Global_Fields' ? ('Global_Fields') : ($table,'Global_Fields');
+    $self->lock_tables(@ltab);
 
     my $uid;
-    if($key_value) {
+    if(ref($key_value) eq 'CODE') {
+        my $kv;
+        while(1) {
+            $kv=&{$key_value};
+            last unless $self->unique_id($table,
+                                         $key_name,$kv,
+                                         $conn_name,$conn_value,
+                                         1);
+        }
+        $key_value=$kv;
+    }
+    elsif($key_value) {
         $uid=$self->unique_id($table,
                               $key_name,$key_value,
                               $conn_name,$conn_value,
                               1);
     }
     else {
-        while(1) {
-            $key_value=generate_key();
-            #$key_value=sprintf('%5.2f',rand(100));
-            last unless $self->unique_id($table,
-                                         $key_name,$key_value,
-                                         $conn_name,$conn_value,
-                                         1);
-        }
+        throw $self "store_row - no key_value given (old usage??)";
     }
-
+    
     if($uid) {
         $self->update_row($table,$uid,$row);
     }
@@ -718,7 +767,7 @@ sub store_row ($$$$$$$) {
         $self->sql_do($sql,\@fv);
     }
 
-    $self->unlock_tables($table);
+    $self->unlock_tables(@ltab);
 
     $key_value;
 }
@@ -776,46 +825,6 @@ sub update_field ($$$$$) {
 
     $self->sql_do("UPDATE $table SET $name=? WHERE unique_id=?",
                   ''.$value,$unique_id);
-}
-
-###############################################################################
-
-=item update_key ($$$$) {
-
-Stores new value into key field in the given table. If value for key is
-not given then it generates new random one just like store_row does.
-
- $self->_driver->update_key($table,$unique_id,$key_name,$key_value);
-
-=cut
-
-sub update_key ($$$$$) {
-    my $self=shift;
-    my ($table,$unique_id,$key_name,$key_value,$conn_name,$conn_value)=@_;
-    $key_name.='_';
-    $conn_name.='_' if $conn_name;
-
-    $self->lock_tables($table);
-
-    if(! $key_value) {
-        while(1) {
-            $key_value=generate_key();
-            last unless $self->unique_id($table,
-                                         $key_name,$key_value,
-                                         $conn_name,$conn_value,
-                                         1);
-        }
-    }
-
-    $self->update_field($table,$unique_id,$key_name,$key_value);
-
-    if(defined($conn_name) && defined($conn_value)) {
-        $self->update_field($table,$unique_id,$conn_name,$conn_value);
-    }
-
-    $self->unlock_tables();
-
-    return $key_value;
 }
 
 ###############################################################################

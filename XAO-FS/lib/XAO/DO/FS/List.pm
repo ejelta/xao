@@ -33,7 +33,7 @@ use XAO::Objects;
 use base XAO::Objects->load(objname => 'FS::Glue');
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: List.pm,v 1.7 2002/06/18 01:36:33 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: List.pm,v 1.8 2002/10/29 09:23:59 am Exp $ =~ /(\d+\.\d+)/);
 
 ###############################################################################
 
@@ -255,6 +255,8 @@ following code to get List reference:
                         type => 'list',
                         class => 'Data::Order',
                         key => 'order_id');
+
+....
 
  my $orders_list=$hash->get('Orders');
 

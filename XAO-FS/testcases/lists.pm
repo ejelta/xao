@@ -5,8 +5,61 @@ use XAO::Objects;
 
 use base qw(testcases::base);
 
+sub new_cust {
+    my $self=shift;
+    my $nref=shift;
+
+    my $odb=$self->get_odb();
+
+    my $newcust=XAO::Objects->new(objname => 'Data::Customer',
+                                  glue => $odb);
+    $self->assert(ref($newcust), 'Detached customer creation failure');
+
+    $$nref='New Customer - ' . sprintf('%5.2f',rand(100));
+    $newcust->put(name => $$nref);
+    my $got=$newcust->get('name');
+    $self->assert($$nref eq $got, "We got ($got) not what we stored ($$nref)");
+
+    $newcust;
+}
+
 ##
-# Puts new hash object into storage under generated name
+# Checks that two customer objects are different.
+#
+sub check_separation {
+    my $self=shift;
+    my ($cust1,$clist,$c2id)=@_;
+
+    my $cust2=$clist->get($c2id);
+    $self->assert(ref($cust2),
+                  "Failure retrieving customer ($c2id)");
+
+    my $name1='c1 name 11';
+    my $name2='c2 name 2222';
+    $cust1->put(name => $name1);
+    $cust2->put(name => $name2);
+    my $got1=$cust1->get('name');
+    my $got2=$cust2->get('name');
+
+    $self->assert($got1 eq $name1,
+                  "Got ($got1) not what we stored ($name1) (1)");
+    $self->assert($got2 eq $name2,
+                  "Got ($got2) not what we stored ($name2) (2)");
+
+    $cust2->put(name => $name2);
+    $cust1->put(name => $name1);
+    $got1=$cust1->get('name');
+    $got2=$cust2->get('name');
+
+    $self->assert($got1 eq $name1,
+                  "Got ($got1) not what we stored ($name1) (3)");
+    $self->assert($got2 eq $name2,
+                  "Got ($got2) not what we stored ($name2) (4)");
+}
+
+##
+# Puts new hash object into storage under generated name. Checks various
+# key formats.
 #
 sub test_store_nameless_object {
     my $self=shift;
@@ -29,6 +82,42 @@ sub test_store_nameless_object {
                   "We fetched ($got) not what we stored ($name)");
 
     $self->check_separation($newcust,$clist,$id);
+
+    my %matrix=(
+        '<$RANDOM$>'            => qr/^\w{8}$/,
+        '<$AUTOINC$>'           => qr/^\d+$/,
+        'X<$AUTOINC/10$>Y'      => qr/^X\d{10}Y$/,
+        '<$GMTIME$>_<$RANDOM$>' => qr/^\d+_\w{8}$/,
+        'RND<$RANDOM$>X<$DATE$>'=> qr/RND\w{8}X\d{14}/,
+    );
+    my $root=$odb->fetch('/');
+    foreach my $key_format (keys %matrix) {
+        my $re=$matrix{$key_format};
+        $root->drop_placeholder('Customers');
+        $root->build_structure(
+            Customers => {
+                type        => 'list',
+                class       => 'Data::Customer',
+                key         => 'customer_id',
+                key_format  => $key_format,
+                structure   => {
+                    name => {
+                        type        => 'text',
+                        maxlength   => 100,
+                    },
+                },
+            },
+        );
+        $clist=$root->get('Customers');
+        $newcust=$self->new_cust(\$name);
+        $id=$clist->put($newcust);
+        $self->assert($id=~$re,
+                      "Wrong ID generated ($id)");
+        $got=$odb->fetch("/Customers/$id/name");
+        $self->assert($name eq $got,
+                      "We fetched ($got) not what we stored ($name)");
+        $self->check_separation($newcust,$clist,$id);
+    }
 }
 
 ##
@@ -97,58 +186,6 @@ sub test_cloning {
                   "Cloned name ($n2) differs from the original ($n1) (2)");
 
     $self->check_separation($c1,$clist,$id);
-}
-
-##
-# Checks that two customer objects are different.
-#
-sub check_separation {
-    my $self=shift;
-    my ($cust1,$clist,$c2id)=@_;
-
-    my $cust2=$clist->get($c2id);
-    $self->assert(ref($cust2),
-                  "Failure retrieving customer ($c2id)");
-
-    my $name1='c1 name 11';
-    my $name2='c2 name 2222';
-    $cust1->put(name => $name1);
-    $cust2->put(name => $name2);
-    my $got1=$cust1->get('name');
-    my $got2=$cust2->get('name');
-
-    $self->assert($got1 eq $name1,
-                  "Got ($got1) not what we stored ($name1) (1)");
-    $self->assert($got2 eq $name2,
-                  "Got ($got2) not what we stored ($name2) (2)");
-
-    $cust2->put(name => $name2);
-    $cust1->put(name => $name1);
-    $got1=$cust1->get('name');
-    $got2=$cust2->get('name');
-
-    $self->assert($got1 eq $name1,
-                  "Got ($got1) not what we stored ($name1) (3)");
-    $self->assert($got2 eq $name2,
-                  "Got ($got2) not what we stored ($name2) (4)");
-}
-
-sub new_cust {
-    my $self=shift;
-    my $nref=shift;
-
-    my $odb=$self->get_odb();
-
-    my $newcust=XAO::Objects->new(objname => 'Data::Customer',
-                                  glue => $odb);
-    $self->assert(ref($newcust), 'Detached customer creation failure');
-
-    $$nref='New Customer - ' . sprintf('%5.2f',rand(100));
-    $newcust->put(name => $$nref);
-    my $got=$newcust->get('name');
-    $self->assert($$nref eq $got, "We got ($got) not what we stored ($$nref)");
-
-    $newcust;
 }
 
 sub test_container_key {

@@ -50,7 +50,7 @@ use XAO::Objects;
 use base XAO::Objects->load(objname => 'Atom');
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: Glue.pm,v 1.21 2002/10/04 01:47:49 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: Glue.pm,v 1.22 2002/10/29 09:23:58 am Exp $ =~ /(\d+\.\d+)/);
 
 ###############################################################################
 
@@ -1410,8 +1410,12 @@ sub _list_setup ($) {
     my $class_name=$$self->{class_name} || $self->throw("_setup_list - no class name given");
     my $base_name=$$self->{base_name} || $self->throw("_setup_list - no base class name given");
     $$self->{connector_name}=$glue->_connector_name($class_name,$base_name);
-    $$self->{key_name}=$glue->_list_key_name($class_name,$base_name);
     $$self->{class_description}=$$glue->{classes}->{$class_name};
+    $$self->{key_name}=$glue->_list_key_name($class_name,$base_name);
+
+    my $kdesc=$$self->{class_description}->{fields}->{$$self->{key_name}};
+    $$self->{key_format}=$kdesc->{key_format};
+    $$self->{key_unique_id}=$kdesc->{key_unique_id};
 }
 
 ##
@@ -1450,7 +1454,7 @@ sub _list_unlink_object ($$$) {
 #
 sub _list_store_object ($$$) {
     my $self=shift;
-    my ($name,$value)=@_;
+    my ($key_value,$value)=@_;
 
     ref($value) ||
         $self->throw("_list_store_object - value must be an object reference");
@@ -1472,13 +1476,58 @@ sub _list_store_object ($$$) {
     my $table=$desc->{table};
     $table || $self->throw("_list_store_object - no table");
 
+    ##
+    # If there is no name for the object then it needs to be generated
+    # according to key_format.
+    #
     my $driver=$self->_driver;
-    $name=$driver->store_row($table,
-                             $$self->{key_name},$name,
-                             $$self->{connector_name},$$self->{base_id},
-                             \%fields);
+    my $key_name=$$self->{key_name};
+    if(!$key_value) {
+        my $format=$$self->{key_format} || '<$RANDOM$>';
+        my $uid=$$self->{key_unique_id};
+        my $translate=sub {
+            my ($kw,$opt)=@_;
+            my $text='';
+            if($kw eq 'RANDOM') {
+                $text=XAO::Utils::generate_key();
+            }
+            elsif($kw eq 'AUTOINC') {
+                $uid || throw $self "_list_store_object - no key_unique_id known, internal bug";
+                my $seq=$driver->increment_key_seq($uid);
+                $text=$opt ? sprintf('%0'.$opt.'u',$seq)
+                           : sprintf('%u',$seq);
+            }
+            elsif($kw eq 'GMTIME') {
+                $text=time;
+            }
+            elsif($kw eq 'DATE') {
+                my @t=localtime;
+                $text=sprintf('%04u%02u%02u%02u%02u%02u',
+                              $t[5]+1900,$t[4]+1,$t[3],
+                              $t[2],$t[1],$t[0]);
+            }
+            else {
+                throw $self "_list_store_object - unsupported key format '$format'";
+            }
+            return $text;
+        };
+        $key_value=sub {
+            my $key=$format;
+            $key=~s{<\$(\w+)(/(\w+))?\$>}
+                   {&$translate($1,$3)}ge;
+            return $key;
+        };
+    }
 
-    $name;
+    ##
+    # Storing...
+    #
+    $key_value=$driver->store_row($table,
+                                  $key_name,$key_value,
+                                  $$self->{connector_name},$$self->{base_id},
+                                  \%fields);
+
+    return $key_value;
 }
 
 ##
@@ -1591,9 +1640,9 @@ sub _add_list_placeholder ($%) {
             $self->throw("_add_list_placeholder - bad connector name ($key)");
     }
 
-    my $glue=$self->_glue;
-    if($$glue->{classes}->{$class}) {
-        $self->throw("_add_list_placeholder - multiple lists for the same class are not allowed");
+    my $key_format=$args->{key_format} || '<$RANDOM$>';
+    if($key_format !~ /<\$RANDOM\$>/ && $key_format !~ /<\$AUTOINC(\/\d+)?\$>/) {
+        throw $self "_add_list_placeholder - key_format must include either <\$RANDOM\$> or <\$AUTOINC\$> ($key_format)";
     }
 
     XAO::Objects->load(objname => $class);
@@ -1608,33 +1657,14 @@ sub _add_list_placeholder ($%) {
     }
 
     my $driver=$self->_driver;
+    my $glue=$self->_glue;
     if($$glue->{classes}->{$class}) {
-
-        my $class_desc=$$glue->{classes}->{$class};
-        $table=$class_desc->{table};
-
-        $class_desc->{fields}->{$key} &&
-            $self->throw("_add_list_placeholder - key '$key' already exists in table '$table'");
-
-        defined($connector) && $class_desc->{fields}->{$connector} &&
-            $self->throw("_add_list_placeholder - connector '$connector' already exists in table '$table'");
-
-        $driver->add_reference_fields($table,$key,$connector);
-
-        $class_desc->{fields}->{$key}={
-            type => 'key',
-            refers => $self->objname,
-        };
-        if(defined($connector)) {
-            $class_desc->{fields}->{$connector}={
-                type => 'connector',
-                refers => $self->objname,
-            }
-        }
+        throw $self "_add_list_placeholder - multiple lists for the same class are not allowed";
     }
     else {
         foreach my $c (keys %{$$self->{classes}}) {
-            $c->{table} ne $table || $self->throw("_add_list_placeholder - such table ($table) is already used");
+            $c->{table} ne $table ||
+                throw $self "_add_list_placeholder - such table ($table) is already used";
         }
 
         $driver->add_table($table,$key,$connector);
@@ -1644,14 +1674,15 @@ sub _add_list_placeholder ($%) {
             fields => {
                 $key => {
                     type => 'key',
-                    refers => $self->objname
+                    refers => $self->objname,
+                    key_format => $key_format,
                 }
             }
         };
         if(defined($connector)) {
             $$glue->{classes}->{$class}->{fields}->{$connector}={
                 type => 'connector',
-                refers => $self->objname
+                refers => $self->objname,
             }
         }
 
@@ -1666,22 +1697,33 @@ sub _add_list_placeholder ($%) {
     $driver->store_row('Global_Fields',
                        'field_name',$key,
                        'table_name',$table,
-                       { type => 'key',
-                         refers => $self->objname
+                       { type       => 'key',
+                         refers     => $self->objname,
+                         key_format => $key_format,
+                         key_seq    => 1,
                        });
     $driver->store_row('Global_Fields',
                        'field_name',$connector,
                        'table_name',$table,
-                       { type => 'connector',
-                         refers => $self->objname
+                       { type       => 'connector',
+                         refers     => $self->objname
                        }) if defined($connector);
     $desc->{fields}->{$name}=$args;
     $driver->store_row('Global_Fields',
                        'field_name',$name,
                        'table_name',$desc->{table},
-                       { type => 'list',
-                         refers => $class
+                       { type       => 'list',
+                         refers     => $class
                        });
+
+    ##
+    # Setting unique_id of the row where key sequence is stored. This is
+    # used later in storing auto-keyed objects.
+    #
+    my $key_uid=$driver->unique_id('Global_Fields',
+                                   'field_name',$key,
+                                   'table_name',$table);
+    $$glue->{classes}->{$class}->{fields}->{$key}->{key_unique_id}=$key_uid;
 }
 
 ##

@@ -10,10 +10,7 @@ DESCRIPTION
     recommended to use direct MySQL module that works directly with database
     without DBD/DBI layer in between.
 
-    This is the lowest level XAO::FS knows about. Underneath of it are
-    DBD::mysql, DBI, database itself, operationg system, hardware, atoms,
-    protons, gluons and so on and on and on.. The level might be not so low
-    if we look at it this way.
+    This is the lowest level XAO::FS knows about.
 
 METHODS
     new ($%)
@@ -75,6 +72,10 @@ METHODS
     drop_table ($)
         Drops the given table with all its data. Whatever content was in
         that table before is lost irrevocably.
+
+    increment_key_seq ($)
+        Increments the value of key_seq in Global_Fields table identified by
+        the given row unique ID. Returns previous value.
 
     initialize_database ($)
         Removes all data from all tables and creates minimal tables that
@@ -142,13 +143,6 @@ METHODS
         Stores new value into single data field. Example:
 
          $self->_driver->update_field($table,$unique_id,$name,$value);
-
-    update_key ($$$$) {
-        Stores new value into key field in the given table. If value for key
-        is not given then it generates new random one just like store_row
-        does.
-
-         $self->_driver->update_key($table,$unique_id,$key_name,$key_value);
 
     update_row ($$$$)
         Updates multiple fields in the row by unique id and table.
