@@ -1,4 +1,6 @@
 1.03 - XXX
+    * Web::Condition 'secure' pseudo condition added
+    * Web::Page - is_secure() method added
     * Web::FS displaying methods pass their arguments to templates they
       display now
     * Web::MultiPageNav missed default templates, added

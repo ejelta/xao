@@ -64,6 +64,11 @@ Site configuration parameter.
 
 Cookie value.
 
+=item secure
+
+True if the the current page is being transferred over a secure
+connection (the url prefix is https://). Value is not used.
+
 =back
 
 All values are treated as booleans only, no comparision is implemented
@@ -79,7 +84,7 @@ use XAO::Objects;
 use base XAO::Objects->load(objname => 'Web::Page');
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: Condition.pm,v 1.3 2002/01/04 02:13:23 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: Condition.pm,v 1.4 2002/01/22 06:26:03 am Exp $ =~ /(\d+\.\d+)/);
 
 sub display ($;%)
 { my $self=shift;
@@ -91,7 +96,7 @@ sub display ($;%)
   #
   my $name;
   foreach my $a (sort keys %args)
-   { next unless $a =~ /^(\w+)\.(number|value|arg|cgiparam|length|siteconf|siteconfig|cookie)$/;
+   { next unless $a =~ /^(\w+)\.(number|value|arg|cgiparam|length|siteconf|siteconfig|cookie|secure)$/;
      if($2 eq 'cgiparam')
       { my $param=$args{$a};
         my $cname=$1;
@@ -140,12 +145,18 @@ sub display ($;%)
            last;
          }    
       }
+     elsif($2 eq 'secure')
+      { if($self->is_secure)
+         { $name=$1;
+           last;
+         }    
+      }
      elsif($args{$a})	# value
       { $name=$1;
         last;
       }
    }
-  $name="default" unless defined $name;
+    $name="default" unless defined $name;
 
     ##
     # Building object arguments now.

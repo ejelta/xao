@@ -172,7 +172,7 @@ use XAO::Errors qw(XAO::DO::Web::FS);
 use base XAO::Objects->load(objname => 'Web::Action');
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: FS.pm,v 1.7 2002/01/22 02:39:15 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: FS.pm,v 1.8 2002/01/22 06:26:03 am Exp $ =~ /(\d+\.\d+)/);
 
 ###############################################################################
 
@@ -511,7 +511,6 @@ sub search ($;%) {
         #dprint '';
     }
 
-
     #############
     #
     # DO SEARCH
@@ -528,14 +527,16 @@ sub search ($;%) {
     my $ra_all_ids = $list->search(@$ra_query);
     my $ra_ids     = $ra_all_ids;
     my $total      = $#{$ra_all_ids}+1;
-    if ($args->{start_item} || $args->{items_per_page}) {
+    my $items_per_page = $args->{items_per_page} || 0;
+    my $limit_reached  = $items_per_page && $total>$items_per_page;
+    if ($args->{start_item} || $items_per_page) {
         my $start_item = int($args->{start_item}) > 1 ? $args->{start_item}-1 : 0;
         my $stop_item  = $total-1;
-        if (int($args->{items_per_page})) {
-            my $max    = $args->{items_per_page} + $start_item;
+        if (int($items_per_page)) {
+            my $max    = $items_per_page + $start_item;
             $stop_item = $max unless $max > $stop_item;
         }
-        $ra_ids = \@$ra_all_ids[$start_item..$stop_item];
+        $ra_ids = [ @{$ra_all_ids}[$start_item..$stop_item] ];
     }
 
     #############
@@ -562,8 +563,9 @@ sub search ($;%) {
     }
     $page->display(
         $basetype      => $header,
+        ITEMS_PER_PAGE => $items_per_page,
+        LIMIT_REACHED  => $limit_reached,
         START_ITEM     => $args->{start_item},
-        ITEMS_PER_PAGE => $args->{items_per_page},
         TOTAL_ITEMS    => $total,
     ) if $header;
 
@@ -598,9 +600,10 @@ sub search ($;%) {
             foreach (@fields) {
                 my $uckey = uc($_);
                 $pass{$uckey} = $item->get($_) unless $pass{$uckey};
+                $pass{$uckey} = '' unless defined $pass{$uckey};
             }
         }
-        $page->display(%pass);
+        $page->display(\%pass);
         $count++;
     }
 
@@ -619,8 +622,9 @@ sub search ($;%) {
     }
     $page->display(
         $basetype      => $footer,
+        ITEMS_PER_PAGE => $items_per_page,
+        LIMIT_REACHED  => $limit_reached,
         START_ITEM     => $args->{start_item},
-        ITEMS_PER_PAGE => $args->{items_per_page},
         TOTAL_ITEMS    => $total,
     ) if $footer;
 }   
@@ -680,7 +684,7 @@ sub _create_query {
     #
     #dprint "\n    ## EXPRESSION: $args->{expression}";
     my $regex = '\[\s*(\d+)\s+(\w+)\s+(\d+)\s*\]';
-    if ($args->{expression} =~ /$regex/) {
+    if ($args->{expression} && $args->{expression} =~ /$regex/) {
         $args->{expression} =~ s{$regex} {
                                   $self->_interpret_expression(
                                       \@expr_ra,

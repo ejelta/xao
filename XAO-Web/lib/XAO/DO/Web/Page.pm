@@ -308,7 +308,7 @@ use XAO::PageSupport;
 # Package version
 #
 use vars qw($VERSION);
-($VERSION)=(q$Id: Page.pm,v 1.7 2002/01/04 03:27:25 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: Page.pm,v 1.8 2002/01/22 06:26:03 am Exp $ =~ /(\d+\.\d+)/);
 
 ##
 # Methods prototypes
@@ -784,7 +784,7 @@ sub base_url ($;%) {
     my $args=get_args(\@_);
     my $url;
     my $secure=$args->{secure};
-    $secure=$self->cgi->https() ? 1 : 0 unless defined $secure;
+    $secure=$self->is_secure unless defined $secure;
     if($secure) {
         $url=$self->siteconfig->get('base_url_secure');
         if(!$url) {
@@ -795,6 +795,20 @@ sub base_url ($;%) {
         $url=$self->siteconfig->get('base_url');
     }
     $url;
+}
+
+###############################################################################
+
+=item is_secure ()
+
+Returns 1 if the current the current connection is a secure one or 0
+otherwise.
+
+=cut
+
+sub is_secure ($) {
+    my $self=shift;
+    return $self->cgi->https() ? 1 : 0;
 }
 
 ###############################################################################
@@ -867,39 +881,36 @@ sub merge_args ($%) {
 #  ]
 #
 my %parsed_cache;
-sub parse ($%)
-{ my ($self,%args)=@_;
-  my $classname=ref $self || $self;
-  if(! keys %args)
-   { eprint "$classname : No arguments given";
-     return undef;
-   }
-
-  ##
-  # Getting template text
-  #
-  my $template;
-  if(defined($args{template}))
-   { $template=$args{template};
-   }
-  else
-   { my $path=$args{path};
-     if(! $path)
-      { throw XAO::Errors::Page ref($self)."::parse - No path given to Page object";
+sub parse ($%) {
+    my ($self,%args)=@_;
+    my $classname=ref $self || $self;
+    if(! keys %args) {
+        eprint "$classname : No arguments given";
         return undef;
-      }
-     return $parsed_cache{$path} if exists($parsed_cache{$path});
-     $template=XAO::Templates::get(path => $path);
-     defined($template) || throw XAO::Errors::Page
-                                 ref($self)."::parse - no template found (path=$path)";
-   }
+    }
 
-  ##
-  # Checking if we do not need to parse that template.
-  #
-  if($self->{args}->{unparsed})
-   { return [ { text => $template } ];
-   }
+    ##
+    # Getting template text
+    #
+    my $template;
+    if(defined($args{template})) {
+        $template=$args{template};
+    }
+    else {
+        my $path=$args{path} ||
+            $self->throw("parse - No path given to a Page object");
+        return $parsed_cache{$path} if exists($parsed_cache{$path});
+        $template=XAO::Templates::get(path => $path);
+        defined($template) ||
+            $self->throw("parse - no template found (path=$path)");
+    }
+
+    ##
+    # Checking if we do not need to parse that template.
+    #
+    if($self->{args}->{unparsed}) {
+        return [ { text => $template } ];
+    }
 
   ##
   # Parsing
@@ -966,18 +977,19 @@ sub parse ($%)
          }
       }
    }
-  throw XAO::Errors::Page ref($self).'::display - not closed object in template' if $in_object;
-  foreach my $item (@page)
-   { next unless defined($item->{objtext});
-     if($item->{objtext} !~ /^\s*(\w[\w\.:]*)(\/(\w+))?\s*(.*)$/s)
-      { $item->{text}='<%';	# <%%> is just a funny way to embed <%
-        delete $item->{objtext};
-        next;
-      }
-     $item->{objname}=$1;
-     $item->{flag}=$3 ? $item->{flag}=lc(substr($3,0,1)) : 't';
-     $item->{args}=parse_args($4);
-   }
+
+    $in_object && $self->throw('display - not closed object in template');
+    foreach my $item (@page) {
+        next unless defined($item->{objtext});
+        if($item->{objtext} !~ /^\s*(\w[\w\.:]*)(\/(\w+))?\s*(.*)$/s) {
+            $item->{text}='<%';	# <%%> is just a funny way to embed <%
+            delete $item->{objtext};
+            next;
+        }
+        $item->{objname}=$1;
+        $item->{flag}=$3 ? $item->{flag}=lc(substr($3,0,1)) : 't';
+        $item->{args}=parse_args($4);
+    }
 
   ##
   # Document structure
