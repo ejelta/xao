@@ -1,9 +1,39 @@
 package testcases::collection;
 use strict;
+use Error qw(:try);
 use XAO::Utils;
 use XAO::Objects;
 
 use base qw(testcases::base);
+
+##
+# This is a testcase for a bug reported by Bil on 12/17/2002. It allows
+# collection to get some sort of read-only clone object by passing array
+# reference to collection get() method. Should throw an error instead!
+#
+sub test_bild_20021217 {
+    my $self=shift;
+    my $odb=$self->get_odb();
+
+    my $clist=$odb->collection(class => 'Data::Customer');
+    $self->assert(ref($clist),
+                  "Can't create a collection");
+
+    my $sr=$clist->search('customer_id','eq','c1');
+    $self->assert(@$sr==1,
+                  "Should have got a single value");
+    
+    my $pass;
+    try {
+        my $c=$clist->get($sr);
+        $pass=0;
+    }
+    otherwise {
+        $pass=1;
+    };
+    $self->assert($pass,
+                  "Managed to get an object by passing array reference to get()");
+}
 
 sub test_everything {
     my $self=shift;
