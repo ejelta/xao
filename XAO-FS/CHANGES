@@ -1,4 +1,4 @@
-1.1 - XXX
+1.1 - 18-Mar-2002
     * Now NULL and 'undef' are outlawed and never returned.
     * 'default' parameter added to placeholder creation
     * Fixed major bug with 'unique' treatment on inner objects
