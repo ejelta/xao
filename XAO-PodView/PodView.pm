@@ -124,7 +124,7 @@ use XAO::Objects;
 use base XAO::Objects->load(objname => 'Web::Page');
 
 use vars qw($VERSION);
-$VERSION='1.01';
+$VERSION='1.02';
 
 ##
 # Loading and displaying perl module documentation.

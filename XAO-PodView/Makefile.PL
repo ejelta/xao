@@ -9,7 +9,7 @@ WriteMakefile(
     'PREREQ_PM'      => {
         'IO::String'    => '1.01',
         'Pod::Parser'   => '1.12',
-        'XAO::Web'      => '1.0',
+        'XAO::Web'      => '1.02',
     }
 );
 

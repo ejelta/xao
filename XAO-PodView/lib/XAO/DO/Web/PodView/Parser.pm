@@ -37,7 +37,7 @@ use XAO::Utils qw(:args :html :debug);
 use base qw(Pod::Parser);
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: Parser.pm,v 1.5 2002/01/04 01:57:02 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: Parser.pm,v 1.6 2002/01/04 03:21:04 am Exp $ =~ /(\d+\.\d+)/);
 
 ##
 # List of entities from Pod::Checker. I wonder who originally wrote that
@@ -200,7 +200,7 @@ sub html_encode ($$$) {
     my $self=shift;
     my $text=shift;
     #dprint "html_encode: $text";
-    t2ht($text);
+    $text=t2ht($text);
     $text=~s/(\s+)(\(c\))([\s[:punct:]]+)/$1&copy;$3/ig;
     $text=~s/(\s+)(\(r\))([\s[:punct:]]+)/$1&reg;$3/ig;
     $text;
