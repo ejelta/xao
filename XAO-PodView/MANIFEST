@@ -1,0 +1,33 @@
+Changes
+Makefile.PL
+MANIFEST
+MANIFEST.SKIP
+README
+test.pl
+PodView.pm
+ ============================================ Example
+example/README
+example/modules/Config.pm
+ ============================================ Templates
+templates/bits/podview/html/command-back
+templates/bits/podview/html/command-head1
+templates/bits/podview/html/command-head2
+templates/bits/podview/html/command-item
+templates/bits/podview/html/command-over
+templates/bits/podview/html/command-unknown
+templates/bits/podview/html/embed-bold
+templates/bits/podview/html/embed-code
+templates/bits/podview/html/embed-escape
+templates/bits/podview/html/embed-file
+templates/bits/podview/html/embed-italic
+templates/bits/podview/html/embed-link-man
+templates/bits/podview/html/embed-link-pod
+templates/bits/podview/html/embed-link-url
+templates/bits/podview/html/embed-nbsp
+templates/bits/podview/html/embed-unknown
+templates/bits/podview/html/textblock-start
+templates/bits/podview/html/textblock-stop
+templates/bits/podview/html/textblock-text
+templates/bits/podview/html/verbatim-start
+templates/bits/podview/html/verbatim-stop
+templates/bits/podview/html/verbatim-text

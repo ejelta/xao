@@ -1,0 +1,11 @@
+Makefile(\.old)?
+CVS/.*
+.cvsignore
+.config
+^blib/.*
+pm_to_blib
+.*\.(c|o|bs)$
+^devsite/bin
+^devsite/cgi-bin/symphero.pl
+^devsite/projects
+^devsite/templates

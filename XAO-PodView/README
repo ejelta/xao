@@ -1,0 +1,94 @@
+NAME
+    Symphero::Objects::PodView - POD files viewer for Symphero::Web
+
+SYNOPSIS
+    Currently is only useful in Symphero::Web site context.
+
+DESCRIPTION
+    This displayable object for Symphero::Web parses pod documentation
+    inside installed perl modules and displays it. How it will look depends
+    on a set of templates you provide and can theoretically vary from HTML
+    to PostScript to XML as no specific HTML code is include in the module
+    itself.
+
+    You can use this object to view documentation for all Perl modules
+    installed in your system.
+
+    Default templates allow you to put the followin into your templates to
+    display this manual pages for example:
+
+     <%PodView module="Symphero::Objects::PodView"%>
+
+    Alternatively you can give it the path to the file that would contain
+    pod documentation after being processed by Symphero::Page:
+
+     <%PodView path="/bits/example.pod"%>
+
+    By default it assumes that the output is "html" and uses appropriate
+    =begin, =for and =end blocks. If you want to change that feel free to
+    pass "format" argument:
+
+     <%PodView module="IO::File" format="ps"%>
+
+    That will also change directory prefix for all templates internally used
+    by PodView object -- you will need to provide them. And please, please,
+    please -- if you're PostScript guru who can create a set of templates
+    that will produce nice looking PostScript document -- do a favor for the
+    Perl community and share it.
+
+    The following templates are shipped with the PodView object and should
+    be modified if you want. Remember, that you do not need to modify them
+    in system directory - just copy them to your site and modify them there;
+    you can even modify only those that you need to.
+
+     bits/podview/html/command-back         =back
+     bits/podview/html/command-head1        =head1
+     bits/podview/html/command-head2        =head2
+     bits/podview/html/command-item         =item
+     bits/podview/html/command-over         =over
+     bits/podview/html/command-unknown      =XXX
+     bits/podview/html/embed-bold           B<text>
+     bits/podview/html/embed-code           C<text>
+     bits/podview/html/embed-escape         E<text>
+     bits/podview/html/embed-file           F<text>
+     bits/podview/html/embed-italic         I<text>
+     bits/podview/html/embed-link-man       L<system manpage>
+     bits/podview/html/embed-link-pod       L<perl module>
+     bits/podview/html/embed-link-url       L<http://site.com/>
+     bits/podview/html/embed-nbsp           S<text>
+     bits/podview/html/embed-unknown        unknown<text>
+     bits/podview/html/pod-start            start of the document
+     bits/podview/html/pod-stop             end of the document
+     bits/podview/html/textblock-start      start of text paragraphs
+     bits/podview/html/textblock-stop       end of paragraphs
+     bits/podview/html/textblock-text       paragraph body
+     bits/podview/html/verbatim-start       start of verbatim paragraph
+     bits/podview/html/verbatim-stop        stop of verbatim paragraph
+     bits/podview/html/verbatim-text        verbatim paragraph body
+
+    A little explanation is required for start and stop for textblock and
+    verbatim. PodView calls start before a set of continous textblock or
+    verbatim paragraphs.
+
+    Normally start and stop for textblock are empty with <P> and </P>
+    included in textblock-body. For verbatim mode start contains <PRE> and
+    stop contains </PRE>. That means in effect that empty line between two
+    verbatim paragraphs would not break verbatim mode as it happens with all
+    pod processors I looked at.
+
+    And at the same time if you do want to treat verbatim paragraphs one by
+    one - you're free to do so.
+
+METHODS
+    No publicly available methods except overriden display().
+
+EXPORTS
+    Nothing.
+
+AUTHOR
+    Andrew Maltsev <am@amsoft.ru>.
+
+SEE ALSO
+    Recommended reading: the Symphero::Web manpage, the Symphero::Page
+    manpage.
+

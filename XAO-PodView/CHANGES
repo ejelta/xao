@@ -1,0 +1,11 @@
+Revision history for Perl extension XAO::DO::Web::PodView
+
+0.2: 27-Dec-2001
+
+    * Changed to use XAO::Web
+    * Parser moved into a separate DO - XAO::DO::Web::PodView::Parser
+
+0.1: 26-Mar-2001
+
+    Created for internal use and as a demo of Symphero::Web plugin.
+
