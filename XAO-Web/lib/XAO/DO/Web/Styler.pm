@@ -19,40 +19,42 @@ XXX - make real documentation!!
 ###############################################################################
 package XAO::DO::Web::Styler;
 use strict;
-use XAO::Utils;
+use XAO::Utils qw(:args fround);
 use XAO::Objects;
 use base XAO::Objects->load(objname => 'Web::Page');
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: Styler.pm,v 1.5 2003/02/01 00:41:10 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: Styler.pm,v 1.6 2003/02/06 18:29:54 am Exp $ =~ /(\d+\.\d+)/);
 
-sub display ($;%)
-{ my $self=shift;
-  my $args=get_args(\@_);
+sub display ($;%) {
+    my $self=shift;
+    my $args=get_args(\@_);
 
-  ##
-  # Special formatting for special fields.
-  #
-  # number => 1,234,456,789
-  #
-  my $template="<%NUMBER%>" if defined($args->{number});
-  my $number=int($args->{number} || 0);
-  1 while $number=~s/(\d)(\d{3}($|,))/$1,$2/;
+    ##
+    # Special formatting for special fields.
+    #
+    # number => 1,234,456,789
+    #
+    my $template="<%NUMBER%>" if defined($args->{number});
+    my $number=int($args->{number} || 0);
+    1 while $number=~s/(\d)(\d{3}($|,))/$1,$2/;
 
-  ##
-  # dollars => $1'234.78
-  #
-  $template="<%DOLLARS%>" if defined($args->{dollars}) || defined($args->{dollar});
-  my $dollars=sprintf(($args->{format} || '%.2f'),$args->{dollars} || $args->{dollar} || 0);
-  1 while $dollars=~s/(\d)(\d{3}($|,|\.))/$1,$2/;
-  $dollars='$'.$dollars;
+    ##
+    # dollars => $1'234.78
+    #
+    $template="<%DOLLARS%>" if defined($args->{dollars}) || defined($args->{dollar});
+    my $dollars=$args->{format}
+                  ? sprintf($args->{format},$args->{dollars} || $args->{dollar} || 0)
+                  : fround($args->{dollars} || $args->{dollar} || 0,100);
+    1 while $dollars=~s/(\d)(\d{3}($|,|\.))/$1,$2/;
+    $dollars='$'.$dollars;
 
-  ##
-  # real => 1'234.78
-  #
-  $template='<$REAL$>' if defined($args->{real});
-  my $real=sprintf("%.2f",$args->{real} || 0);
-  1 while $real=~s/(\d)(\d{3}($|,|\.))/$1,$2/;
+    ##
+    # real => 1'234.78
+    #
+    $template='<$REAL$>' if defined($args->{real});
+    my $real=sprintf("%.2f",$args->{real} || 0);
+    1 while $real=~s/(\d)(\d{3}($|,|\.))/$1,$2/;
 
     ##
     # Percents

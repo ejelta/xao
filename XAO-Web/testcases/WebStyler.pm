@@ -23,6 +23,10 @@ sub test_all {
             template => '<%Styler dollars="1234.567" format="%.0f"%>',
             result => '$1,235',
         },
+        t3 => {
+            template => '<%Styler dollars="33.415"%>',
+            result => '$33.42',
+        },
     );
 
     my $page=XAO::Objects->new(objname => 'Web::Page');

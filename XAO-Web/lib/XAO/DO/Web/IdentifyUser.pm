@@ -295,7 +295,7 @@ use XAO::Objects;
 use base XAO::Objects->load(objname => 'Web::Action');
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: IdentifyUser.pm,v 1.20 2003/01/14 08:30:50 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: IdentifyUser.pm,v 1.21 2003/02/06 18:29:54 am Exp $ =~ /(\d+\.\d+)/);
 
 ###############################################################################
 
@@ -467,6 +467,8 @@ sub check {
     # if so user's status is 'verified'
     #
     if(! $clipboard->get("$cb_uri/verified")) {
+        my $verified=0;
+        my %vcookie;
 
         ##
         # Checking the difference between the current time and the time
@@ -487,7 +489,7 @@ sub check {
                 my $web_key=$self->cgi->cookie($config->{vf_key_cookie}) || '';
                 my $db_key=$user->get($config->{vf_key_prop}) || '';
                 if($web_key && $db_key eq $web_key) {
-                    $clipboard->put("$cb_uri/verified" => 1);
+                    $verified=1;
 
                     ##
                     # In order to reduce global heating we only transfer
@@ -501,19 +503,39 @@ sub check {
                     #
                     my $quant=int($vf_expire_time/20);
                     if($current_time-$last_vf > $quant) {
-                        $self->siteconfig->add_cookie(
+                        %vcookie=(
                             -name    => $config->{vf_key_cookie},
                             -value   => $web_key,
                             -path    => '/',
                             -expires => '+4y',
                         );
-                        $user->put($vf_time_prop => $current_time);
+                    }
+                    else {
+                        $vf_time_prop='';
                     }
                 }
             }
             else {
+                $verified=1;
+            }
+        }
+
+        ##
+        # Calling external overridable function to check if it is OK to
+        # verify that user.
+        #
+        if($verified) {
+            my $errstr=$self->verify_check(
+                args    => $args,
+                object  => $user,
+                type    => $type,
+            );
+            if(!$errstr) {
                 $clipboard->put("$cb_uri/verified" => 1);
-                $user->put($vf_time_prop => $current_time);
+                $user->put($vf_time_prop => $current_time) if $vf_time_prop;
+                if(%vcookie) {
+                    $self->siteconfig->add_cookie(\%vcookie);
+                }
             }
         }
     }
@@ -802,8 +824,8 @@ sub login ($;%) {
 
 =item login_check ()
 
-A method that can be overriden in a derived object to check addition
-conditions for letting a user in. Get the following arguments as its
+A method that can be overriden in a derived object to check additional
+conditions for letting a user in. Gets the following arguments as its
 input:
 
  name       => name of user object
@@ -902,6 +924,28 @@ sub logout{
     }
 
     return $self->display_results($args,'identified');
+}
+
+##############################################################################
+
+=item verify_check (%)
+
+Overridable method that is called from check() after user is identified
+and verified. May check for additional conditions, such as privilege
+level or something similar.
+
+Gets the following arguments as its input:
+
+ args       => arguments as passed to the check() method
+ object     => reference to a database object containing user info
+ type       => user type
+
+Must return empty string on success.
+
+=cut
+
+sub verify_check ($%) {
+    return '';
 }
 
 ##############################################################################
