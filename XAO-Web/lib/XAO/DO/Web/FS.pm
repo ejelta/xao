@@ -184,7 +184,7 @@ use XAO::Errors qw(XAO::DO::Web::FS);
 use base XAO::Objects->load(objname => 'Web::Action');
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: FS.pm,v 1.40 2003/07/22 17:40:43 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: FS.pm,v 1.41 2003/09/30 22:20:50 am Exp $ =~ /(\d+\.\d+)/);
 
 ###############################################################################
 
@@ -822,8 +822,12 @@ sub _create_query {
     #
     # Add any extra search options
     #
-    if ($args->{orderby} || $args->{distinct} || $args->{limit}) {
+    if ($args->{orderby} || $args->{distinct} || $args->{limit} || $args->{debug}) {
         my $rh_options = {};
+
+        if($args->{debug}) {
+            $rh_options->{debug}=1;
+        }
 
         #
         # Sort specifications
