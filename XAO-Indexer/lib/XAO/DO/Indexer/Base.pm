@@ -632,9 +632,9 @@ sub update ($%) {
             if($compression) {
                 #dprint "COMPR.bef: id=".length($iddata)." idpos=".length($posdata);
                 my $z=Compress::LZO::compress($iddata,$compression);
-                $iddata=(pack('w',0) . $z) if defined $z;
+                $iddata=(pack('w',0) . $z) if defined $z && length($z)<length($iddata);
                 $z=Compress::LZO::compress($posdata,$compression);
-                $posdata=(pack('w',0) . $z) if defined $z;
+                $posdata=(pack('w',0) . $z) if defined $z && length($z)<length($posdata);
                 #dprint "COMPR.aft: id=".length($iddata)." idpos=".length($posdata);
             }
 
