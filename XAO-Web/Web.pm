@@ -57,9 +57,6 @@ Methods of XAO::Web objects include
 
 ###############################################################################
 
-##
-# Prototypes
-#
 sub analyze ($@);
 sub config ($);
 sub execute ($%);
@@ -370,9 +367,20 @@ sub new ($%) {
     #
     my $siteconfig=XAO::Projects::get_project($sitename);
     if($siteconfig) {
+        #dprint "Found existing config object";
+        #foreach my $k ($siteconfig->keys) {
+        #    dprint "BEFORE CLEANUP: $k->",$siteconfig->get($k);
+        #}
         $siteconfig->cleanup;
+        #foreach my $k ($siteconfig->keys) {
+        #    dprint "AFTER CLEANUP: $k->",$siteconfig->get($k);
+        #}
+        #foreach my $k ($siteconfig->clipboard->keys) {
+        #    dprint "AFTER CBOARD: $k->",$siteconfig->clipboard->get($k);
+        #}
     }
     else {
+        #dprint "Creating new config object";
 
         ##
         # Creating configuration.

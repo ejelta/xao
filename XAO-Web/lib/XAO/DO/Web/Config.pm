@@ -44,7 +44,7 @@ sub new ($@);
 # Package version for checks and reference
 #
 use vars qw($VERSION);
-($VERSION)=(q$Id: Config.pm,v 1.3 2001/12/07 22:01:03 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: Config.pm,v 1.4 2001/12/18 02:30:56 am Exp $ =~ /(\d+\.\d+)/);
 
 ###############################################################################
 
@@ -84,8 +84,6 @@ sub add_cookie ($@) {
     my $self=shift;
     my $cookie=(@_==1 ? $_[0] : get_args(\@_));
   
-    dprint ref($self)."::add_cookie - adding $cookie";
-
     ##
     # If new cookie has the same name, domain and path
     # as previously set one - we replace it. Works only for
@@ -151,8 +149,11 @@ usually is called as part of XAO::DO::Config cleanup().
 
 sub cleanup ($) {
     my $self=shift;
-    delete $self->{clipboard};
     delete $self->{cgi};
+    delete $self->{clipboard};
+    delete $self->{cookies};
+    delete $self->{header_args};
+    delete $self->{header_printed};
     delete $self->{special_access};
 }
 
@@ -191,8 +192,6 @@ sub cookies ($) {
             push @baked,$c;
         }
     }
-
-    dprint ref($self),"::cookies - ",join('|',@baked);
 
     \@baked;
 }

@@ -307,7 +307,7 @@ use XAO::PageSupport;
 # Package version
 #
 use vars qw($VERSION);
-($VERSION)=(q$Id: Page.pm,v 1.4 2001/12/07 22:01:03 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: Page.pm,v 1.5 2001/12/18 02:30:57 am Exp $ =~ /(\d+\.\d+)/);
 
 ##
 # Methods prototypes
@@ -390,45 +390,41 @@ URL.
 
 =cut
 
-sub display ($%)
-{ my $self=shift;
-  my $args=$self->{args}=get_args(\@_);
-  my $classname=ref $self || $self;
-  if(! keys %{$args})
-   { eprint "$classname: No arguments given";
-     return;
-   }
+sub display ($%) {
+    my $self=shift;
+    my $args=$self->{args}=get_args(\@_);
 
-  ##
-  # Parsing template
-  #
-  my $page=$self->parse(path => $args->{path}, template => $args->{template});
-  $page || return;
+    ##
+    # Parsing template
+    #
+    my $page=$self->parse(path      => $args->{path},
+                          template  => $args->{template});
+    $page || return;
 
-  ##
-  # Template processing itself. Pretty simple, huh? :)
-  #
-  foreach my $item (@{$page})
-   { my $text=$item->{text};
+    ##
+    # Template processing itself. Pretty simple, huh? :)
+    #
+    foreach my $item (@{$page}) {
+        my $text=$item->{text};
 
-     ##
-     # <%End%> is special kind of object, processing stops where it is
-     # found. Suitable to cut off carriage return at the end of template
-     # and to put comments inside template.
-     #
-     last if !defined($text) && $item->{objname} eq 'End';
+        ##
+        # <%End%> is special kind of object, processing stops where it is
+        # found. Suitable to cut off carriage return at the end of template
+        # and to put comments inside template.
+        #
+        last if !defined($text) && $item->{objname} eq 'End';
 
-     ##
-     # Trying to substitute from args if possible.
-     #
-     $text=$args->{$item->{objname}} unless defined($text);
+        ##
+        # Trying to substitute from args if possible.
+        #
+        $text=$args->{$item->{objname}} unless defined($text);
 
-     ##
-     # Executing object if not.
-     #
-     my $itemflag=$item->{flag};
-     if(!defined($text)) {
-        my $obj;
+        ##
+        # Executing object if not.
+        #
+        my $itemflag=$item->{flag};
+        if(!defined($text)) {
+            my $obj;
         try {
             $obj=$self->object(objname => $item->{objname});
         }
