@@ -144,32 +144,32 @@ td.header {
     <TD WIDTH="100%" HEIGHT="22" ALIGN="LEFT">
       <TABLE WIDTH="530" CELLPADDING="0" CELLSPACING="0" BORDER="0">
         <TR>
-          <TD BGCOLOR="#336699" WIDTH="60" HEIGHT="20" ALIGN="CENTER" VALIGN="MIDDLE">
-          <A HREF="/"><font color="#FFFFFF"><B>home</B></A></font></TD>
+          <TD BGCOLOR="#336699" WIDTH="60" HEIGHT="20" ALIGN="CENTER" VALIGN="MIDDLE"><CENTER><DIV ALIGN="center">
+          <A HREF="/"><FONT COLOR="#FFFFFF"><STRONG>home</STRONG></A></FONT></TD>
           
           <TD BGCOLOR="#363636" WIDTH="1" HEIGHT="20" ALIGN="CENTER" VALIGN="MIDDLE">
           <img src="/images/pix_clear.gif" ALT="" WIDTH="1" HEIGHT="20" BORDER="0"></TD>
           
           <TD BGCOLOR="#336699" WIDTH="60" HEIGHT="20" ALIGN="CENTER" VALIGN="MIDDLE">
-          <A HREF="/order/"><font color="#FFFFFF"><B>shopping cart</B></A></font></TD>
+          <A HREF="/order/"><FONT COLOR="#FFFFFF"><STRONG>shopping cart</STRONG></A></FONT></TD>
           
           <TD BGCOLOR="#363636" WIDTH="1" HEIGHT="20" ALIGN="CENTER" VALIGN="MIDDLE">
           <img src="/images/pix_clear.gif" ALT="" WIDTH="1" HEIGHT="20" BORDER="0"></TD>
           
           <TD BGCOLOR="#336699" WIDTH="60" HEIGHT="20" ALIGN="CENTER" VALIGN="MIDDLE">
-          <A HREF="/account/"><font color="#FFFFFF"><B>your account</B></A></font></TD>
+          <A HREF="/account/"><font color="#FFFFFF"><STRONG>your account</STRONG></A></font></TD>
           
           <TD BGCOLOR="#363636" WIDTH="1" HEIGHT="20" ALIGN="CENTER" VALIGN="MIDDLE">
           <img src="/images/pix_clear.gif" ALT="" WIDTH="1" HEIGHT="20" BORDER="0"></TD>
           
           <TD BGCOLOR="#336699" WIDTH="60" HEIGHT="20" ALIGN="CENTER" VALIGN="MIDDLE">
-          <A HREF="/account/new.html"><font color="#FFFFFF"><B>new account</B></A></font></TD>
+          <A HREF="/account/new.html"><font color="#FFFFFF"><STRONG>new account</STRONG></A></font></TD>
           
           <TD BGCOLOR="#363636" WIDTH="1" HEIGHT="20" ALIGN="CENTER" VALIGN="MIDDLE">
           <img src="/images/pix_clear.gif" ALT="" WIDTH="1" HEIGHT="20" BORDER="0"></TD>
           
           <TD BGCOLOR="#336699" WIDTH="60" HEIGHT="20" ALIGN="CENTER" VALIGN="MIDDLE">
-          <A HREF="/logout.html"><font color="#FFFFFF"><B>logout</B></A></font></TD>
+          <A HREF="/logout.html"><font color="#FFFFFF"><STRONG>logout</STRONG></A></font></TD>
           
           <TD BGCOLOR="#363636" WIDTH="1" HEIGHT="20" ALIGN="CENTER" VALIGN="MIDDLE">
           <img src="/images/pix_clear.gif" ALT="" WIDTH="1" HEIGHT="20" BORDER="0"></TD>
@@ -206,7 +206,7 @@ td.header {
             <TABLE BGCOLOR="#7D7D7D" CELLPADDING="4" CELLSPACING="0" BORDER="0">
               <TR>
                 <TD BGCOLOR="#7D7D7D" WIDTH="160" HEIGHT="100%" ALIGN="CENTER" VALIGN="MIDDLE">
-                <font color="#FFFFFF"><B>STUFF WE SELL</B></font></TD>
+                <font color="#FFFFFF"><STRONG>STUFF WE SELL</STRONG></font></TD>
               </TR>
             </TABLE>
           </TD>
@@ -270,7 +270,7 @@ td.header {
           <TD WIDTH="160" HEIGHT="100%" ALIGN="LEFT" VALIGN="BOTTOM">
                 
           <font STYLE="font-size: 8pt" color="#FFFFFF">
-            <B>&nbsp;XAO Inc.</B>
+            <STRONG>&nbsp;XAO Inc.</STRONG>
             <BR>&nbsp;221 East Walnut St.
             <BR>&nbsp;Suite 102
             <BR>&nbsp;Pasadena, CA 91101

@@ -3,6 +3,7 @@ Makefile.PL
 CHANGES
 LICENSE
 MANIFEST
+MANIFEST.SKIP
 README
 TODO
  -------------------------------------------------------------

@@ -28,7 +28,7 @@
         c1.arg="MANUFACTURER_ID"
         c1.template={Manufacturer code: <%MANUFACTURER_ID/f%><BR>}
       %>
-      ABC ID: <%SKU/f%><BR>
+      Product ID: <EM><%ID/f%><!-- %SKU/f% --></EM><BR>
     </TD>
 
     <TD ALIGN="CENTER" WIDTH="1%">
