@@ -179,7 +179,7 @@ use XAO::Errors qw(XAO::DO::Web::FS);
 use base XAO::Objects->load(objname => 'Web::Action');
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: FS.pm,v 1.15 2002/02/13 23:00:40 alves Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: FS.pm,v 1.16 2002/02/14 00:15:16 alves Exp $ =~ /(\d+\.\d+)/);
 
 ###############################################################################
 
@@ -455,11 +455,16 @@ sub show_list ($%) {
             $page->display(merge_refs($args,\%data));
         }
 
-        $page->display(merge_refs($args,{
-            path        => $args->{'footer.path'},
-            template    => $args->{'footer.template'},
-            NUMBER      => $number,
-        })) if $args->{'footer.path'} || $args->{'footer.template'};
+        $page->display(
+            merge_refs(
+                $args,
+                {
+                    path     => $args->{'footer.path'},
+                    template => $args->{'footer.template'},
+                    NUMBER   => $number,
+                }
+            )
+        ) if $args->{'footer.path'} || $args->{'footer.template'};
     }
 }
 
@@ -578,7 +583,7 @@ sub search ($;%) {
 
     if (!$total && ($args->{'default.path'} || $args->{'default.template'})) {
         #
-        # Display default if apropriate
+        # Display default if appropriate
         #
         my $default = '';
         if ($args->{'default.template'}) {
@@ -652,7 +657,7 @@ sub search ($;%) {
                     $pass{$uckey} = '' unless defined $pass{$uckey};
                 }
             }
-            $page->display(\%pass);
+            $page->display(merge_refs($args,\%pass));
             $count++;
         }
 
