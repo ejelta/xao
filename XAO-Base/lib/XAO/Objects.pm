@@ -89,7 +89,7 @@ use XAO::Errors qw(XAO::Objects);
 use XAO::Projects;
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: Objects.pm,v 1.10 2002/06/26 00:54:04 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: Objects.pm,v 1.11 2003/07/03 05:27:21 am Exp $ =~ /(\d+\.\d+)/);
 
 ##
 # Prototypes
@@ -138,8 +138,8 @@ sub load (@) {
             throw XAO::E::Objects "load - no sitename given for Config object";
     }
     else {
-        $sitename=XAO::Projects::get_current_project_name() ||
-                  $args->{sitename} ||
+        $sitename=$args->{sitename} ||
+                  XAO::Projects::get_current_project_name() ||
                   '';
     }
 
