@@ -613,11 +613,15 @@ sub view_order_details {
             $line{suspend_flag}=lc($line{suspend_flag} || '') eq 'no' ? 0 : 1;
         }
         elsif($arr[0] eq 'INVOICE') {
-            @arr==10 ||
+            @arr==18 ||
                 throw XAO::E::P21 "view_order_details - wrong INVOICE ($str)";
             @line{qw(type ship_number ord_date inv_date ship_date
                      total_stax_amt out_freight cust_code
-                     ship_inst1 ship_branch)}=@arr;
+                     ship_inst1 ship_branch
+                     ship_to_name ship_to_addr1 ship_to_addr2 ship_to_addr3
+                     ship_to_city ship_to_state ship_to_zip
+                     ar_amt
+                    )}=@arr;
         }
         elsif($arr[0] eq 'ITEM') {
             @arr==5 ||

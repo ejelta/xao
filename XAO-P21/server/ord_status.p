@@ -73,7 +73,14 @@ DO TRANSACTION:
             wbw_head.out_freight            d_d
             wbw_head.cust_code              d_d
             wbw_head.ship_inst1             d_d
-            wbw_head.ship_branch            skip
+            wbw_head.ship_branch            d_d
+            wbw_head.ship_to_name           d_d
+            wbw_head.ship_to_addr1          d_d
+            wbw_head.ship_to_addr2          d_d
+            wbw_head.ship_to_addr3          d_d
+            wbw_head.ship_to_city           d_d
+            wbw_head.ship_to_state          d_d
+            wbw_head.ship_to_zip            skip
         .
     END.
 
