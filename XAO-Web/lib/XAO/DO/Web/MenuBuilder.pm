@@ -99,18 +99,28 @@ sub display ($;%) {
         my $name=$items{$item};
         $obj->display(path => "$base/separator") if !$first && $sepexists;
         $first=0;
-        my $path;
+
+        my %params=(
+            NORMAL  => '',
+            ACTIVE  => '',
+            GRAYED  => '',
+        );
+        my $subpath;
         if($grayed{$name}) {
-            $path="grayed";
+            $subpath='grayed';
+            $params{GRAYED}=1;
         }
         elsif(defined($args->{active}) && $name eq $args->{active}) {
-            $path="active";
+            $subpath='active';
+            $params{ACTIVE}=1;
         }
         else {
-            $path="normal";
+            $subpath='normal';
+            $params{NORMAL}=1;
         }
-        $path="$base/item-$name-$path";
-        $obj->display(path => $path);
+        $params{path}="$base/item-$name-$subpath";
+
+        $obj->display(\%params);
     }
     $obj->display(path => "$base/footer")
         if XAO::Templates::filename("$base/footer");
@@ -126,7 +136,7 @@ Nothing.
 
 =head1 AUTHOR
 
-Copyright (c) 2000-2002 XAO, Inc.
+Copyright (c) 2000-2003 XAO, Inc.
 
 Andrew Maltsev <am@xao.com>.
 

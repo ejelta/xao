@@ -62,7 +62,7 @@ use XAO::Errors qw(XAO::DO::Web::FilloutForm);
 use base XAO::Objects->load(objname => 'Web::Page');
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: FilloutForm.pm,v 1.12 2003/08/29 01:13:59 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: FilloutForm.pm,v 1.13 2003/09/11 17:41:17 am Exp $ =~ /(\d+\.\d+)/);
 
 sub setup ($%);
 sub field_desc ($$);
@@ -329,8 +329,23 @@ sub display ($;%) {
             }
         }
         elsif($style eq 'int' || $style eq 'integer' || $style eq 'number') {
-            if(length($value) && $value !~ /^\d+$/) {
-                $newerr="Is not an integer!"
+            if(length($value)) {
+                if($value =~ /^[\d,']+$/) {
+                    $value=~s/[,']+//g;
+                }
+                else {
+                    $newerr="Is not an integer!"
+                }
+            }
+        }
+        elsif($style eq 'real') {
+            if(length($value)) {
+                if($value =~ /^[\d,'\.]+$/) {
+                    $value=~s/[,']+//g;
+                }
+                else {
+                    $newerr="Is not an number!"
+                }
             }
         }
         elsif($style eq 'password') {
@@ -554,7 +569,8 @@ sub display ($;%) {
         }
         elsif($style eq 'text' || $style eq 'phone' || $style eq 'usphone' ||
               $style eq 'ccnum' || $style eq 'email' || $style eq 'year' ||
-              $style eq 'number' || $style eq 'int' || $style eq 'integer') {
+              $style eq 'number' || $style eq 'int' || $style eq 'integer' ||
+              $style eq 'real') {
             $fdata->{html}=$obj->expand(
                 path => '/bits/fillout-form/html-text',
                 NAME => $name,
