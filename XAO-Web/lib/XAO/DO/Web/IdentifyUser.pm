@@ -194,7 +194,7 @@ use base XAO::Objects->load(objname => 'Web::Action');
 ##
 # Version
 use vars qw($VERSION);
-($VERSION)=(q$Id: IdentifyUser.pm,v 1.4 2001/12/08 02:51:23 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: IdentifyUser.pm,v 1.5 2001/12/13 04:58:18 am Exp $ =~ /(\d+\.\d+)/);
 
 ###############################################################################
 
@@ -282,14 +282,13 @@ sub check {
         if(!$username || !$user) {
             return $self->display_results($args,'anonymous');
         }
+
+        ##
+        # Saving identified user to the clipboard
+        #
+        $clipboard->put("$cb_uri/name"   => $username);
+        $clipboard->put("$cb_uri/object" => $user);
     }
-
-    ##
-    # Saving identified user to the clipboard
-    #
-    $clipboard->put("$cb_uri/name"   => $username);
-    $clipboard->put("$cb_uri/object" => $user);
-
 
     ##
     # Checking clipboard to determine if there is 'verified' flag set and
@@ -353,11 +352,23 @@ sub display_results ($$$;$) {
     my $errstr=shift;
 
     if($args->{"$status.template"} || $args->{"$status.path"}) {
+
+        my $config=$self->siteconfig->get('identify_user') ||
+            throw XAO::E::DO::Web "check - no 'identify_user' configuration";
+        my $type=$args->{type} ||
+            throw XAO::E::DO::Web "check - no 'type' given";
+        $config=$config->{$type} ||
+            throw XAO::E::DO::Web "check - no 'identify_user' configuration" .
+                                  " for '$type'";
+        my $cb_uri=$config->{cb_uri} || "/IdentifyUser/$type";
+
         my $page=$self->object;
         $page->display(
-            path => $args->{"$status.path"},
-            template => $args->{"$status.template"},
-            ERRSTR => $errstr || '',
+            path        => $args->{"$status.path"},
+            template    => $args->{"$status.template"},
+            CB_URI      => $cb_uri || '',
+            ERRSTR      => $errstr || '',
+            TYPE        => $type,
         );
 
         $self->finaltextout('') if $args->{stop};

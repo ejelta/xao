@@ -259,7 +259,8 @@ sub execute ($%) {
     ##
     # Checking if we're running under mod_perl
     #
-    $siteconfig->clipboard->put(mod_perl => $ENV{MOD_PERL} ? 1 : 0);
+    my $mod_perl=$ENV{MOD_PERL} ? 1 : 0;
+    $siteconfig->clipboard->put(mod_perl => $mod_perl);
 
     ##
     # Putting CGI object into site configuration
@@ -295,7 +296,7 @@ sub execute ($%) {
     my @d=localtime;
     my $date=sprintf("%02u:%02u:%02u %u/%02u/%04u",$d[2],$d[1],$d[0],$d[4]+1,$d[3],$d[5]+1900);
     undef(@d);
-    dprint "============ date=$date, mod_perl=",$siteconfig->get('mod_perl'),
+    dprint "============ date=$date, mod_perl=$mod_perl",
                       ", path='",join('/',@path),"', translated='",$pd->{path},"'";
 
     ##

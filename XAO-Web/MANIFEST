@@ -16,11 +16,14 @@ lib/XAO/DO/Web/Condition.pm
 lib/XAO/DO/Web/Config.pm
 lib/XAO/DO/Web/Date.pm
 lib/XAO/DO/Web/Default.pm
+lib/XAO/DO/Web/FilloutForm.pm
 lib/XAO/DO/Web/Footer.pm
 lib/XAO/DO/Web/FS.pm
 lib/XAO/DO/Web/Header.pm
 lib/XAO/DO/Web/IdentifyAgent.pm
 lib/XAO/DO/Web/IdentifyUser.pm
+lib/XAO/DO/Web/Mailer.pm
+lib/XAO/DO/Web/MultiPageNav.pm
 lib/XAO/DO/Web/Page.pm
 lib/XAO/DO/Web/Redirect.pm
 lib/XAO/DO/Web/Search.pm
@@ -34,6 +37,9 @@ lib/XAO/Web/Intro.pod
 handlers/xao-apache.pl
  --------------------------------- Standard Templates
 templates/bits/errors/file-not-found
+templates/bits/fillout-form/errstr
+templates/bits/fillout-form/html-checkbox
+templates/bits/fillout-form/html-text
 templates/bits/page-footer
 templates/bits/page-header
 templates/bits/styler/page-title
@@ -46,6 +52,7 @@ testcases/PageSupport.pm
 testcases/WebClipboard.pm
 testcases/WebCondition.pm
 testcases/WebConfig.pm
+testcases/WebFS.pm
 testcases/WebSetArg.pm
  --------------------------------- Test installation tree
 testcases/testroot/projects/test/objects/Config.pm
@@ -54,4 +61,6 @@ testcases/testroot/projects/test/templates/local.txt
 testcases/testroot/templates/bits/system-test
 testcases/testroot/templates/bits/WebCondition/text-default
 testcases/testroot/templates/bits/WebCondition/text-v2
+testcases/testroot/templates/bits/WebFS/list-header
+testcases/testroot/templates/bits/WebFS/list-row
 testcases/testroot/templates/system.txt

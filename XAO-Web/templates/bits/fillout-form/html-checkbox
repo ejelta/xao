@@ -1,0 +1,1 @@
+<INPUT TYPE="CHECKBOX" NAME="<%NAME/f%>"<%Condition c.arg="CHECKED" c.template=" CHECKED"%>><%End%>
