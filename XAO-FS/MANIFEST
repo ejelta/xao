@@ -30,10 +30,6 @@ lib/XAO/DO/FS/Glue/MySQL_DBI.pm
 lib/XAO/DO/FS/Glue.pm
 lib/XAO/DO/FS/Hash.pm
 lib/XAO/DO/FS/List.pm
- ------------------------------------------------------------- MySQL driver
-mysql/MySQL.pm
-mysql/MySQL.xs
-mysql/typemap
  ------------------------------------------------------------- Test Cases
 testcases/base.pm
 testcases/basic.pm

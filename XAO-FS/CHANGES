@@ -5,6 +5,8 @@
       object
     * Added test case for the bug above
     * check_name method is now available on all FS objects
+    * Removed `mysql' directory and dependance on MySQL-devel;
+      that driver will be distributed separately.
 
 1.02 - 3-Jan-2002
     * Minor index bug fixed, introduced in 1.01
