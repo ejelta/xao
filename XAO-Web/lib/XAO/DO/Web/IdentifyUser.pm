@@ -192,7 +192,7 @@ use XAO::Objects;
 use base XAO::Objects->load(objname => 'Web::Action');
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: IdentifyUser.pm,v 1.12 2002/06/09 05:34:01 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: IdentifyUser.pm,v 1.13 2002/06/09 07:10:58 am Exp $ =~ /(\d+\.\d+)/);
 
 ###############################################################################
 
@@ -499,6 +499,7 @@ sub login ($;%) {
                 $errstr=$self->login_check(name => $username,
                                            object => $user,
                                            password => $password,
+                                           type => $type,
                                           );
             }
         }
@@ -570,6 +571,7 @@ input:
  name       => name of user object
  password   => password
  object     => reference to a database object containing user info
+ type       => user type
 
 This method is called after all standard checks - it is guaranteed that
 user object exists and password matches its database record.
