@@ -1,0 +1,6 @@
+Revision history for Perl extension XAO::DO::FS::Glue::MySQL.
+
+0.01  Mon Jul  1 10:25:13 2002
+	- original version; created by h2xs 1.21 with options
+		-n XAO::DO::FS::Glue::MySQL
+
