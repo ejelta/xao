@@ -99,13 +99,11 @@ foreach my $n (keys %{ExtUtils::Manifest::maniread()}) {
 }
 
 WriteMakefile(
-    'AUTHOR'        => 'XAO Inc. http://xao.com/',
-    'ABSTRACT'      => 'Images cashing module for XAO Foundation Server',
+    'AUTHOR'        => 'Konstantin Safronov',
+    'ABSTRACT'      => 'Images caching module for XAO::Commerce',
     'NAME'          => 'XAO::ImageCache',
     'VERSION_FROM'	=> 'ImageCache.pm',
     'PREREQ_PM'     => { 
-        'DBD::mysql'    => '2.0414',
-        'DBI'           => '1.13',
         'Date::Manip'   => undef,
 	    'XAO::FS'	    => '1.01',
         'Test::Unit'    => '0.14',
@@ -114,3 +112,13 @@ WriteMakefile(
     },
     'MAN3PODS'      => \%man3pods,
 );
+
+sub MY::postamble {
+
+    <<EOT;
+config::	README
+
+README:	ImageCache.pm
+	\@COLUMNS=80 pod2text ImageCache.pm > README
+EOT
+}

@@ -1,0 +1,15 @@
+# http://module-build.sourceforge.net/META-spec.html
+#XXXXXXX This is a prototype!!!  It will change in the future!!! XXXXX#
+name:         XAO-ImageCache
+version:      1
+version_from: ImageCache.pm
+installdirs:  site
+requires:
+    Date::Manip:                   
+    Image::Magick:                 5.2.4
+    LWP:                           5.63
+    Test::Unit:                    0.14
+    XAO::FS:                       1.01
+
+distribution_type: module
+generated_by: ExtUtils::MakeMaker version 6.17

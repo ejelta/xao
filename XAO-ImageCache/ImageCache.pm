@@ -1,7 +1,6 @@
 =head1 NAME
 
-XAO::ImageCache - Images Caching by it's URL's stored in 
-XAO Foundation Server
+XAO::ImageCache - Images caching by URLs stored in XAO::FS database
 
 =head1 SYNOPSIS
 
@@ -36,12 +35,15 @@ objects, downloading images to local cache, resize local
 copy of image to feet in to given dimensions and store new 
 local URL of image back to data object.
 
+=head1 METHODS
+
+=over
+
 =cut
 
 ###############################################################################
 package XAO::ImageCache;
 use strict;
-use vars qw($VERSION);
 use XAO::Utils;
 use XAO::FS;
 use XAO::Errors qw(XAO::ImageCache);
@@ -53,22 +55,10 @@ use Date::Manip;
 use File::Path;
 use File::Copy;
 
-##
-# Package version
-#
+use vars qw($VERSION);
+$VERSION=1.0;
 
-($VERSION)=(q$Id: ImageCache.pm,v 1.11 2003/08/19 22:40:48 am Exp $ =~ /(\d+\.\d+)/);
-
-sub DESTROY {
-    my $self = shift;
-    $self->cache_log("----- XAO Image Cache finished -----");
-}
-
-=head1 METHODES
-
-=over
-
-=cut
+###############################################################################
 
 ##
 # Methods prototypes
@@ -88,6 +78,13 @@ sub cache_log($$);
 sub get_filename($);
 sub treat_filename($);
 sub convert_time($);
+
+###############################################################################
+
+sub DESTROY {
+    my $self = shift;
+    $self->cache_log("----- XAO Image Cache finished -----");
+}
 
 ###############################################################################
 

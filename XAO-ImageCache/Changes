@@ -1,8 +1,0 @@
-Revision history for Perl extension XAO::ImageCache.
-
-0.01  Sat Dec 29 22:50:28 2001
-	- original version; created by h2xs 1.20 with options
-		-XA -n XAO::ImageCache
-
-0.02  Tue Apr  2 15:58:52 PST 2002
-    - changed the way thumbnails are handled
