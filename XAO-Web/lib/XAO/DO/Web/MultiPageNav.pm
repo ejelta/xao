@@ -8,7 +8,13 @@ Currently is only useful in XAO::Web site context.
 
 =head1 DESCRIPTION
 
-The 'MultiPageNav' object is a part of some 'Search' object that displays a header template, a search results template for each search result, and a footer template. The header and footer templates includes MultiPageNav object. There are three parameters available for substitution: START_ITEM, ITEMS_PER_PAGE and TOTAL_ITEMS. These parameters can be used to display subsequent links with the MultiPageNav object
+The 'MultiPageNav' object is a part of some 'Search' object that
+displays a header template, a search results template for each search
+result, and a footer template. The header and footer templates
+includes MultiPageNav object. There are three parameters available
+for substitution: START_ITEM, ITEMS_PER_PAGE and TOTAL_ITEMS. These
+parameters can be used to display subsequent links with the MultiPageNav
+object
 
 The parameters for the MultiPageNav object are defined as follows:
 
@@ -72,7 +78,12 @@ Path to template for displaying all multi-page nav links
 
 =back
 
-The 'MultiPageNav' object performs all necessary calculations and template substitutions (using xxx.path templates). The values for these parameters so that a list of parameters is available to the 'path' template. The values for this parameters correspond to the navigation display content. Following is a listing of said parameters with a description of thier values' display contents:
+The 'MultiPageNav' object performs all necessary calculations and
+template substitutions (using xxx.path templates). The values for these
+parameters so that a list of parameters is available to the 'path'
+template. The values for this parameters correspond to the navigation
+display content. Following is a listing of said parameters with a
+description of thier values' display contents:
 
 =over
 
@@ -86,7 +97,8 @@ Links to first few pages
 
 =item PREVIOUS_BLOCKS
 
-Blocks of links to pages between first few and previous adjacent pages includingspacers
+Blocks of links to pages between first few and previous adjacent pages
+includingspacers
 
 =item PREVIOUS_ADJACENT
 
@@ -102,7 +114,8 @@ Links to pages immediately following current page
 
 =item NEXT_BLOCKS
 
-Blocks of links to pages between next adjacent and last few pages including spacers
+Blocks of links to pages between next adjacent and last few pages
+including spacers
 
 =item LASTFEW
 
@@ -130,7 +143,9 @@ The page number the link points to
 
 =item PAGE_TYPE
 
-Type of page the link points to. Values can be PREVIOUS, FIRSTFEW, PREVIOUS_BLOCKS, PREVIOUS_ADJACENT, CURRENT, NEXT_ADJACENT, NEXT_BLOCKS, LASTFEW, NEXT
+Type of page the link points to. Values can be PREVIOUS, FIRSTFEW,
+PREVIOUS_BLOCKS, PREVIOUS_ADJACENT, CURRENT, NEXT_ADJACENT, NEXT_BLOCKS,
+LASTFEW, NEXT
  
 =back
 
@@ -138,37 +153,40 @@ Type of page the link points to. Values can be PREVIOUS, FIRSTFEW, PREVIOUS_BLOC
  
 This example shows how a header or footer template might use this object:
 
-<%MultiPageNav start_item="<%START_ITEM%>"
- items_per_page="<%ITEMS_PER_PAGE%>"
- total_items="<%TOTAL_ITEMS%>"
- n_adjacent_pages="2"
- n_edje_pages="3"
- n_block_pages="2"
- max_blocks="4"
- min_period="7"
- path="/bits/multi_page_nav/base"
- previous_page.path="/bits/multi_page_nav/prev"
- next_page.path="/bits/multi_page_nav/next"
- current_page.path="/bits/multi_page_nav/current"
- numbered_page.path="/bits/multi_page_nav/page"
- spacer.path="/bits/multi_page_nav/spacer"
-%>
+ <%MultiPageNav
+   start_item="<%START_ITEM%>"
+   items_per_page="<%ITEMS_PER_PAGE%>"
+   total_items="<%TOTAL_ITEMS%>"
+   n_adjacent_pages="2"
+   n_edje_pages="3"
+   n_block_pages="2"
+   max_blocks="4"
+   min_period="7"
+   path="/bits/multi_page_nav/base"
+   previous_page.path="/bits/multi_page_nav/prev"
+   next_page.path="/bits/multi_page_nav/next"
+   current_page.path="/bits/multi_page_nav/current"
+   numbered_page.path="/bits/multi_page_nav/page"
+   spacer.path="/bits/multi_page_nav/spacer"
+ %>
 
 File /bits/multi_page_nav/page contents:
 
-<A HREF="/search.html?<%Utility mode="pass-cgi-params"
- params="*"
- except="start_item"
- result="query"
-%>&start_item=<%PAGE_START_ITEM%>"><%PAGE_NUMBER%></A>
+<A HREF="/search.html?<%Utility
+                mode="pass-cgi-params"
+                params="*"
+                except="start_item"
+                result="query"
+              %>&start_item=<%PAGE_START_ITEM%>"><%PAGE_NUMBER%></A>
 
 File /bits/multi_page_nav/prev contents:
 
-<A HREF="/search.html<%Utility mode="pass-cgi-params"
- params="*"
- except="start_item"
- result="query"
-%>&start_item=<%PAGE_START_ITEM%>"><<prev</A>
+<A HREF="/search.html<%Utility
+                mode="pass-cgi-params"
+                params="*"
+                except="start_item"
+                result="query"
+              %>&start_item=<%PAGE_START_ITEM%>">&lt;&lt;prev</A>
 
 File /bits/multi_page_nav/spacer contents: ...
 
@@ -180,7 +198,9 @@ File /bits/multi_page_nav/base contents:
 
 <%PREVIOUS%> <%FIRSTFEW%> <%PREVIOUS_BLOCKS%> <%PREVIOUS_ADJACENT%> <%CURRENT%> <%NEXT_ADJACENT%> <%NEXT_BLOCKS%> <%NEXT_ADJACENT%> <%NEXT%>
 
-If the value of START_ITEM, ITEMS_PER_PAGE and TOTAL_ITEMS are 250, 10 and 500 respactively text representation result of this example looks like
+If the value of START_ITEM, ITEMS_PER_PAGE and TOTAL_ITEMS are 250, 10
+and 500 respactively text representation result of this example looks
+like
 
 <<prev 1 2 ... 11 12 ... 22 23 24 [25] 26 27 28 ... 38 39 ... 49 50 next>>
 
@@ -213,7 +233,7 @@ use XAO::Errors qw(XAO::DO::Web::MultiPageNav);
 use base XAO::Objects->load(objname => 'Web::Page');
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: MultiPageNav.pm,v 1.1 2001/12/13 04:58:18 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: MultiPageNav.pm,v 1.2 2001/12/14 01:29:54 am Exp $ =~ /(\d+\.\d+)/);
 
 ###############################################################################
 # Displaying multi page navigation display

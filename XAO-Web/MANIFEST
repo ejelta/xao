@@ -61,6 +61,7 @@ testcases/testroot/projects/test/templates/local.txt
 testcases/testroot/templates/bits/system-test
 testcases/testroot/templates/bits/WebCondition/text-default
 testcases/testroot/templates/bits/WebCondition/text-v2
+testcases/testroot/templates/bits/WebFS/hash
 testcases/testroot/templates/bits/WebFS/list-header
 testcases/testroot/templates/bits/WebFS/list-row
 testcases/testroot/templates/system.txt

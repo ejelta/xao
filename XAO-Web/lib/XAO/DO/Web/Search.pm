@@ -169,10 +169,10 @@ sub display ($;%)
   if ($rh_args->{debug})
   {
     &XAO::Utils::set_debug(1);
-    dprint "\n\n*** XAO::ODO::Web::Search::display DEBUG MODE ***\n\n";
-    dprint '*** Original Arguments:';
-    foreach (sort keys %$rh_args) { dprint " arg> $_: $rh_args->{$_}\n"; }
-    dprint '';
+    #dprint "\n\n*** XAO::ODO::Web::Search::display DEBUG MODE ***\n\n";
+    #dprint '*** Original Arguments:';
+    #foreach (sort keys %$rh_args) { dprint " arg> $_: $rh_args->{$_}\n"; }
+    #dprint '';
   }
 
   #############
@@ -194,15 +194,15 @@ sub display ($;%)
     {
       next if defined $rh_args->{$_};
       $rh_args->{$_}  = $rh_default_args->{$_};
-      dprint "*** Add Default Argument: $_ = $rh_default_args->{$_}";
+      #dprint "*** Add Default Argument: $_ = $rh_default_args->{$_}";
     }
   }
 
   if ($rh_args->{debug})
   {
-    dprint '*** Processed Parameters:';
-    foreach (sort keys %$rh_args) { dprint " arg> $_: $rh_args->{$_}"; }
-    dprint '';
+    #dprint '*** Processed Parameters:';
+    #foreach (sort keys %$rh_args) { dprint " arg> $_: $rh_args->{$_}"; }
+    #dprint '';
   }
 
   #############
@@ -214,9 +214,9 @@ sub display ($;%)
   my $odb = $rh_conf->odb();
   my $db  = $odb->fetch($db_uri) || croak "Can't fetch database $db_uri";
 
-  dprint "*** ODB: $odb";
-  dprint "*** DB:  $db";
-  dprint "*** Go Search...\n\n";
+  #dprint "*** ODB: $odb";
+  #dprint "*** DB:  $db";
+  #dprint "*** Go Search...\n\n";
 
   my $ra_query   = $self->_create_query($rh_args, $rh_conf);
   my $ra_all_ids = $db->search(@$ra_query);
@@ -270,10 +270,10 @@ sub display ($;%)
 
   $basetype = $rh_args->{template} ? 'template' : 'path';
   my $count = 1;
-  dprint "\n*** Search Results (" . scalar(@$ra_ids) . " matches)";
+  #dprint "\n*** Search Results (" . scalar(@$ra_ids) . " matches)";
   foreach (@$ra_ids)
   {
-    dprint " $count> display $_";
+    #dprint " $count> display $_";
     #dprint " $count> use $basetype: $rh_args->{$basetype}" if $basetype eq 'path';
     $page->display(
                     $basetype => $rh_args->{$basetype},
@@ -310,7 +310,7 @@ sub _create_query
   my $self=shift;
   my ($rh_args, $rh_conf) = @_;
 
-  dprint "*** _create_query START";
+  #dprint "*** _create_query START";
 
   my $i=1;
   my @expr_ra;
@@ -320,10 +320,10 @@ sub _create_query
     my $value      = $rh_args->{"value_$i"};
     my $compare_op = $rh_args->{"compare_$i"};
 
-    dprint "\n  ** $i **";
-    dprint "  ## index:            $index";
-    dprint "  ## value:            $value";
-    dprint "  ## compare operator: $compare_op";
+    #dprint "\n  ** $i **";
+    #dprint "  ## index:            $index";
+    #dprint "  ## value:            $value";
+    #dprint "  ## compare operator: $compare_op";
 
     #
     # Create ref to array w/ object expression for index/value pair
@@ -363,7 +363,7 @@ sub _create_query
   # the format (described in documentation above) then the only
   # expression used will be the first one provided.
   #
-  dprint "\n  ## EXPRESSION: $rh_args->{expression}";
+  #dprint "\n  ## EXPRESSION: $rh_args->{expression}";
   my $regex = '\[\s*(\d+)\s+(\w+)\s+(\d+)\s*\]';
   if ($rh_args->{expression} =~ /$regex/)
   {
@@ -428,10 +428,10 @@ sub _create_query
     push @{$expr_ra[$i]}, $rh_options;
   }
 
-  dprint "\n  ## QUERY START ##"
-       . $self->_searcharray2str($expr_ra[$i], '')
-       . "\n  ## QUERY STOP  ##\n"
-       . "\n*** _create_query STOP\n\n";
+  #dprint "\n  ## QUERY START ##"
+  #     . $self->_searcharray2str($expr_ra[$i], '')
+  #     . "\n  ## QUERY STOP  ##\n"
+  #     . "\n*** _create_query STOP\n\n";
 
   $expr_ra[$i];
 }
