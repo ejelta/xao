@@ -42,7 +42,7 @@ use vars qw(@ISA @EXPORT_OK @EXPORT $VERSION);
 @EXPORT_OK=qw(xao_test_all xao_test);
 @EXPORT=();
 
-($VERSION)=(q$Id: TestUtils.pm,v 1.3 2003/06/12 18:25:06 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: TestUtils.pm,v 1.4 2003/08/09 01:13:23 am Exp $ =~ /(\d+\.\d+)/);
 
 ###############################################################################
 
@@ -133,7 +133,7 @@ sub xao_test (@) {
             }
         }
         else {
-            $prefix_count=scalar(@p)-1;
+            $prefix_count=scalar(@p)-2;
         }
         last if $prefix_count<0;
         $prefix=join('::',@p[0..$prefix_count]);
