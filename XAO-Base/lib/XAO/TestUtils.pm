@@ -33,16 +33,20 @@ use XAO::Utils;
 use File::Path;
 use File::Basename;
 use File::Copy;
+use File::Find;
+use ExtUtils::Manifest qw(fullcheck maniread);
 
 require Exporter;
 
 use vars qw(@ISA @EXPORT_OK @EXPORT $VERSION);
 
 @ISA=qw(Exporter);
-@EXPORT_OK=qw(xao_test_all xao_test);
+@EXPORT_OK=qw(xao_test_all xao_test
+              xao_mf_fix_permissions xao_mf_check_consistency
+             );
 @EXPORT=();
 
-($VERSION)=(q$Id: TestUtils.pm,v 1.5 2004/06/17 01:26:34 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: TestUtils.pm,v 1.6 2005/01/12 02:28:26 am Exp $ =~ /(\d+\.\d+)/);
 
 ###############################################################################
 
@@ -205,11 +209,113 @@ END_OF_WARNING
 }
 
 ###############################################################################
+
+sub xao_mf_check_consistency {
+    die "Must have MANIFEST in the current directory\n" unless -r 'MANIFEST';
+    my ($missing,$extra)=fullcheck();
+    if($missing && @$missing) {
+        die "There are missing files, aborting!\n";
+    }
+    if($extra && @$extra) {
+        die "There are some new files, add them to the MANIFEST!\n";
+    }
+}
+
+###############################################################################
+
+sub xao_mf_fix_permissions {
+    die "Must have MANIFEST in the current directory\n" unless -r 'MANIFEST';
+
+    my @skip;
+    if(open('F','MANIFEST.SKIP')) {
+        while(<F>) {
+            next unless /^(\S+)(\s*.*)?$/;
+            my $regex=$1;
+            push(@skip,qr/$regex/);
+        }
+        close(F);
+ 
+    }
+
+    my @modes;
+    if(open('F','MANIFEST.MODES')) {
+        while(<F>) {
+            next unless /^([0-7]+)\s+([0-7]+)\s+(.*?)\s*$/;
+            my $dirmode=oct($1);
+            my $filemode=oct($2);
+            my $regex=$3;
+
+            warn "Strange dirmode $dirmode for $regex\n"
+                if ($dirmode&0500) != 0500;
+            warn "Strange filemode $filemode for $regex\n"
+                if ($filemode&0400) != 0400;
+
+            push(@modes,{
+                regex       => qr/$regex/,
+                filemode    => $filemode,
+                dirmode     => $dirmode,
+            });
+        }
+        close(F);
+    }
+
+    find({
+        no_chdir    => 1,
+        preprocess  => sub {
+            my @list;
+            foreach my $fn (@_) {
+                my $file=$File::Find::dir . '/' . $fn;
+                $file=~s/^.\/(.*)$/$1/;
+
+                next if $file =~ /(^|\/)(\.|\.\.)/;
+                if(grep { $file =~ $_ } @skip) {
+                    dprint "Skipping $file";
+                    next;
+                }
+
+                push(@list,$fn);
+            }
+            return @list;
+        },
+        wanted      => sub {
+            my $file=$File::Find::name;
+            $file=~s/^\.\/(.*)$/$1/;
+            die "Wrong file path '$file'" if $file =~ /^\// || $file =~ /\.\.\//;
+
+            my $perm;
+            foreach my $ml (@modes) {
+                if($file =~ $ml->{'regex'}) {
+                    dprint "Permission override for $file";
+                    $perm=$ml;
+                    last;
+                }
+            }
+            $perm||={
+                filemode    => 0644,
+                dirmode     => 0755,
+            };
+
+            die "Can't stat $file\n" unless stat($file);
+
+            my $newperm=-d _ ? $perm->{'dirmode'} : $perm->{'filemode'};
+            my $oldperm=((stat(_))[2]) & 07777;
+
+            if($oldperm != $newperm) {
+                printf STDERR "Setting %s from %04o to %04o\n",$file,$oldperm,$newperm;
+                chmod($newperm,$file) ||
+                    die "Can't change $file to ".sprintf('%04o',$newperm).": $!\n";
+            }
+        },
+    },'.');
+}
+
+###############################################################################
 1;
 __END__
 
 =head1 AUTHOR
 
+Copyright (c) 2005 Ejelta LLC.
 Copyright (c) 2003 XAO Inc.
 
-The author is Andrew Maltsev <am@xao.com>.
+The author is Andrew Maltsev <am@ejelta.com>.
