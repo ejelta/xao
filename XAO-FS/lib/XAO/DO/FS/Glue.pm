@@ -48,6 +48,9 @@ use XAO::Utils;
 use XAO::Objects;
 use XAO::Errors qw(XAO::DO::FS::Glue);
 
+use vars qw($VERSION);
+($VERSION)=(q$Id: Glue.pm,v 1.7 2002/01/04 01:47:37 am Exp $ =~ /(\d+\.\d+)/);
+
 ###############################################################################
 
 =item new ($%)

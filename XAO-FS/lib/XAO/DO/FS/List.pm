@@ -30,8 +30,10 @@ use strict;
 use XAO::Utils;
 use XAO::Objects;
 
-use vars qw(@ISA);
-@ISA=XAO::Objects->load(objname => 'FS::Glue');
+use base XAO::Objects->load(objname => 'FS::Glue');
+
+use vars qw($VERSION);
+($VERSION)=(q$Id: List.pm,v 1.4 2002/01/04 01:47:37 am Exp $ =~ /(\d+\.\d+)/);
 
 ###############################################################################
 
