@@ -172,7 +172,7 @@ use XAO::Errors qw(XAO::DO::Web::FS);
 use base XAO::Objects->load(objname => 'Web::Action');
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: FS.pm,v 1.9 2002/02/04 03:43:55 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: FS.pm,v 1.10 2002/02/04 18:39:36 alves Exp $ =~ /(\d+\.\d+)/);
 
 ###############################################################################
 
@@ -393,12 +393,6 @@ the number of elements in the list.
 At least 'ID' and 'NUMBER' are supplied to the element template.
 Additional arguments depend on 'field' content.
 
-To help in displaying selection lists show_list() accepts 'current'
-argument. If ID of a list element is the same as the value of 'current'
-it will pass true value in IS_CURRENT parameter to the element
-template. 'Current' argument will be passed through as CURRENT parameter
-as well.
-
 =cut
 
 sub show_list ($%) {
@@ -408,8 +402,6 @@ sub show_list ($%) {
     my $list=$self->get_object($args);
     $list->objname eq 'FS::List' ||
         throw XAO::E::DO::Web::FS "show_list - not a list";
-
-    my $current=$args->{current} || '';
 
     my @keys=$list->keys;
     my @fields;
@@ -428,7 +420,6 @@ sub show_list ($%) {
         path        => $args->{'header.path'},
         template    => $args->{'header.template'},
         NUMBER      => scalar(@keys),
-        CURRENT     => $current,
     })) if $args->{'header.path'} || $args->{'header.template'};
 
     foreach my $id (@keys) {
@@ -436,8 +427,6 @@ sub show_list ($%) {
             path        => $args->{path},
             ID          => $id,
             NUMBER      => scalar(@keys),
-            CURRENT     => $current,
-            IS_CURRENT  => $current && $current eq $id ? 1 : 0,
         );
         if(@fields) {
             my %t;
@@ -453,7 +442,6 @@ sub show_list ($%) {
         path        => $args->{'footer.path'},
         template    => $args->{'footer.template'},
         NUMBER      => scalar(@keys),
-        CURRENT     => $current,
     })) if $args->{'footer.path'} || $args->{'footer.template'};
 }
 
@@ -694,36 +682,77 @@ sub _create_query {
     # the format (described in documentation above) then the only
     # expression used will be the first one provided.
     #
-    #dprint "\n    ## EXPRESSION: $args->{expression}";
-    my $regex = '\[\s*(\d+)\s+(\w+)\s+(\d+)\s*\]';
-    if ($args->{expression} && $args->{expression} =~ /$regex/) {
-        $args->{expression} =~ s{$regex} {
-                                  $self->_interpret_expression(
-                                      \@expr_ra,
-                                      $args->{expression},
-                                      \$i, $1, $2, $3,
-                                      $regex,
-                                  );
-                                }eg;
+    #$i+=100;
+
+    my $expression =  lc($args->{expression}) || '';
+    if ($expression) {
+        $expression =~ s/^\s+//;
+        $expression =~ s/\s+$//;
+        $expression =~ s/\[\s+/\[/g;
+        $expression =~ s/\s+\]/\]/g;
+        $expression =~ s/\s+/ /g;
+        $expression =~ s/(.+)/[$1]/ unless $expression =~ /^\[.+\]$/;
+    }
+    #dprint "\n    ## EXPRESSION: '$expression'";
+
+    my $regex = '\[(\d+) ([andor]+) (\d+)\]'; #was: '\[\s*(\d+)\s+(\w+)\s+(\d+)\s*\]';
+    if ($expression =~ /$regex/) {
+        $self->_interpret_expression(
+            \@expr_ra,
+            \$expression,
+            \$i, $1, $2, $3,
+            $regex,
+        );
         $i--;
         ###########################################################################
         sub _interpret_expression {
             my $self = shift;
-            my ($ra_expr_ra, $expression, $r_i, $i1, $i2, $i3, $regex) = @_;
+            my ($ra_expr_ra, $r_expr, $r_i, $i1, $i2, $i3, $regex) = @_;
+            if ($i2 ne 'and' && $i2 ne 'or') {
+                throw XAO::E::DO::Web::FS "_create_query - syntax error [$i1 $i2 $i3]";
+            }
+            elsif (ref($ra_expr_ra->[$i1]) ne 'ARRAY') {
+                throw XAO::E::DO::Web::FS "_create_query - condition '$i1' not specified";
+            }
+            elsif (ref($ra_expr_ra->[$i3]) ne 'ARRAY') {
+                throw XAO::E::DO::Web::FS "_create_query - condition '$i3' not specified";
+            }
             $ra_expr_ra->[$$r_i] = [ $ra_expr_ra->[$i1], $i2, $ra_expr_ra->[$i3] ];
-            #dprint "  ## $$r_i = [ $i1 $i2 $i3 ]";
-            $expression =~ s/\[\s*$i1\s+$i2\s+$i3\s*\]/$$r_i/;
-            #dprint "  ## new expr = $expression";
+            #dprint "    ## $$r_i = '[$i1 $i2 $i3]'";
+            $$r_expr =~ s/\[\s*$i1\s+$i2\s+$i3\s*\]/$$r_i/;
+            #dprint "    ## new EXPRESSION: '$$r_expr' ($r_expr)";
             ${$r_i}++;
-            $self->_interpret_expression($ra_expr_ra,
-                                         $expression,
-                                         $r_i, $1, $2, $3,
-                                         $regex) if $expression =~ /$regex/;
+            $$r_expr = "[$$r_expr]" if $$r_expr =~ /^\d+ [andor]+ \d+$/;
+            unless ($$r_expr =~ /\[\d+ and \d+\]/
+                 || $$r_expr =~ /\[\d+ or \d+\]/
+                 || $$r_expr =~ /^\d+$/) {
+                throw XAO::E::DO::Web::FS "_create_query - syntax error";
+            }
+            return unless $$r_expr =~ /$regex/;
+            $self->_interpret_expression(
+                $ra_expr_ra,
+                $r_expr,
+                $r_i, $1, $2, $3,
+                $regex,
+            );
         }
         ###########################################################################
     }
     else {
-        $expr_ra[$i] = $expr_ra[1];
+        #dprint "    ## NO REGEX";
+        if ($expression =~ /^\[(\d+)\]$/) {
+            $expr_ra[$i] = $expr_ra[1];
+            unless (ref($expr_ra[$1]) eq 'ARRAY') {
+                throw XAO::E::DO::Web::FS "_create_query - condition '$1' not specified";
+            }
+            $expr_ra[$i] = $expr_ra[$1];
+        }
+        elsif (!$expression) {
+            $expr_ra[$i] = $expr_ra[1];
+        }
+        else {
+            throw XAO::E::DO::Web::FS "_create_query - syntax error";
+        }
     }
 
     #
