@@ -140,7 +140,9 @@ Example:
       items_per_page="20"
  %>
 
-=item CONFIGURATION VALUES SUPPORTED IN SEARCH MODE
+=head2 CONFIGURATION VALUES SUPPORTED IN SEARCH MODE
+
+=over
 
 =item default_search_args
 
@@ -150,6 +152,8 @@ corresponding value is a reference to a hash containing the
 default arguments for searching on the specified of data.
 These default arguments are added unless they are specified by
 input arguments.
+
+=back
 
 =head1 METHODS
 
@@ -168,7 +172,7 @@ use XAO::Errors qw(XAO::DO::Web::FS);
 use base XAO::Objects->load(objname => 'Web::Action');
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: FS.pm,v 1.6 2002/01/22 02:35:38 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: FS.pm,v 1.7 2002/01/22 02:39:15 am Exp $ =~ /(\d+\.\d+)/);
 
 ###############################################################################
 
@@ -798,9 +802,9 @@ Nothing.
 
 =head1 AUTHOR
 
-Copyright (c) 2000-2001 XAO, Inc.
+Copyright (c) 2000-2002 XAO, Inc.
 
-Andrew Maltsev <am@xao.com>.
+Andrew Maltsev <am@xao.com>, Marcos Alves <alves@xao.com>.
 
 =head1 SEE ALSO
 
