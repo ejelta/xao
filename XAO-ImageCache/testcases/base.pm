@@ -7,6 +7,7 @@ use base qw(Test::Unit::TestCase);
 
 sub set_up {
     my $self=shift;
+
     ##
     # Reading configuration
     #
@@ -77,10 +78,15 @@ sub set_up {
     $self->assert(ref($product), "Can't create new Product");
     
     $product->put(name => "Test product 1");
-    $product->put(source_image_url => "http://localhost/icons/apache_pb.gif");
+    $product->put(source_image_url => "http://apache.org/icons/apache_pb.gif");
     $product->put(dest_image_url => "");
     $plist->put(p1 => $product);
-    
+
+    mkdir('tmp');
+    mkdir('tmp/cache');
+    mkdir('tmp/cache/source');
+    mkdir('tmp/cache/images');
+    mkdir('tmp/cache/thumbnails');
 }
 
 sub tear_down {

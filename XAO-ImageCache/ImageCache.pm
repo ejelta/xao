@@ -57,7 +57,7 @@ use File::Copy;
 # Package version
 #
 
-($VERSION)=(q$Id: ImageCache.pm,v 1.7 2002/11/14 20:41:20 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: ImageCache.pm,v 1.8 2003/08/13 22:09:17 am Exp $ =~ /(\d+\.\d+)/);
 
 sub DESTROY {
     my $self = shift;
@@ -308,7 +308,7 @@ sub init($) {
     if ($thm_cache_path) {
         unless (-d $thm_cache_path) {
             mkdir($thm_cache_path, 0777)
-              || $self->error_log("ERROR - can't create thumbnails cache directory! $!");
+              || $self->error_log("ERROR - can't create thumbnails cache directory ($thm_cache_path)! $!");
             $self->cache_log("Thumbnail Cache directory '$thm_cache_path' created.");
         }
     }
@@ -417,8 +417,13 @@ sub download ($$) {
     my $user_agent     = $self->{ua};
     my $source_path    = $self->{source_path};
     my $img_cache_path = $self->{cache_path};
-    my $local_path     = $self->{local_path};
     my $thm_cache_path = $self->{thumbnails}->{cache_path} || '';
+
+    ##
+    # Local path can be a reference to an array of paths
+    #
+    my $local_path=$self->{local_path} || '';
+    $local_path=[ $local_path ] unless ref($local_path);
 
     my $img_src_file   = $source_path.$img_src_fnm;
     my $img_cache_file = $img_cache_path.$img_fnm;
@@ -443,11 +448,16 @@ sub download ($$) {
         my $mtime_src = (stat($thm_src_file))[9];
         my $period = $time_now - $mtime_src;
         if ($period > $self->{min_period}) {
-            if($thm_src_url =~ /^\//) {
-                if($local_path && -r "$local_path$thm_src_url") {
-                    copy("$local_path$thm_src_url",$thm_src_file);
+            if($thm_src_url !~ m/^(https?|ftp):\/\//i) {
+                my $lfound;
+                foreach my $lpath (@$local_path) {
+                    if(-r "$lpath/$thm_src_url") {
+                        copy("$lpath/$thm_src_url",$thm_src_file);
+                        $lfound=1;
+                        last;
+                    }
                 }
-                else {
+                if(!$lfound) {
                     $self->cache_log("ERROR - seems to be a local URL and no local file ($thm_src_url)");
                     $thm_src_file="";
                 }
@@ -492,11 +502,16 @@ sub download ($$) {
         my $mtime_src = (stat($img_src_file))[9];
         my $period = $time_now - $mtime_src;
         if ($period > $self->{min_period}) {
-            if($img_src_url =~ /^\//) {
-                if($local_path && -r "$local_path$img_src_url") {
-                    copy("$local_path$img_src_url",$img_src_file);
+            if($img_src_url !~ m/^(https?|ftp):\/\//i) {
+                my $lfound;
+                foreach my $lpath (@$local_path) {
+                    if(-r "$lpath/$img_src_url") {
+                        copy("$lpath/$img_src_url",$img_src_file);
+                        $lfound=1;
+                        last;
+                    }
                 }
-                else {
+                if(!$lfound) {
                     $self->cache_log("ERROR - seems to be a local URL and no local file ($img_src_url)");
                     $img_src_file="";
                 }
