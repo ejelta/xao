@@ -9,11 +9,11 @@ use Errno qw/EINTR EAGAIN/;
 use POSIX qw(:sys_wait_h setsid);
 
 $VERSION='0.05';
-$REVISION='$Id: xaosrv.pl,v 1.5 2002/05/03 17:37:47 am Exp $';
+$REVISION='$Id: xaosrv.pl,v 1.6 2002/05/25 01:27:16 am Exp $';
 
 my $spooldir='/tmp/p21ec';
 
-my $ServerName='xaotst';
+my $ServerName='xaosrv';
 $0 = $ServerName;
 
 my $Debug = $ENV{DEBUG};
@@ -211,6 +211,33 @@ attributes order.
 
         elsif ($opcode eq "catalog") {
             my $in = open_stream "catalog";
+            while(<$in>) {
+                printsock $_;
+            }
+        }
+
+=head1 sell_schd
+
+Returns a dump of sell_schd table containing price breaks data.
+
+=cut  
+
+        elsif ($opcode eq "sell_schd") {
+            my $in = open_stream "sell_schd";
+            while(<$in>) {
+                printsock $_;
+            }
+        }
+
+=head1 cust_item
+
+Returns a dump of cust_item relevant for calculating fixed
+customer specific prices.
+
+=cut  
+
+        elsif ($opcode eq "cust_item") {
+            my $in = open_stream "cust_item";
             while(<$in>) {
                 printsock $_;
             }
