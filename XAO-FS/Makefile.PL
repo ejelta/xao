@@ -107,10 +107,10 @@ WriteMakefile(
     'PREREQ_PM'     => { 
         'DBD::mysql'    => '2.0414',
         'DBI'           => '1.13',
-        'Error'         => '0.14',
+        'Error'         => '0.15',
         'Pod::Usage'    => '1.12',
-        'Test::Unit'    => '0.14',
-        'XAO::Base'     => '1.04',
+        'Test::Unit'    => '0.15',
+        'XAO::Base'     => '1.05',
     },
     'EXE_FILES'     => [
         'scripts/xao-fs',
