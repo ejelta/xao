@@ -3,12 +3,40 @@ pre-defined ID using checks that no such item already exists. Somehow
 must deal with race condition if two attempts to add the same item are
 made at the same time.
 
+===============
+
 Fix destroy() on hash objects. It currently does not remove the object,
 but empties it incorrectly.
 
+===============
+
+Make it possible to search on the same deep object or on any. Syntax is
+similar to:
+ [ [ 'Interests/1/interest_id', 'eq', 'qwerty' ], 'and',
+   [ 'Interests/1/level', 'eq', 123 ],
+ ], 'and',
+ [ 'Interests/2/interest_id', 'eq', 'asdf' ]
+
+Meaning: look for all interests where interest_id is 'qwerty' and level
+is 123 on the same object and where there is also an interest with
+interest_id equal to 'asdf' in the same base object.
+
+Also:
+ [ 'Interests/*/interest_id', 'eq', 'asdf' ], 'and',
+ [ 'Interests/*/interest_id', 'eq', 'qwerty' ]
+to denote matching on any object. The difference is merely to add the
+same sub-table again as another letter or not. Probably change query
+syntax to use 'left join' instead of explicit index comparisions.
+
+===============
+
 Negation of 'wq' and 'ws' in search() (Marcos' idea)
 
-fill() method.
+===============
+
+fill() method or rather extended put().
+
+===============
 
 temporary_data() method to get per-object space to store something
 temporary that would not be stored in the object on disk. Some cached

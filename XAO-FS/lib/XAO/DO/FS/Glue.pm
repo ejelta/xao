@@ -50,7 +50,7 @@ use XAO::Objects;
 use base XAO::Objects->load(objname => 'Atom');
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: Glue.pm,v 1.13 2002/05/15 18:39:45 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: Glue.pm,v 1.14 2002/05/16 05:53:09 am Exp $ =~ /(\d+\.\d+)/);
 
 ###############################################################################
 
@@ -1001,12 +1001,25 @@ sub _build_search_query ($%) {
     my $previous;
     my $wrapped;
     my $glue=$self->_glue;
-    foreach my $cn (sort { $classes{$a} cmp $classes{$b} } keys %classes) {
+    my %rev_classes;
+    foreach my $cn (keys %classes) {
+        my $ci=$classes{$cn};
+        if(ref($ci)) {
+            delete $ci->{max};
+            foreach my $i (CORE::values %$ci) {
+                $rev_classes{$i}=$cn;
+            }
+        }
+        else {
+            $rev_classes{$ci}=$cn;
+        }
+    }
+    while(my ($ci,$cn)=each %rev_classes) {
         my $desc=$self->_class_description($cn);
         my $table=$desc->{table};
         my $item={ table => $table,
                    class => $cn,
-                   index => $classes{$cn}
+                   index => $ci,
                  };
         push(@tables_list,$item);
 
@@ -1018,7 +1031,7 @@ sub _build_search_query ($%) {
 
             my $upper_class=$glue->upper_class($cn);
             my $conn=$glue->_connector_name($cn,$upper_class);
-            $conn=$classes{$cn} . '.' .
+            $conn=$ci . '.' .
                   $self->_driver->mangle_field_name($conn);
 
             $clause.=" AND " if $clause;
@@ -1026,6 +1039,7 @@ sub _build_search_query ($%) {
         }
         $previous=1;
     }
+    dprint "post-clause=$clause";
 
     ##
     # Adding key name into fields we need. Forming an array of field
@@ -1104,7 +1118,7 @@ sub _build_search_query ($%) {
 Builds SQL field name including table alias from field path like
 'Specification/value'.
 
-Returns array consisting of translated field name, final class name,
+XXX - Returns array consisting of translated field name, final class name,
 class description and field description.
 
 =cut
@@ -1119,10 +1133,14 @@ sub _build_search_field ($$$) {
 
     $classes->{$class_name}=$classes->{index}++ unless $classes->{$class_name};
 
+    my $class_index;
+
     my $desc=$$self->{class_description};
     my @path=split(/\/+/,$lha);
     $lha=pop @path;
-    foreach my $n (@path) {
+    for(my $i=0; $i!=@path; $i++) {
+        my $n=$path[$i];
+
         my $fd=$desc->{fields}->{$n} ||
             $self->throw("_build_search_field - unknown field '$n' in $lha");
         $fd->{type} eq 'list' ||
@@ -1130,16 +1148,104 @@ sub _build_search_field ($$$) {
         $class_name=$fd->{class};
         $desc=$self->_class_description($class_name);
 
-        if(! $classes->{$class_name}) {
-            $classes->{$class_name}=$classes->{index}++;
+        my $tag=$i+1==@path ? '' : $path[$i+1];
+        if($tag eq '*' || $tag=~/^\d+$/) {
+            $i++;
+
+            ##
+            # XXX - To fix this we need a lot of changes in the code, we
+            # need no single name based table dependency, but some sort
+            # of dependencies stack for each final field. Would be nice
+            # to have though!
+            #
+            $i+1==@path ||
+                throw $self "_build_search_field - modifiers supported on last element only !TODO! (".join('/',@path,$lha).")";
+        }
+
+        if($tag eq '') {
+            if(exists $classes->{$class_name}) {
+                $class_index=$classes->{$class_name};
+                if(ref($class_index)) {
+                    $class_index=$class_index->{999} ||
+                                 $class_index->{$class_index->{max}} ||
+                        throw $self "_build_search_field - OOPS, can't find class index ($class_name,$lha)";
+                }
+            }
+            else {
+                $classes->{$class_name}=$classes->{index}++;
+            }
+        }
+        elsif($tag eq '*') {
+            $class_index=$classes->{index}++;
+            if(exists $classes->{$class_name}) {
+                my $d=$classes->{$class_name};
+                if(ref($d)) {
+                    my $m=$d->{max}+1;
+                    $d->{$m}=$class_index;
+                    $d->{max}=$m;
+                }
+                else {
+                    $d={
+                        max => 1000,
+                        999 => $d,
+                        1000 => $class_index,
+                    };
+                }
+                $classes->{$class_name}=$d;
+            }
+            else {
+                $classes->{$class_name}={
+                    max => 1000,
+                    1000 => $class_index,
+                };
+            }
+        }
+        elsif($tag =~ /^\d+$/) {
+            if(exists $classes->{$class_name}) {
+                my $d=$classes->{$class_name};
+                if(ref($d)) {
+                    if(exists $d->{$tag}) {
+                        $class_index=$d->{tag};
+                    }
+                    else {
+                        $class_index=$classes->{index}++;
+                        $d->{$tag}=$class_index;
+                        $d->{max}=$tag if $tag>$d->{max};
+                    }
+                }
+                else {
+                    $class_index=$classes->{index}++;
+                    $d={
+                        $tag    => $class_index,
+                        999     => $d,
+                        max     => $tag>999 ? $tag : 999,
+                    };
+                }
+                $classes->{$class_name}=$d;
+            }
+            else {
+                $class_index=$classes->{index}++;
+                $classes->{$class_name}={
+                    max => $tag,
+                    $tag => $class_index,
+                };
+            }
         }
     }
 
     my $field_desc=$desc->{fields}->{$lha} ||
         $self->throw("_build_search_field - unknown field '$lha'");
 
-    $lha=$classes->{$class_name} . '.' .
-         $self->_driver->mangle_field_name($lha);
+    if(!$class_index) {
+        my $ci=$classes->{$class_name};
+        $class_index=ref($ci) ? ($ci->{999} || $ci->{$ci->{max}}) : $ci;
+        $class_index ||
+            throw $self "_build_search_field - OOPS, can't get class_index ($class_name, $lha)";
+    }
+
+    $lha=$class_index . '.' . $self->_driver->mangle_field_name($lha);
+
+dprint "lha=$lha";
 
     ($lha,$field_desc);
 }
@@ -1219,6 +1325,8 @@ sub _build_search_clause ($$$$$$) {
         else {
             $self->throw("_build_search_clause - unknown operation '$op'");
         }
+
+        dprint "ref-clause=$clause";
 
         return $clause;
     }
@@ -1303,6 +1411,8 @@ sub _build_search_clause ($$$$$$) {
     else {
         $self->throw("_build_search_clause - unknown operator '$op'");
     }
+
+    dprint "clause=$clause";
 
     $clause;
 }

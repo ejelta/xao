@@ -218,8 +218,8 @@ PUBLIC METHODS
         Builds SQL field name including table alias from field path like
         'Specification/value'.
 
-        Returns array consisting of translated field name, final class name,
-        class description and field description.
+        XXX - Returns array consisting of translated field name, final class
+        name, class description and field description.
 
     _build_search_clause ($$$$$)
         Builds a list of classes used and WHERE clause for the given search
