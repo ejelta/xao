@@ -8,27 +8,33 @@ use Data::Dumper;
 
 my $all;
 my $create;
-my $search;
+my $drop;
 my $project;
+my $search;
+my $update;
 GetOptions(
-    'project=s'     => \$project,
     'all'           => \$all,
     'create'        => \$create,
     'debug'         => sub { XAO::Utils::set_debug(1) },
+    'drop'          => \$drop,
+    'project=s'     => \$project,
     'search'        => \$search,
+    'update'        => \$update,
 );
 
 if(!$project ||
    ($all && @ARGV) ||
    ($create && @ARGV!=2) ||
-   ($search && @ARGV!=3)) {
+   ($drop && @ARGV!=1) ||
+   ($search && @ARGV!=3) ||
+   ($update && !$all && !@ARGV)) {
     print <<EOT;
-Usage: $0 [--debug] --project PROJ index_code1 index_code2 ...
+Usage: $0 [--debug] --project PROJ --update index_code1 index_code2 ...
 
 Updates given indexes in the database.
 
 
-Usage: $0 [--debug] --project PROJ --all
+Usage: $0 [--debug] --project PROJ --update --all
 
 Updates all existing indexes.
 
@@ -37,6 +43,11 @@ Usage: $0 [--debug] --project PROJ --create index Indexer::IndexName
 
 Creates a new index with given name and using given class name to handle
 it. Does not build index data, only prepares data structures.
+
+
+Usage: $0 [--debug] --project PROJ --drop index
+
+Drops the given existing index.
 
 
 Usage: $0 [--debug] --project PROJ --search index ordering 'search string'
@@ -78,6 +89,10 @@ if($search) {
 if($create) {
     my ($i_name,$i_class)=@ARGV;
 
+    my $i_obj=XAO::Objects->new(objname => $i_class);
+    $i_obj->can('get_orderings') ||
+        die "Indexer object '$i_class' has no 'get_orderings' method\n";
+
     $index_list->check_name($i_name) ||
         die "Bad name for an index '$i_name'\n";
 
@@ -88,11 +103,8 @@ if($create) {
 
     dprint "Storing new index object";
     my $ni=$index_list->get_new;
-    $ni->put(object_name => $i_class);
+    $ni->put(indexer_objname => $i_class);
     $index_list->put($i_name => $ni);
-
-    dprint "Initializing new index object";
-    $index_list->get($i_name)->init;
 
     dprint "Done";
     $odb->transact_commit;
@@ -100,15 +112,30 @@ if($create) {
 }
 
 ##
-# Updating existing indexes
+# Drops an index
 #
-dprint "Updating indexes";
-foreach my $index_id ($all ? $index_list->keys : @ARGV) {
-    dprint "Updating index '$index_id'";
-    $index_list->get($index_id)->update;
+if($drop) {
+    my $i_name=$ARGV[0];
+    dprint "Dropping index '$i_name'";
+    $odb->transact_begin;
+    $index_list->delete($i_name) if $index_list->exists($i_name);
+    $odb->transact_commit;
+    exit 0;
 }
 
-exit 0;
+##
+# Updating existing indexes
+#
+if($update) {
+    dprint "Updating indexes";
+    foreach my $index_id ($all ? $index_list->keys : @ARGV) {
+        dprint "Updating index '$index_id'";
+        $index_list->get($index_id)->update;
+    }
+    exit 0;
+}
+
+die "Unknown mode of operation, run without arguments to see usage info\n";
 
 ###############################################################################
 
