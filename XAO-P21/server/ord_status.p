@@ -1,19 +1,28 @@
-DEF VAR onum AS INTEGER.
+DEF VAR d_d AS CHAR FORMAT "x(20)" NO-UNDO.
+DEF VAR onum AS INTEGER NO-UNDO.
 
+/* Field separator
+*/
+ASSIGN d_d="\001".
+
+/* Supplied order ID
+*/
 ASSIGN onum=INTEGER(OS-GETENV("P0")).
 
 /* First we display general line item information and statuses.
 */
 FOR EACH p21.ord_line WHERE ord_line.ord_number = onum NO-LOCK:
     PUT UNFORMATTED
-        "LINE\t"
-        ord_line.item_code		"\t"
-        ord_line.entry_date		"\t"
-        ord_line.ord_qty		"\t"
-        ord_line.inv_qty		"\t"
-        ord_line.canc_qty		"\t"
-        ord_line.disposition		"\t"
-        ord_line.disposition_desc	"\n"
+        "LINE"                          d_d
+        ord_line.item_code              d_d
+        ord_line.entry_date             d_d
+        ord_line.ord_qty                d_d
+        ord_line.inv_qty                d_d
+        ord_line.canc_qty               d_d
+        ord_line.ut_price               d_d
+        ord_line.ut_size                d_d
+        ord_line.disposition            d_d
+        ord_line.disposition_desc       skip
     .
 END.
 
@@ -21,14 +30,14 @@ END.
 */
 FOR EACH wbw_head WHERE wbw_head.ord_number = onum NO-LOCK:
     PUT UNFORMATTED
-	"INVOICE\t"
-        wbw_head.ship_number	"\t"
-        wbw_head.ord_date	"\t"
-        wbw_head.inv_date	"\t"
-	wbw_head.ship_date	"\t"
-        wbw_head.total_stax_amt	"\t"
-        wbw_head.out_freight	"\t"
-        wbw_head.cust_code	"\n"
+        "INVOICE"                       d_d
+        wbw_head.ship_number            d_d
+        wbw_head.ord_date               d_d
+        wbw_head.inv_date               d_d
+        wbw_head.ship_date              d_d
+        wbw_head.total_stax_amt         d_d
+        wbw_head.out_freight            d_d
+        wbw_head.cust_code              skip
     .
 
 END.
@@ -37,9 +46,9 @@ END.
 */
 FOR EACH wbw_line WHERE wbw_line.ord_number = onum NO-LOCK:
     PUT UNFORMATTED
-        "ITEM\t"
-        wbw_line.ship_number	"\t"
-        wbw_line.item_code	"\t"
-        wbw_line.inv_qty	"\n"
+        "ITEM"                          d_d
+        wbw_line.ship_number            d_d
+        wbw_line.item_code              d_d
+        wbw_line.inv_qty                skip
     .
 END.

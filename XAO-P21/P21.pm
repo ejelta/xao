@@ -441,6 +441,8 @@ The hash contains following attributes:
  unit_size        => unit size
  email            => email address for further notification
  stax_exemp       => order line sales tax exemption status
+ suspended_order  => boolean for the initial state of the order
+                     once injected into p21
 
 Returns a hash reference with 'result' and 'info' members. Where
 result is zero for success and info contains internally used
@@ -462,39 +464,39 @@ sub order {
     };
 
     my @order_array=map {
-        $_->{reference_number},             #  1
-        $_->{customer},                     #  2
-        $_->{date},                         #  3
-        $_->{po},                           #  4
-        $_->{credit_card},                  #  5
-        $_->{card_exp_month},               #  6
-        $_->{card_exp_year},                #  7
-        $_->{name},                         #  8
-        $_->{address1},                     #  9
-        $_->{address2},                     # 10
-        $_->{city},                         # 11
-        $_->{state},                        # 12
-        $_->{zip},                          #  1
-        $_->{inst1},                        #  2
-        $_->{inst2},                        #  3
-        $_->{line_number},                  #  4
-        $_->{itemcode},                     #  5
-        $_->{qty},                          #  6
-        $_->{price},                        #  7
-        $_->{email},                        #  8
-        '',                                 #  9
-        '',                                 # 10
-        '',                                 # 11
-        '',                                 # 12
-        '',                                 #  1
-        '',                                 #  2
-        '',                                 #  3
-        $_->{stax_exemp},                   #  4
-        $_->{stax_exemp} ? 'N' : 'Y',       #  5
-        '',                                 #  6
-        $_->{unit_name} || '',              #  7
-        $_->{unit_size} || 1,               #  8
-        $_->{account_number} || '',         #  9
+        $_->{reference_number},             #  1 |  1
+        $_->{customer},                     #  2 |  2
+        $_->{date},                         #  3 |  3
+        $_->{po},                           #  4 |  4
+        $_->{credit_card},                  #  5 |  5
+        $_->{card_exp_month},               #  6 |  6
+        $_->{card_exp_year},                #  7 |  7
+        $_->{name},                         #  8 |  8
+        $_->{address1},                     #  9 |  9
+        $_->{address2},                     # 10 | 10
+        $_->{city},                         # 11 | 11
+        $_->{state},                        # 12 | 12
+        $_->{zip},                          #  1 | 13
+        $_->{inst1},                        #  2 | 14
+        $_->{inst2},                        #  3 | 15
+        $_->{line_number},                  #  4 | 16
+        $_->{itemcode},                     #  5 | 17
+        $_->{qty},                          #  6 | 18
+        $_->{price},                        #  7 | 19
+        $_->{email},                        #  8 | 20
+        '',                                 #  9 | 21
+        '',                                 # 10 | 22
+        '',                                 # 11 | 23
+        '',                                 # 12 | 24
+        '',                                 #  1 | 25
+        '',                                 #  2 | 26
+        '',                                 #  3 | 27
+        $_->{stax_exemp},                   #  4 | 28
+        $_->{stax_exemp} ? 'N' : 'Y',       #  5 | 29
+        $_->{suspended_order} ? 'Y' : 'N',  #  6 | 30
+        $_->{unit_name} || '',              #  7 | 31
+        $_->{unit_size} || 1,               #  8 | 32
+        $_->{account_number} || '',         #  9 | 33
     } @$order_list;
 
     $self->call($constr,$callback, 'order_entry', @order_array);
@@ -567,30 +569,30 @@ sub view_order_details {
 
     my $build=sub {
         my $str=shift;
-        chomp($str);
-        my @arr=split(/\t/,$_[0]);
+        my @arr=split(/\t/,$str);
 
         my %line;
         if($arr[0] eq 'LINE') {
-            @arr==8 ||
+            @arr==10 ||
                 throw XAO::E::P21 "view_order_details - wrong LINE ($str)";
             @line{qw(type item_code entry_date
                      ord_qty inv_qty canc_qty
+                     ut_price ut_size
                      disposition disposition_desc)}=@arr;
         }
         elsif($arr[0] eq 'INVOICE') {
             @arr==8 ||
                 throw XAO::E::P21 "view_order_details - wrong INVOICE ($str)";
             @line{qw(type ship_number ord_date inv_date ship_date
-                     total_stax_amt out_freight cust_code)=@arr;
+                     total_stax_amt out_freight cust_code)}=@arr;
         }
         elsif($arr[0] eq 'ITEM') {
             @arr==4 ||
                 throw XAO::E::P21 "view_order_details - wrong ITEM ($str)";
-            @line{qw(type ship_number item_code inv_qty)=@arr;
+            @line{qw(type ship_number item_code inv_qty)}=@arr;
         }
         else {
-            throw XAO::E::P21 "view_order_details - unknown line ($str)";
+            throw XAO::E::P21 "view_order_details - unknown type=$arr[0] ($str)";
         }
 
         return \%line;
