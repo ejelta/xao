@@ -8,6 +8,7 @@ PageSupport/Makefile.PL
 PageSupport/PageSupport.pm
 PageSupport/PageSupport.xs
  --------------------------------- XAO::*
+lib/XAO/DO/Web/Action.pm
 lib/XAO/DO/Web/Condition.pm
 lib/XAO/DO/Web/Config.pm
 lib/XAO/DO/Web/Date.pm
@@ -19,6 +20,7 @@ lib/XAO/DO/Web/IdentifyUser.pm
 lib/XAO/DO/Web/Page.pm
 lib/XAO/DO/Web/Search.pm
 lib/XAO/DO/Web/Styler.pm
+lib/XAO/DO/Web/Utility.pm
 lib/XAO/PluginUtils.pm
 lib/XAO/Templates.pm
 lib/XAO/Web/Intro.pod
@@ -35,10 +37,13 @@ testcases/base.pm
 testcases/FS.pm
 testcases/Page.pm
 testcases/PageSupport.pm
+testcases/WebCondition.pm
 testcases/WebConfig.pm
  --------------------------------- Test installation tree
 testcases/testroot/projects/test/objects/Config.pm
 testcases/testroot/projects/test/templates/bits/local-test
 testcases/testroot/projects/test/templates/local.txt
 testcases/testroot/templates/bits/system-test
+testcases/testroot/templates/bits/WebCondition/text-default
+testcases/testroot/templates/bits/WebCondition/text-v2
 testcases/testroot/templates/system.txt

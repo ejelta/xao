@@ -307,7 +307,7 @@ use XAO::PageSupport;
 # Package version
 #
 use vars qw($VERSION);
-($VERSION)=(q$Id: Page.pm,v 1.2 2001/11/13 01:46:47 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: Page.pm,v 1.3 2001/12/06 23:03:35 am Exp $ =~ /(\d+\.\d+)/);
 
 ##
 # Methods prototypes
@@ -807,12 +807,12 @@ arguments as base_url() method.
 
 =cut
 
-sub pageurl ($;%)
-{ my $self=shift;
-  my $url=$self->base_url(@_);
-  my $url_path=$self->siteconfig->get('pagedesc')->{fullpath};
-  $url_path="/".$url_path unless $url_path=~ /^\//;
-  $url.$url_path;
+sub pageurl ($;%) {
+    my $self=shift;
+    my $url=$self->base_url(@_);
+    my $url_path=$self->clipboard->get('pagedesc')->{fullpath};
+    $url_path="/".$url_path unless $url_path=~ /^\//;
+    $url.$url_path;
 }
 
 ###############################################################################
