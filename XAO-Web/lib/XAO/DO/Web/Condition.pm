@@ -84,7 +84,7 @@ use XAO::Objects;
 use base XAO::Objects->load(objname => 'Web::Page');
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: Condition.pm,v 1.6 2002/06/24 03:03:11 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: Condition.pm,v 1.7 2002/06/25 22:43:48 am Exp $ =~ /(\d+\.\d+)/);
 
 sub display ($;%)
 { my $self=shift;
@@ -175,9 +175,10 @@ sub display ($;%)
         }
     }
     return unless %objargs;
+    dprint "objargs=",join(",",%objargs);
 
     ##
-    # Now getting object and executing it.
+    # Now getting the object
     #
     my $obj=$self->object(objname => $objargs{objname} || "Page");
     delete $objargs{objname};
@@ -189,6 +190,7 @@ sub display ($;%)
         my $aaa=$self->{parent}->{args};
         delete $aaa->{path};
         delete $aaa->{template};
+    dprint "final objargs=",join(",",%{merge_refs($aaa,\%objargs)});
         $obj->display(merge_refs($aaa,\%objargs));
     }
     else {

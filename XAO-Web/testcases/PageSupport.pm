@@ -166,6 +166,16 @@ sub test_parse {
             {   text    => '$>',
             },
         ],
+        '<%Debug text=3%>' => [
+            {   objname => 'Debug',
+                args    => {
+                    text    => [
+                        {   text    => '3',
+                        }
+                    ],
+                },
+            },
+        ],
         '<%Date style="dateonly" gmtime=  {<%VAR/f%>} %>' => [
             {   objname => 'Date',
                 args    => {

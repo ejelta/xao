@@ -299,8 +299,30 @@ parse_text(pTHX_ char * template, unsigned length) {
                         literal=0;
                     }
                     else {
+                        /* We have to count <%%> to be compatible with older
+                         * code -- there are cases where there are no
+                         * quotes for both simple things like '<%A b=4%>' and
+                         * references like '<%A b=<%C/f%>%>'.
+                         *
+                         * There is no similar provision for <$A$> to
+                         * discourage from using unquoted values.
+                        */
+                        unsigned count=0;
                         val_start=str;
-                        while(str<end && !isspace(*str)) str++;
+                        while(str<end && (count || !isspace(*str))) {
+                            if(str+1<end) {
+                                if(*str=='<' && str[1]=='%') {
+                                    count++;
+                                    str++;
+                                }
+                                else if(*str=='%' && str[1]=='>') {
+                                    if(!count) break;
+                                    count--;
+                                    str++;
+                                }
+                            }
+                            str++;
+                        }
                         val_end=str;
                         literal=0;
                     }
