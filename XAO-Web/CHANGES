@@ -1,4 +1,5 @@
 1.04 - XXX
+    * Web::IdentifyUser - calls login_check for external checks
     * Web::Page - cache() method moved to Web::Config to make it
       available for generic use from not Page based objects. Page has an
       alias for compatibility.
