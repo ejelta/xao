@@ -513,6 +513,7 @@ sub process ($%) {
     #
     my $mod_perl=($apache || $ENV{MOD_PERL}) ? 1 : 0;
     $siteconfig->clipboard->put(mod_perl => $mod_perl);
+    $siteconfig->clipboard->put(mod_perl_request => $apache);
 
     ##
     # Putting CGI object into site configuration. The special case is
