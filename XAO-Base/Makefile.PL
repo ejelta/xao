@@ -108,6 +108,7 @@ foreach my $n (keys %{ExtUtils::Manifest::maniread()}) {
 
 WriteMakefile(
     'NAME'          => 'XAO::Base',
+    'AUTHOR'        => 'Andrew Maltsev, http://ejelta.com/xao/',
     'ABSTRACT'      => 'Base support modules for the XAO Suite',
     'VERSION_FROM'  => 'Base.pm',
     'PREREQ_PM'     => {
