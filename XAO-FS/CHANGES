@@ -1,3 +1,7 @@
+1.02 - 3-Jan-2002
+    * Minor index bug fixed, introduced in 1.01
+    * versions added to packages for convenience
+
 1.01 - 27-Dec-2001
     * added describe method for List
     * added embeddable Config object
