@@ -103,20 +103,23 @@ sub import_catalog ($%) {
     my $xmlcont=$self->get('Data');
 
     ##
-    # Category map. If it is empty it will be polulated with some
+    # Category map. If it is empty it will be popululated with some
     # initial values.
     #
     my $category_map=$self->get('CategoryMap');
-    $imap->check_category_map($category_map);
+    if($imap->can('check_category_map')) {
+        $imap->check_category_map($category_map);
+    }
 
     ##
     # First mapping categories
     #
-    my $catcont=$args->{categories} ||
-        throw Error::Simple ref($self)."::import_catalog - no required 'categories' argument found";
-    my $category_ids=$imap->map_xml_categories($xmlcont,
-                                                $catcont,
-                                                $category_map);
+    my $category_ids;
+    if($imap->can('map_xml_categories')) {
+        my $catcont=$args->{categories} ||
+            throw Error::Simple ref($self)."::import_catalog - no required 'categories' argument found";
+        $category_ids=$imap->map_xml_categories($xmlcont,$catcont,$category_map);
+    }
 
     ##
     # And products now.
@@ -138,7 +141,7 @@ sub import_catalog ($%) {
                               'and',
                               [ 'source_seq', 'ne', $seq ]);
     foreach my $id (@$ids) {
-        dprint "deleting $id";
+        dprint "Deleting $id";
         $prodcont->delete($id);
     }
 }
