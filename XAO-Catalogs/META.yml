@@ -1,0 +1,14 @@
+# http://module-build.sourceforge.net/META-spec.html
+#XXXXXXX This is a prototype!!!  It will change in the future!!! XXXXX#
+name:         XAO-Catalogs
+version:      1.02
+version_from: Catalogs.pm
+installdirs:  site
+requires:
+    Test::Unit:                    0.14
+    XAO::Base:                     1.03
+    XAO::FS:                       1.03
+    XAO::Web:                      1.03
+
+distribution_type: module
+generated_by: ExtUtils::MakeMaker version 6.17

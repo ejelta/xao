@@ -94,7 +94,7 @@ EOT
 #
 WriteMakefile(
     'ABSTRACT'      => 'XAO Catalogs',
-    'AUTHOR'        => 'XAO Inc. http://xao.com/',
+    'AUTHOR'        => 'Andrew Maltsev, http://ejelta.com/xao/',
     'NAME'          => 'XAO::DO::Catalogs',
     'VERSION_FROM'  => 'Catalogs.pm',
     'DISTNAME'      => 'XAO-Catalogs',
@@ -116,7 +116,7 @@ sub MY::postamble
 config::	README
 
 README:	Catalogs.pm
-	pod2text Catalogs.pm > README
+	\@COLUMNS=80 pod2text Catalogs.pm > README
 
 install::
 	\$(PERL) -MXAO::PluginUtils=install_templates \\

@@ -150,9 +150,11 @@ __END__
 
 =head1 AUTHOR
 
-Copyright (c) 2001-2002 XAO, Inc.
+Copyright (c) 2005 Andrew Maltsev
 
-Andrew Maltsev <am@xao.com>.
+Copyright (c) 2001-2004 Andrew Maltsev, XAO Inc.
+
+<am@ejelta.com> -- http://ejelta.com/xao/
 
 =head1 SEE ALSO
 

@@ -4,6 +4,7 @@ README
 TODO
 MANIFEST
 MANIFEST.SKIP
+META.yml
 Makefile.PL
 test.pl
  --------------------------------------------------------

@@ -23,6 +23,9 @@ use XAO::Objects;
 
 use base XAO::Objects->load(objname => 'Atom');
 
+use vars qw($VERSION);
+$VERSION=(0+sprintf('%u.%03u',(q$Id: Base.pm,v 1.9 2005/01/14 02:08:06 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
+
 ###############################################################################
 
 =item category_hash_to_array ($)
@@ -449,6 +452,8 @@ __END__
 
 =head1 AUTHORS
 
-Copyright (c) 2001 XAO Inc.
+Copyright (c) 2005 Andrew Maltsev
 
-Andrew Maltsev <am@xao.com>
+Copyright (c) 2001-2004 Andrew Maltsev, XAO Inc.
+
+<am@ejelta.com> -- http://ejelta.com/xao/

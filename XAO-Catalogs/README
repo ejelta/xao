@@ -44,11 +44,13 @@ METHODS
         method description instead.
 
 AUTHOR
-    Copyright (c) 2001-2002 XAO, Inc.
+    Copyright (c) 2005 Andrew Maltsev
 
-    Andrew Maltsev <am@xao.com>.
+    Copyright (c) 2001-2004 Andrew Maltsev, XAO Inc.
+
+    <am@ejelta.com> -- http://ejelta.com/xao/
 
 SEE ALSO
-    Recommended reading: the XAO::DO::ImportMap::Base manpage, the
-    XAO::Objects manpage, the XAO::Web manpage, the XAO::Commerce manpage.
+    Recommended reading: XAO::DO::ImportMap::Base, XAO::Objects, XAO::Web,
+    XAO::Commerce.
 
