@@ -7,7 +7,7 @@ package XAO::Web;
 # XAO::Web version number. Hand changed with every release!
 #
 use vars qw($VERSION);
-$VERSION='0.8';
+$VERSION='0.9';
 
 ###############################################################################
 1;

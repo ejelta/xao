@@ -4,11 +4,6 @@ use ExtUtils::MakeMaker;
 use ExtUtils::Manifest;
 
 ##
-# This is the version for XAO::Web, should be updated manually.
-#
-my $version='0.9';
-
-##
 # Reading configuration
 #
 my %d;
@@ -111,7 +106,7 @@ WriteMakefile(
     'ABSTRACT'      => 'XAO Web Developer',
     'AUTHOR'        => 'XAO Inc. http://xao.com/',
     'NAME'          => 'XAO::Web',
-    'VERSION'       => $version,
+    'VERSION_FROM'  => 'Web.pm',
     'PREREQ_PM'     => {
         'Error'         => '0.13',
         'XAO::Base'     => '1.01',
