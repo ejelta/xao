@@ -1,5 +1,10 @@
 Revision history for Perl extension XAO::DO::Web::PodView
 
+1.01: 3-Jan-2002
+    * Entities table moved to parser
+    * 'use strict' added to Parser
+    * Version information added
+
 1.0: 27-Dec-2001
     * Initial public release
     * Bugs fixed in lists processing
