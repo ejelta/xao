@@ -62,7 +62,7 @@ use XAO::Errors qw(XAO::DO::Web::FilloutForm);
 use base XAO::Objects->load(objname => 'Web::Page');
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: FilloutForm.pm,v 1.6 2002/05/07 21:32:40 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: FilloutForm.pm,v 1.7 2002/10/03 06:42:00 am Exp $ =~ /(\d+\.\d+)/);
 
 sub setup ($%);
 sub field_desc ($$);
@@ -452,18 +452,16 @@ sub display ($;%) {
             }
             $fdata->{html}=qq(<SELECT NAME=$name><OPTION VALUE="">Select Month</OPTION>$html</SELECT>);
         }
-        elsif($style eq 'year') {
-            if($fdata->{minyear} && $fdata->{maxyear}) {
-                my $minyear=$self->calculate_year($fdata->{minyear});
-                my $maxyear=$self->calculate_year($fdata->{maxyear});
-                my $html='';
-                for(my $i=$minyear; $i<=$maxyear; $i++) {
-                    my $sel=($value && $value == $i) ? " SELECTED" : "";
-                    $html.=sprintf("<OPTION VALUE=\"%04u\"$sel>%04u</OPTION>\n",$i,$i);
-                }
-                $html=qq(<SELECT NAME="$name"><OPTION VALUE="">Select Year</OPTION>$html</SELECT>);
-                $fdata->{html}=$html;
+        elsif($style eq 'year' && $fdata->{minyear} && $fdata->{maxyear}) {
+            my $minyear=$self->calculate_year($fdata->{minyear});
+            my $maxyear=$self->calculate_year($fdata->{maxyear});
+            my $html='';
+            for(my $i=$minyear; $i<=$maxyear; $i++) {
+                my $sel=($value && $value == $i) ? " SELECTED" : "";
+                $html.=sprintf("<OPTION VALUE=\"%04u\"$sel>%04u</OPTION>\n",$i,$i);
             }
+            $html=qq(<SELECT NAME="$name"><OPTION VALUE="">Select Year</OPTION>$html</SELECT>);
+            $fdata->{html}=$html;
         }
         elsif($style eq 'checkbox') {
             my $c=(defined($fdata->{value}) ? $fdata->{value} : $value) ? 1 : 0;
@@ -494,7 +492,7 @@ sub display ($;%) {
                            '</SELECT>';
         }
         elsif($style eq 'text' || $style eq 'phone' || $style eq 'usphone' ||
-              $style eq 'ccnum' || $style eq 'email' ||
+              $style eq 'ccnum' || $style eq 'email' || $style eq 'year' ||
               $style eq 'number' || $style eq 'int' || $style eq 'integer') {
             $fdata->{html}=$obj->expand(
                 path => '/bits/fillout-form/html-text',
