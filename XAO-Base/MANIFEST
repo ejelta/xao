@@ -8,13 +8,16 @@ Base.PL
 Base.pod
 test.pl
  ------------------------------------------- lib/XAO
+lib/XAO/Cache.pm
 lib/XAO/Errors.pm
 lib/XAO/Objects.pm
 lib/XAO/Projects.pm
 lib/XAO/SimpleHash.pm
 lib/XAO/Utils.pm
  ------------------------------------------- Dynamic Objects
+lib/XAO/DO/Atom.pm
 lib/XAO/DO/Config.pm
+lib/XAO/DO/Cache/Memory.pm
  ------------------------------------------- testcases
 testcases/base.pm
 testcases/DOConfig.pm

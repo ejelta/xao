@@ -1,4 +1,7 @@
 1.03 - XXX
+    * XAO::Cache - generic cache interface (new)
+    * XAO::DO::Cache::Memory - memory cache (new)
+    * XAO::DO::Atom - suggested base class (new)
     * XAO::Errors - added support for throwing by known class name
 
 1.02 - 3-Jan-2002
