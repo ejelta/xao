@@ -5,7 +5,7 @@ version:      1.06
 version_from: Web.pm
 installdirs:  site
 requires:
-    CGI:                           
+    CGI:                           2.91
     Digest::MD5:                   2.13
     Error:                         0.15
     MIME::Lite:                    2.117

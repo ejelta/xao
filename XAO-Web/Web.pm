@@ -38,7 +38,8 @@ XAO::Web - XAO Web Developer, dynamic content building suite
 =head1 DESCRIPTION
 
 Please read L<XAO::Web::Intro> for general overview and setup
-instructions.
+instructions. Check also misc/samplesite for code examples and a generic
+site setup.
 
 XAO::Web module provides a frameworks for loading site configuration and
 executing objects and templates in the site context. It is used in

@@ -181,10 +181,11 @@ use strict;
 use Digest::MD5 qw(md5_base64);
 use XAO::Utils;
 use XAO::Errors qw(XAO::DO::Web::FS);
+use XAO::Objects;
 use base XAO::Objects->load(objname => 'Web::Action');
 
 use vars qw($VERSION);
-$VERSION=(0+sprintf('%u.%03u',(q$Id: FS.pm,v 2.1 2005/01/14 01:39:57 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
+$VERSION=(0+sprintf('%u.%03u',(q$Id: FS.pm,v 2.2 2005/01/14 01:47:35 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
 
 ###############################################################################
 

@@ -117,6 +117,11 @@ gave to XAO::Base when you installed it. Normally that directory is
 
 You are almost there. Now is the time to try it!
 
+In addition to reading this manual (or instead of reading it if you feel
+too adventurous today) you can look at the generic site setup in the
+misc/samplesite/ directory of the distribution archive.
+B<The sample site also provides a very useful template to start any project with!>
+
 Configure your Apache server so that it would execute
 /usr/local/xao/handlers/xao-apache.pl when someone types URL like
 http://test.company.com/cgi-bin/xao-apache.pl. Here is an example of a virtual
