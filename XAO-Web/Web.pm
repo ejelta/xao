@@ -109,7 +109,7 @@ sub sitename ($);
 
 ###############################################################################
 
-=item analize (@)
+=item analyze (@)
 
 Checks how to display the given path. Always returns valid results or
 throws an error if that can't be accomplished.
@@ -127,13 +127,16 @@ Returns hash reference:
 sub analyze ($@) {
     my $self=shift;
     my $siteconfig=$self->config;
+
     my @path=@_;
+    shift @path while @path && !length($path[0]);
+    unshift(@path,'');
     my $path=join('/',@path);
-    my $table=$siteconfig->get('path_mapping_table');
 
     ##
     # Looking for the object matching the path.
     #
+    my $table=$siteconfig->get('path_mapping_table');
     if($table) {
         for(my $i=@path; $i>=0; $i--) {
             my $dir=$i ? join('/',@path[0..$i-1]) : '';

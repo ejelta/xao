@@ -1,6 +1,7 @@
 1.05 -
-    * Web::FS 'search' mode now supports collections
-    * Web::URL object added
+    * Web::IdentifyUser - new id_cookie_type parameter
+    * Web::FS - 'search' mode now supports collections
+    * Web::URL - object added
     * New clipboard parameters 'active_url' and 'active_url_secure' added
     * aTHX_ fix from Mike Castle (perl-5.8.0 with ithread support)
 

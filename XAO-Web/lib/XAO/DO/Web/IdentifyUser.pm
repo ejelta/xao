@@ -83,6 +83,7 @@ $config hash with all required parameters is presented below:
     id_cookie           => 'id_customer',    
     id_cookie_expire    => 126230400,       # (seconds) optional,
                                             # default is 10 years
+    id_cookie_type      => 'name',          # optional, see below
     user_prop           => 'email',         # optional, see below    
     pass_prop           => 'password', 
     pass_encrypt        =>  'md5',          # optional, see below
@@ -108,6 +109,21 @@ future
 
 Expiration time for the identification cookie (default is 4 years).
 
+=item id_cookie_type
+
+Can be either 'name' (default) or 'id'. Determines what is stored in the
+cookie on the client browser's side -- in 'name' mode it stores user
+name, just the way it is entered in the login form, in 'id' mode the
+internal id (container_key) of the user object is stored.
+
+Downside to storing names is that some browsers fail to return
+exactly the stored value if it had international characters in the
+name. Downside to storing IDs is that you expose a bit of internal
+structure to the outside world, usually its harmless though.
+
+If 'user_prop' is not used then it does not matter, as the name and id
+are the same thing.
+
 =item user_prop
 
 Name attribute of a user object. If there is no 'user_prop' parameter in
@@ -121,8 +137,8 @@ member object, then the following might be used:
 
  user_prop => 'Nicknames/nickname'
 
-See also how 'id' and 'data' clipboard parameters are populated in that
-case.
+See below for how to access deeper objects and ids (the object in
+'Nicknames' list in that case).
 
 =item pass_prop
 
@@ -131,7 +147,7 @@ Password attribute of user object.
 =item pass_encrypt
 
 Encryption method for the password. Available values are 'plaintext'
-(not encrypted at all, default) and 'md5' (MD5 one way hash encryption.
+(not encrypted at all, default) and 'md5' (MD5 one way hash encryption).
 
 =item vf_key_prop
 
@@ -174,7 +190,63 @@ verification information about user and makes it globally available.
 
 =back
 
-=head1 EXAMPLE
+=head1 RESULTS
+
+In addition to displaying the correct template, results of user
+verification or identification are stored in the clipboard. Base
+clipboard location is determined by 'cb_uri' configuration parameter and
+defaults to '/IdentifyUser/TYPE', where TYPE is the type of user.
+
+Parameters that are stored into the clipboard are:
+
+=over
+
+=item id
+
+The internal ID of the use object (same as returned by container_key()
+method on the object).
+
+=item name
+
+Name as used in the 'login' mode. If 'user_prop' configuration parameter
+is not used then it is always the same as 'id'.
+
+=item object
+
+Reference to the user object loaded from the database.
+
+=item verified
+
+This is only set when user has 'verified' status.
+
+=back
+
+Additional information will also be stored if 'user_prop'
+refers to deeper objects. For example, if user_prop is equal to
+'Nicknames/nickname' then it is assumed that there is a list inside
+of user objects called Nicknames and there is a property in that list
+called 'nickname'. It is also implied that the 'nickname' is unique
+throughout all objects of its class.
+
+Information that gets stored in the clipboard in that case is:
+
+=over
+
+=item list_prop
+
+Name of the list property of the user object that is used in
+'user_prop'. In our example it will be 'Nicknames'.
+
+=item Nicknames (only for the example above)
+
+Name of the list property is used to store a hash containing 'id',
+'object' and probably 'list_prop' for the next object in the 'user_prop'
+path (although in practice it is hard to imagine a situation where more
+then one level is required).
+
+=back
+
+=head1 EXAMPLES
 
 Now, let us look at some examples that show how each mode works.
 
@@ -216,13 +288,14 @@ Now, let us look at some examples that show how each mode works.
 package XAO::DO::Web::IdentifyUser;
 use strict;
 use Digest::MD5 qw(md5_base64);
+use Error qw(:try);
 use XAO::Utils;
 use XAO::Errors qw(XAO::DO::Web::IdentifyUser);
 use XAO::Objects;
 use base XAO::Objects->load(objname => 'Web::Action');
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: IdentifyUser.pm,v 1.19 2003/01/14 05:25:40 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: IdentifyUser.pm,v 1.20 2003/01/14 08:30:50 am Exp $ =~ /(\d+\.\d+)/);
 
 ###############################################################################
 
@@ -247,7 +320,7 @@ sub check_mode($;%){
         $self->logout($args);
     }
     else {
-        throw XAO::E::DO::Web::IdentifyUser "check_mode - no such mode '$mode'";
+        throw $self "check_mode - no such mode '$mode'";
     }
 }
 
@@ -283,39 +356,110 @@ sub check {
     my $args=get_args(\@_);
 
     my $config=$self->siteconfig->get('identify_user') ||
-        throw XAO::E::DO::Web::IdentifyUser "check - no 'identify_user' configuration";
+        throw $self "check - no 'identify_user' configuration";
     my $type=$args->{type} ||
-        throw XAO::E::DO::Web::IdentifyUser "check - no 'type' given";
+        throw $self "check - no 'type' given";
     $config=$config->{$type} ||
-        throw XAO::E::DO::Web::IdentifyUser "check - no 'identify_user' configuration for '$type'";
+        throw $self "check - no 'identify_user' configuration for '$type'";
     my $clipboard=$self->clipboard;
 
     ##
-    # Checking clipboard to determine if there is a user object present
+    # These are useful for both verification and identification cookies.
+    #
+    my $vf_time_prop=$config->{vf_time_prop} ||
+        throw $self "No 'vf_time_prop' in the configuration";
+    my $current_time=time;
+    my $last_vf;
+
+    ##
+    # Checking if we already have user in the clipboard. If not -- checking
+    # the cookie and trying to load from the database.
     #
     my $cb_uri=$config->{cb_uri} || "/IdentifyUser/$type";
     my $user=$clipboard->get("$cb_uri/object");
-    my $username=$clipboard->get("$cb_uri/name");
-
-    ##
-    # If there is no user in the clipboard - trying database.
-    #
-    if(!$user || !$username) {
+    if(!$user) {
         my $id_cookie=$config->{id_cookie} ||
-            throw XAO::E::DO::Web::IdentifyUser "check - no 'id_cookie' in the configuration";
-        $username=$self->cgi->cookie($id_cookie);
-        if($username) {
-            $user=$self->find_user($config,$username);
+            throw $self "check - no 'id_cookie' in the configuration";
+
+        my $cookie_value=$self->cgi->cookie($id_cookie);
+        if(!$cookie_value) {
+            return $self->display_results($args,'anonymous');
         }
-        if(!$username || !$user) {
+
+        my $data;
+        my $id_cookie_type=$config->{id_cookie_type} || 'name';
+        if($id_cookie_type eq 'id' && $config->{user_prop}) {
+            my $list_uri=$config->{list_uri} ||
+                throw $self "check - no 'list_uri' in the configuration";
+            my $list=$self->odb->fetch($list_uri);
+
+            my $user_prop=$config->{user_prop};
+            my @names=split(/\/+/,$user_prop);
+            my @ids=split(/\/+/,$cookie_value);
+            my %d;
+
+            try {
+                my $obj;
+                my $dref=\%d;
+                for(my $i=0; $i!=@names; $i++) {
+                    my $name=$names[$i];
+                    my $id=$ids[$i];
+
+                    my $obj=$list->get($id);
+                    $dref->{object}=$obj;
+                    $dref->{id}=$id;
+
+                    $list=$obj->get($name);
+                    if(ref $list) {
+                        $dref->{list_prop}=$name;
+                        $dref=$dref->{$name}={};
+                    }
+                    else {
+                        $d{name}=$list;
+                    }
+                }
+            }
+            otherwise {
+                my $e=shift;
+                eprint "$e";
+            };
+
+            $d{object} || return $self->display_results($args,'anonymous');
+
+            $data=\%d;
+        }
+        elsif($id_cookie_type eq 'name') {
+            $data=$self->find_user($config,$cookie_value);
+        }
+        else {
+            throw $self "check - unknown id_cookie_type ($id_cookie_type)";
+        }
+
+        if(!$data) {
             return $self->display_results($args,'anonymous');
         }
 
         ##
         # Saving identified user to the clipboard
         #
-        $clipboard->put("$cb_uri/name"   => $username);
-        $clipboard->put("$cb_uri/object" => $user);
+        $clipboard->put($cb_uri => $data);
+        $user=$data->{object};
+
+        ##
+        # Updating cookie, not doing it every time -- same reason as for
+        # verification cookie below.
+        #
+        my $last_vf=$user->get($vf_time_prop);
+        my $id_cookie_expire=$config->{id_cookie_expire} || 4*365*24*60*60;
+        my $quant=int($id_cookie_expire/20);
+        if($current_time-$last_vf > $quant) {
+            $self->siteconfig->add_cookie(
+                -name    => $id_cookie,
+                -value   => $cookie_value,
+                -path    => '/',
+                -expires => '+' . $id_cookie_expire . 's',
+            );
+        }
     }
 
     ##
@@ -329,12 +473,9 @@ sub check {
         # of last verification
         #
         my $vf_expire_time=$config->{vf_expire_time} ||
-            throw XAO::E::DO::Web::IdentifyUser "No 'expire_time' in the configuration";
-        my $vf_time_prop=$config->{vf_time_prop} ||
-            throw XAO::E::DO::Web::IdentifyUser "No 'vf_time_prop' in the configuration";
-        my $last_vf=$user->get($vf_time_prop);
+            throw $self "No 'vf_expire_time' in the configuration";
+        $last_vf=$user->get($vf_time_prop) unless defined $last_vf;
 
-        my $current_time=time;
         if($last_vf && $current_time - $last_vf <= $vf_expire_time) {
 
             ##
@@ -364,7 +505,7 @@ sub check {
                             -name    => $config->{vf_key_cookie},
                             -value   => $web_key,
                             -path    => '/',
-                            -expires => '+10y',
+                            -expires => '+4y',
                         );
                         $user->put($vf_time_prop => $current_time);
                     }
@@ -402,14 +543,11 @@ sub display_results ($$$;$) {
     if($args->{"$status.template"} || $args->{"$status.path"}) {
 
         my $config=$self->siteconfig->get('identify_user') ||
-            throw XAO::E::DO::Web::IdentifyUser
-                  "check - no 'identify_user' configuration";
+            throw $self "check - no 'identify_user' configuration";
         my $type=$args->{type} ||
-            throw XAO::E::DO::Web::IdentifyUser
-                  "check - no 'type' given";
+            throw $self "check - no 'type' given";
         $config=$config->{$type} ||
-            throw XAO::E::DO::Web::IdentifyUser
-                  "check - no 'identify_user' configuration for '$type'";
+            throw $self "check - no 'identify_user' configuration for '$type'";
         my $cb_uri=$config->{cb_uri} || "/IdentifyUser/$type";
 
         my $page=$self->object;
@@ -433,7 +571,10 @@ sub display_results ($$$;$) {
 
 Searches for the user in the list according to the configuration:
 
- my $user=$self->find_user($config,$username);
+ my $data=$self->find_user($config,$username);
+
+Sets the same parameters in the returned hash as stored in the clipboard
+except 'verified'.
 
 =cut
 
@@ -442,20 +583,65 @@ sub find_user ($$$) {
     my $config=shift;
     my $username=shift;
 
-    my $user;
-
     my $list_uri=$config->{list_uri} ||
-        throw XAO::E::DO::Web::IdentifyUser "find_user - no 'list_uri' in the configuration";
-    my $list=$self->odb()->fetch($list_uri);
+        throw $self "find_user - no 'list_uri' in the configuration";
+    my $list=$self->odb->fetch($list_uri);
 
-    if($config->{user_prop}) {
-        my $users=$list->search([$config->{user_prop}, 'eq', $username]);
-        return undef if scalar(@$users) != 1;
-        return $list->get($users->[0]);
+    my $user_prop=$config->{user_prop};
+ 
+    if($user_prop) {
+        my @names=split(/\/+/,$user_prop);
+
+        my %d;
+        try {
+            my $obj;
+            my $dref=\%d;
+            for(my $i=0; $i!=@names; $i++) {
+                my $searchprop=join('/',@names[$i..$#names]);
+                my $sr=$list->search($searchprop,'eq',$username);
+                return undef unless @$sr == 1;
+
+                my $id=$sr->[0];
+                my $obj=$list->get($id);
+
+                $dref->{object}=$obj;
+                $dref->{id}=$id;
+
+                if($i!=$#names) {
+                    my $name=$names[0];
+                    $list=$obj->get($name);
+                    $dref->{list_prop}=$name;
+                    $dref=$dref->{$name}={};
+                }
+            }
+        }
+        otherwise {
+            my $e=shift;
+            eprint "$e";
+        };
+
+        return undef unless $d{object};
+
+        $d{name}=$username;
+
+        return \%d;
     }
     else {
-        return undef unless $list->exists($username);
-        return $list->get($username);
+        return undef unless $list->check_name($username);
+        my $obj;
+        try {
+            $obj=$list->get($username);
+        }
+        otherwise {
+            my $e=shift;
+        };
+        return undef unless $obj;
+
+        return {
+            object  => $obj,
+            id      => $username,
+            name    => $username,
+        };
     }
 }
 
@@ -479,23 +665,21 @@ sub login ($;%) {
     my $args=get_args(\@_);
 
     my $config=$self->siteconfig->get('identify_user') ||
-        throw XAO::E::DO::Web::IdentifyUser
-              "login - no 'identify_user' configuration";
+        throw $self "login - no 'identify_user' configuration";
     my $type=$args->{type} ||
-        throw XAO::E::DO::Web::IdentifyUser
-              "login - no 'type' given";
+        throw $self "login - no 'type' given";
     $config=$config->{$type} ||
-        throw XAO::E::DO::Web::IdentifyUser
-              "login - no 'identify_user' configuration for '$type'";
+        throw $self "login - no 'identify_user' configuration for '$type'";
 
     ##
     # Looking for the user in the database
     #
     my $username=$args->{username} ||
-        throw XAO::E::DO::Web::IdentifyUser "login - no 'username' given";
+        throw $self "login - no 'username' given";
     my $errstr;
-    my $user=$self->find_user($config,$username);
-    $errstr="No information found about '$username'" unless $user;
+    my $data=$self->find_user($config,$username);
+    $errstr="No information found about '$username'" unless $data;
+    my $user=$data->{object};
 
     ##
     # Checking password
@@ -519,12 +703,11 @@ sub login ($;%) {
                 $password=md5_base64($password);
             }
             else {
-                throw XAO::E::DO::Web::IdentifyUser
-                      "login - unknown encryption mode '$pass_encrypt'";
+                throw $self "login - unknown encryption mode '$pass_encrypt'";
             }
 
             my $pass_prop=$config->{pass_prop} || 
-                throw XAO::E::DO::Web::IdentifyUser "login - no 'pass_prop' in the configuration";
+                throw $self "login - no 'pass_prop' in the configuration";
             my $dbpass=$user->get($pass_prop);
 
             if($dbpass ne $password) {
@@ -571,19 +754,32 @@ sub login ($;%) {
     # Setting login time
     #
     my $vf_time_prop=$config->{vf_time_prop} ||
-        throw XAO::E::DO::Web::IdentifyUser "login - no 'vf_time_prop' in the configuration";
+        throw $self "login - no 'vf_time_prop' in the configuration";
     $user->put($vf_time_prop => time);
 
     ##
-    # Setting user name cookie
+    # Setting user name cookie depending on id_cookie_type parameter.
     #
+    my $id_cookie_type=$config->{id_cookie_type} || 'name';
+    my $cookie_value;
+    if($id_cookie_type eq 'id') {
+        $cookie_value=$data->{id};
+        my $r=$data;
+        while($r->{list_prop}) {
+            $r=$r->{$r->{list_prop}};
+            $cookie_value.="/$r->{id}";
+        };
+    }
+    else {
+        $cookie_value=$username;
+    }
     my $expire=$config->{id_cookie_expire} ? "+$config->{id_cookie_expire}s"
                                            : '+10y';
     my $id_cookie=$config->{id_cookie} ||
-        throw XAO::E::DO::Web::IdentifyUser "login - no 'id_cookie' in the configuration";
+        throw $self "login - no 'id_cookie' in the configuration";
     $self->siteconfig->add_cookie(
-        -name    => $config->{id_cookie},
-        -value   => $username,
+        -name    => $id_cookie,
+        -value   => $cookie_value,
         -path    => '/',
         -expires => $expire,
     );
@@ -592,10 +788,9 @@ sub login ($;%) {
     # Storing values into the clipboard
     #
     my $clipboard=$self->clipboard;
-    my $clipboard_uri=$config->{cb_uri} || "/IdentifyUser/$type";
-    $clipboard->put("$clipboard_uri/name"       => $username);
-    $clipboard->put("$clipboard_uri/object"     => $user);
-    $clipboard->put("$clipboard_uri/verified"   => 1);
+    my $cb_uri=$config->{cb_uri} || "/IdentifyUser/$type";
+    $data->{verified}=1;
+    $clipboard->put($cb_uri => $data);
 
     ##
     # Displaying results
@@ -644,14 +839,11 @@ sub logout{
     my $args=get_args(\@_);
 
     my $config=$self->siteconfig->get('identify_user') ||
-        throw XAO::E::DO::Web::IdentifyUser
-              "logout - no 'identify_user' configuration";
+        throw $self "logout - no 'identify_user' configuration";
     my $type=$args->{type} ||
-        throw XAO::E::DO::Web::IdentifyUser
-              "logout - no 'type' given";
+        throw $self "logout - no 'type' given";
     $config=$config->{$type} ||
-        throw XAO::E::DO::Web::IdentifyUser
-              "logout - no 'identify_user' configuration for '$type'";
+        throw $self "logout - no 'identify_user' configuration for '$type'";
 
     ##
     # Checking if we're currently logged in at all.
@@ -665,7 +857,7 @@ sub logout{
     #
     if($user) {
         my $vf_time_prop=$config->{vf_time_prop} ||
-            throw XAO::E::DO::Web::IdentifyUser "logout - no 'vf_time_prop' in the configuration";
+            throw $self "logout - no 'vf_time_prop' in the configuration";
         $user->delete($vf_time_prop);
     }
 
@@ -698,7 +890,7 @@ sub logout{
         $clipboard->delete("$cb_uri/name");
 
         my $id_cookie=$config->{id_cookie} ||
-            throw XAO::E::DO::Web::IdentifyUser "logout - no 'id_cookie' in the configuration";
+            throw $self "logout - no 'id_cookie' in the configuration";
         $self->siteconfig->add_cookie(
             -name    => $config->{id_cookie},
             -value   => '0'
