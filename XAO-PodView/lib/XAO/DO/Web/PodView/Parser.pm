@@ -32,23 +32,28 @@ L<XAO::DO::Web::PodView>.
 
 ###############################################################################
 package XAO::DO::Web::PodView::Parser;
-use XAO::Utils;
+use XAO::Utils qw(:args :html :debug);
 use base qw(Pod::Parser);
 
-sub new {
-    my $self=shift->SUPER::new();
-    $self->{'-dispobj'}=$_[0];
-    die "No dispobj argument given" unless $self->{'-dispobj'};
-    $self->{'-format'}=lc($_[1] || 'html');
+sub new ($%) {
+    my $proto=shift;
+    my $args=get_args(\@_);
+
+    my $self=$proto->SUPER::new();
+
+    $self->{'-dispobj'}=$args->{dispobj} ||
+        $self->throw("new - no 'dispobj' argument given");
+    $self->{'-format'}=lc($args->{format} || 'html');
+
     $self;
 }
 
-sub display {
+sub display ($%) {
     my $self=shift;
     $self->{'-dispobj'}->display(@_);
 }
 
-sub expand {
+sub expand ($%) {
     my $self=shift;
     $self->{'-dispobj'}->expand(@_);
 }
@@ -69,161 +74,219 @@ sub interpolate ($$$) {
     return join('',$ptree->children());
 }
 
-sub html_encode ($$$)
-{ my $self=shift;
-  my $text=shift;
-  #dprint "html_encode: $text";
-  t2ht($text);
+sub html_encode ($$$) {
+    my $self=shift;
+    my $text=shift;
+    #dprint "html_encode: $text";
+    t2ht($text);
 }
 
 ##
 # Returns path to the template file
 #
-sub path ($$)
-{ my $self=shift;
-  my $format=$self->{-format};
-  my $name=shift;
-  "/bits/podview/$format/$name";
+sub path ($$) {
+    my $self=shift;
+    my $format=$self->{-format};
+    my $name=shift;
+    "/bits/podview/$format/$name";
 }
 
-sub command ($$$$)
-{ my $self=shift;
-  my ($command, $paragraph, $line_num) = @_;
-  $self->verbatim_stop($line_num);
-  $self->textblock_stop($line_num);
-  #dprint "command: command=$command paragraph=$paragraph line_num=$line_num";
+sub command ($$$$) {
+    my $self=shift;
+    my ($command, $paragraph, $line_num) = @_;
+    $self->verbatim_stop($line_num);
+    $self->textblock_stop($line_num);
+    #dprint "command: command=$command paragraph=$paragraph line_num=$line_num";
 
-  ##
-  # Some special processing. Getting out of all levels of =over on
-  # =head1 and =head2; calculating level of =over.
-  #
-  # On =over we do not print anything and wait until we get first =item
-  # in that scope. The decide if it is enumerated list or not.
-  #
-  if($command eq 'over')
-   { $self->{-had_item}=0;
-     return;
-   }
-  elsif($command eq 'back')
-   { $self->{-over_level}--;
-   }
-  elsif($command eq 'item')
-   { if(! $self->{-had_item})
-      { $self->{-over_level}++;
-        $self->{-had_item}=1;
-        $self->display(path => $self->path("command-over"),
-                       TEXT => $self->paragraph_text($self->interpolate($paragraph,$line_num)),
-                       COMMAND => 'over',
-                       LINENUM => $line_num,
-                       UNPARSED => $paragraph,
-                       OVERLEVEL => $self->{-over_level}
-                      );
-      }
-   }
-  elsif($command eq 'head1' || $command eq 'head2')
-   { while($self->{-over_level})
-      { $self->command('back',$paragraph,$line_num);
-      }
-   }
-  elsif($command eq 'cut' || $command eq '=pod')
-   { return;
-   }
-  elsif($command eq 'for')
-   { my $format=$self->{-format};
-     return unless $paragraph =~ /^\s*($format)\s+(.*)$/;
-     $paragraph=$2;
-   }
-  elsif($command eq 'begin')
-   { return unless $paragraph => /^\s*(.*?)(\s+(.*))?$/;
-     push @{$self->{-begin_stack}},$1;
-   }
-  elsif($command eq 'end')
-   { return unless $paragraph => /^\s*(.*?)(\s+(.*))?$/;
-     my $f=$1;
-     if(!@{$self->{-begin_stack}})
-      { eprint ref($self)."::command - no '=begin' for '=end $f' at line $line_num";
+    $paragraph=$self->strip_spaces($paragraph);
+
+    ##
+    # Some special processing. Getting out of all levels of =over on
+    # =head1 and =head2; calculating level of =over.
+    #
+    # On =over we do not print anything and wait until we get first
+    # =item in that scope. Then we decide if it is an enumerated list or
+    # not.
+    #
+    if($command eq 'over') {
+        $self->{-had_item}=($self->{-over_level} || 0)+1;
         return;
-      }
-     if($self->is_in_format($f))
-      { eprint ref($self)."::command - unmatched format '=end $f' at line $line_num";
-      }
-     pop @{$self->{-begin_stack}};
-     return;
-   }
-  else
-   { $self->display(path => $self->path("command-unknown"),
-                    TEXT => $self->paragraph_text($self->interpolate($paragraph,$line_num)),
-                    COMMAND => $command,
-                    LINENUM => $line_num,
-                    UNPARSED => $paragraph,
-                   );
-     return;
-   }
+    }
+    elsif($command eq 'back') {
+        $self->{-over_level}--;
+        $self->{-had_item}--;
+        my $style=pop(@{$self->{-over_type}});
+        $command.="-$style";
+    }
+    elsif($command eq 'item') {
 
-  ##
-  # Displaying paragraph in the appropriate command template if we got
-  # here.
-  #
-  $self->display(path => $self->path("command-$command"),
-                 TEXT => $self->paragraph_text($self->interpolate($paragraph,$line_num)),
-                 COMMAND => $command,
-                 LINENUM => $line_num,
-                 UNPARSED => $paragraph
-                );
+        ##
+        # For =item on top level without previous =over, which is
+        # illegal, but could happen out of ignorance.
+        #
+        if(! $self->{-had_item}) {
+            $self->{-had_item}=1;
+        }
+
+        if(($self->{-had_item} || 0) != ($self->{-over_level} || 0)) {
+            $self->{-over_level}++;
+
+            ##
+            # What is the type of our list? We support bullets, enums
+            # and item/definition lists.
+            #
+            my $style;
+            if($paragraph eq '1') {
+                $style='number';
+            }
+            elsif($paragraph =~ /^\W$/) {
+                $style='bullet';
+            }
+            else {
+                $style='text';
+            }
+            $self->{-over_type}->[$self->{-over_level}-1]=$style;
+
+            $command.="-$style";
+
+            $self->display(
+                path => $self->path("command-over-$style"),
+                COMMAND => 'over',
+                LINENUM => $line_num,
+                OVERLEVEL => $self->{-over_level},
+                TEXT => $self->paragraph_text($self->interpolate($paragraph,$line_num)),
+                UNPARSED => $paragraph,
+            );
+        }
+        else {
+            my $style=$self->{-over_type}->[$self->{-over_level}-1];
+            $command="item-$style";
+        }
+    }
+    elsif($command eq 'head1' || $command eq 'head2') {
+        while($self->{-over_level}) {
+            $self->command('back',$paragraph,$line_num);
+        }
+    }
+    elsif($command eq 'cut' || $command eq '=pod') {
+        return;
+    }
+    elsif($command eq 'for') {
+        my $format=$self->{-format};
+        return unless $paragraph =~ /^\s*($format)\s+(.*)$/;
+        $paragraph=$2;
+    }
+    elsif($command eq 'begin') {
+        return unless $paragraph =~ /^\s*(.*?)(\s+(.*))?$/;
+        push @{$self->{-begin_stack}},$1;
+    }
+    elsif($command eq 'end') {
+        return unless $paragraph =~ /^\s*(.*?)(\s+(.*))?$/;
+        my $f=$1;
+        if(!@{$self->{-begin_stack}}) {
+            eprint ref($self)."::command - no '=begin' for '=end $f' at line $line_num";
+            return;
+        }
+        if($self->is_in_format($f)) {
+            eprint ref($self)."::command - unmatched format '=end $f' at line $line_num";
+        }
+        pop @{$self->{-begin_stack}};
+        return;
+    }
+    else {
+        $self->display(
+            path => $self->path("command-unknown"),
+            TEXT => $self->paragraph_text($self->interpolate($paragraph,$line_num)),
+            COMMAND => $command,
+            LINENUM => $line_num,
+            UNPARSED => $paragraph,
+        );
+        return;
+    }
+
+    ##
+    # Displaying paragraph in the appropriate command template if we got
+    # here.
+    #
+    my $ptext=$self->paragraph_text($self->interpolate($paragraph,$line_num));
+    $self->display(
+        path        => $self->path("command-$command"),
+        COMMAND     => $command,
+        LINENUM     => $line_num,
+        TEXT        => $ptext,
+        UNPARSED    => $paragraph,
+    );
 }
 
-sub verbatim ($$$)
-{ my $self=shift;
-  my ($paragraph, $line_num) = @_;
-  return undef if !$self->{-verbatim_mode} && $paragraph =~ /^[\s\r\n]$/;
-  $self->textblock_stop($line_num);
-  #dprint "verbatim: paragraph=$paragraph line_num=$line_num";
-  if(! $self->{-verbatim_mode})
-   { $self->display(path => $self->path("verbatim-start"),
-                    TEXT => '',
-                    LINENUM => $line_num,
-                    UNPARSED => ''
-                   );
-     $self->{-verbatim_mode}=1;
-   }
-  $self->display(path => $self->path("verbatim-text"),
-                 TEXT => $self->paragraph_text($paragraph),
-                 LINENUM => $line_num,
-                 UNPARSED => $paragraph
-                );
+sub verbatim ($$$) {
+    my $self=shift;
+    my ($paragraph, $line_num) = @_;
+    return undef if !$self->{-verbatim_mode} && $paragraph =~ /^[\s\r\n]$/;
+    $self->textblock_stop($line_num);
+    #dprint "verbatim: paragraph=$paragraph line_num=$line_num";
+    if(! $self->{-verbatim_mode}) {
+        $self->display(
+            path => $self->path("verbatim-start"),
+            TEXT => '',
+            LINENUM => $line_num,
+            UNPARSED => '',
+        );
+        $self->{-verbatim_mode}=1;
+    }
+    else {
+        $self->display(
+            path => $self->path("verbatim-text"),
+            TEXT => "\n",
+            LINENUM => $line_num,
+            UNPARSED => "\n",
+        );
+    }
+
+    chomp($paragraph);
+    $self->display(
+        path => $self->path("verbatim-text"),
+        TEXT => $self->paragraph_text($paragraph),
+        LINENUM => $line_num,
+        UNPARSED => $paragraph,
+    );
 }
 
-sub verbatim_stop ($$)
-{ my $self=shift;
-  if($self->{-verbatim_mode})
-   { $self->display(path => $self->path('verbatim-stop'),
-                    TEXT => '',
-                    LINENUM => $_[0] || 0,
-                    UNPARSED => ''
-                   );
-     $self->{-verbatim_mode}=0;
-   }
+sub verbatim_stop ($$) {
+    my $self=shift;
+    if($self->{-verbatim_mode}) {
+        $self->display(
+            path => $self->path('verbatim-stop'),
+            TEXT => '',
+            LINENUM => $_[0] || 0,
+            UNPARSED => ''
+        );
+        $self->{-verbatim_mode}=0;
+    }
 }
 
-sub textblock ($$$)
-{ my $self=shift;
-  my ($paragraph, $line_num) = @_;
-  return undef if $paragraph =~ /^[\s\r\n]$/;
-  $self->verbatim_stop($line_num);
-  #dprint "textblock: paragraph=|$paragraph| line_num=$line_num";
-  if(! $self->{-textblock_mode})
-   { $self->display(path => $self->path('textblock-start'),
-                    TEXT => '',
-                    LINENUM => $line_num,
-                    UNPARSED => ''
-                   );
-     $self->{-textblock_mode}=1;
-   }
-  $self->display(path => $self->path('textblock-text'),
-                 TEXT => $self->paragraph_text($self->interpolate($paragraph,$line_num)),
-                 LINENUM => $line_num,
-                 UNPARSED => $paragraph
-                );
+sub textblock ($$$) {
+    my $self=shift;
+    my ($paragraph, $line_num) = @_;
+
+    return undef if $paragraph =~ /^[\s\r\n]$/;
+
+    $paragraph=$self->strip_spaces($paragraph);
+
+    $self->verbatim_stop($line_num);
+    if(! $self->{-textblock_mode}) {
+        $self->display(path => $self->path('textblock-start'),
+                       TEXT => '',
+                       LINENUM => $line_num,
+                       UNPARSED => ''
+                      );
+        $self->{-textblock_mode}=1;
+    }
+
+    $self->display(path => $self->path('textblock-text'),
+                   TEXT => $self->paragraph_text($self->interpolate($paragraph,$line_num)),
+                   LINENUM => $line_num,
+                   UNPARSED => $paragraph
+                  );
 }
 
 sub textblock_stop ($$)
@@ -362,6 +425,17 @@ sub find_module_file ($$)
    }
   $file;
 }
- 
+
+##
+# Strips all spaces from both sides of the string.
+#
+sub strip_spaces ($$) {
+    my $self=shift;
+    my $text=shift;
+    return undef unless defined $text;
+    $text=~s/^\s*(.*?)\s*$/$1/;
+    $text;
+}
+
 ###############################################################################
 1;

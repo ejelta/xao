@@ -93,7 +93,9 @@ Nothing.
 
 =head1 AUTHOR
 
-Andrew Maltsev <am@amsoft.ru>.
+Copyright (c) 2001 XAO Inc.
+
+Andrew Maltsev <am@xao.com>.
 
 =head1 SEE ALSO
 
@@ -108,13 +110,12 @@ package XAO::DO::Web::PodView;
 use strict;
 use IO::File;
 use IO::String;
-use Pod::Parser;
 use XAO::Utils;
 
 use base XAO::Objects->load(objname => 'Web::Page');
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: PodView.pm,v 1.1 2001/12/28 02:52:32 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: PodView.pm,v 1.2 2001/12/29 02:00:01 am Exp $ =~ /(\d+\.\d+)/);
 
 ##
 # List of entities from Pod::Checker. I wonder who originally wrote that
@@ -237,19 +238,21 @@ my %ENTITIES = (
 ##
 # Loading and displaying perl module documentation.
 #
-sub display ($%)
-{ my $self=shift;
-  my $args=get_args(\@_);
+sub display ($%) {
+    my $self=shift;
+    my $args=get_args(\@_);
 
-  ##
-  # Creating parser
-  #
-  my $parser=XAO::Pod::Parser->new($self->object(),$args->{format} || 'html');
+    ##
+    # Creating parser
+    #
+    my $parser=XAO::Objects->new(objname => 'Web::PodView::Parser',
+                                 dispobj => $self->object(),
+                                 format => $args->{format} || 'html');
 
-  ##
-  # Input handler
-  #
-  my $ih;
+    ##
+    # Input handler
+    #
+    my $ih;
 
   ##
   # Do we have path to pod document?

@@ -1,0 +1,100 @@
+=head1 TEST
+
+=head2 MISC TEST
+
+some paragraph
+on B<multiple> lines
+that includes I<italic text> and a link: L<IO::File>.
+
+Code sample:
+
+ # Like that
+ #
+ my $test=1;
+
+ # Line after break
+
+=head2 LIST TEST
+
+Paragraph of text on the top.
+
+=over
+
+=item aaaa
+
+Item a is very strange.
+
+=over
+
+=item +
+
+fubar
+
+=over
+
+=item 1
+
+one-one-one
+
+=item 2
+
+two-two-two
+
+=back
+
+That was enumerated list in bullet list in definitions list.
+
+Another paragraph here with a L<link|http://xao.com/>.
+
+And yet another one.
+
+=item
+
+buraf
+
+=back
+
+=item bbbb
+
+Item b is kind of weird.
+
+=over
+
+=item 1
+
+one
+
+=item 2
+
+two
+
+=back
+
+That's an enumerated list.
+
+=item cccc
+
+Item c is from the moon.
+
+=over
+
+=item first item of inner list
+
+some text
+
+=item second item with no text
+
+=item third item with a lot of text
+
+aaaaaaaaaaaaaa bbbbbbbbbbbbbbbb ccccccccccc ddddddddddddddd eeeeeee
+fffffffff ggggggggggg hhhhhhhhhhhhhhhh iiiiiiiiiiiiiiiiii jjjjjjjjjj
+kkkkkkkkkkkkk llllllllllllll mmmmmmmmmmmmmmm nnnnnnnnnnnnn oooooooo
+ppppppppppppp.
+
+=back
+
+=back
+
+=head1         STOP
+
+Last 'C<code>' paragraph.

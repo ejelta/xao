@@ -1,14 +1,14 @@
 NAME
-    Symphero::Objects::PodView - POD files viewer for Symphero::Web
+    XAO::DO::Web::PodView - POD files viewer for XAO::Web
 
 SYNOPSIS
-    Currently is only useful in Symphero::Web site context.
+     <%PodView module="XAO::Web"%>
 
 DESCRIPTION
-    This displayable object for Symphero::Web parses pod documentation
-    inside installed perl modules and displays it. How it will look depends
-    on a set of templates you provide and can theoretically vary from HTML
-    to PostScript to XML as no specific HTML code is include in the module
+    This displayable object for XAO::Web parses pod documentation inside
+    installed perl modules and displays it. How it will look depends on a
+    set of templates you provide and can theoretically vary from HTML to
+    PostScript to XML as no specific HTML code is included in the module
     itself.
 
     You can use this object to view documentation for all Perl modules
@@ -17,10 +17,11 @@ DESCRIPTION
     Default templates allow you to put the followin into your templates to
     display this manual pages for example:
 
-     <%PodView module="Symphero::Objects::PodView"%>
+     <%PodView module="XAO::DO::Web::PodView"%>
 
-    Alternatively you can give it the path to the file that would contain
-    pod documentation after being processed by Symphero::Page:
+    Alternatively you can give it a path to the file that would contain pod
+    documentation after being processed by XAO::Page. This way you can even
+    create and display dynamic POD documents.
 
      <%PodView path="/bits/example.pod"%>
 
@@ -86,9 +87,11 @@ EXPORTS
     Nothing.
 
 AUTHOR
-    Andrew Maltsev <am@amsoft.ru>.
+    Copyright (c) 2001 XAO Inc.
+
+    Andrew Maltsev <am@xao.com>.
 
 SEE ALSO
-    Recommended reading: the Symphero::Web manpage, the Symphero::Page
+    Recommended reading: the XAO::Web manpage, the XAO::DO::Web::Page
     manpage.
 
