@@ -179,7 +179,7 @@ use XAO::Errors qw(XAO::DO::Web::FS);
 use base XAO::Objects->load(objname => 'Web::Action');
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: FS.pm,v 1.14 2002/02/08 19:51:10 alves Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: FS.pm,v 1.15 2002/02/13 23:00:40 alves Exp $ =~ /(\d+\.\d+)/);
 
 ###############################################################################
 
@@ -753,7 +753,7 @@ sub _create_query {
             $expression = '[1]';
         }
         elsif ($i < 2) {
-            throw $self "_create_query - no conditions present";
+            $expression = '';
         }
         else {
             throw $self "_create_query - conditions present without expression";
