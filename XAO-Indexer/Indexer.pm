@@ -18,7 +18,7 @@ XAO::Indexer -- Data indexing for XAO::FS
 
  my $keywords=$cgi->param('keywords');
  my $cn_index=$odb->fetch('/Indexes/customer_names');
- my $sr=$cn_index->search('name',$keywords);
+ my $sr=$cn_index->search_by_string('name',$keywords);
 
 =head1 DESCRIPTION
 
@@ -61,7 +61,7 @@ on the content of source collection. In our tests it takes approximately
 record spread over 3 or more related objects (products, categories and
 specifications).
 
-=name2 STRUCTURE
+=head2 STRUCTURE
 
 XAO::Indexer is a stub module that only holds common documentation that
 you are reading now. Real functionality is provided by:
@@ -72,7 +72,7 @@ you are reading now. Real functionality is provided by:
 
 This is a XAO FS Hash object that gets stored into some container in
 your database, usually /Indexes. It provides wrapper methods to all
-indexing functionality, see L<XAO::DO::Data::Index) for details.
+indexing functionality, see L<XAO::DO::Data::Index> for details.
 
 Most of the time you will interact with this object in your
 code. Something like:

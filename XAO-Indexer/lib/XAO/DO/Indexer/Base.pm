@@ -1,17 +1,31 @@
 =head1 NAME
 
-XAO::DO::Indexer::Base -- Dynamic content management for XAO::Web
+XAO::DO::Indexer::Base -- base class for all indexers
 
 =head1 SYNOPSIS
 
- <%Content name="about_us"%>
+ package XAO::DO::Indexer::Foo;
+ use strict;
+ use XAO::Utils;
+ use XAO::Objects;
+ use base XAO::Objects->load(objname => 'Indexer::Base');
+
+ sub analyze_object ($%) {
+    my $self=shift;
+    ....
 
 =head1 DESCRIPTION
 
-For installation and usage instruction see "INSTALLATION AND USAGE"
-chapter below.
+Provides indexer functionality that can (and for some methods MUST) be
+overriden by objects derived from it.
 
-Content objec
+Methods are:
+
+=over
+
+=cut
+
+###############################################################################
 package XAO::DO::Indexer::Base;
 use strict;
 use XAO::Utils;
@@ -70,6 +84,12 @@ sub analyze_text_split ($$$) {
 
 ###############################################################################
 
+sub ignore_limit ($) {
+    return 500;
+}
+
+###############################################################################
+
 sub init ($%) {
     my $self=shift;
     my $args=get_args(\@_);
@@ -99,8 +119,10 @@ sub search ($%) {
 
     my $ordering=$args->{ordering} ||
         throw $self "search - no 'ordering'";
+    my $ordering_seq=$self->get_orderings->{$ordering}->{seq} ||
+        throw $self "search - no sequence in $ordering ordering";
 
-    dprint "Searching for '$str' (ordering=$ordering)";
+    dprint "Searching for '$str' (ordering=$ordering, seq=$ordering_seq)";
 
     ##
     # We cache ignored words. Cache returns a hash reference with
@@ -171,7 +193,7 @@ sub search ($%) {
     my @results;
     my $data_list=$index_object->get('Data');
     foreach my $marr (sort { scalar(@$b) <=> scalar(@$a) } @multi) {
-        my $res=$self->search_multi($data_list,$ordering,$marr);
+        my $res=$self->search_multi($data_list,$ordering_seq,$marr);
         #dprint "Multi Results: ",Dumper($marr),Dumper($res);
         if(!@$res) {
             return [ ];
@@ -183,7 +205,7 @@ sub search ($%) {
     # Searching for simple words, position independent. Longer words first.
     #
     foreach my $kw (sort { length($b) <=> length($a) } @simple) {
-        my $res=$self->search_simple($data_list,$ordering,$kw);
+        my $res=$self->search_simple($data_list,$ordering_seq,$kw);
         #dprint "Simple Results: '$kw' ",Dumper($res);
         if(!@$res) {
             return [ ];
@@ -221,7 +243,7 @@ sub search ($%) {
 ###############################################################################
 
 sub search_multi ($$$$) {
-    my ($self,$data_list,$ordering,$marr)=@_;
+    my ($self,$data_list,$oseq,$marr)=@_;
 
     ##
     # Converting array into a hash for easier access
@@ -239,7 +261,7 @@ sub search_multi ($$$$) {
         my $kw=$mhash{$wnum};
         my $sr=$data_list->search('keyword','eq',$kw);
         return [ ] unless @$sr;
-        my $posdata=$data_list->get($sr->[0])->get("idpos_$ordering");
+        my $posdata=$data_list->get($sr->[0])->get("idpos_$oseq");
         my $posdec=$self->decode_posdata($posdata);
         if(!$short_data || scalar(@$short_data)>scalar(@$posdec)) {
             $short_data=$posdec;
@@ -319,12 +341,12 @@ sub search_multi ($$$$) {
 ###############################################################################
 
 sub search_simple ($$$$) {
-    my ($self,$data_list,$ordering,$keyword)=@_;
+    my ($self,$data_list,$oseq,$keyword)=@_;
 
     my $sr=$data_list->search('keyword','eq',$keyword);
     return [ ] unless @$sr;
 
-    my $iddata=$data_list->get($sr->[0])->get("id_$ordering");
+    my $iddata=$data_list->get($sr->[0])->get("id_$oseq");
     return [ split(/,/,$iddata) ];
 }
 
@@ -338,6 +360,8 @@ sub update ($%) {
         throw $self "update - no 'index_object'";
 
     my ($coll,$coll_ids)=$self->get_collection($args);
+
+    my $ignore_limit=$self->ignore_limit;
 
     ##
     # Getting keyword data
@@ -358,7 +382,7 @@ sub update ($%) {
         #
         my $count_uid=$kw_data{count_uid}->{$coll_id};
         foreach my $kw (keys %$count_uid) {
-            if(++$kw_data{counts}->{$kw} > 500) {
+            if(++$kw_data{counts}->{$kw} > $ignore_limit) {
                 $kw_data{ignore}->{$kw}=1;
             }
         }
@@ -400,7 +424,9 @@ sub update ($%) {
         my $o_hash=$self->get_orderings;
 
         foreach my $o_name (keys %$o_hash) {
-            my $o_sub=$o_hash->{$o_name};
+            my $o_sub=$o_hash->{$o_name}->{sortsub};
+            my $o_seq=$o_hash->{$o_name}->{seq} ||
+                throw $self "update - no ordering sequence number for '$o_name'";
             my $iddata='';
             my $posdata='';
             foreach my $id (sort { &{$o_sub}(\%kw_data,$a,$b) } keys %$kwd) {
@@ -417,8 +443,8 @@ sub update ($%) {
             }
 
             $nd->put(
-                "id_$o_name"    => $iddata,
-                "idpos_$o_name" => $posdata,
+                "id_$o_seq"    => $iddata,
+                "idpos_$o_seq" => $posdata,
             );
         }
 

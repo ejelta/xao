@@ -121,7 +121,7 @@ sub MY::postamble
 { <<EOT;
 config::    README
 
-README:     Base.pm
-	pod2text Base.pm > README
+README:     Indexer.pm
+	pod2text Indexer.pm > README
 EOT
 }
