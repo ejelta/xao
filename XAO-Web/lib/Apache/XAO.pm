@@ -95,13 +95,13 @@ use XAO::Web;
 
 ###############################################################################
 
-use mod_perl 1.26;
+use mod_perl;
 use constant MP2 => ($mod_perl::VERSION && $mod_perl::VERSION >= 1.99);
 
 BEGIN {
     if(MP2) {
         require Apache::Const;
-        Apache::Const->import(qw(:common OK DECLINED SERVER_ERROR NOT_FOUND));
+        Apache::Const->import(-compile => qw(OK DECLINED SERVER_ERROR NOT_FOUND));
 
         ##
         # Required to bring in methods used below
@@ -124,7 +124,7 @@ BEGIN {
     }
     else {
         require Apache::Constants;
-        Apache::Constants->import(qw(OK DECLINED SERVER_ERROR NOT_FOUND));
+        Apache::Constants->import(qw(:common));
     }
 }
 
@@ -159,7 +159,7 @@ EOT
     #
     if(index($uri,'/bits/')>=0) {
         ### $r->server->log_error("Attempt of direct access to /bits/ ($uri)");
-        return NOT_FOUND;
+        return MP2 ? Apache::NOT_FOUND : Apache::Constants::NOT_FOUND;
     }
 
     ##
@@ -217,7 +217,7 @@ EOT
     my $ptype=$pagedesc->{type} || 'xaoweb';
     if($ptype eq 'external') {
         ### $r->server->log_error("EXTERNAL: uri=$uri");
-        return Apache::DECLINED;
+        return MP2 ? Apache::OK : Apache::Constants::OK;
     }
     elsif($ptype eq 'maptodir') {
         my $dir=$pagedesc->{directory} || '';
@@ -234,23 +234,12 @@ EOT
         $dir=~s/\/{2,}/\//g;
         $r->filename($dir);
         ### $r->server->log_error("MAPTODIR: => $dir");
-        return Apache::OK;
-    }
-
-    ##
-    # We don't serve subrequests. Don't know why, but they produce
-    # double output under some circumstances.
-    #
-    ### $r->server->log_error("uri=$uri ptype=$ptype subreq=".$r->main);
-    if(!MP2 && $r->main) {
-        $r->server->log_error("SUBREQ: ignoring (uri=$uri)");
-        return Apache::DECLINED;
+        return MP2 ? Apache::OK : Apache::Constants::OK;
     }
 
     ##
     # We pass the knowledge along in the 'notes' table.
     #
-    $r->pnotes(sitename  => $sitename);
     $r->pnotes(xaoweb    => $web);
     $r->pnotes(pagedesc  => $pagedesc);
 
@@ -262,15 +251,19 @@ EOT
     # Besides, it could be more optimal to have two always present
     # handlers instead of pushing/popping automatically.
     #
+    # We return OK to indicate to Apache that there is no need to try
+    # to map that URI to anything else, we know how to produce results
+    # for it.
+    #
     my $htype=lc($r->dir_config('HandlerType') || 'auto');
     if($htype eq 'auto') {
         $r->push_handlers(PerlHandler => \&handler_content);
         ### $r->server->log_error("TRANS: auto (uri=$uri)");
-        return Apache::DECLINED;
+        return MP2 ? Apache::OK : Apache::Constants::OK;
     }
     elsif($htype eq 'static') {
         ### $r->server->log_error("TRANS: static (uri=$uri)");
-        return Apache::DECLINED;
+        return MP2 ? Apache::OK : Apache::Constants::OK;
     }
     else {
         return server_error($r,"Unknown HandlerType '$htype'");
@@ -283,21 +276,14 @@ sub handler_content ($) {
     my $r=shift;
 
     ##
-    # Getting the data. If there is no sitename then trans handler
-    # was not executed or has declined, so we do not need to do anything.
+    # Getting the data. If there is no data then trans handler was not
+    # executed or has declined, so we do not need to do anything.
     #
     my $uri=$r->uri;
     ### $r->server->log_error("CONTENT: uri=$uri");
-    my $sitename=$r->pnotes('sitename') ||
-        return Apache::DECLINED;
-    my $web=$r->pnotes('xaoweb');
+    my $web=$r->pnotes('xaoweb') ||
+        return MP2 ? Apache::DECLINED : Apache::Constants::DECLINED;
     my $pagedesc=$r->pnotes('pagedesc');
-
-    ##
-    # It happens on some sub-requests went wrong. Noticed on
-    # Apache::Status for instance.
-    #
-    return Apache::DECLINED unless $web;
 
     ##
     # Executing
@@ -308,7 +294,7 @@ sub handler_content ($) {
         pagedesc    => $pagedesc,
     );
 
-    return Apache::OK;
+    return MP2 ? Apache::OK : Apache::Constants::OK;
 }
 
 ###############################################################################
@@ -320,7 +306,7 @@ sub server_error ($$;$) {
 
     $r->server->log_error("*ERROR: Apache::XAO - $name");
     $r->custom_response(SERVER_ERROR,"<H2>XAO::Web System Error: $name</H2>\n$desc");
-    return SERVER_ERROR;
+    return MP2 ? Apache::SERVER_ERROR : Apache::Constants::SERVER_ERROR;
 }
 
 ###############################################################################
