@@ -106,10 +106,11 @@ WriteMakefile(
     'PREREQ_PM'     => { 
         'DBD::mysql'    => '2.0414',
         'DBI'           => '1.13',
-	'XAO::FS'	=> '1.01',
+        'Date::Manip'   => undef,
+	    'XAO::FS'	    => '1.01',
         'Test::Unit'    => '0.14',
-	'Image::Magick' => '5.2.4',
-	'LWP'		=> '5.63',
+	    'Image::Magick' => '5.2.4',
+	    'LWP'		    => '5.63',
     },
     'MAN3PODS'      => \%man3pods,
 );
