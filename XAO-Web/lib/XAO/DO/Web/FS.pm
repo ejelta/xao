@@ -180,7 +180,7 @@ use XAO::Errors qw(XAO::DO::Web::FS);
 use base XAO::Objects->load(objname => 'Web::Action');
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: FS.pm,v 1.23 2002/05/07 21:32:40 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: FS.pm,v 1.24 2002/05/19 20:00:01 am Exp $ =~ /(\d+\.\d+)/);
 
 ###############################################################################
 
@@ -355,7 +355,6 @@ sub show_hash ($%) {
     }
 
     my %data=(
-        path        => $args->{path},
         ID          => $hash->container_key,
     );
     if(@fields) {
@@ -365,7 +364,7 @@ sub show_hash ($%) {
             $data{uc($fn)}=defined($t{$fn}) ? $t{$fn} : '';
         }
     }
-    $self->object->display(\%data);
+    $self->object->display(merge_refs($args,\%data));
 }
 
 ###############################################################################

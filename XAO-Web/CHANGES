@@ -6,6 +6,7 @@
     * Web::Utility - 'number-ordinal-suffix' added
     * XAO::Web - clipboard() method added
     * XAO::Web - expand() method added
+    * Web::Clipboard - 'show' is now the default mode
 
 1.03 - 18-Mar-2002
     * Web::Debug - new object
