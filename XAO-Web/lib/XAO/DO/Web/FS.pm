@@ -20,12 +20,12 @@ use XAO::Utils;
 use base XAO::Objects->load(objname => 'Web::Action');
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: FS.pm,v 1.1 2001/12/10 02:45:49 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: FS.pm,v 1.2 2001/12/10 05:16:15 am Exp $ =~ /(\d+\.\d+)/);
 
 sub check_mode ($%) {
     my $self=shift;
     my $args=get_args(\@_);
-    my $mode=$args->{mode};
+    my $mode=$args->{mode} || 'show-property';
 
     if($mode eq 'show-property') {
         $self->show_property($args);
