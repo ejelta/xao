@@ -50,7 +50,7 @@ use XAO::Objects;
 use base XAO::Objects->load(objname => 'Atom');
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: Glue.pm,v 1.15 2002/05/17 05:19:02 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: Glue.pm,v 1.16 2002/06/04 23:11:48 am Exp $ =~ /(\d+\.\d+)/);
 
 ###############################################################################
 
@@ -1554,7 +1554,8 @@ sub _add_data_placeholder ($%) {
     # Checking if this is a hash in a list stored in some other hash
     # other then Global.
     #
-    my $connected=$self->upper_class eq 'FS::Global' ? 0 : 1;
+    my $upper_class=$self->upper_class;
+    my $connected=(!$upper_class || $upper_class eq 'FS::Global') ? 0 : 1;
 
     ##
     # Adding...
