@@ -3,7 +3,7 @@ use ExtUtils::MakeMaker;
 ##
 # This is the version for XAO::Base, should be updated manually.
 #
-my $version='0.1';
+my $version='1.0';
 
 ##
 # Trying to find out current configuration. If it is saved in file -
