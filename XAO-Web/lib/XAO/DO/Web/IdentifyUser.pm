@@ -174,13 +174,13 @@ There are some private methods (see below). Never use it!
 ###############################################################################
 package XAO::DO::Web::IdentifyUser;
 use strict;
-use XAO::Utils;
+use XAO::Utils qw(get_args generate_key);
 use XAO::Errors qw(XAO::E::Web::IdentifyUser);
 use XAO::Objects;
 use base XAO::Objects->load(objname => 'Web::Page');
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: IdentifyUser.pm,v 1.1 2001/12/05 22:58:35 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: IdentifyUser.pm,v 1.2 2001/12/06 05:05:59 am Exp $ =~ /(\d+\.\d+)/);
 
 ##
 # Displaying some template. Template selecting based on user status.

@@ -1,314 +1,449 @@
-# Dummy module to allow using 'install XAO::Web' in CPAN shell, also
-# contains package version and documentation.
-###############################################################################
-package XAO::Web;
+#XXX - make test for XAO::Web
 
-##
+package XAO::Web;
+use strict;
+use XAO::Utils;
+use XAO::Projects;
+use XAO::Objects;
+use XAO::SimpleHash;
+use XAO::PageSupport;
+use XAO::Templates;
+use XAO::Errors qw(XAO::Web);
+
+###############################################################################
 # XAO::Web version number. Hand changed with every release!
 #
 use vars qw($VERSION);
 $VERSION='0.9';
 
 ###############################################################################
-1;
-__END__
 
 =head1 NAME
 
-XAO::Web - web rendering part of XAO E-Commerce suite
+XAO::Web - XAO Web Developer, dynamic content building suite
 
 =head1 SYNOPSIS
 
-None, see the description below and individual manpages.
+ use XAO::Web;
+
+ my $web=XAO::Web->new(sitename => 'test');
+
+ $web->execute(cgi => $cgi,
+               path => '/index.html');
+
+ my $config=$web->config;
+
+ $config->clipboard->put(foo => 'bar');
 
 =head1 DESCRIPTION
 
-XAO::Web is a part of XAO open source e-commerce suite. It can
-also be used as a general purpose web templating system that allows you
-to create arbitrary complex web pages and process them in rather optimal
-way.
+Please read L<XAO::Web::Intro> for general overview and setup
+instructions.
 
-Most interesting features of XAO::Web are:
+XAO::Web module provides a frameworks for loading site configuration and
+executing objects and templates in the site context. It is used in
+scripts and in Apache web server handler to generate actual web pages
+content.
 
-=over
+Normally a developer does not need to use XAO::Web directly.
 
-=item *
+=head1 METHODS
 
-Perl code is not mixed with templates. Templates can be normal HTML
-files if no processing is required.
-
-=item *
-
-Site can replace or modify standard XAO::Web objects if required
-by overriding or extending their methods. You do not need to
-re-implement entire object to make a site specific change.
-
-=item *
-
-Site can create any extension objects or embed third-party extensions
-as well.
-
-=item *
-
-One server can serve arbitrary number of XAO::Web sites each
-with however extended functionality without creating any conflicts.
-
-=item *
-
-There are standard objects that support e-commerce functionality that
-is enough to implement amazon-style e-commerce sites relatively
-easy. That includes credit card authorization, strong cryptography,
-users database, products database, orders database, shipping tracking
-and so on.
-
-=item *
-
-Works with CGI or mod_perl (mod_perl is recommended for production
-grade sites).
-
-=item *
-
-If used in mod_perl mode improves performance by using caching of
-configuration, parsed templates, database handlers and so on.
-
-=back
-
-=head1 INSTALLATION
-
-Install it in the usual way, just say:
-
-  perl Makefile.PL
-  make
-  make test
-  make install
-
-Saying "install XAO::Web" from CPAN shell is a good way too.
-
-When you run "perl Makefile.PL" you will be asked for XAO::Web home
-directory. Feel free to point it somewhere inside your home directory
-if you do not feel like modifying /usr/local/symphero (suggested
-default). This is a directory where symphero.pl CGI and mod_perl handler
-would be placed along with default site and default templates. That
-means that entire path to that directory should be world-readable (or at
-least web-server readable).
-
-I<NOTE:> On FreeBSD 4.x (or probably with just some older version of
-MakeMaker) there is a problem with installing to /usr/local/symphero -
-somehow MakeMaker translates it to $(PREFIX)/symphero and PREFIX is
-/usr. I do not yet have a solution for that other then installing it
-somewhere outside /usr/local.
-
-=head1 FIRST-TIME RUNNING AND TESTING
-
-After you installed XAO::Web you can try it in web
-environment. Configure your Apache server so that it would execute
-(from now on I assume that XAO::Web was installed into
-/usr/local/symphero) /usr/local/symphero/cgi-bin/symphero.pl when
-someone types URL like http://company.com/cgi-bin/symphero.pl. Here is
-an example of virtual host configuration for that (or you can simply
-move or sym-link symphero.pl to your existing cgi-bin directory if you
-have one):
-
- <VirtualHost 10.0.0.1:80>
-  ServerName   test.company.com
-  ServerAlias  test.company.com
- 
-  ScriptAlias /cgi-bin/ /usr/local/symphero/cgi-bin/
- </VirtualHost>
-
-After you configure and re-start your web-server point your browser at
-http://test.company.com/cgi-bin/symphero.pl/docsite/ -- you should be
-able to see "docsite" content. To see simplest possible site that does
-not even have its own templates go to
-http://test.company.com/cgi-bin/symphero.pl/emptysite/
-
-You do not have to use that "/cgi-bin/sitename/" garbage, it was only
-here to demonstrate the idea. In normal circumstances you would want to
-use Apache "rewrite" module to map everything or almost everything to be
-processed by symphero.pl. Here is an example (note, that you cannot use
-ScriptAlias if you use mod-rewrite, you have to change it to <Directory>
-with explicitly set handler and options):
-
- <VirtualHost 10.0.0.1:80>
-  ServerName   test.company.com
-  ServerAlias  test.company.com
- 
-  <Directory /usr/local/symphero/cgi-bin>
-   Options ExecCGI
-   SetHandler cgi-script
-  </Directory>
-
-  RewriteEngine on
-  RewriteRule   ^/images/(.*)$  \
-                /usr/local/symphero/projects/docsite/images/$1  \
-                [L]
-  RewriteRule   ^/(.*)$  \
-                /usr/local/symphero/cgi-bin/symphero.pl/docsite/$1  \
-                [L]
- </VirtualHost>
-
-That leaves everything in /images/ to be processed by web server in the
-usual way and maps everything else to symphero.pl. Try going to just
-http://test.company.com/ now and see the difference.
-
-And finally, here is an example of mod_perl configuration. Please
-replace ScriptAlias with the following:
-
- <Directory   /usr/local/symphero/cgi-bin>
-  Options +ExecCGI
-  SetHandler perl-script
-  PerlHandler Apache::Registry
-  PerlSendHeader Off
- </Directory>
- 
-I am currently working on pure Apache mod_perl handler that will be
-faster then using Apache::Registry and would not require mod_rewrite to
-rewrite paths. Keep tuned.
-
-=head1 SITE DEVELOPMENT
-
-Here is a couple of steps to start development of a new site:
+Methods of XAO::Web objects include
 
 =over
 
-=item 1
+=cut
 
-Choose a name for your site. It have to start with a B<lowercase letter> and
-may contain letters, digits and underscore sign. Let's assume you've
-chosen "mysite" as a name.
+###############################################################################
 
-=item 2
+##
+# Prototypes
+#
+sub analyze ($@);
+sub config ($);
+sub execute ($%);
+sub new ($%);
+sub set_current ($);
+sub sitename ($);
 
-Create sub-directory in /usr/local/symphero/projects with the name of
-your site (/usr/local/symphero/projects/mysite in our case). This
-directory is home directory of your site. Everything else below is
-relative to that directory.
+###############################################################################
 
-=item 3
+=item analize (@)
 
-Create subdirectory named 'modules'. Place configuration file called
-'Config.pm' inside of it. There are two requirements for that file:
+Checks how to display the given path. Always returns valid results or
+throws an error if that can't be accomplished.
 
-=over
+Returns hash reference:
 
-=item *
+ prefix   => longest matching prefix (directory in case of template found)
+ path     => path to the page after the prefix
+ fullpath => full path from original query
+ objname  => object name that will serve this path
+ objargs  => object args hash (may be empty)
 
-It have to be in the specific namespace --
-XAO::Objects::mysite::Config, where mysite is your site name.
+=cut
+ 
+sub analyze ($@) {
+    my $self=shift;
+    my $siteconfig=$self->config;
+    my @path=@_;
+    my $path=join('/',@path);
+    my $table=$siteconfig->get('path_mapping_table');
 
-=item *
+    ##
+    # Looking for the object matching the path.
+    #
+    if($table) {
+        for(my $i=@path; $i>=0; $i--) {
+            my $dir=$i ? join('/',@path[0..$i-1]) : '';
+            my $od=$table->{$dir} || $table->{'/'.$dir} || $table->{$dir.'/'} || $table->{'/'.$dir.'/'};
+            next unless $od;
+            my $objname;
+            my %args;
+            if(ref($od)) {
+                $objname=$od->[0];
+                if(scalar(@{$od})%2 == 1) {
+                    %args=@{$od}[1..$#{$od}];
+                }
+                else {
+                    eprint "Odd number of arguments in mapping table, dir=$dir, objname=$objname";
+                }
+            }
+            else {
+                $objname=$od;
+            }
+            return {
+                objname => $objname,
+                objargs => \%args,
+                path => join('/',@path[$i..$#path]),
+                prefix => $dir,
+                fullpath => $path
+            };
+        }
+    }
 
-It have to be based on "XAO::SiteConfig" object.
+    ##
+    # Now looking for exactly matching template. If it matches and
+    # we have some object defined for '/' - then this is our default
+    # object. Otherwise - Page is.
+    #
+    if(XAO::Templates::check(path => $path)) {
+        return {
+            objname => ($table && $table->{'/'}) ? $table->{'/'} : 'Page',
+            path => $path,
+            fullpath => $path,
+            prefix => join('/',@path[0..($#path-1)])
+        };
+    }
 
-=item *
+    ##
+    # Nothing was found, returning Default object
+    #
+    return {
+        objname => ($table && $table->{'/'}) ? $table->{'/'} : 'Default',
+        path => $path,
+        fullpath => $path,
+        prefix => ''
+    };
+}
 
-It have to define "init" method that will initialize site
-configuration. In mod_perl environment that method will be called only
-once when the site is initialized first time. That means that init() is
-a good place to open connection to a database and it is recommended to
-do that as most of XAO modules require database connection to work
-properly.
+
+###############################################################################
+
+=item config ()
+
+Returns site configuration object reference.
+
+=cut
+
+sub config ($) {
+    my $self=shift;
+    $self->{siteconfig} || throw XAO::E::Web "config - no configuration object";
+}
+
+###############################################################################
+
+=item execute (%)
+
+Executes given `path' using given `cgi' environment. Prints results to
+standard output and uses CGI object methods to send header.
+
+B<Note:> Execute() is not re-entry safe currently! Meaning that if you
+create a XAO::Web object in any method called inside of execute() loop
+and then call execute() on that newly created XAO::Web object the system
+will fail and no useful results will be produced.
+
+=cut
+
+sub execute ($%) {
+    my $self=shift;
+    my $args=get_args(\@_);
+
+    my $path=$args->{path} || throw XAO::E::Web "execute - no 'path' given";
+    my $cgi=$args->{cgi} || throw XAO::E::Web "execute - no 'cgi' given";
+    my $siteconfig=$self->config;
+    my $sitename=$self->sitename;
+
+    ##
+    # Setting the current project context to our site.
+    #
+    $self->set_current();
+
+    ##
+    # Resetting page text stack in case it was terminated abnormally
+    # before and we're in the same process/memory.
+    #
+    XAO::PageSupport::reset();
+
+    ##
+    # Checking if we have base_url. Guessing it if not.
+    # Ensuring that URL does not end with '/'.
+    #
+    if(! $siteconfig->defined("base_url")) {
+
+        ##
+        # Base URL should be full path to the start point -
+        # http://host.com in case of rewrite and something like
+        # http://host.com/cgi-bin/symphero.pl/sitename in case of
+        # plain CGI usage.
+        #
+        my $url=$cgi->url(-full => 1, -path_info => 0);
+
+        ##
+        # Trying to understand if rewrite module was used or not. If not
+        # - adding sitename to the end of guessed URL.
+        #
+        if($url =~ /cgi-bin/ || $url =~ /xao-[\w-]+\.pl/) {
+            $url.="/$sitename";
+        }
+
+        ##
+        # Eating extra slashes
+        #
+        chop($url) while $url =~ /\/$/;
+        $url=~s/(?<!:)\/\//\//g;
+
+        ##
+        # Storing
+        #
+        $siteconfig->put(base_url => $url);
+        $siteconfig->put(base_url_secure => $url);
+        dprint "No base_url defined, sitename=$sitename; assuming base_url=$url";
+    }
+    else {
+        my $url=$siteconfig->get('base_url');
+        $url=~/^http:/i ||
+            throw XAO::E::Web "Bad base_url ($url) for sitename=$sitename";
+        my $nu=$url;
+        chop($nu) while $nu =~ /\/$/;
+        $siteconfig->put(base_url => $nu) if $nu ne $url;
+
+        $url=$siteconfig->get('base_url_secure');
+        if(!$url) {
+            $url=$siteconfig->get('base_url');
+            $url=~s/^http:/https:/i;
+        }
+        $nu=$url;
+        chop($nu) while $nu =~ /\/$/;
+        $siteconfig->put(base_url_secure => $nu) if $nu ne $url;
+    }
+  
+    ##
+    # Checking if we're running under mod_perl
+    #
+    $siteconfig->clipboard->put(mod_perl => $ENV{MOD_PERL} ? 1 : 0);
+
+    ##
+    # Putting CGI object into site configuration
+    #
+    $siteconfig->embedded('web')->enable_special_access;
+    $siteconfig->cgi($cgi);
+    $siteconfig->embedded('web')->disable_special_access;
+
+    ##
+    # Checking for directory index url without trailing slash and
+    # redirecting with appended slash if this is the case.
+    #
+    $path=~s/\/{2,}/\//g;
+    my @path=split(/\//,$path);
+    push(@path,"index.html") if $cgi->path_info =~ /\/$/;
+    if($path[-1] !~ /\.\w+$/) {
+        my $pd=$self->analyze(@path,'index.html');
+        if($pd->{objname} ne 'Default') {
+            my $newpath=$cgi->url(-full => 1, -path_info => 1)."/";
+            print $cgi->redirect(-url => $newpath),
+                  "Document is really <A HREF=\"$newpath\">here</A>.\n";
+            return;
+        }
+    }
+
+    ##
+    # Checking existence of the page.
+    #
+    my $pd=$self->analyze(@path);
+
+    ##
+    # Separator for error_log :)
+    #
+    my @d=localtime;
+    my $date=sprintf("%02u:%02u:%02u %u/%02u/%04u",$d[2],$d[1],$d[0],$d[4]+1,$d[3],$d[5]+1900);
+    undef(@d);
+    dprint "============ date=$date, mod_perl=",$siteconfig->get('mod_perl'),
+                      ", path='",join('/',@path),"', translated='",$pd->{path},"'";
+
+    ##
+    # Putting path decription into the site clipboard
+    #
+    $siteconfig->clipboard->put(pagedesc => $pd);
+
+    ##
+    # We accumulate page content here
+    #
+    my $pagetext;
+
+    ##
+    # Do we need to run any objects before executing? Authorization
+    # usually goes here.
+    #
+    my $autolist=$siteconfig->get('auto_before');
+    if($autolist) {
+        foreach my $objname (keys %{$autolist}) {
+            my $obj=Symphero::Objects->new(objname => $objname);
+            $pagetext.=$obj->expand($autolist->{$objname});
+        }
+    }
+
+    ##
+    # Loading page displaying object and executing it.
+    #
+    my $obj=XAO::Objects->new(objname => 'Web::' . $pd->{objname});
+    my %objargs=( path => $pd->{path}
+                , fullpath => $pd->{fullpath}
+                , prefix => $pd->{prefix}
+                );
+    @objargs{keys %{$pd->{objargs}}}=values %{$pd->{objargs}} if $pd->{objargs};
+    $pagetext.=$obj->expand(\%objargs);
+
+    ##
+    # If siteconfig returns us header then it was not printed before and we are
+    # expected to print out the page. This is almost always true except when
+    # page included something like Redirect object.
+    #
+    my $header=$siteconfig->header;
+    if(defined($header)) {
+        print $header,
+              $pagetext;
+    }
+
+    $siteconfig->cleanup;
+}
+
+###############################################################################
+
+=item new (%)
+
+Creates or loads a context for the named site. The only required
+argument is 'sitename' which provides the name of the site.
+
+=cut
+
+sub new ($%) {
+    my $proto=shift;
+    my $args=get_args(\@_);
+
+    ##
+    # Getting site name
+    #
+    my $sitename=$args->{sitename} ||
+        throw XAO::E::Web "new - required parameter missing (sitename)";
+
+    ##
+    # Loading or creating site configuration object.
+    #
+    my $siteconfig=XAO::Projects::get_project($sitename);
+    if($siteconfig) {
+        $siteconfig->cleanup;
+    }
+    else {
+
+        ##
+        # Creating configuration.
+        #
+        $siteconfig=XAO::Objects->new(sitename => $sitename,
+                                      objname => 'Config');
+
+        ##
+        # Always embedding at least web config and a hash
+        #
+        $siteconfig->embed(web => new XAO::Objects objname => 'Web::Config');
+        $siteconfig->embed(hash => new XAO::SimpleHash);
+
+        ##
+        # Running initialization, this is where parameters are inserted and
+        # normally FS::Config gets embedded.
+        #
+        $siteconfig->init();
+
+        ##
+        # Creating an entry in in-memory projects repository
+        #
+        XAO::Projects::create_project(name => $sitename,
+                                      object => $siteconfig,
+                                     );
+    }
+
+    bless {
+        sitename => $sitename,
+        siteconfig => $siteconfig,
+    }, ref($proto) || $proto;
+}
+
+###############################################################################
+
+=item set_current ()
+
+Sets the current site as the current project in the sense of XAO::Projects.
+
+=cut
+
+sub set_current ($) {
+    my $self=shift;
+    XAO::Projects::set_current_project($self->sitename);
+}
+
+###############################################################################
+
+=item sitename ()
+
+Returns site name.
+
+=cut
+
+sub sitename ($) {
+    my $self=shift;
+    $self->{sitename} || throw XAO::E::Web "sitename - no site name";
+}
+
+###############################################################################
+1;
+__END__
 
 =back
 
-Here is an example of configuration module Config.pm for "mysite" site:
+=head1 EXPORTS
 
- # Configuration for mysite
- package XAO::Objects::mysite::Config;
- use strict;
- use vars qw(@ISA);
- use XAO::SiteConfig;
- use DBI;
- use DBD::mysql;
-
- ##
- # Inheritance
- #
- use vars qw(@ISA);
- @ISA=qw(XAO::SiteConfig);
-
- ##
- # Site configuration values. A lot of stuff can be stored
- # here for different modules.
- #
- my %data=
- ( base_url =>		"http://test.company.com"
- , base_url_secure =>	"http://test.company.com"
- );
-
- ##
- # Initializing configuration object for our site.
- #
- sub init
- { my $self=shift;
-
-   ##
-   # Putting initialization data into configuration.
-   #
-   $self->fill(\%data);
-
-   ##
-   # Initializing database
-   #
-   $self->dbconnect(db_dsn => 'DBI:mysql:mysite'
-                   ,db_user => 'mysite'
-                   ,db_pass => 'SuperPassword'
-                   );
- }
-
- ##
- # That's it
- #
- 1;
-
-=item 4
-
-At that time you should already be able to see
-your new site in your browser. Just point it to
-http://test.company.com/cgi-bin/symphero.pl/mysite/
-
-But in order to do something useful you need to create two more
-directories: "objects" and "templates".
-
-"Objects" will contain your site-specific extensions for system objects and
-your new objects.
-
-"Templates" will contain your site templates.
-
-Nothing else is used by symphero.pl and usually you would also create
-directories like "images" or "static"; put your site to CVS version
-control or make some kind of installation tools for it. It is all up to
-you.
-
-=back
-
-This is it. You should probably start from playing with "foocom" example
-e-commerce site before creating your new site.
-
-=head1 CORE CODE DEVELOPMENT
-
-If you plan to make changes to the XAO::Web code (which is not
-recommended unless you participate in official development) please read
-devsite/README for instructions.
+Nothing.
 
 =head1 AUTHOR
 
-Brave New Worlds, Andrew Maltsev <am@xao.com>. Creating of XAO::Web
-would not be possible without valuable comments and ideas from everybody
-on our team and especially from Bil Drury, Marcos Alves, Brian Despain
-and Jason Shupe. Thank you guys!
+Copyright (c) 2000-2001 XAO, Inc.
+
+Andrew Maltsev <am@xao.com>.
 
 =head1 SEE ALSO
 
 Recommended reading:
-L<symphero.pl>,
-L<XAO::Categories>,
 L<XAO::Objects>,
-L<XAO::OrdersDB>,
-L<XAO::ProductsDB>,
-L<XAO::SiteConfig>,
-L<XAO::Templates>,
-L<XAO::UsersDB>,
-L<XAO::Data>.
-
-=cut
+L<XAO::Projects>,
+L<XAO::DO::Config>.

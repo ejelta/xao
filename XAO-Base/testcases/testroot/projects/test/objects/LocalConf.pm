@@ -6,12 +6,17 @@ use XAO::Objects;
 use base XAO::Objects->load(objname => 'Test1');
 
 sub embeddable_methods ($) {
-    return 'fubar';
+    return qw(fubar get);
 }
 
 sub fubar ($$) {
     my $self=shift;
     'X' . $_[0] . 'X';
+}
+
+sub init ($) {
+    my $self=shift;
+    $self->put(LocalConfig => 1);
 }
 
 1;

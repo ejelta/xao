@@ -56,6 +56,9 @@ sub test_project {
     $self->assert($got eq 'X123X',
                   "Execution chain does not work for siteobj ($got ne X123X)");
 
+    $self->assert($config->get('LocalConfig') == 1,
+                  "Initialization did not make it to the local config");
+
     $config->cleanup();
 }
 

@@ -190,11 +190,20 @@ sub embedded ($$) {
 
 =item init (%)
 
-Suggested method name for project specific Config implementation
+Default method for project specific Config implementation
 initialization. This method would normally be called by various handlers
-after creating configuration and making it current.
+after creating configuration and before making it current. It calls
+init() method on all embedded configs in unpredictable order.
 
 =cut
+
+sub init ($) {
+    my $self=shift;
+    foreach my $name (keys %{$self->{names}}) {
+        my $obj=$self->{names}->{$name}->{obj};
+        $obj->init() if $obj->can('init');
+    }
+}
 
 ###############################################################################
 

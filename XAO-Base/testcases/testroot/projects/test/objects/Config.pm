@@ -8,7 +8,9 @@ sub init ($$) {
 
     my $lc=XAO::Objects->new(objname => 'LocalConf', sitename => 'test');
 
-    $self->embed('local' => $lc)
+    $self->embed('local' => $lc);
+
+    $self->SUPER::init();
 }
 
 1;

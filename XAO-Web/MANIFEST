@@ -20,6 +20,7 @@ lib/XAO/DO/Web/Search.pm
 lib/XAO/DO/Web/Styler.pm
 lib/XAO/PluginUtils.pm
 lib/XAO/Templates.pm
+lib/XAO/Web/Intro.pod
  --------------------------------- Handlers
 handlers/xao-apache.pl
  --------------------------------- Standard Templates
