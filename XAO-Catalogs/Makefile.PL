@@ -96,7 +96,6 @@ WriteMakefile(
     'ABSTRACT'      => 'XAO Catalogs',
     'AUTHOR'        => 'XAO Inc. http://xao.com/',
     'NAME'          => 'XAO::DO::Catalogs',
-    'DISTNAME'      => 'XAO-Catalogs',
     'VERSION_FROM'  => 'Catalogs.pm',
     'PREREQ_PM'     => {
         'XAO::Base'     => '1.03',
