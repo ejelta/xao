@@ -1386,6 +1386,11 @@ sub _add_data_placeholder ($%) {
     @fdesc{keys %{$args}}=CORE::values %{$args};
     undef $args;
 
+    ##
+    # Whenever unique is set index is set too.
+    #
+    $fdesc{index}=1 if $fdesc{unique};
+
     if($type eq 'words') {
         $fdesc{maxlength}=100 unless $fdesc{maxlength};
         $driver->add_field_text($table,$name,$fdesc{index},$fdesc{unique},$fdesc{maxlength});

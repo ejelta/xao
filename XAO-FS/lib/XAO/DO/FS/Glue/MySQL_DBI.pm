@@ -530,7 +530,7 @@ sub load_structure ($) {
             $data={
                 type => $type,
                 maxlength => $maxlength,
-                index => $index==1 ? 1 : 0,
+                index => $index ? 1 : 0,
                 unique => $index==2 ? 1 : 0,
             };
         }
@@ -539,7 +539,7 @@ sub load_structure ($) {
                 type => $type,
                 minvalue => defined($minvalue) ? 0+$minvalue : undef,
                 maxvalue => defined($maxvalue) ? 0+$maxvalue : undef,
-                index => $index==1 ? 1 : 0,
+                index => $index ? 1 : 0,
                 unique => $index==2 ? 1 : 0,
             };
         }

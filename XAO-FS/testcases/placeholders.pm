@@ -270,6 +270,12 @@ sub test_build_structure {
                       "Field ($name) doesn't exist after build_structure()");
     }
 
+    ##
+    # Unique means index too.
+    #
+    $self->assert($cust->describe('uq')->{index},
+                  "Unique should assume index too");
+
 # TODO:
 # We need to re-load database structure from disk at this
 # point. Otherwise index and unique are not really tested.
