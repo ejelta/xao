@@ -28,6 +28,7 @@ use XAO::Errors qw(XAO::Utils);
 sub generate_key (;$);
 sub repair_key ($);
 sub set_debug ($);
+sub get_debug ();
 sub dprint (@);
 sub eprint (@);
 sub t2ht ($);
@@ -38,7 +39,7 @@ sub merge_refs (@);
 sub fround ($$);
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: Utils.pm,v 1.13 2004/03/12 01:25:53 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: Utils.pm,v 1.14 2004/11/06 00:40:12 am Exp $ =~ /(\d+\.\d+)/);
 
 ###############################################################################
 # Export control
@@ -186,8 +187,7 @@ Here is the list of functions available:
 
 ###############################################################################
 
-my $debug_flag=0;
-my $logprint_handler=undef;
+use vars qw($debug_flag $logprint_handler);
 
 ###############################################################################
 
@@ -277,6 +277,18 @@ sub set_logprint_handler ($) {
         $logprint_handler=undef;
     }
     return $oldh;
+}
+
+###############################################################################
+
+=item get_debug ($)
+
+Returns boolean value of the current state of the debug flag.
+
+=cut
+
+sub get_debug () {
+    return $debug_flag;
 }
 
 ###############################################################################
