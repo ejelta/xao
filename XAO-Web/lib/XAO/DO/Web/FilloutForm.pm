@@ -62,7 +62,7 @@ use XAO::Errors qw(XAO::DO::Web::FilloutForm);
 use base XAO::Objects->load(objname => 'Web::Page');
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: FilloutForm.pm,v 1.8 2003/01/23 03:25:58 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: FilloutForm.pm,v 1.9 2003/08/18 21:53:58 am Exp $ =~ /(\d+\.\d+)/);
 
 sub setup ($%);
 sub field_desc ($$);
@@ -366,10 +366,10 @@ sub display ($;%) {
                 if(length($value)) {
                     $value=$self->calculate_year($value);
                     if($value<$minyear) {
-                        $newerr='Must be after $minyear!';
+                        $newerr="Must be after $minyear!";
                     }
                     elsif($value>$maxyear) {
-                        $newerr='Must be before $maxyear!';
+                        $newerr="Must be before $maxyear!";
                     }
                 }
             }
@@ -433,7 +433,7 @@ sub display ($;%) {
             }
             $fdata->{html}=qq(<SELECT NAME=$name><OPTION VALUE="">Select Month</OPTION>$html</SELECT>);
         }
-        elsif($style eq 'year' && $fdata->{minyear} && $fdata->{maxyear}) {
+        elsif($style eq 'year' && !$fdata->{maxlength} && $fdata->{minyear} && $fdata->{maxyear}) {
             my $minyear=$self->calculate_year($fdata->{minyear});
             my $maxyear=$self->calculate_year($fdata->{maxyear});
             my $html='';

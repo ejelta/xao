@@ -57,7 +57,7 @@ use File::Copy;
 # Package version
 #
 
-($VERSION)=(q$Id: ImageCache.pm,v 1.8 2003/08/13 22:09:17 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: ImageCache.pm,v 1.9 2003/08/18 21:53:58 am Exp $ =~ /(\d+\.\d+)/);
 
 sub DESTROY {
     my $self = shift;
@@ -342,12 +342,12 @@ sub check($) {
     my $thm_cache_url    = $self->{thumbnails}->{cache_url}      || '';
     my $thm_cache_path   = $self->{thumbnails}->{cache_path}     || '';
 
-    my $checked = 0;
-    my $list    = $self->{list};
-    my @key     = $list->keys;
+    my $checked     = 0;
+    my $list        = $self->{list};
+    my $list_keys   = $self->{list_keys} || [ $list->keys ];
 
     my $count=0;
-    foreach my $item_id (@key) {
+    foreach my $item_id (@$list_keys) {
 
         dprint "Checking ID='$item_id', count=".$count++;
 
