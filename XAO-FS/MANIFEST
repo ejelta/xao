@@ -1,3 +1,4 @@
+
 CHANGES
 LICENSE
 README
@@ -43,6 +44,9 @@ testcases/lists.pm
 testcases/placeholders.pm
 testcases/search.pm
  ------------------------------------------------------------- Benchmarking
-testcases/base.pm
 bench/bench.pl
-bench/results-am-ws-20020701.txt
+bench/results-20020701-am-workstation.txt
+bench/results-20020701-dell.txt
+bench/results-20020701-dual-p-dell.txt
+bench/results-20020702-am-workstation.txt
+bench/results-20020705-am-workstation-c.txt
