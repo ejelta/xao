@@ -291,10 +291,10 @@ sub handler_content ($) {
     my $pagedesc=$r->pnotes('pagedesc');
 
     ##
-    # We have to get the original URI, the one in $r->uri get mangled
+    # We have to get the original URI, the one in $r->uri may get mangled
     #
     my $uri=$r->pnotes('uri');
-    $r->server->log_error("CONTENT: uri=$uri");
+    ### $r->server->log_error("CONTENT: uri=$uri");
 
     ##
     # Executing
@@ -312,8 +312,7 @@ sub handler_content ($) {
 
 sub handler_map_to_storage {
     my $r=shift;
-    $r->server->log_error("MAPTOSTORAGE: uri=".$r->uri);
-    $r->server->log_error("MAPTOSTORAGE: filename=".$r->filename);
+    ### $r->server->log_error("MAPTOSTORAGE: uri=".$r->uri);
     return Apache::OK();
 }
 

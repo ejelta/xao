@@ -3,6 +3,7 @@
 package XAO::Web;
 use strict;
 use CGI;
+use Error qw(:try);
 use XAO::Utils;
 use XAO::Projects;
 use XAO::Objects;
@@ -271,7 +272,35 @@ sub execute ($%) {
     my $self=shift;
     my $args=get_args(\@_);
 
-    my ($pagetext,$header)=$self->expand($args);
+    ##
+    # We check if the site has a mapping for '/internal-error' in
+    # path_mapping_table. If it has we wrap expand() into the try block
+    # and execute /internal-error if we get an error.
+    #
+    my ($pagetext,$header);
+    try {
+        ($pagetext,$header)=$self->expand($args);
+    }
+    otherwise {
+        my $e=shift;
+        my $path="/internal-error/index.html";
+        my $pd=$self->analyze($path);
+        if($pd && $pd->{objname} ne 'Default') {
+            eprint "$e";
+            $self->clipboard->put("internal_error" => {
+                error       => $e,
+                path        => $args->{path},
+                pagedesc    => $self->clipboard->get('pagedesc'),
+            });
+            ($pagetext,$header)=$self->expand($args,{
+                path        => $path,
+                pagedesc    => $pd,
+            });
+        }
+        else {
+            throw $e;
+        }
+    };
 
     ##
     # If we get the header then it was not printed before and we are
@@ -336,15 +365,18 @@ sub expand ($%) {
     # eprint to use Apache logging if there is a reference to Apache
     # request given to us.
     #
-    my $old_logprint_handler;
+    my $pagetext;
     if($args->{apache}) {
-        $old_logprint_handler=XAO::Utils::set_logprint_handler(sub {
+        my $old_logprint_handler=XAO::Utils::set_logprint_handler(sub {
             $args->{apache}->server->warn($_[0]);
         });
-    }
-    my $pagetext=$self->process($args);
-    if($args->{apache}) {
+
+        $pagetext=$self->process($args);
+
         XAO::Utils::set_logprint_handler($old_logprint_handler);
+    }
+    else {
+        $pagetext=$self->process($args);
     }
 
     ##
