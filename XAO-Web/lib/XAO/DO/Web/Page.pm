@@ -299,6 +299,7 @@ from Page unless overwritten) are:
 package XAO::DO::Web::Page;
 use strict;
 use XAO::Utils;
+use XAO::Cache;
 use XAO::Templates;
 use XAO::Objects;
 use XAO::Projects qw(:all);
@@ -308,11 +309,12 @@ use Error qw(:try);
 use base XAO::Objects->load(objname => 'Atom');
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: Page.pm,v 1.12 2002/02/12 20:50:48 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: Page.pm,v 1.13 2002/02/20 01:03:29 am Exp $ =~ /(\d+\.\d+)/);
 
 ##
 # Prototypes
 #
+sub cache ($%);
 sub cgi ($);
 sub check_db ($);
 sub dbh ($);
@@ -846,6 +848,7 @@ Example -- setting new path and leaving all other arguments untouched:
 
 sub merge_args ($%) {
     my $self=shift;
+    eprint ref($self)."::merge_args - obsolete, use XAO::Utils::merge_refs";
     my $args=get_args(\@_);
     my $oldargs=$args->{oldargs};
     my $newargs=$args->{newargs};
@@ -910,73 +913,74 @@ sub parse ($%) {
         return [ { text => $template } ];
     }
 
-  ##
-  # Parsing
-  #
-  my @page;
-  $template=~s/<!--(?!\/\/).*?-->//sg;
-  my @parts=split('(<%|%>|"|{|})',$template);
-  my $in_object=0;
-  my $in_quotes=0;
-  my $in_brackets=0;
-  my $objtext;
-  for(my $pnum=0; $pnum!=@parts; $pnum++)
-   { my $part=$parts[$pnum];
-     if($in_object)
-      { if($in_brackets)
-         { $objtext.=$part;
-           if($part eq '{')
-            { $in_brackets++;
+    ##
+    # Parsing
+    #
+    my @page;
+    $template=~s/<!--(?!\/\/).*?-->//sg;
+    my @parts=split('(<%|%>|"|{|})',$template);
+    my $in_object=0;
+    my $in_quotes=0;
+    my $in_brackets=0;
+    my $objtext;
+    for(my $pnum=0; $pnum!=@parts; $pnum++) {
+        my $part=$parts[$pnum];
+        if($in_object) {
+            if($in_brackets) {
+                $objtext.=$part;
+                if($part eq '{') {
+                    $in_brackets++;
+                }
+                elsif($part eq '}') {
+                    $in_brackets--;
+                }
             }
-           elsif($part eq '}')
-            { $in_brackets--;
+            elsif($part eq '"') {
+                $objtext.='"';
+                if($in_quotes) {
+                    $in_quotes=0;
+                }
+                else {
+                    $in_quotes=1;
+                }
             }
-         }
-        elsif($part eq '"')
-         { $objtext.='"';
-           if($in_quotes)
-            { $in_quotes=0;
+            elsif($in_quotes) {
+                $objtext.=$part;
             }
-           else
-            { $in_quotes=1;
+            elsif($part eq '{') {
+                $in_brackets++;
+                $objtext.='{';
             }
-         }
-        elsif($in_quotes)
-         { $objtext.=$part;
-         }
-        elsif($part eq '{')
-         { $in_brackets++;
-           $objtext.='{';
-         }
-        elsif($part eq '<%')
-         { $in_object++;
-           $objtext.=$part;
-         }
-        elsif($part eq '%>')
-         { $in_object--;
-           if(!$in_object)
-            { push(@page,{ objtext => $objtext });
+            elsif($part eq '<%') {
+                $in_object++;
+                $objtext.=$part;
             }
-           else
-            { $objtext.=$part;
+            elsif($part eq '%>') {
+                $in_object--;
+                if(!$in_object) {
+                    push(@page,{ objtext => $objtext });
+                }
+                else {
+                    $objtext.=$part;
+                }
             }
-         }
-        else
-         { $objtext.=$part;
-         }
-      }
-     else
-      { if($part eq '<%')
-         { $in_object++;
-           $objtext='';
-         }
-        else
-         { push(@page,{ text => $part });
-         }
-      }
-   }
+            else {
+                $objtext.=$part;
+            }
+        }
+        else {
+            if($part eq '<%') {
+                $in_object++;
+                $objtext='';
+            }
+            else {
+                push(@page,{ text => $part });
+            }
+        }
+    }
 
     $in_object && throw $self 'display - not closed object in template';
+
     foreach my $item (@page) {
         next unless defined($item->{objtext});
         if($item->{objtext} !~ /^\s*(\w[\w\.:]*)(\/(\w+))?\s*(.*)$/s) {
@@ -989,18 +993,18 @@ sub parse ($%) {
         $item->{args}=parse_args($4);
     }
 
-  ##
-  # Document structure
-  #
-  ## for(my $i=0; $i!=@page; $i++)
-  ##  { dprint "$i) ",join(",",%{$page[$i]}),"\n";
-  ##    if($page[$i]->{args})
-  ##     { my $args=$page[$i]->{args};
-  ##       foreach my $a (sort keys %{$args})
-  ##        { dprint "   $a => $args->{$a}\n";
-  ##        }
-  ##     }
-  ##  }
+    ##
+    # Document structure
+    #
+    ## for(my $i=0; $i!=@page; $i++)
+    ##  { dprint "$i) ",join(",",%{$page[$i]}),"\n";
+    ##    if($page[$i]->{args})
+    ##     { my $args=$page[$i]->{args};
+    ##       foreach my $a (sort keys %{$args})
+    ##        { dprint "   $a => $args->{$a}\n";
+    ##        }
+    ##     }
+    ##  }
 
     ## XXX - Cache have to be much more elaborate, the same template can
     ## be parsed into different things and we can't cache it without
@@ -1011,7 +1015,7 @@ sub parse ($%) {
     ## #
     ## $parsed_cache{$args{path}}=\@page unless defined($args{template});
 
-  \@page;
+    \@page;
 }
 
 ##
@@ -1150,13 +1154,49 @@ sub editable () {
     return 0;
 }
 
-##
-# Checks that we have database connection. Suitable in derived objects.
-#
-sub check_db ($)
-{ my $self=shift;
-  eprint ref($self)."::check_db method is obsolete, use dbh() to get dbh";
-  $self->dbh;
+###############################################################################
+
+=item cache (%)
+
+Creates or retrieves a cache for use in various Page based
+objects. Arguments are directly passed to XAO::Cache's new() method (see
+L<XAO::Cache>) except for 'name' argument which is used to identify the
+requested cache.
+
+If a cache with that name was already initialized before it is not
+re-created, but previously created version is returned instead.
+
+Example:
+
+ my $cache=$self->cache(
+     name        => 'fubar',
+     retrieve    => \&real_retrieve,
+     coords      => ['foo','bar'],
+     expire      => 60
+ );
+
+=cut
+
+sub cache ($%) {
+    my $self=shift;
+    my $args=get_args(\@_);
+
+    my $name=$args->{name} ||
+        throw $self "cache - no 'name' argument";
+
+    my $cache_list=$self->siteconfig->get('cache_list');
+    if(! $cache_list) {
+        $cache_list={};
+        $self->siteconfig->put(cache_list => $cache_list);
+    }
+
+    my $cache=$cache_list->{$name};
+    if(! $cache) {
+        $cache=XAO::Cache->new($args);
+        $cache_list->{$name}=$cache;
+    }
+
+    return $cache;
 }
 
 sub debug_check ($$) {
@@ -1176,6 +1216,8 @@ sub debug_set ($%) {
 ###############################################################################
 1;
 __END__
+
+=back
 
 =head1 EXPORTS
 

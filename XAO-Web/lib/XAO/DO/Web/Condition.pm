@@ -84,7 +84,7 @@ use XAO::Objects;
 use base XAO::Objects->load(objname => 'Web::Page');
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: Condition.pm,v 1.4 2002/01/22 06:26:03 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: Condition.pm,v 1.5 2002/02/20 01:03:29 am Exp $ =~ /(\d+\.\d+)/);
 
 sub display ($;%)
 { my $self=shift;
@@ -189,10 +189,7 @@ sub display ($;%)
         my %aaa=%{$self->{parent}->{args}};
         delete $aaa{path};
         delete $aaa{template};
-        $obj->display($self->merge_args(
-                                oldargs => \%aaa,
-                                newargs => \%objargs
-                     ));
+        $obj->display(merge_refs(\%aaa,\%objargs));
     }
     else {
         $obj->display(\%objargs);

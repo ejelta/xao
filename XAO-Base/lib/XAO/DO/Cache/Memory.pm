@@ -31,7 +31,7 @@ use XAO::Objects;
 use base XAO::Objects->load(objname => 'Atom');
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: Memory.pm,v 1.3 2002/02/12 20:25:49 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: Memory.pm,v 1.4 2002/02/20 01:03:28 am Exp $ =~ /(\d+\.\d+)/);
 
 ###############################################################################
 
@@ -76,6 +76,40 @@ sub calculate_size ($$) {
 
 ###############################################################################
 
+=item drop (@)
+
+Drops an element from the cache.
+
+=cut
+
+sub drop ($@) {
+    my $self=shift;
+
+    my $key=$self->make_key($_[0]);
+    my $data=$self->{data};
+    my $ed=$data->{$key};
+
+    return unless $ed;
+
+    if($ed->{next}) {
+        $data->{$ed->{next}}->{previous}=$ed->{previous};
+    }
+    else {
+        $self->{least_recent}=$ed->{previous};
+    }
+
+    if($ed->{previous}) {
+        $data->{$ed->{previous}}->{next}=$ed->{next};
+    }
+    else {
+        $self->{most_recent}=$ed->{next};
+    }
+
+    delete $data->{$key};
+}
+
+###############################################################################
+
 =item exists (@)
 
 Checks if an element exists in the cache. Does not update its access
@@ -109,7 +143,11 @@ sub get ($$) {
     my $ed=$self->{data}->{$key} ||
         throw $self "get - no such element in the cache ($key), internal error";
 
-    $self->touch($key,$ed);
+    ##
+    # It is a bad idea to touch elements every time, they need to expire
+    # when expiration time passes.
+    #
+    ### $self->touch($key,$ed);
 
     return $ed->{element};
 }
@@ -136,8 +174,6 @@ throws out elements to make space for the new element. Order of removal
 depends on when an element was accessed last.
 
 =cut
-
-# XXX - not the most efficient way, should be done differently!
 
 sub put ($$$) {
     my $self=shift;
@@ -174,8 +210,6 @@ sub put ($$$) {
     $self->{most_recent}=$key;
     $self->{least_recent}=$key unless defined($self->{least_recent});
     $self->{current_size}+=$nsz;
-
-    # $self->print_chain;
 
     undef;
 }
@@ -240,7 +274,8 @@ sub drop_oldest ($$$) {
 
 =item print_chain ()
 
-Prints cache as a chain from the most recent to the least recent.
+Prints cache as a chain from the most recent to the least recent. The
+order is most_recent->next->...->next->least_recent.
 
 =cut
 
@@ -248,15 +283,19 @@ sub print_chain ($) {
     my $self=shift;
     my $data=$self->{data};
 
-    print STDERR "CHAIN: mr=$self->{most_recent} lr=$self->{least_recent} csz=$self->{current_size} size=$self->{size}\n";
+    dprint "CHAIN: mr=",$self->{most_recent},
+           " lr=",$self->{least_recent},
+           " csz=",$self->{current_size},
+           " size=",$self->{size},"\n";
     my $id=$self->{most_recent};
+    my $c='';
     while(defined($id)) {
         my $ed=$data->{$id};
-        print STDERR "->" if $id ne $self->{most_recent};
-        print STDERR "[$id/$ed->{access_time}/".($ed->{previous} || '')."]";
+        $c.="->" if $id ne $self->{most_recent};
+        $c.="[$id/$ed->{access_time}/".($ed->{previous}||'')."/".($ed->{next}||'')."]";
         $id=$ed->{next};
     }
-    print STDERR "\n";
+    print STDERR "$c\n";
 }
 
 ###############################################################################

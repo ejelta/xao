@@ -47,7 +47,33 @@ use XAO::Errors qw(XAO::E::Cache);
 use XAO::Objects;
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: Cache.pm,v 1.2 2002/02/12 17:39:10 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: Cache.pm,v 1.3 2002/02/20 01:03:28 am Exp $ =~ /(\d+\.\d+)/);
+
+###############################################################################
+
+=item drop ($%)
+
+Removes an element from cache. Useful to make cache aware of changes in
+the cached element -- when cached data are no longer valid.
+
+Arguments must contain a list of coordinates the same as in get()
+method.
+
+=cut
+
+sub drop ($%) {
+    my $self=shift;
+    my $backend=$self->{backend};
+    
+    my $object=ref($_[0]) && ref($_[0]) ne 'HASH' ? shift(@_) : undef;
+    my $args=get_args(\@_);
+
+    my @c=map { $args->{$_} } @{$self->{coords}};
+    defined($c[0]) ||
+        throw XAO::E::Cache "get - no first coordinate ($args->{coords}->[0])";
+
+    $backend->drop(\@c);
+}
 
 ###############################################################################
 
@@ -83,7 +109,7 @@ sub get ($@) {
     defined($c[0]) ||
         throw XAO::E::Cache "get - no first coordinate ($args->{coords}->[0])";
 
-    if($backend->exists([ @c ])) {
+    if($backend->exists(\@c)) {
         return ${$backend->get(\@c)};
     }
 
