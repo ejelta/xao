@@ -4,6 +4,11 @@ use strict;
 use ExtUtils::MakeMaker;
 use ExtUtils::Manifest;
 
+eval 'use Compress::LZO';
+if($@) {
+    warn "** Missing Compress::LZO, won't be able to compress data\n";
+}
+
 my %d;
 if(open(F,'.config')) {
     local($/);
