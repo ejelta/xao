@@ -1,6 +1,23 @@
-##
-# This is object loader.
-#
+=head1 NAME
+
+XAO::Objects - dynamic objects loader
+
+=head1 SYNOPSIS
+
+ use XAO::Objects;
+
+ sub foo {
+    ...
+    my $page=XAO::Objects->new(objname => 'Web::Page');
+ }
+
+=head1 DESCRIPTION
+
+XXX - provide real description ASAP. For now code is the only description.
+
+=cut
+
+###############################################################################
 package XAO::Objects;
 use strict;
 use XAO::Base qw($homedir $projectsdir);
@@ -18,7 +35,7 @@ sub new ($%);
 # Module version.
 #
 use vars qw($VERSION);
-($VERSION)=(q$Id: Objects.pm,v 1.3 2001/10/25 02:51:54 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: Objects.pm,v 1.4 2001/11/10 00:30:30 am Exp $ =~ /(\d+\.\d+)/);
 
 ##
 # Loads object into memory.
@@ -146,3 +163,10 @@ sub new ($%) {
 
 ###############################################################################
 1;
+__END__
+
+=head1 AUTHOR
+
+Copyright (c) 2001 XAO Inc.
+
+Author is Andrew Maltsev <am@xao.com>.

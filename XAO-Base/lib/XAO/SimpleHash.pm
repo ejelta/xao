@@ -394,12 +394,29 @@ sub _uri_parser {
     $uri =~ s/\/+$//; # get rid of trailing slashes
     split(/\/+/, $uri);
 }
+
+###############################################################################
+
+#XXX This should really be in POD! (AM)
+#
+# =item embeddable_methods ()
+#
+# Returns a list of methods to be embedded into Configuration. Only used
+# by XAO::DO::Config object. Currently the list of embeddable methods
+# include all methods of Perl API.
+#
+# =cut
+
+sub embeddable_methods () {
+    qw(put get getref delete defined exists keys values contains);
+}
+
 ###############################################################################
 #
 # That's it
 #
 use vars qw($VERSION);
-($VERSION)=('$Id: SimpleHash.pm,v 1.2 2001/10/23 01:47:47 am Exp $' =~ /(\d+\.\d+)/);
+($VERSION)=('$Id: SimpleHash.pm,v 1.3 2001/11/10 00:30:30 am Exp $' =~ /(\d+\.\d+)/);
 1;
 __END__
 
@@ -542,5 +559,7 @@ Nothing.
 
 =head1 AUTHORS
 
-XAO Inc.: Marcos Alves <alves@xao.com>, Bil Drury <bild@xao.com>, Andrew
-Maltsev <am@xao.com>.
+Copyright (c) 1997-2001 XAO Inc.
+
+Authors are Marcos Alves <alves@xao.com>, Bil Drury <bild@xao.com>,
+Andrew Maltsev <am@xao.com>.

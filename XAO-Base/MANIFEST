@@ -10,8 +10,11 @@ lib/XAO/Objects.pm
 lib/XAO/Projects.pm
 lib/XAO/SimpleHash.pm
 lib/XAO/Utils.pm
+ ------------------------------------------- Dynamic Objects
+lib/XAO/DO/Config.pm
  ------------------------------------------- testcases
 testcases/base.pm
+testcases/DOConfig.pm
 testcases/Errors.pm
 testcases/Objects.pm
 testcases/Projects.pm
@@ -19,6 +22,7 @@ testcases/SimpleHash.pm
 testcases/Utils.pm
  ------------------------------------------- test installation root
 testcases/testroot/projects/test/objects/Config.pm
+testcases/testroot/projects/test/objects/LocalConf.pm
 testcases/testroot/projects/test/objects/Test1.pm
 testcases/testroot/XAO/DO/Test1.pm
 testcases/testroot/XAO/DO/Test2.pm

@@ -1,3 +1,34 @@
+=head1 NAME
+
+XAO::Errors - throwable errors namespace support
+
+=head1 SYNOPSIS
+
+ package XAO::Fubar;
+ use XAO::Errors qw(XAO::Fubar);
+
+ sub foo {
+    ...
+    throw XAO::E::Fubar "foo - wrong arguments";
+ }
+
+=head1 DESCRIPTION
+
+Magic module that creates error namespaces for caller's. Should be
+used in situations like that. Say you create a XAO module called
+XAO::DO::Data::Product and want to throw errors from it. In order for
+these errors to be distinguishable you need separate namespace for
+them -- that's where XAO::Errors comes to rescue.
+
+In the bizarre case when you want more then one namespace for
+errors - you can pass these namespaces into XAO::Errors and it will
+make them throwable. It does not matter what to pass to XAO::Errors -
+the namespace of an error or the namespace of the package, the result
+would always go into XAO::E namespace.
+
+=cut
+
+###############################################################################
 package XAO::Errors;
 use strict;
 use vars qw(%errors_cache);
@@ -43,4 +74,12 @@ END
     }
 }
 
+###############################################################################
 1;
+__END__
+
+=head1 AUTHOR
+
+Copyright (c) 2001 XAO Inc.
+
+Author is Andrew Maltsev <am@xao.com>.

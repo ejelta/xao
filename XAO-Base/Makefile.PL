@@ -1,9 +1,12 @@
+#!/usr/bin/perl -w
+use strict;
 use ExtUtils::MakeMaker;
+use ExtUtils::Manifest;
 
 ##
 # This is the version for XAO::Base, should be updated manually.
 #
-my $version='1.0';
+my $version='1.01';
 
 ##
 # Trying to find out current configuration. If it is saved in file -
@@ -30,7 +33,7 @@ while($ask) {
     if(!$homedir) {
         eval { require XAO::Base };
         if(!$@) {
-            $homedir=$XAO::Base::homedir;
+            $homedir=$XAO::Base::homedir || $XAO::Base::homedir; # anti-warn :)
             my $version=$XAO::Base::VERSION;
             $notes=<<EOT;
 
@@ -78,15 +81,41 @@ if(!$config_version || $config_version ne $version) {
     print "\nConfiguration saved into .config\n\n";
 }
 
+##
+# This rather stupid workaround is here because for some reason
+# MakeMaker excludes /Config/ files from MAN3PODS
+#
+my %man3pods;
+foreach my $n (keys %{ExtUtils::Manifest::maniread()}) {
+    next unless $n =~ '^(Base).pod$' ||
+                $n =~ '^lib/XAO/(.*)\.(pm|pod)$';
+    my $man=$1;
+    $man=~s/\/+/::/g;
+    $man='XAO::' . $man;
+
+    open(F,$n) || die "Can't read $n: $!";
+    my $pod=0;
+    while(<F>) {
+        if(/^=(\w+)/) {
+            $pod=1;
+            last;
+        }
+    }
+    $pod || die "$n ($man) does not have documentation";
+
+    $man3pods{$n}='$(INST_MAN3DIR)/' . $man . '.3';
+}
+
 WriteMakefile(
     'NAME'          => 'XAO::Base',
     'VERSION'       => $version,
-    'PREREQ_PM' => {
+    'PREREQ_PM'     => {
         'Error' => '0.13',
     },
     'PL_FILES'      => {
         'Base.PL' => '$(INST_LIB)/XAO/Base.pm',
-    }
+    },
+    'MAN3PODS'      => \%man3pods,
 );
 
 sub MY::postamble
