@@ -1,3 +1,6 @@
+1.05 -
+    * XAO::Utils - fround() function added
+
 1.04 - 9-Aug-2002
     * XAO::Utils - t2hq() now escapes semicolon
     * Minor changes to support XAO::Web and XAO::FS improvements

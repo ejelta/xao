@@ -33,7 +33,7 @@ use XAO::Utils;
 use XAO::Errors;
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: Atom.pm,v 1.4 2002/06/20 00:20:30 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: Atom.pm,v 1.5 2003/02/18 22:08:58 am Exp $ =~ /(\d+\.\d+)/);
 
 ###############################################################################
 
@@ -47,7 +47,7 @@ needs a different behavior.
 
 sub new ($%) {
     my $proto=shift;
-    my $self=get_args(\@_);
+    my $self=merge_refs(get_args(\@_));
     bless $self,ref($proto) || $proto;
 }
 
