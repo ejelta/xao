@@ -41,3 +41,4 @@ testcases/testroot/XAO/DO/Test2.pm
 misc/cache-benchmark
 misc/cache-benchmark.res-chain
 misc/cache-benchmark.res-hash
+META.yml                                 Module meta-data (added by MakeMaker)

@@ -1,7 +1,9 @@
-1.06 -
+1.06 - 11-Jan-2005
     * XAO::Utils - set_logprint_handler()
     * XAO::TestUtils - 'use blib' is optional now
     * XAO::Utils - get_debug() added
+    * XAO::TestUtils - support for package building
+      (xao_mf_check_consistency & xao_mf_fix_permissions)
 
 1.05 - 12-Nov-2003
     * XAO::Utils - get_args works as merge_refs on multiple hash refs

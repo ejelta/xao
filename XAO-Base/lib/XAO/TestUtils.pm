@@ -46,7 +46,7 @@ use vars qw(@ISA @EXPORT_OK @EXPORT $VERSION);
              );
 @EXPORT=();
 
-($VERSION)=(q$Id: TestUtils.pm,v 1.6 2005/01/12 02:28:26 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: TestUtils.pm,v 1.7 2005/01/12 05:27:26 am Exp $ =~ /(\d+\.\d+)/);
 
 ###############################################################################
 
@@ -217,7 +217,7 @@ sub xao_mf_check_consistency {
         die "There are missing files, aborting!\n";
     }
     if($extra && @$extra) {
-        die "There are some new files, add them to the MANIFEST!\n";
+        warn "There are some new files, add them to the MANIFEST!\n";
     }
 }
 
