@@ -104,6 +104,8 @@ BEGIN {
     if($mod_perl::VERSION && $mod_perl::VERSION >= 1.99) {
         require Apache::Const;
         Apache::Const->import(qw(:common));
+        use Apache::RequestRec;
+        use Apache::RequestIO;
     }
     else {
         require Apache::Constants;

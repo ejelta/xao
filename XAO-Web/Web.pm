@@ -282,7 +282,12 @@ sub execute ($%) {
                 $r->header_out($n => $v);
                 $r->err_header_out($n => $v);
             }
-            $r->send_http_header;
+            if($mod_perl::VERSION && $mod_perl::VERSION >= 1.99) {
+                $r->content_type('text/html') unless $r->content_type;
+            }
+            else {
+                $r->send_http_header;
+            }
             $r->print($pagetext) unless $r->header_only;
         }
         else {
