@@ -3,6 +3,7 @@ use strict;
 use XAO::Utils;
 use CGI::Cookie;
 use Digest::MD5 qw(md5_base64);
+use Error qw(:try);
 
 use Data::Dumper;
 
@@ -172,7 +173,10 @@ sub test_no_vf_key {
                 text        => 'A',
             },
         },
-
+        #
+        # Should not destroy existing cookie even if it can't recognize
+        # the user
+        #
         t14     => {
             cookies => {
                 member_id   => 'm003',
@@ -183,12 +187,14 @@ sub test_no_vf_key {
             },
             results => {
                 cookies     => {
-                    member_id   => undef,
+                    member_id   => 'm003',
                 },
                 text        => 'A',
             },
         },
-
+        #
+        # Should still be verified
+        #
         t15     => {
             cookies => {
                 member_id   => 'm001',
@@ -199,15 +205,18 @@ sub test_no_vf_key {
             },
             results => {
                 cookies     => {
-                    member_id   => undef,
+                    member_id   => 'm001',
                 },
                 text        => 'V',
             },
         },
-
+        #
+        # Adjusting the time and checking that verification expires, but
+        # identification is still there.
+        #
         t16     => {
             sub_pre => sub {
-                $config->odb->fetch('/Members/m001')->put(verify_time => time - 1111);
+                $config->odb->fetch('/Members/m001')->put(verify_time => time - 125);
             },
             cookies => {
                 member_id   => 'm001',
@@ -218,24 +227,23 @@ sub test_no_vf_key {
             },
             results => {
                 cookies     => {
-                    member_id   => undef,
+                    member_id   => 'm001',
                 },
                 text        => 'I',
             },
         },
-
+        #
+        # Checking what's passed to the templates
+        #
         t20     => {
             args => {
                 mode        => 'check',
                 type        => 'member',
                 'identified.template' => '<$CB_URI$>|<$ERRSTR$>|<$TYPE$>|<$NAME$>|<$VERIFIED$>',
             },
-            cookies => {
-                member_id   => 'm001',
-            },
             results => {
                 cookies     => {
-                    member_id   => undef,
+                    member_id   => 'm001',
                 },
                 text        => '/IdentifyUser/member||member|m001|',
                 clipboard   => {
@@ -390,9 +398,29 @@ sub test_vf_key_simple {
                     member_key  => 0,
                 },
                 text        => 'I',
+                clipboard   => {
+                    '/IdentifyUser/member/name'     => 'm001',
+                    '/IdentifyUser/member/object'   => { },
+                    '/IdentifyUser/member/verified' => undef,
+                },
             },
         },
         t07     => {
+            sub_pre => sub {
+                $cjar{member_key}=$cjar{member_key_1};
+            },
+            args => {
+                mode        => 'check',
+                type        => 'member',
+            },
+            results => {
+                cookies     => {
+                    member_id   => 'm001',
+                },
+                text        => 'I',
+            },
+        },
+        t08     => {
             args => {
                 mode        => 'logout',
                 type        => 'member',
@@ -403,6 +431,36 @@ sub test_vf_key_simple {
                     member_id   => 0,
                 },
                 text        => 'A',
+            },
+        },
+        t09     => {
+            sub_pre => sub {
+                $cjar{member_key}=$cjar{member_key_1};
+            },
+            args => {
+                mode        => 'check',
+                type        => 'member',
+            },
+            results => {
+                cookies     => {
+                    member_id   => '0',
+                },
+                text        => 'A',
+            },
+        },
+        t10     => {
+            sub_pre => sub {
+                $cjar{member_id}='m001',
+            },
+            args => {
+                mode        => 'check',
+                type        => 'member',
+            },
+            results => {
+                cookies     => {
+                    member_id   => 'm001',
+                },
+                text        => 'I',
             },
         },
     );
@@ -692,11 +750,466 @@ sub test_user_prop_hash {
 
 ###############################################################################
 
+sub test_key_list {
+    my $self=shift;
+
+    my $config=$self->siteconfig;
+    $config->put(
+        identify_user => {
+            member => {
+                list_uri            => '/Members',
+                #
+                id_cookie           => 'mid',
+                #
+                key_list_uri        => '/MemberKeys',
+                key_ref_prop        => 'member_id',
+                key_expire_prop     => 'expire_time',
+                key_expire_mode     => 'auto',
+                #
+                pass_prop           => 'password',
+                #
+                vf_time_user_prop   => 'uvf_time',
+                vf_time_prop        => 'verify_time',
+                vf_expire_time      => 120,
+                vf_key_cookie       => 'mkey',
+            },
+        },
+    );
+
+    $self->assert($config->get('/identify_user/member/list_uri') eq '/Members',
+                  "Can't get configuration parameter");
+
+    my $odb=$config->odb;
+    $odb->fetch('/')->build_structure(
+        Members => {
+            type        => 'list',
+            class       => 'Data::Member1',
+            key         => 'member_id',
+            structure   => {
+                password => {
+                    type        => 'text',
+                    maxlength   => 100,
+                },
+                uvf_time => {
+                    type        => 'integer',
+                    minvalue    => 0,
+                },
+            },
+        },
+        MemberKeys => {
+            type        => 'list',
+            class       => 'Data::MemberNick',
+            key         => 'member_key_id',
+            key_format  => '<$AUTOINC$>',
+            structure   => {
+                member_id => {
+                    type        => 'text',
+                    maxlength   => 30,
+                    index       => 1,
+                },
+                expire_time => {
+                    type        => 'integer',
+                    minvalue    => 0,
+                    index       => 0,
+                },
+                verify_time => {
+                    type        => 'integer',
+                    minvalue    => 0,
+                    index       => 0,
+                },
+            },
+        },
+    );
+
+    my $m_list=$config->odb->fetch('/Members');
+    my $m_obj=$m_list->get_new;
+    $m_obj->put(password => '12345');
+    $m_list->put(m001 => $m_obj);
+    $m_obj->put(password => '23456');
+    $m_list->put(m002 => $m_obj);
+
+    my %cjar;
+
+    my %matrix=(
+        t01     => {
+            args => {
+                mode        => 'login',
+                type        => 'member',
+                username    => 'm002',
+                password    => '12345',
+            },
+            results => {
+                cookies     => {
+                    mid         => undef,
+                },
+                text        => 'A',
+                fs => {
+                    '/Members/m001/uvf_time'    => 0,
+                },
+            },
+        },
+        t02     => {
+            args => {
+                mode        => 'login',
+                type        => 'member',
+                username    => 'm001',
+                password    => '12345',
+            },
+            results => {
+                cookies     => {
+                    mid         => 'm001',
+                    mkey        => '1',
+                },
+                text        => 'V',
+                fs => {
+                    '/Members/m001/uvf_time'    => '>'.(time-5),
+                    '/MemberKeys/1/verify_time' => '>'.(time-5),
+                    '/MemberKeys/1/expire_time' => '>'.(time+120-5),
+                    '/MemberKeys/1/expire_time' => '<'.(time+120+5),
+                },
+            },
+        },
+        t03     => {
+            sub_pre => sub {
+                $config->put('/identify_user/member/id_cookie_type' => 'id');
+            },
+            args => {
+                mode        => 'login',
+                type        => 'member',
+                username    => 'm001',
+                password    => '12345',
+            },
+            results => {
+                cookies     => {
+                    mid         => 'm001',
+                    mkey        => '2',
+                },
+                text        => 'V',
+            },
+        },
+        t04     => {
+            sub_pre => sub {
+                $config->put('/identify_user/member/id_cookie_type' => 'key');
+            },
+            args => {
+                mode        => 'login',
+                type        => 'member',
+                username    => 'm001',
+                password    => '12345',
+            },
+            results => {
+                cookies     => {
+                    mid         => '3',
+                    mkey        => '2',
+                },
+                text        => 'V',
+                clipboard   => {
+                    '/IdentifyUser/member/name'     => '3',
+                    '/IdentifyUser/member/object'   => { },
+                    '/IdentifyUser/member/verified' => '1',
+                },
+            },
+        },
+        t05a     => {
+            args => {
+                mode        => 'check',
+                type        => 'member',
+            },
+            results => {
+                cookies     => {
+                    mid         => '3',
+                    mkey        => '2',
+                },
+                text        => 'V',
+                clipboard   => {
+                    '/IdentifyUser/member/id'       => 'm001',
+                    '/IdentifyUser/member/name'     => '3',
+                    '/IdentifyUser/member/object'   => { },
+                    '/IdentifyUser/member/verified' => '1',
+                },
+            },
+        },
+        t05b    => {
+            sub_post_cleanup => sub {
+                my $user=$config->odb->fetch('/Members/m001');
+                my $key=$config->odb->fetch('/MemberKeys/1');
+                $config->clipboard->put('/IdentifyUser/member/object' => $user);
+                $config->clipboard->put('/IdentifyUser/member/key_object' => $key);
+                $config->clipboard->put('/IdentifyUser/member/name' => '1');
+            },
+            args => {
+                mode        => 'check',
+                type        => 'member',
+            },
+            results => {
+                text        => 'V',
+                clipboard   => {
+                    '/IdentifyUser/member/name'     => 1,
+                    '/IdentifyUser/member/object'   => { },
+                    '/IdentifyUser/member/verified' => 1,
+                },
+                cookies     => {
+                    mid     => 3,
+                    mkey    => 2,
+                },
+            },
+        },
+        t06     => {
+            args => {
+                mode        => 'check',
+                type        => 'member',
+            },
+            results => {
+                cookies     => {
+                    mid         => '3',
+                    mkey        => '2',
+                },
+                text        => 'V',
+                clipboard   => {
+                    '/IdentifyUser/member/id'       => 'm001',
+                    '/IdentifyUser/member/name'     => '3',
+                    '/IdentifyUser/member/object'   => { },
+                    '/IdentifyUser/member/verified' => '1',
+                },
+            },
+        },
+        t07     => {
+            cookies => {
+                mid         => 2,
+            },
+            args => {
+                mode        => 'check',
+                type        => 'member',
+            },
+            results => {
+                text        => 'V',
+                clipboard   => {
+                    '/IdentifyUser/member/id'       => 'm001',
+                    '/IdentifyUser/member/name'     => '2',
+                    '/IdentifyUser/member/object'   => { },
+                    '/IdentifyUser/member/verified' => '1',
+                },
+            },
+        },
+        t08     => {
+            cookies => {
+                mid         => 4,
+                mkey        => 'FOO',
+            },
+            args => {
+                mode        => 'check',
+                type        => 'member',
+            },
+            results => {
+                cookies     => {
+                    mid         => '4',
+                    mkey        => 'FOO',
+                },
+                text        => 'A',
+                clipboard   => {
+                    '/IdentifyUser/member/object'   => undef,
+                    '/IdentifyUser/member/verified' => undef,
+                },
+            },
+        },
+        t09     => {
+            args => {
+                mode        => 'login',
+                type        => 'member',
+                username    => 'm002',
+                password    => '23456',
+            },
+            results => {
+                cookies     => {
+                    mid         => '4',
+                    mkey        => 'FOO',
+                },
+                text        => 'V',
+                clipboard   => {
+                    '/IdentifyUser/member/name'     => '4',
+                },
+            },
+        },
+        t10     => {
+            cookies => {
+                mid         => 1,
+            },
+            args => {
+                mode        => 'check',
+                type        => 'member',
+            },
+            results => {
+                cookies     => {
+                    mid         => '1',
+                },
+                text        => 'V',
+                clipboard   => {
+                    '/IdentifyUser/member/object'   => { },
+                    '/IdentifyUser/member/verified' => 1,
+                    '/IdentifyUser/member/name'     => 1,
+                    '/IdentifyUser/member/id'       => 'm001',
+                },
+            },
+        },
+        t11     => {
+            cookies => {
+                mid         => 4,
+            },
+            args => {
+                mode        => 'check',
+                type        => 'member',
+            },
+            results => {
+                cookies     => {
+                    mid         => '4',
+                },
+                text        => 'V',
+                clipboard   => {
+                    '/IdentifyUser/member/object'   => { },
+                    '/IdentifyUser/member/verified' => 1,
+                    '/IdentifyUser/member/name'     => 4,
+                    '/IdentifyUser/member/id'       => 'm002',
+                },
+            },
+        },
+        #
+        # Logging out, but should stay identified as it was previously
+        # logged in and verified.
+        #
+        t12     => {
+            cookies => {
+                mid         => 2,
+            },
+            args => {
+                mode        => 'logout',
+                type        => 'member',
+            },
+            results => {
+                cookies     => {
+                    mid         => '2',
+                },
+                text        => 'I',
+                clipboard   => {
+                    '/IdentifyUser/member/object'   => { },
+                    '/IdentifyUser/member/verified' => undef,
+                    '/IdentifyUser/member/name'     => 2,
+                    '/IdentifyUser/member/id'       => 'm001',
+                },
+            },
+        },
+        #
+        # Checking that the other key is still verified (account from
+        # another browser/computer).
+        #
+        t13     => {
+            cookies => {
+                mid         => 1,
+            },
+            args => {
+                mode        => 'check',
+                type        => 'member',
+            },
+            results => {
+                cookies     => {
+                    mid         => '1',
+                },
+                text        => 'V',
+                clipboard   => {
+                    '/IdentifyUser/member/object'   => { },
+                    '/IdentifyUser/member/verified' => 1,
+                    '/IdentifyUser/member/name'     => 1,
+                    '/IdentifyUser/member/id'       => 'm001',
+                },
+            },
+        },
+        #
+        # Checking that it is still identified after soft logout
+        #
+        t14     => {
+            cookies => {
+                mid         => 2,
+            },
+            args => {
+                mode        => 'check',
+                type        => 'member',
+            },
+            results => {
+                cookies     => {
+                    mid         => '2',
+                },
+                text        => 'I',
+                clipboard   => {
+                    '/IdentifyUser/member/object'   => { },
+                    '/IdentifyUser/member/verified' => undef,
+                    '/IdentifyUser/member/name'     => 2,
+                    '/IdentifyUser/member/id'       => 'm001',
+                },
+            },
+        },
+        #
+        # Checking hard logout
+        #
+        t15     => {
+            cookies => {
+                mid         => 1,
+            },
+            args => {
+                mode        => 'logout',
+                type        => 'member',
+                hard_logout => 1,
+            },
+            results => {
+                cookies     => {
+                    mid         => '0',
+                },
+                text        => 'A',
+                clipboard   => {
+                    '/IdentifyUser/member/object'   => undef,
+                    '/IdentifyUser/member/verified' => undef,
+                    '/IdentifyUser/member/name'     => undef,
+                    '/IdentifyUser/member/id'       => undef,
+                },
+                fs          => {
+                    '/MemberKeys/1' => undef,
+                },
+            },
+        },
+        #
+        # key '3' should still yeald verification even after hard logout
+        # on 1.
+        #
+        t16     => {
+            cookies => {
+                mid         => 3,
+            },
+            args => {
+                mode        => 'check',
+                type        => 'member',
+            },
+            results => {
+                cookies     => {
+                    mid         => '3',
+                },
+                text        => 'V',
+                clipboard   => {
+                    '/IdentifyUser/member/object'   => { },
+                    '/IdentifyUser/member/verified' => 1,
+                    '/IdentifyUser/member/name'     => 3,
+                    '/IdentifyUser/member/id'       => 'm001',
+                },
+            },
+        },
+    );
+
+    $self->run_matrix(\%matrix,\%cjar);
+}
+
+###############################################################################
+
 sub run_matrix {
     my ($self,$matrix,$cjar)=@_;
 
     my $config=$self->siteconfig;
-    my $odb=$config->odb;
 
     foreach my $tname (sort keys %$matrix) {
         dprint "TEST $tname";
@@ -711,13 +1224,17 @@ sub run_matrix {
         foreach my $cname (keys %$chash) {
             $cenv.='; ' if length($cenv);
             $cenv.="$cname=$chash->{$cname}";
-            dprint "CENV: $cenv";
+            $cjar->{$cname}=$chash->{$cname};
         }
         $ENV{HTTP_COOKIE}=$cenv;
         $config->embedded('web')->cleanup;
         $config->embedded('web')->enable_special_access;
         $config->embedded('web')->cgi(CGI->new('foo=bar&bar=foo'));
         $config->embedded('web')->disable_special_access;
+
+        if($tdata->{sub_post_cleanup}) {
+            &{$tdata->{sub_post_cleanup}}();
+        }
 
         my $iu=XAO::Objects->new(objname => 'Web::IdentifyUser');
         my $got=$iu->expand({
@@ -772,6 +1289,42 @@ sub run_matrix {
                 else {
                     $self->assert(!defined($got),
                                   "$tname - clipboard=$cname, expected nothing, got ".($got || ''));
+                }
+            }
+        }
+
+        if(exists $results->{fs}) {
+            my $odb=$config->odb;
+            foreach my $uri (keys %{$results->{fs}}) {
+                my $expect=$results->{fs}->{$uri};
+                my $got;
+                try {
+                    $got=$odb->fetch($uri);
+                }
+                otherwise {
+                    my $e=shift;
+                    dprint "IGNORED(OK): $e";
+                };
+                if(!defined($expect)) {
+                    $self->assert(!defined($got),
+                                  "$tname - fs=$uri, expected nothing, got ".($got || ''));
+                }
+                elsif(!defined $got) {
+                    $self->assert(0,
+                                  "$tname - fs=$uri, expected $expect, got nothing");
+                }
+                elsif($expect =~ /^>(\d+)$/) {
+                    $self->assert($got>$1,
+                                  "$tname - fs=$uri, expected $expect, got $got");
+                }
+                elsif($expect =~ /^<(\d+)$/) {
+                    my $val=$1;
+                    $self->assert($got=~/^[\d\.]+$/ && $got<$val,
+                                  "$tname - fs=$uri, expected $expect, got $got");
+                }
+                else {
+                    $self->assert($got eq $expect,
+                                  "$tname - fs=$uri, expected $expect, got $got");
                 }
             }
         }
