@@ -15,6 +15,8 @@ XAO::DO::Web::Debug - debug helper object
 Allows to to spit debug messages into error_log and/or turn on or off
 various debug parameters in Page.
 
+XXX - incomplete description!
+
 =cut
 
 ###############################################################################
@@ -24,11 +26,21 @@ use XAO::Objects;
 use base XAO::Objects->load(objname => 'Web::Page');
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: Debug.pm,v 1.2 2002/02/04 07:58:45 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: Debug.pm,v 1.3 2002/02/04 18:40:44 am Exp $ =~ /(\d+\.\d+)/);
 
 sub display ($%) {
     my $self=shift;
     my $args=get_args(\@_);
+
+    if($args->{on}) {
+        XAO::Utils::set_debug(1);
+        dprint "Debug on";
+    }
+
+    if($args->{off}) {
+        dprint "Debug off";
+        XAO::Utils::set_debug(0);
+    }
 
     if($args->{set}) {
         my %set=map { $_ => 1 } split(/[,;\s]/,$args->{set});
@@ -43,6 +55,7 @@ sub display ($%) {
     }
 
     if(defined($args->{text}) || defined($args->{template}) || $args->{path}) {
+    dprint "xx";
         my $text=$args->{text} ||
                  $self->object->expand($args);
         dprint $self->{objname}," - $text";

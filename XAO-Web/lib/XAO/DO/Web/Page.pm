@@ -309,7 +309,7 @@ use XAO::Errors;
 # Package version
 #
 use vars qw($VERSION);
-($VERSION)=(q$Id: Page.pm,v 1.10 2002/02/04 07:58:45 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: Page.pm,v 1.11 2002/02/04 18:40:44 am Exp $ =~ /(\d+\.\d+)/);
 
 ##
 # Methods prototypes
@@ -433,7 +433,12 @@ sub display ($%) {
         }
         catch XAO::E::Objects with {
             my $e=shift;
-            eprint "Object loading error while processing path='$args->{path}'";
+            if($args->{path}) {
+                eprint "Object loading error while processing path='$args->{path}'";
+            }
+            else {
+                eprint "Object loading error";
+            }
             $e->throw;
         };
 
@@ -881,7 +886,7 @@ sub merge_args ($%) {
 #  , { text => text }
 #  ]
 #
-my %parsed_cache;
+### my %parsed_cache;
 sub parse ($%) {
     my ($self,%args)=@_;
     my $classname=ref $self || $self;
@@ -902,11 +907,11 @@ sub parse ($%) {
             $self->throw("parse - No path given to a Page object");
 
         if($self->debug_check('show-path')) {
-            dprint ref($self)."::parse - path='$path', cache=",
-                   exists($parsed_cache{$path}) ? 'yes' : 'no';
+            dprint $self->{objname}."::parse - path='$path'";
         }
 
-        return $parsed_cache{$path} if exists($parsed_cache{$path});
+        #XXX# return $parsed_cache{$path} if exists($parsed_cache{$path});
+
         $template=XAO::Templates::get(path => $path);
         defined($template) ||
             $self->throw("parse - no template found (path=$path)");
@@ -1011,10 +1016,15 @@ sub parse ($%) {
   ##     }
   ##  }
 
-  ##
-  # Storing into cache and returning
-  #
-  return ($parsed_cache{$args{path}}=\@page) unless exists($args{template});
+    ## XXX - Cache have to be much more elaborate, the same template can
+    ## be parsed into different things and we can't cache it without
+    ## content checks. Need to check if hashing by complete content is
+    ## faster then just re-parsing.
+    ## ##
+    ## # Storing into the cache if possible
+    ## #
+    ## $parsed_cache{$args{path}}=\@page unless defined($args{template});
+
   \@page;
 }
 
