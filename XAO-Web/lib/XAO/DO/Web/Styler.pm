@@ -24,7 +24,7 @@ use XAO::Objects;
 use base XAO::Objects->load(objname => 'Web::Page');
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: Styler.pm,v 1.2 2002/01/04 02:13:23 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: Styler.pm,v 1.3 2002/04/23 21:09:20 am Exp $ =~ /(\d+\.\d+)/);
 
 sub display ($;%)
 { my $self=shift;
@@ -54,19 +54,19 @@ sub display ($;%)
   my $real=sprintf("%.2f",$args->{real} || 0);
   1 while $real=~s/(\d)(\d{3}($|,|\.))/$1,$2/;
 
-  ##
-  # Percents
-  #
-  my $percent=0;
-  if(defined($args->{percent}))
-   { $template="<%PERCENT%>";
-     if(defined($args->{total}))
-      { $percent=$args->{total} ? $args->{percent}/$args->{total} : 0;
-      }
-     else
-      { $percent=$args->{percent};
-      }
-   }
+    ##
+    # Percents
+    #
+    my $percent=0;
+    if(defined($args->{percent})) {
+        $template="<%PERCENT%>";
+        if(defined($args->{total})) {
+            $percent=$args->{total} ? $args->{percent}/$args->{total} : 0;
+        }
+        else {
+            $percent=$args->{percent};
+        }
+    }
 
   ##
   # Displaying what we've got and any additional arguments
@@ -89,7 +89,8 @@ sub display ($;%)
                        , NUMBER => $number
                        , DOLLARS => $dollars
                        , REAL => $real
-                       , PERCENT => sprintf('%.2f%%',$percent*100)
+                       , PERCENT => sprintf($args->{format} || '%.2f%%',
+                                            $percent*100)
                        , %{$args});
 }
 
