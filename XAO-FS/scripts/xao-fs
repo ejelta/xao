@@ -1,0 +1,74 @@
+#!/usr/bin/perl -w
+###############################################################################
+
+=head1 NAME
+
+xao-fs - XAO::FS database tool
+
+=head1 SYNOPSIS
+
+odb-tool --dsn=OS:MySQL_DBI:testdb [options] command
+
+ Options:
+
+   --dsn        - OS DSN string
+   -s
+
+   --user       - database user name (optional)
+   -u
+
+   --password   - database user password (optional)
+   -p
+
+   --help       - show more details
+
+ Example:
+
+   odb-tool --dsn=DBI:mysql:testdb -u user -p pass init
+
+=head1 DESCRIPTION
+
+The only command currently supported is `init'. That command completely
+erases entire content of the given database and initializes minimal
+database in its place. B<Use with extreme care!>
+
+=head1 AUTHOR
+
+XAO Inc.: Andrew Maltsev.
+
+=cut
+
+###############################################################################
+use strict;
+use Getopt::Long;
+use Pod::Usage;
+use XAO::Objects;
+
+my $dbuser;
+my $dbpasswd;
+my $dbdsn;
+Getopt::Long::Configure('bundling');
+GetOptions('user|u=s'               => \$dbuser,
+           'password|passwd|p=s'    => \$dbpasswd,
+           'dsn|s=s'                => \$dbdsn,
+           'help|h|?'               => sub { pod2usage(-verbose => 1); },
+           'usage'                  => sub { pod2usage(-verbose => 0); },
+          ) || pod2usage();
+
+$dbdsn || pod2usage("No --dsn given!\n");
+
+my $cmd=lc(shift(@ARGV)) || pod2usage("No command given!\n");
+
+if($cmd eq 'init') {
+    my $odb=XAO::Objects->new(objname => 'FS::Glue',
+                              dsn => $dbdsn,
+                              user => $dbuser,
+                              password => $dbpasswd,
+                              empty_database => 'confirm');
+}
+
+else {
+    pod2usage("Unknown command: $cmd\n");
+}
+
+exit(0);

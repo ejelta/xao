@@ -1,0 +1,202 @@
+NAME
+    XAO::DO::FS::Glue::MySQL_DBI - DBD::mysql driver for XAO::FS
+
+SYNOPSIS
+    Should not be used directly.
+
+DESCRIPTION
+    This module implements some functionality required by FS::Glue in MySQL
+    specific way. The module uses DBD/DBI interface; whenever possible it is
+    recommended to use direct MySQL module that works directly with database
+    without DBD/DBI layer in between.
+
+    This is the lowest level XAO::FS knows about. Underneath of it are
+    DBD::mysql, DBI, database itself, operationg system, hardware, atoms,
+    protons, gluons and so on and on and on.. The level might be not so low
+    if we look at it this way.
+
+METHODS
+    new ($%)
+        Creates new instance of the driver connected to the given database
+        using DSN, user and password.
+
+        Example:
+
+         my $driver=XAO::Objects->new(objname => 'FS::Glue::MySQL',
+                                      dsn => 'DBI:MySQL_DBI:dbname',
+                                      user => 'username',
+                                      password => '123123123');
+
+    add_field_integer ($$$$)
+        Adds new integer field to the given table. First parameter is table
+        name, then field name, then index flag, then unique flag, then
+        minimal value and then maximum value.
+
+        Note: Indexes only work with MySQL 3.23 and later.
+
+        Note: Unique modifier has a side effect of making that field NOT
+        NULL.
+
+    add_field_real ($$;$$)
+        Adds new real field to the given table. First parameter is table
+        name, then field name, then index flag, then unique flag, then
+        optional minimal value and then optional maximum value.
+
+        Note: Indexes only work with MySQL 3.23 and later.
+
+        Note: Unique modifier has a side effect of making that field NOT
+        NULL.
+
+    add_field_text ($$$$)
+        Adds new text field to the given table. First is table name, then
+        field name, then index flag, then unique flag and then maximum
+        length. Depending on maximum length it will create CHAR, TEXT,
+        MEDIUMTEXT or LONGTEXT.
+
+        Note: Indexes only work with MySQL 3.23 and later.
+
+        Note: Unique modifier has a side effect of making that field NOT
+        NULL. In most of the cases that means that you can only add it on
+        empty table.
+
+    add_table ($$$)
+        Creates new empty table with unique_id, key and optionally connector
+        fields.
+
+    delete_row ($$)
+        Deletes a row from the given name and unique_id.
+
+    disconnect ()
+        Permanently disconnects driver from database. Normally perl's
+        garbage collector will do that for you.
+
+    drop_field ($$)
+        Drops the given field from the given table in the database. Whatever
+        content was in that field is lost irrevocably.
+
+    drop_table ($)
+        Drops the given table with all its data. Whatever content was in
+        that table before is lost irrevocably.
+
+    empty_field ($$$)
+        Removes content of given field in the given table by storing NULL in
+        it.
+
+    initialize_database ($)
+        Removes all data from all tables and creates minimal tables that
+        support objects database.
+
+    list_keys ($$$$)
+        Returns a reference to an array containing all possible values of a
+        given field (list key) in the given table. If connector is given -
+        then it is used in select too.
+
+    load_structure ()
+        Loads Global_Fields and Global_Classes tables into internal hash for
+        use in Glue.
+
+        Returns the hash reference.
+
+        TODO: This should be changed so that data types would not be
+        hard-coded here. Probably a reference to a subroutine that will
+        parse and store them would do the job?
+
+    mangle_field_name ($)
+        Adds underscore to the end of field name to avoid problems with
+        reserved words. Could do something else in other drivers, do not
+        count on the fact that there would be underscore at the end.
+
+    retrieve_fields ($$$@)
+        Retrieves individual fields from the given table by unique ID of the
+        row. Always returns array reference even if there is just one field
+        in it.
+
+    search (\%query)
+        performs a search on the given query and returns a reference to an
+        array of arrays containing search results. Query hash is as prepared
+        by _build_search_query() in the Glue.
+
+    search_clause_wq ($field $string)
+        Returns database specific syntax for REGEX matching a complete word
+        if database supports it or undef otherwise. For MySQL returns REGEXP
+        clause.
+
+    search_clause_ws ($field $string)
+        Returns database specific syntax for REGEX matching the beginning of
+        a word if database supports it or undef otherwise. For MySQL returns
+        REGEXP clause.
+
+    setup_dictionary ($$$)
+        Supposed to set up dictionary tables if required. For MySQL driver
+        it does nothing as all dictionaries are stored in the same table
+        currently and this table is created when initial database layout is
+        created.
+
+    store_row ($$$$$$$)
+        Stores complete row of data into the given table. New name is
+        generated in the given key field if there is no name given.
+
+        Example:
+
+         $self->_driver->store_row($table,
+                                   $key_name,$key_value,
+                                   $conn_name,$conn_value,
+                                   \%row);
+
+        Connector name and connector value are optional if this list is
+        directly underneath of Global.
+
+    unique_id ($$$$$)
+        Looks up row unique ID by given key name and value (required) and
+        connector name and value (optional for top level lists).
+
+    update_dictionary ($table $uid $name $value)
+        Updates dictionary for the given field. Dictionary is supported by
+        two tables Global_Dictionary and Global_Backrefs. The first table is
+        dictionary itself, while the second holds references that allow to
+        delete/modify records in the dictionary quicker.
+
+        Here is an example content of Global_Dictionary with two names
+        ('John Silver' and 'John Doe') encoded. It assumes that unique_id's
+        of rows that holds `John Silver' and 'John Doe' in Customers table
+        are 15 and 25 respectfully.
+
+         | unique_id | table_name | field_name | strip  |  ids  |
+         +-----------+------------+------------+--------+-------+
+         |         1 | Customers  | name       | john   | 15,25 |
+         |         2 | Customers  | name       | silver | 15    |
+         |         3 | Customers  | name       | doe    | 25    |
+
+        Structure of Global_Backrefs for the same data:
+
+         | unique_id | table_name | table_uid | field_name | ids |
+         +-----------+------------+-----------+------------+-----+
+         |         1 | Customers  | 15        | name       | 1,2 |
+         |         2 | Customers  | 25        | name       | 1,3 |
+
+    update_field ($$$$) {
+        Stores new value into single data field. Example:
+
+         $self->_driver->update_field($table,$unique_id,$name,$value);
+
+    update_key ($$$$) {
+        Stores new value into key field in the given table. If value for key
+        is not given then it generates new random one just like store_row
+        does.
+
+         $self->_driver->update_key($table,$unique_id,$key_name,$key_value);
+
+    update_row ($$$$)
+        Updates multiple fields in the row by unique id and table.
+
+        Example:
+
+         $self->_driver->update_row($table,$unique_id,\%row);
+
+AUTHORS
+    Xao, Inc. (c) 2001. This module was developed by Andrew Maltsev
+    <am@xao.com> with help and valuable comments from other team members.
+
+SEE ALSO
+    Further reading: the XAO::FS manpage, the XAO::DO::FS::Glue manpage.
+
