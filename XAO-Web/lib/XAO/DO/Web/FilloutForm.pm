@@ -62,7 +62,7 @@ use XAO::Errors qw(XAO::DO::Web::FilloutForm);
 use base XAO::Objects->load(objname => 'Web::Page');
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: FilloutForm.pm,v 1.15 2003/09/26 00:49:45 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: FilloutForm.pm,v 1.16 2003/09/30 18:56:25 am Exp $ =~ /(\d+\.\d+)/);
 
 sub setup ($%);
 sub field_desc ($$);
@@ -564,6 +564,7 @@ sub display ($;%) {
             # value in the list, we assume that that empty value is the
             # prompt of some sort.
             #
+            $formparams{"$param.HTML_OPTIONS"}=$html;
             $fdata->{html}='<SELECT NAME="' . t2hf($name) . '">' .
                            ($has_empty ? '' : '<OPTION VALUE="">Please select</OPTION>') .
                            $html .
