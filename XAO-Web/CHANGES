@@ -1,4 +1,6 @@
 1.05 -
+    * Web::URL object added
+    * New clipboard parameters 'active_url' and 'active_url_secure' added
     * aTHX_ fix from Mike Castle (perl-5.8.0 with ithread support)
 
 1.04 - 7-Nov-2002
