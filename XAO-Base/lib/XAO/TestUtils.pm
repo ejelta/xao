@@ -42,7 +42,7 @@ use vars qw(@ISA @EXPORT_OK @EXPORT $VERSION);
 @EXPORT_OK=qw(xao_test_all xao_test);
 @EXPORT=();
 
-($VERSION)=(q$Id: TestUtils.pm,v 1.1 2003/03/14 00:00:06 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: TestUtils.pm,v 1.2 2003/03/22 01:40:33 am Exp $ =~ /(\d+\.\d+)/);
 
 ###############################################################################
 
@@ -63,7 +63,7 @@ Test execution is the same as for run_tests() method, see below.
 sub xao_test_all ($;@) {
     XAO::Utils::set_debug(shift @_) if $_[0]=~/^\d+$/;
 
-    my @tests;
+    my %tests;
     foreach my $namespace (@_) {
         ##
         # Scanning @INC to find directory holding these tests
@@ -75,7 +75,7 @@ sub xao_test_all ($;@) {
             while(my $file=readdir(D)) {
                 next if $file eq 'base.pm';
                 next unless $file =~ /^(.*)\.pm$/;
-                push(@tests,$namespace . '::' . $1);
+                $tests{$namespace . '::' . $1}=1;
             }
             closedir(D);
         }
@@ -85,11 +85,12 @@ sub xao_test_all ($;@) {
     # Randomizing tests list order to make sure that tests do not depend on
     # each other.
     #
+    my @tests=keys %tests;
     for(my $i=0; $i!=@tests; $i++) {
         push(@tests,splice(@tests,rand(@tests),1));
     }
 
-    dprint join(',',@tests);
+    dprint "Tests: ".join(',',@tests);
     xao_test(@tests);
 }
 
