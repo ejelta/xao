@@ -244,9 +244,10 @@ sub catalog {
 
 Returns custom priced items in an array of hashes:
 
-  cust_code     => 
-  item_code     => 
-  sales_price   => 
+  cust_code     => customer code
+  item_code     => standard item code
+  part_number   => custom part number for the item (optional)
+  sales_price   => price to sell that item for
 
 =cut  
 
@@ -258,7 +259,7 @@ sub cust_item {
 
     my $build=$args->{build} || sub {
         my %row;
-        @row{qw(cust_code item_code sales_price)}=split('\t',$_[0]);
+        @row{qw(cust_code item_code part_number sales_price)}=split('\t',$_[0]);
         return \%row;
     };
 

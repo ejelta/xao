@@ -13,31 +13,37 @@ endif
 " Based on HTML
 "
 source <sfile>:p:h/html.vim
-"source /usr/share/vim/vim60z/syntax/html.vim
 unlet b:current_syntax
+
+syn cluster htmlPreproc add=xaowebCode,xaowebVariable
 
 syn case match
 
-syn match   xaowebKeyword   "<%[A-Z][A-Za-z0-9_.]\+"
-syn match   xaowebClose     "%>"
-syn match   xaowebFlags     "\(<%[A-Z][A-Za-z0-9_.]\+\)\@<=/[a-z]\+"
-syn match   xaowebFlags     "/[a-z]\+/" contained
-syn region  xaowebFlags     matchgroup=xaowebVariable start="<%[A-Z][A-Z0-9_.]*\(\(/[a-z]\+\)\=%>\)\@=" end="%>"
+syn region xaowebCode     matchgroup=xaowebCode start="<%[A-Z][A-Za-z0-9_.:]\+" end="%>" contains=xaowebFlags,xaowebAttrName,xaowebVarName,xaowebValSubst,xaowebValConst
+syn match  xaowebAttrName "\(\s\|\_^\)\@<=[a-zA-Z][a-zA-Z0-9_.]*\>" contained display
+syn match  xaowebVarName  "\(\s\|\_^\)\@<=[A-Z][A-Z0-9_.]*\>" contained display
+syn region xaowebValSubst start=/"/ end=/"/ contains=xaowebCode,xaowebVariable contained
+syn region xaowebValSubst start=/{/ end=/}/ contains=xaowebCode,xaowebVariable contained
+syn region xaowebValConst start=/'/ end=/'/ contained
 
-"syn region  xaowebContent   start="<%" end="%>" skip=+".\{-}"\|{.\{-}}+ contains=xaowebAttr,xaowebVarAttr
-syn match   xaowebAttr      "[a-z][a-z0-9_.]\+\(=['"{]\)\@="
-syn match   xaowebVarAttr   "[A-Z][A-Z0-9_.]\+\(=['"{]\)\@="
+syn match  xaowebVariable "<\$[A-Za-z0-9_.]\+\(/[a-z]\+\)\{0,1}\$>" contains=xaowebFlags
+syn match  xaowebVariable "<%[A-Z0-9_.]\+\(/[a-z]\+\)\{0,1}%>" contains=xaowebFlags
 
-hi link xaowebClose     xaowebDKeyword
-hi link xaowebKeyword   xaowebDKeyword
-hi link xaowebVariable  xaowebDVariable
-hi link xaowebFlags     xaowebDFlags
+syn match  xaowebFlags    "\(<[%\$][A-Z][A-Za-z0-9_.:]\+\)\@<=/[a-z]\+" contained
 
-hi xaowebDKeyword       ctermfg=DarkBlue    guifg=DarkBlue      gui=bold
-hi xaowebDVariable      ctermfg=DarkGreen   guifg=DarkGreen     gui=bold
-hi xaowebDFlags         ctermfg=DarkCyan    guifg=DarkCyan      gui=bold
+syn match  xaowebError    "%>"
+syn match  xaowebError    "\$>"
 
-hi xaowebVarAttr        ctermfg=DarkGreen   guifg=DarkGreen     gui=NONE
-hi xaowebAttr           ctermfg=DarkBlue    guifg=DarkCyan      gui=NONE
+hi def link xaowebValConst  String
+hi def link xaowebValSubst  String
+
+hi xaowebCode      ctermfg=DarkBlue    guifg=DarkBlue      gui=bold
+hi xaowebVariable  ctermfg=DarkGreen   guifg=DarkGreen     gui=bold
+hi xaowebFlags     ctermfg=DarkCyan    guifg=DarkCyan      gui=bold
+
+hi xaowebAttrName  ctermfg=DarkBlue    guifg=DarkCyan      gui=NONE
+hi xaowebVarName   ctermfg=DarkGreen   guifg=DarkGreen     gui=NONE
+
+hi xaowebError     ctermfg=Red         guifg=Red           gui=NONE
 
 let b:current_syntax = "xaoweb"
