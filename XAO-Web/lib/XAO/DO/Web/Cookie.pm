@@ -29,16 +29,20 @@ use XAO::Utils;
 use base XAO::Objects->load(objname => 'Web::Page');
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: Cookie.pm,v 1.5 2002/02/12 20:50:48 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: Cookie.pm,v 1.6 2003/10/21 22:16:52 am Exp $ =~ /(\d+\.\d+)/);
 
 sub display ($;%) {
     my $self=shift;
     my $args=get_args(\@_);
+
     my $cgi=$self->siteconfig->cgi;
+
     my $name=$args->{name};
     defined($name) || $self->throw("display - no name given");
+
     if(defined($args->{value})) {
         my $value=$args->{value};
+        dprint "Adding a cookie, name='$name', value='$value'";
         my $c=$cgi->cookie(-name => $name,
                            -value => $value,
                            -expires => $args->{expires},
