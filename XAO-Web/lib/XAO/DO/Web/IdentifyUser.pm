@@ -219,7 +219,7 @@ use XAO::Objects;
 use base XAO::Objects->load(objname => 'Web::Action');
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: IdentifyUser.pm,v 1.17 2002/12/20 02:18:35 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: IdentifyUser.pm,v 1.18 2003/01/12 10:26:52 am Exp $ =~ /(\d+\.\d+)/);
 
 ###############################################################################
 
@@ -410,7 +410,7 @@ sub display_results ($$$;$) {
         my $cb_uri=$config->{cb_uri} || "/IdentifyUser/$type";
 
         my $page=$self->object;
-        $page->display(
+        $page->display(merge_refs($args,{
             path        => $args->{"$status.path"},
             template    => $args->{"$status.template"},
             CB_URI      => $cb_uri || '',
@@ -418,7 +418,7 @@ sub display_results ($$$;$) {
             TYPE        => $type,
             NAME        => $self->clipboard->get("$cb_uri/name") || '',
             VERIFIED    => $self->clipboard->get("$cb_uri/verified") || '',
-        );
+        }));
 
         $self->finaltextout('') if $args->{stop};
     }
