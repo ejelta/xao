@@ -1,3 +1,13 @@
+1.04 - 
+    * Better treatment of default values and null/undefs
+    * MySQL_DBI is split into SQL driver layer and there is a separate
+      object XAO::DO::FS::Glue::MySQL that does not use DBI/DBD and
+      makes XAO::FS about 2 times faster.
+    * Some new tests
+    * Cleanups and some speed optimisations
+    * All references to dictionary are dropped
+    * Benchmarking started to track performance (bench/results-*)
+
 1.03 - 18-Mar-2002
     * Fixed storing of an empty object
     * MAJOR: Now NULL and 'undef' are outlawed and never returned
