@@ -41,7 +41,7 @@ sub sql_connect ($%) {
 
     my $dsn=$args->{dsn} ||
         throw $self "sql_connect - no 'dsn' given";
-    $dsn=~m/^dbi:mysql:(database=)?(\w+)(;host=(.*?);?.*)?/i ||
+    $dsn=~m/^dbi:mysql:(database=)?(\w+)(;hostname=(.*?)(;|$))?/i ||
         throw $self "sql_connect - wrong DSN format ($dsn)";
     my $dbname=$2 . "\0";
     my $hostname=$3 ? $4 . "\0" : undef;
