@@ -1,5 +1,9 @@
 Revision history for Perl extension XAO::DO::Web::PodView
 
+1.0: 27-Dec-2001
+    * Initial public release
+    * Bugs fixed in lists processing
+
 0.2: 27-Dec-2001
 
     * Changed to use XAO::Web
