@@ -684,6 +684,21 @@ sub cleanup_spool {
 }
 
 ###############################################################################
+
+=item ping
+
+Pings remote server.
+
+=cut
+
+sub ping {
+    my $self=shift;
+    my $response='';
+    $self->call(sub { $response.=$_[0] }, undef, 'ping');
+    return $response;
+}
+
+###############################################################################
 1;
 __END__
 
