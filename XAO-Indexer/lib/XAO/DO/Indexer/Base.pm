@@ -380,7 +380,10 @@ sub update ($%) {
     #
     dprint "Analyzing data..";
     my %kw_data;
+    my $total=scalar(@$coll_ids);
+    my $count=0;
     foreach my $coll_id (@$coll_ids) {
+        dprint "..$count/$total" if (++$count%5000)==0;
         my $coll_obj=$coll->get($coll_id);
         $self->analyze_object(
             collection      => $coll,
@@ -415,8 +418,13 @@ sub update ($%) {
     $ni->put(create_time => $now);
     $nd->put(create_time => $now);
 
+    my @keywords=keys %{$kw_data{keywords}};
+    $total=scalar(@keywords);
+    $count=0;
     foreach my $kw (keys %{$kw_data{keywords}}) {
         my $kwd=$kw_data{keywords}->{$kw};
+
+        dprint "..$count/$total" if (++$count%5000)==0;
 
         my $kwmd5=md5_base64($kw);
         $kwmd5=~s/\W/_/g;
