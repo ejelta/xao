@@ -31,7 +31,7 @@ use XAO::Objects;
 use base XAO::Objects->load(objname => 'FS::Glue::SQL_DBI');
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: MySQL_DBI.pm,v 1.18 2003/03/22 01:44:16 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: MySQL_DBI.pm,v 1.19 2003/05/06 01:52:50 am Exp $ =~ /(\d+\.\d+)/);
 
 ###############################################################################
 
@@ -756,8 +756,13 @@ sub search ($%) {
 
     if(scalar(@{$query->{fields_list}})>1) {
         my @results;
+
+        ##
+        # We need to copy the array we get here to avoid replicating the
+        # last row into all rows by using reference to the same array.
+        #
         while(my $row=$self->sql_fetch_row($sth)) {
-            push @results,$row;
+            push @results,[ @$row ];
         }
         $self->sql_finish($sth);
         return \@results;
