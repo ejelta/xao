@@ -34,7 +34,7 @@ use XAO::Objects;
 use base XAO::Objects->load(objname => 'Web::Action');
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: Utility.pm,v 1.10 2002/12/12 17:54:20 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: Utility.pm,v 1.11 2003/01/08 21:13:11 am Exp $ =~ /(\d+\.\d+)/);
 
 sub check_mode ($$) {
     my $self=shift;
@@ -288,9 +288,9 @@ arguments as Page's pageurl method and displays the same value.
 
 =cut
 
-sub show_current_url ($;%)
-{ my $self=shift;
-  $self->textout($self->pageurl(@_));
+sub show_current_url ($;%) {
+    my $self=shift;
+    $self->textout($self->pageurl(@_));
 }
 
 ###############################################################################

@@ -82,6 +82,7 @@ testcases/testroot/projects/test/objects/Web/MyPage.pm
 testcases/testroot/projects/test/templates/bits/local-test
 testcases/testroot/projects/test/templates/index.html
 testcases/testroot/projects/test/templates/local.txt
+testcases/testroot/projects/test/templates/WebURL.html
 testcases/testroot/templates/bits/system-test
 testcases/testroot/templates/bits/WebCondition/text-default
 testcases/testroot/templates/bits/WebCondition/text-v2
