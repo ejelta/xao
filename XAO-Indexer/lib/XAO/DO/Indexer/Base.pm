@@ -65,7 +65,16 @@ sub analyze_text ($$$@) {
         foreach my $kw (@$kwlist) {
             $kw_data->{count_uid}->{$unique_id}->{$kw}++;
             if(! exists $kw_data->{ignore}->{$kw}) {
-                push(@{$kw_info->{lc($kw)}->{$unique_id}->{$field_num}},$pos);
+                my $kwt=$kw_info->{lc($kw)}->{$unique_id};
+                if(! $kwt->{$field_num}) {
+                    $kw_info->{lc($kw)}->{$unique_id}->{$field_num}=[ $pos ];
+                }
+                elsif(scalar(@{$kwt->{$field_num}}) < 15) {
+                    push(@{$kwt->{$field_num}},$pos);
+                }
+                else {
+                    ### dprint "Only first 15 same keywords in a field get counted ($kw, $field_num, $pos)";
+                }
             }
             $pos++;
         }
@@ -132,7 +141,12 @@ sub search ($%) {
     my $ordering=$args->{ordering} ||
         throw $self "search - no 'ordering'";
     my $ordering_seq=$self->get_orderings->{$ordering}->{seq} ||
-        throw $self "search - no sequence in $ordering ordering";
+        throw $self "search - no sequence in '$ordering' ordering";
+
+    ##
+    # Optional hash reference to be filled with statistics
+    #
+    my $rcdata=$args->{rcdata};
 
     dprint "Searching for '$str' (ordering=$ordering, seq=$ordering_seq)";
 
@@ -177,7 +191,17 @@ sub search ($%) {
             push(@simple,$s->[0]);
         }
         else {
-            my @t=map { $ignored->{$_} ? undef : $_ } @$s;
+            my @t=map {
+                if(exists $ignored->{$_}) {
+                    if($rcdata) {
+                        $rcdata->{ignored_words}->{$_}=$ignored->{$_};
+                    }
+                    undef;
+                }
+                else {
+                    $_;
+                }
+            } @$s;
             shift(@t) while @t && !defined($t[0]);
             pop(@t) while @t && !defined($t[$#t]);
             if(@t==1) {
@@ -193,8 +217,17 @@ sub search ($%) {
     ##
     # Simple words
     #
-    push(@simple,map { $ignored->{$_} ? () : $_ }
-                     @{$self->analyze_text_split(0,$str)});
+    push(@simple,map {
+        if(exists $ignored->{$_}) {
+            if($rcdata) {
+                $rcdata->{ignored_words}->{$_}=$ignored->{$_};
+            }
+            ();
+        }
+        else {
+            $_;
+        }
+    } @{$self->analyze_text_split(0,$str)});
     
     #dprint Dumper(\@multi),Dumper(\@simple);
 
@@ -359,7 +392,7 @@ sub search_simple ($$$$) {
     return [ ] unless @$sr;
 
     my $iddata=$data_list->get($sr->[0])->get("id_$oseq");
-    return [ split(/,/,$iddata) ];
+    return [ unpack('w*',$iddata) ];
 }
 
 ###############################################################################
@@ -449,17 +482,23 @@ sub update ($%) {
                 throw $self "update - no ordering sequence number for '$o_name'";
             my $iddata='';
             my $posdata='';
+
+            ##
+            # Posdata format
+            #
+            # |UID|FN|POS|POS|POS|0|FN|POS|POS|0|0|UID|FN|POS|
+            #
             foreach my $id (sort { &{$o_sub}(\%kw_data,$a,$b) } keys %$kwd) {
-                $iddata.=',' if $iddata;
-                $iddata.=$id;
-                $posdata.=':' if $posdata;
-                $posdata.="$id;" .
-                          join(';',map {
-                                       "$_," .
-                                       join(',',@{$kwd->{$id}->{$_}})
-                                   }
-                                   keys %{$kwd->{$id}}
-                              );
+                $iddata.=pack('w',$id);
+                $posdata.=pack('ww',0,0) if length($posdata);
+                $posdata.=
+                    pack('w',$id) .
+                    join(pack('w',0),
+                        map {
+                            pack('w',$_) .
+                            pack('w*',@{$kwd->{$id}->{$_}});
+                        } keys %{$kwd->{$id}}
+                    );
             }
 
             $nd->put(
@@ -508,13 +547,24 @@ sub analyze_object ($%) {
 sub decode_posdata ($$) {
     my ($self,$posdata)=@_;
 
+    my @dstr=unpack('w*',$posdata);
+
     my @d;
-    foreach my $iddata (split(/:/,$posdata)) {
-        my ($id,@poslist)=split(/;/,$iddata);
+    my $i=0;
+    while($i<@dstr) {
+        my $id=$dstr[$i++];
+        last unless $id;
         my %wd;
-        foreach my $posgroup (@poslist) {
-            my ($fnum,@wnums)=split(/,/,$posgroup);
-            $wd{$fnum}=\@wnums;
+        while($i<@dstr) {
+            my $fnum=$dstr[$i++];
+            last unless $fnum;
+            my @poslist;
+            while($i<@dstr) {
+                my $pos=$dstr[$i++];
+                last unless $pos;
+                push(@poslist,$pos);
+            }
+            $wd{$fnum}=\@poslist;
         }
         push(@d,[ $id, \%wd ]);
     }

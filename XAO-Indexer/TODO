@@ -1,3 +1,7 @@
+Make words that were ignored available to the caller (for displaying).
+
+----------------
+
 Need to check sorting algorithm for compliance with the problem pointed
 out by Andrey Tarasevich in z1. That is that order of elements equal
 from the point of view of sorting algorithm is the same in all keywords

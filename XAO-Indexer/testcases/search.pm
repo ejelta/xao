@@ -84,10 +84,18 @@ sub test_search {
         t08 => {
             query       => '"should the the alien"',
             name        => 17,
+            ignored     => {
+                the         => 150,
+                should      => undef,
+            }
         },
         t09 => {
             query       => '"glassy hypothesis" "A display calls"',
             name        => 147,
+            ignored     => {
+                a           => 145,
+                display     => undef,
+            },
         },
         t10 => {
             query       => 'believe',
@@ -119,7 +127,29 @@ sub test_search {
         my $query=$test->{query};
         foreach my $oname (sort keys %$test) {
             next if $oname eq 'query';
-            my $sr=$foo_index->search_by_string($oname,$query);
+            next if $oname eq 'ignored';
+            my %rcdata;
+            my $sr;
+            if($test->{ignored}) {
+                $sr=$foo_index->search_by_string($oname,$query,\%rcdata);
+                foreach my $w (keys %{$test->{ignored}}) {
+                    my $expect=$test->{ignored}->{$w};
+                    my $got=$rcdata{ignored_words}->{$w};
+                    if(defined $expect) {
+                        $self->assert(defined($got),
+                                      "Expected '$w' to be ignored, but it is not");
+                        $self->assert($got == $expect,
+                                      "Expected count $expect on ignored $w, got $got");
+                    }
+                    else {
+                        $self->assert(!defined($got),
+                                      "Expected '$w' not to be ignored, but it is (count=$got)");
+                    }
+                }
+            }
+            else {
+                $sr=$foo_index->search_by_string($oname,$query);
+            }
             my $got=join(',',@$sr);
             my $expect=$test->{$oname};
             ### if($got ne $expect) {
@@ -130,6 +160,8 @@ sub test_search {
         }
     }
 }
+
+###############################################################################
 
 use vars qw(@words);
 

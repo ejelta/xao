@@ -64,21 +64,33 @@ sub build_structure ($@) {
 
 ###############################################################################
 
-=item data_structure ($)
+=item data_structure (;$$)
 
 Returns data structure of Index data object, can be directly used in
-build_structure() method. Number of fields to hold orderings depends on
-site configuration's '/indexer/max_orderings' parameter and defaults to
-10.
+build_structure() method.
+
+The first optional argument is the number of fields to
+hold orderings. If it is not given site configuration's
+'/indexer/max_orderings' parameter is used, which defaults to 10.
+
+Second parameter sets the maximum size of single keyword data chunk that
+lists all places where this word was found. Default is taken from
+'/indexer/max_kwdata_length' configuration parameter and defaults to
+65000.
 
 =cut
 
 sub data_structure ($) {
-    my ($self,$max_orderings)=shift;
+    my ($self,$max_orderings,$max_kwdata_length)=@_;
 
     if(!$max_orderings) {
         my $config=XAO::Projects::get_current_project;
         $max_orderings=$config->get('/indexer/max_orderings') || 10;
+    }
+
+    if(!$max_kwdata_length) {
+        my $config=XAO::Projects::get_current_project;
+        $max_kwdata_length=$config->get('/indexer/max_kwdata_length') || 65000;
     }
 
     return {
@@ -105,11 +117,11 @@ sub data_structure ($) {
                 map {
                     (   "id_$_" => {
                             type        => 'text',
-                            maxlength   => 65000,
+                            maxlength   => $max_kwdata_length,
                         },
                         "idpos_$_" => {
                             type        => 'text',
-                            maxlength   => 65000,
+                            maxlength   => $max_kwdata_length,
                         }
                     );
                 } (1..$max_orderings),
@@ -198,15 +210,31 @@ Example:
  my $cn_index=$odb->fetch('/Indexes/customer_names');
  my $sr=$cn_index->search_by_string('name',$keywords);
 
+Optional third argument can refer to a hash. If it is present, the hash
+will be filled with some internal information. Most useful of which is
+the list of ignored words from the query, stored as 'ignored_words' in
+the hash.
+
+Example:
+ my %sd;
+ my $sr=$cn_index->search_by_string('name',$keywords,\%sd);
+ if(keys %{$sd{ignored_words}}) {
+     print "Ignored words:\n";
+     foreach my $word (sort keys %{$sd{ignored_words}}) {
+         print " * $word ($sd{ignored_words}->{$word}\n";
+     }
+ }
+
 =cut
 
-sub search_by_string ($$) {
-    my ($self,$ordering,$str)=@_;
+sub search_by_string ($$$;$) {
+    my ($self,$ordering,$str,$rcdata)=@_;
 
     return $self->indexer->search(
         index_object    => $self,
         search_string   => $str,
         ordering        => $ordering,
+        rcdata          => $rcdata,
     );
 }
 
