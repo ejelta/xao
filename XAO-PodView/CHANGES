@@ -3,6 +3,8 @@ Revision history for Perl extension XAO::DO::Web::PodView
 1.04: 21-Jan-2005
     * Cosmetic changes
     * Error handling
+    * 'the A::B::C manpage' => 'A::B::C' in links for consistency with
+      the modern perl's default
 
 1.03: 13-Jan-2005
     * License changed over to Artistic

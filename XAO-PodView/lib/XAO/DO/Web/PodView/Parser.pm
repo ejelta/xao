@@ -37,7 +37,7 @@ use XAO::Utils qw(:args :html :debug);
 use base qw(Pod::Parser);
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: Parser.pm,v 1.7 2005/01/22 02:51:56 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: Parser.pm,v 1.8 2005/01/22 03:19:09 am Exp $ =~ /(\d+\.\d+)/);
 
 ##
 # List of entities from Pod::Checker. I wonder who originally wrote that
@@ -491,7 +491,7 @@ sub interior_sequence ($$$)
       { $text =~ /^((.*?)\|)?(.*?)(\/(.*))?$/;
         my $manpage=$3;
         my $section=$5 || '';
-        my $comment=$2 || "the $manpage manpage";
+        my $comment=$2 || $manpage;
         return $comment unless $manpage;
         if($self->find_module_file($manpage))
          { $self->expand(path => $self->path('embed-link-pod'),

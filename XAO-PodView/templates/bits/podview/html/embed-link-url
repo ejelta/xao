@@ -1,1 +1,1 @@
-<A HREF="<%URL%>"><%TEXT/h%></A><%End%>
+<A HREF="<%URL%>"><$TEXT/h$></A><%End%>
