@@ -296,6 +296,8 @@ AUTHORS
     Despain and Jason Shupe.
 
 SEE ALSO
-    Recommended reading: XAO::Web, XAO::Objects, XAO::DO::Config, XAO::FS,
-    XAO::DO::FS::Config.
+    Recommended reading: XAO::DO::Web::Page (for templates language),
+    XAO::Objects (for object loading details), XAO::DO::Config (for site
+    config details), XAO::FS (for OO database interface),
+    XAO::DO::FS::Config, XAO::Web.
 

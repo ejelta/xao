@@ -345,10 +345,11 @@ Despain and Jason Shupe.
 =head1 SEE ALSO
 
 Recommended reading:
-L<XAO::Web>,
-L<XAO::Objects>,
-L<XAO::DO::Config>,
-L<XAO::FS>,
-L<XAO::DO::FS::Config>.
+L<XAO::DO::Web::Page> (for templates language),
+L<XAO::Objects> (for object loading details),
+L<XAO::DO::Config> (for site config details),
+L<XAO::FS> (for OO database interface),
+L<XAO::DO::FS::Config>,
+L<XAO::Web>.
 
 =cut

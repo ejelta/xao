@@ -45,7 +45,7 @@ sub new ($@);
 # Package version for checks and reference
 #
 use vars qw($VERSION);
-$VERSION=(0+sprintf('%u.%03u',(q$Id: Config.pm,v 2.1 2005/01/14 01:39:57 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
+$VERSION=(0+sprintf('%u.%03u',(q$Id: Config.pm,v 2.2 2005/02/24 01:58:49 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
 
 ###############################################################################
 
@@ -89,8 +89,8 @@ sub add_cookie ($@) {
     my $self=shift;
     my $cookie=(@_==1 ? $_[0] : get_args(\@_));
 
-    if(ref($cookie) && $cookie->{-domain} && ref($cookie->{-domain})) {
-        my $dlist=$cookie->{-domain};
+    if(ref($cookie) && $cookie->{'-domain'} && ref($cookie->{'-domain'})) {
+        my $dlist=$cookie->{'-domain'};
         foreach my $domain (@$dlist) {
             $self->add_cookie(merge_refs($cookie,{
                 -domain     => $domain,
@@ -104,25 +104,26 @@ sub add_cookie ($@) {
     # as previously set one - we replace it. Works only for
     # cookies stored as parameters, unprepared.
     #
-    if($self->{cookies} && ref($cookie) && ref($cookie) eq 'HASH') {
-        for(my $i=0; $i!=@{$self->{cookies}}; $i++) {
-            my $c=$self->{cookies}->[$i];
+    if($self->{'cookies'} && ref($cookie) && ref($cookie) eq 'HASH') {
+        for(my $i=0; $i!=@{$self->{'cookies'}}; $i++) {
+            my $c=$self->{'cookies'}->[$i];
 
             next unless ref($c) && ref($c) eq 'HASH';
 
-            next unless $c->{-name} eq $cookie->{-name} &&
-                        $c->{-path} eq $cookie->{-path} &&
-                        ((!defined($c->{-domain}) && !defined($cookie->{-domain})) ||
-                         (defined($c->{-domain}) && defined($cookie->{-domain}) &&
-                          $c->{-domain} eq $cookie->{-domain}));
+            next unless
+                $c->{'-name'} eq $cookie->{'-name'} &&
+                $c->{'-path'} eq $cookie->{'-path'} &&
+                ((!defined($c->{'-domain'}) && !defined($cookie->{'-domain'})) ||
+                 (defined($c->{'-domain'}) && defined($cookie->{'-domain'}) &&
+                  $c->{'-domain'} eq $cookie->{'-domain'}));
 
-            $self->{cookies}->[$i]=$cookie;
+            $self->{'cookies'}->[$i]=$cookie;
 
             return $cookie;
         }
     }
 
-    push @{$self->{cookies}},$cookie;
+    push @{$self->{'cookies'}},$cookie;
 }
 
 ###############################################################################

@@ -62,7 +62,7 @@ use XAO::Errors qw(XAO::DO::Web::FilloutForm);
 use base XAO::Objects->load(objname => 'Web::Page');
 
 use vars qw($VERSION);
-$VERSION=(0+sprintf('%u.%03u',(q$Id: FilloutForm.pm,v 2.1 2005/01/14 01:39:57 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
+$VERSION=(0+sprintf('%u.%03u',(q$Id: FilloutForm.pm,v 2.2 2005/02/24 01:58:49 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
 
 sub setup ($%);
 sub field_desc ($$);
@@ -499,10 +499,13 @@ sub display ($;%) {
             my @cl=$style eq 'usstate' ? $self->us_states_list()
                                        : $self->us_continental_states_list();
             my $html='';
-            my $stv=lc(substr($value,0,2));
+            my $stv=uc(substr($value,0,2));
             foreach my $c (@cl) {
-                my $sel=(lc(substr($c,0,2)) eq $stv) ? " SELECTED" : "";
-                $html.="<OPTION$sel>".t2ht($c)."</OPTION>\n";
+                my $stc=uc(substr($c,0,2));
+                my $sel=($stc eq $stv) ? " SELECTED" : "";
+                $html.="<OPTION$sel VALUE=\"" . t2hf($stc) . "\">" .
+                       t2ht($c) .
+                       "</OPTION>\n";
             }
             $formparams{"$param.HTML_OPTIONS"}=$html;
             $fdata->{html}=qq(<SELECT NAME=$name><OPTION VALUE="">Select State</OPTION>$html</SELECT>);
