@@ -116,6 +116,25 @@ END PROCEDURE.
                 ASSIGN v_item_alt_unit_size = p21.item_unit_data.alt_ut_size.
         END.
  END.               
+ else do:
+        FIND FIRST p21.catalog
+                 WHERE p21.catalog.item_code EQ v_item_code
+                 NO-LOCK NO-ERROR.
+        IF AVAILABLE p21.catalog THEN DO:        
+                ASSIGN v_item_ut_size = p21.catalog.pkg_size
+                        v_item_cost = p21.catalog.prices_std_cost /* XXX ? */
+                        v_item_desc1 = p21.catalog.desc1
+                        v_item_desc2 = p21.catalog.desc2
+                        v_unit = p21.catalog.sales_unit
+                        v_item_alt_unit_size = 1.
+                FIND FIRST p21.item_unit_data
+                        WHERE p21.item_unit_data.item_rec EQ p21.catalog.frecno
+                        NO-LOCK NO-ERROR.
+                IF AVAILABLE p21.item_unit_data THEN DO:
+                        ASSIGN v_item_alt_unit_size = p21.item_unit_data.alt_ut_size.
+                END.
+        END. 
+END.        
 
 v_cur_size = v_item_alt_unit_size.
 v_item_qty = v_item_qty * v_cur_size.
