@@ -50,7 +50,7 @@ use XAO::Objects;
 use base XAO::Objects->load(objname => 'Atom');
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: Glue.pm,v 1.27 2003/04/18 01:23:05 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: Glue.pm,v 1.28 2003/04/18 01:32:45 am Exp $ =~ /(\d+\.\d+)/);
 
 ###############################################################################
 
@@ -1352,7 +1352,9 @@ sub _build_search_field ($$$) {
     ##
     # Optimizing stupid things like 'D/../E' into 'E'
     #
-    $lha=$1.$2 while $lha=~/^(.*\/)?\w.*?\/\.\.\/(.*)$/;
+    while($lha=~/^(.*\/)?\w.*?\/\.\.\/(.*)$/) {
+        $lha=(defined($1) ? $1 : '') . $2;
+    }
 
     ##
     # Splitting field name into parts if it looks like path either
