@@ -194,7 +194,7 @@ use base XAO::Objects->load(objname => 'Web::Action');
 ##
 # Version
 use vars qw($VERSION);
-($VERSION)=(q$Id: IdentifyUser.pm,v 1.7 2001/12/19 02:32:07 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: IdentifyUser.pm,v 1.8 2001/12/19 02:48:25 am Exp $ =~ /(\d+\.\d+)/);
 
 ###############################################################################
 
@@ -306,33 +306,46 @@ sub check {
             throw XAO::E::DO::Web::IdentifyUser "No 'vf_time_prop' in the configuration";
         my $last_vf=$user->get($vf_time_prop);
 
-        if($last_vf && time - $last_vf <= $vf_expire_time) {
+        my $current_time=time;
+        if($last_vf && $current_time - $last_vf <= $vf_expire_time) {
             
             ##
             # If optional 'vf_key_prop' and 'vf_key_cookie' parameters
             # are present checking the content of the key cookie and
             # appropriate field in the user profile
             #
-            my $verified;
             if ($config->{vf_key_prop} && $config->{vf_key_cookie}) {
                 my $web_key=$self->cgi->cookie($config->{vf_key_cookie});
                 my $db_key=$user->get($config->{vf_key_prop});
                 if($db_key eq $web_key) {
-                    $verified=1;
-                    $self->siteconfig->add_cookie(
-                        -name    => $config->{vf_key_cookie},
-                        -value   => $web_key,
-                        -path    => '/',
-                        -expires => '+' . $config->{vf_expire_time} . 's',
-                    );
+                    $clipboard->put("$cb_uri/verified" => 1);
+
+                    ##
+                    # In order to reduce global heating we only transfer
+                    # cookie if more then 1/10 of the expiration time
+                    # passed since the last visit.
+                    #
+                    # Mozilla (and probably other browsers as well)
+                    # seems to re-write its cookies file every time it
+                    # gets a new cookie. Nobody cares, but I don't like
+                    # it for aesthetic reasons.
+                    #
+                    my $quant=int($vf_expire_time/10);
+                    dprint "quant=$quant, diff=",$current_time-$last_vf," vf_exp=$vf_expire_time";
+                    if($current_time-$last_vf > $quant) {
+                        $self->siteconfig->add_cookie(
+                            -name    => $config->{vf_key_cookie},
+                            -value   => $web_key,
+                            -path    => '/',
+                            -expires => '+' . ($vf_expire_time+$quant) . 's',
+                        );
+                        $user->put($vf_time_prop => $current_time);
+                    }
                 }
             }
             else {
-                $verified=1;
-            }
-            if($verified) {
                 $clipboard->put("$cb_uri/verified" => 1);
-                $user->put($vf_time_prop => time);
+                $user->put($vf_time_prop => $current_time);
             }
         }
     }
