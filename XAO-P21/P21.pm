@@ -18,7 +18,7 @@ require Exporter;
                 order
                 price
 );
-$VERSION = '0.10';
+$VERSION = '0.11';
 
 
 =head1 NAME
@@ -81,10 +81,10 @@ sub call {
             $result = $callback->($constr->($_));
         }
         delete $self->{Socket};
-        throw XAO::E::P21 "call - unexpected eof reading from socket";
+        throw XAO::E::P21 "unexpected eof reading from socket";
     }
     delete $self->{Socket};
-    throw XAO::E::P21 "call - SIGPIPE writing to socket";
+    throw XAO::E::P21 "SIGPIPE writing to socket";
 };
 
 =head1 items
@@ -316,59 +316,24 @@ The hash contains following attributes:
 
 =item line_number - the row number for this entry, first row being 1 (one)
 
-=item qty - quantity ordered for this item
-
 =item itemcode - a valid P21 itemcode (not a customer itemcode!)
+
+=item qty - quantity ordered for this item
 
 =item price - the unit price, not the total price
 
 =item email - email address for further notification
-     
+ 
 =back 
-
-Returns a hash reference with 'result' and 'info' members. Where
-result is zero for success and info contains internally used
-order ID which is the same as provided currenly.
 
 =cut  
 
 sub order {
-    my $self=shift;
-    my $order_list=shift;
-
-    my $constr=sub {
-        my ($result, $info) = split /\t/, $_[0];
-        return { result => $result, info => $info };
-    };
-
-    my $callback=sub {
-        $_[0];
-    };
-
-    my @order_array=map {
-        $_->{reference_number},
-        $_->{customer},
-        $_->{date},
-        $_->{po},
-        $_->{credit_card},
-        $_->{card_exp_month},
-        $_->{card_exp_year},
-        $_->{name},
-        $_->{address1},
-        $_->{address2},
-        $_->{city},
-        $_->{state},
-        $_->{zip},
-        $_->{inst1},
-        $_->{inst2},
-        $_->{line_number},
-        $_->{itemcode},
-        $_->{qty},
-        $_->{price},
-        $_->{email},
-    } @$order_list;
-
-    $self->call($constr,$callback, 'order_entry', @order_array);
+    my $self = shift;
+    $self->call( sub {
+                    my ($result, $info) = split /\t/, $_[0];
+                    { result => $result, info => $info }
+                 }, undef, 'order_entry', @_);
 }
 
 =head1 price
@@ -384,27 +349,20 @@ Returns reference to hash:
 =cut  
 
 sub price {
-    my $self=shift;
-    my $args=get_args(\@_);
-
-    my $quantity = $args->{quantity} || 1;
-    my $customer = $args->{customer};
-    my $itemcode = $args->{itemcode} || $args->{item};
-
+    my ($self, %param) = @_;
+    my $pricedata;
+    my $quantity = $param{quantity} || 1;
     $self->call(sub {
                     my ($price, $mult) = split /\t/, $_[0];
-                    return {
+                    {
                         price   => $price,
                         mult    => $mult,
-                        total   => $price * $mult * $quantity,
-                    };
+                        total   => $price * $mult * $quantity
+                    }
                 },
-                sub {
-                    return $_[0];
-                },
+                sub { $pricedata=$_[0] },
                 'price',
-                $customer,
-                $itemcode,
+                $param{customer} || '?', $param{item},
                 $quantity);
 }
 
