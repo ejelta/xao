@@ -97,4 +97,4 @@ ppppppppppppp.
 
 =head1         STOP
 
-Last 'C<code>' paragraph.
+Last 'C<code>' paragraph (c) 2001 (r).

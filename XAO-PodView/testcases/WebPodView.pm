@@ -78,7 +78,7 @@ ppppppppppppp.
 </DL>
 </DL>
 <FONT SIZE="+2" FACE="Verdana,Arial,Helvetica">STOP</FONT><P>
-Last '<CODE>code</CODE>' paragraph.<P>
+Last '<CODE>code</CODE>' paragraph &copy; 2001 &reg;.<P>
 </DIV>
 EOT
 

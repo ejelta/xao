@@ -47,9 +47,47 @@ content.
 
 Normally a developer does not need to use XAO::Web directly.
 
+=head1 SITE INITIALIZATION
+
+When XAO::Web creates a new site (for mod_perl that happens only once
+during each instance on Apache lifetime) it first loads new 'Config'
+object using XAO::Objects' new() method and site name it knows. If site
+overrides Config - it loads site specific Config, if not - the systme
+one.
+
+After the object is created XAO::Web embeds two standard additional
+configuration objects into it:
+
+=over
+
+=item hash
+
+Hash object is primarily used to keep site configuration parameters. It
+is just a XAO::SimpleHash object and most of its methods get embedded -
+get, put, getref, delete, defined, exists, keys, values, contains.
+
+=item web
+
+Web configuration embeds methods that allow cookie, clipboard and
+cgi manipulations -- add_cookie, cgi, clipboard, cookies, header,
+header_args.
+
+=back
+
+After that XAO::Web calls init() method on the Config object which
+is supposed to finish configuration set up and usually stuffs some
+parameters into 'hash', then connects to a database and embeds database
+configuration object into the Config object as well. Refer to
+L<XAO::Web::Intro> for an example of site specific Config object and
+init() method.
+
+When object initialization is completed the Config object is placed into
+XAO::Projects registry and is retrieved from there on next access to the
+same site in case of mod_perl.
+
 =head1 METHODS
 
-Methods of XAO::Web objects include
+Methods of XAO::Web objects include:
 
 =over
 

@@ -79,6 +79,9 @@ sub html_encode ($$$) {
     my $text=shift;
     #dprint "html_encode: $text";
     t2ht($text);
+    $text=~s/(\s+)(\(c\))([\s[:punct:]]+)/$1&copy;$3/ig;
+    $text=~s/(\s+)(\(r\))([\s[:punct:]]+)/$1&reg;$3/ig;
+    $text;
 }
 
 ##
@@ -408,22 +411,25 @@ sub interior_sequence ($$$)
 # Static method, does not get reference to $self!
 #
 my %module_cache;
-sub find_module_file ($$)
-{ my $self=shift;
-  my $module=shift;
-  #dprint "Looking for '$module'";
-  my $file=$INC{$module} || $module_cache{$module};
-  return $file if $file;
-  my $mp=$module;
-  $mp=~s/::/\//g;
-  $mp=~s/\s//g;
-  foreach my $dir (@INC)
-   { if(-r "$dir/${mp}.pm")
-      { $file="$dir/${mp}.pm";
-        last;
-      }
-   }
-  $file;
+sub find_module_file ($$) {
+    my $self=shift;
+    my $module=shift;
+    my $file=$INC{$module} || $module_cache{$module};
+    return $file if $file;
+    my $mp=$module;
+    $mp=~s/::/\//g;
+    $mp=~s/\s//g;
+    foreach my $dir (@INC) {
+        if(-r "$dir/${mp}.pm") {
+            $file="$dir/${mp}.pm";
+            last;
+        }
+        elsif(-r "$dir/${mp}.pod") {
+            $file="$dir/${mp}.pod";
+            last;
+        }
+    }
+    $file || undef;
 }
 
 ##

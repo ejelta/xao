@@ -1,4 +1,6 @@
-* A method on IdentifyUser that returns clipboard location or the
-  clibpoard itself for the given user type.
+* Generic way to get configuration values as an object uses
+  them. Taking clipboard path or cookie name for instance even if
+  default values are assumed for them. Very useful in templates and
+  other objects -- derived and independent.
 
 

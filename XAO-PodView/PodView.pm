@@ -123,7 +123,7 @@ use XAO::Utils;
 use base XAO::Objects->load(objname => 'Web::Page');
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: PodView.pm,v 1.3 2001/12/29 02:13:07 am Exp $ =~ /(\d+\.\d+)/);
+$VERSION='1.0';
 
 ##
 # List of entities from Pod::Checker. I wonder who originally wrote that
