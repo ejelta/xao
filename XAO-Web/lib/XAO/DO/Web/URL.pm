@@ -55,7 +55,7 @@ use XAO::Objects;
 use base XAO::Objects->load(objname => 'Web::Page');
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: URL.pm,v 1.1 2003/01/08 21:04:16 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: URL.pm,v 1.2 2003/01/08 21:33:46 am Exp $ =~ /(\d+\.\d+)/);
 
 sub display ($%) {
     my $self=shift;
@@ -74,8 +74,6 @@ sub display ($%) {
     else {
         $secure=$self->is_secure;
     }
-
-    dprint "active=$active full=$full secure=$secure";
 
     my $url=$full ? $self->pageurl(active => $active, secure => $secure) :
                     $self->base_url(active => $active, secure => $secure);
