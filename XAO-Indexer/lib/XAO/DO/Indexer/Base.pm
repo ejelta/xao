@@ -444,14 +444,18 @@ sub update ($%) {
     # data entry gets removed for ignored words, they will start from
     # zero and become non-ignored again.
     #
+    # It is possible, that ignore_limit is different now, so we only
+    # take in those that really exceed it.
+    #
     my $ignore_list=$index_object->get('Ignore');
     my %kw_data;
     if($is_partial) {
         dprint "Loading ignored keywords for partial update";
         foreach my $kwmd5 ($ignore_list->keys) {
             my ($kw,$count)=$ignore_list->get($kwmd5)->get('keyword','count');
-            $kw_data{counts}->{$kw}=$count;
-            $kw_data{ignore}->{$kw}=($count > $ignore_limit ? 1 : 0);
+            if($count>$ignore_limit) {
+                $kw_data{ignore}->{$kw}=1;
+            }
         }
     }
 
@@ -600,7 +604,7 @@ better. Going with it.
 
             ##
             # To be ignored? When we go through first ordering it might
-            # only be known after we merge data, otherwise we know
+            # only be known after we merge data below, otherwise we know
             # instantly.
             #
             if($kw_data{ignore}->{$kw}) {
