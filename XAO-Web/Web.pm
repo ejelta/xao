@@ -326,10 +326,10 @@ sub expand ($%) {
         my $pinfo=$ENV{PATH_INFO};
         my $uri=$ENV{REQUEST_URI};
         $uri=~s/^(.*?)\?.*$/$1/;
-        if($pinfo =~ /^\/$sitename(\/.+)?$uri/) {
+        if($pinfo =~ /^\/\Q$sitename\E(\/.+)?\Q$uri\E/) {
             # mod_rewrite
         }
-        elsif($uri =~ /^(.*)$pinfo$/) {
+        elsif($uri =~ /^(.*)\Q$pinfo\E$/) {
             # cgi
             $active_url.=$1;
         }
