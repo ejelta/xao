@@ -58,4 +58,8 @@ $customer->put('name' => 'test');
 $clist->put(c1 => $customer);
 $clist->put(c2 => $customer);
 
+print "Name1: ", $customer->get('name'), "\n";
+print "Name2: ", $odb->fetch('/Customers/c1/name'), "\n";
+print "Name3: ", $global->get('Customers')->get('c2')->get('name'), "\n";
+
 exit(0);

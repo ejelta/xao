@@ -10,15 +10,12 @@ __END__
 
 =head1 NAME
 
-XAO::FS - XAO Object Server API specification
+XAO::FS - XAO Foundation Server
 
 =head1 DESIGN REQUIREMENTS
 
-B<TO BE UPDATED ASAP!>
-
-Our experience is mostly based on e-commerce web sites development,
-but I think all the principles could be applied to any database driven
-project as well.
+The following description summarizes a set of design meetings held by
+XAO Inc.
 
 Usually from both developer and management point of view it is easier to
 think of a data piece as of some kind of closed entity with some content
@@ -53,7 +50,7 @@ all index fields and relations between tables in order to do something
 useful with the data. Changing data layout can become a nightmare too.
 
 These and other problems lead to the following list of requirements for
-our object server:
+the XAO Foundation Server:
 
 =over
 
@@ -154,14 +151,14 @@ These two types of objects call for a little different APIs -- data
 object API and list object API.
 
 Here is a short example of how to create simple structure similar to the
-one above from absolutely:
+one above from absolutely empty database:
 
  ##
  # Creating minimal required supporting tables
  #
  my $odb=XAO::Objects->new(objname => 'FS::Glue',
-                                dsn => 'OS:MySQL_DBI:testdatabase',
-                                empty_database => 'confirm');
+                           dsn => 'OS:MySQL_DBI:testdatabase',
+                           empty_database => 'confirm');
 
  ##
  # Retrieving top level object which is empty at that time.
@@ -235,7 +232,7 @@ can completely destroy entire tables. No questions asked.
 =head1 AUTHORS
 
 This document summarizes ideas from a set of design meetings held by XAO
-Inc. technical team in April 2001.
+Inc. technical team.
 
 The document is maintained by Andrew Maltsev <am@xao.com>. It is based
 on earlier documentation set prepared by Bil Drury <bild@xao.com> and

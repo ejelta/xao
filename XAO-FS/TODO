@@ -1,5 +1,4 @@
-Reverse ordering (some kind of 'orderby_reverse' or something). Marcos'
-idea.
+Add `limit' option to searches to limit the number of results retrieved.
 
 Negation of 'wq' and 'ws' in search() (Marcos' idea)
 
@@ -7,4 +6,5 @@ fill() method.
 
 temporary_data() method to get per-object space to store something
 temporary that would not be stored in the object on disk. Some cached
-values or something like that. Just a hash reference in fact.
+values or something like that. Just a hash or SimpleHash reference in
+fact.
