@@ -62,7 +62,7 @@ use XAO::Errors qw(XAO::DO::Web::FilloutForm);
 use base XAO::Objects->load(objname => 'Web::Page');
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: FilloutForm.pm,v 1.11 2003/08/29 01:13:19 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: FilloutForm.pm,v 1.12 2003/08/29 01:13:59 am Exp $ =~ /(\d+\.\d+)/);
 
 sub setup ($%);
 sub field_desc ($$);
@@ -427,7 +427,7 @@ sub display ($;%) {
             if(length($value)) {
                 my $opt=$fdata->{options};
                 if(ref($opt) eq 'HASH') {
-                    $newerr='Bad option value!' unless $opt->exists($value);
+                    $newerr='Bad option value!' unless exists $opt->{$value};
                 }
                 elsif(ref($opt) eq 'ARRAY') {
                     my $found;
