@@ -1,16 +1,16 @@
 =head1 NAME
 
-Symphero::SiteConfig - Base object for Symphero::Web site configuration
+Symphero::SiteConfig - Base object for XAO::Web site configuration
 
 =head1 SYNOPSIS
 
-Currently is only useful in Symphero::Web site context.
+Currently is only useful in XAO::Web site context.
 
 =head1 DESCRIPTION
 
 This object holds all site-specific configuration values and provides
 various useful methods that are not related to any particular
-displayable object (see L<Symphero::Objects::Page>).
+displayable object (see L<XAO::Objects::Page>).
 
 In mod_perl context this object is initialized only once for each apache
 process and then is re-used every time until that process
@@ -20,7 +20,7 @@ serve more then one site, they won't step on each other toes.
 
 =head1 UTILITY FUNCTIONS
 
-Symphero::SiteConfig provides some utility functions that do not require
+XAO::SiteConfig provides some utility functions that do not require
 any configuration object context.
 
 =over
@@ -28,10 +28,10 @@ any configuration object context.
 =cut
 
 ###############################################################################
-package Symphero::SiteConfig;
+package XAO::SiteConfig;
 use strict;
 use Carp;
-use Symphero::Utils;
+use XAO::Utils;
 use DBI;
 use Error;
 
@@ -71,15 +71,15 @@ sub sitename ($);
 # Package version for checks and reference
 #
 use vars qw($VERSION);
-($VERSION)=(q$Id: SiteConfig.pm,v 1.1 2001/10/23 00:45:09 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: SiteConfig.pm,v 1.2 2001/10/23 01:54:28 am Exp $ =~ /(\d+\.\d+)/);
 
 ##
 # Deriving form SimpleHash and Exporter
 #
-use Symphero::SimpleHash;
+use XAO::SimpleHash;
 use Exporter;
 use vars qw(@ISA @EXPORT);
-@ISA=qw(Symphero::SimpleHash Exporter);
+@ISA=qw(XAO::SimpleHash Exporter);
 @EXPORT=qw(get_site_name get_site_config);
 
 ##
@@ -97,7 +97,7 @@ found or undef if not.
 
 Example:
 
- my $cf=Symphero::SiteConfig->find('testsite');
+ my $cf=XAO::SiteConfig->find('testsite');
 
 You do not normally need to use this function. It is called from
 symphero.pl handler to find or initialize current site configuration.
@@ -134,13 +134,13 @@ sub get_site_config () {
 
 =item get_site_name ()
 
-Returns current site name and throws Symphero::Errors::SiteConfig error
+Returns current site name and throws XAO::Errors::SiteConfig error
 if it is not available. That means that normally you should not care, it
 will always return a correct value to you.
 
 Example:
 
- use Symphero::SiteConfig;
+ use XAO::SiteConfig;
 
  my $sitename=get_site_name();
 
@@ -148,7 +148,7 @@ Example:
 
 sub get_site_name () {
     $current_site_config ||
-        throw Symphero::Errors::SiteConfig "get_site_name() called before site has been defined";
+        throw XAO::Errors::SiteConfig "get_site_name() called before site has been defined";
     $current_site_config->sitename;
 }
 
@@ -158,8 +158,8 @@ sub get_site_name () {
 
 =head1 METHODS
 
-Symphero::SiteConfig is a Symphero::SimpleHash with all its methods also
-available through inheritance (see L<Symphero::SimpleHash>).
+XAO::SiteConfig is a XAO::SimpleHash with all its methods also
+available through inheritance (see L<XAO::SimpleHash>).
 
 After you got a configuration object by either calling to siteconfig()
 method of any displayable object or by calling get_site_config() outside
@@ -175,7 +175,7 @@ of a displayable object you can call the following methods on it:
 
 Creates and blesses new configuration object with given site
 name. Accepts only one argument - site name. That site name must match
-object namespace -- Symphero::Objects::sitename::Config.
+object namespace -- XAO::Objects::sitename::Config.
 
 Normally you should not override that method or call it directly. Any
 initialization that you need you should do in overridden init() method
@@ -198,7 +198,7 @@ sub new ($@) {
         my $args=get_args(\@_);
         $sitename=$args->{sitename};
     }
-    $sitename || throw Symphero::Errors::SiteConfig "new - no sitename given";
+    $sitename || throw XAO::Errors::SiteConfig "new - no sitename given";
 
     return $data_objects{$sitename} if $data_objects{$sitename};
 
@@ -206,16 +206,16 @@ sub new ($@) {
     # What class we actually are?
     #
     my $class=ref($proto) || $proto;
-    if($class ne "Symphero::Objects::${sitename}::Config") {
-        throw Symphero::Errors::SiteConfig
+    if($class ne "XAO::Objects::${sitename}::Config") {
+        throw XAO::Errors::SiteConfig
               "$class::new -- class name does not match site name ($sitename)";
     }
 
     ##
     # A bit of magic here to create an instance of SimpleHash so that it
-    # will think it is an instance of Symphero::SiteConfig.
+    # will think it is an instance of XAO::SiteConfig.
     #
-    my $self=Symphero::SimpleHash::new($class);
+    my $self=XAO::SimpleHash::new($class);
     $data_objects{$sitename}=$self;
 
     ##
@@ -317,7 +317,7 @@ Example:
  my $cgi=$self->siteconfig->cgi;
  my $name=$cgi->param('name');
 
-Or better yet, as cgi method also exists in Symphero::Objects::Page
+Or better yet, as cgi method also exists in XAO::Objects::Page
 object:
 
  my $cgi=$self->cgi;
@@ -337,7 +337,7 @@ sub cgi ($$)
    { $data->{cgi}=$newcgi;
      return $newcgi;
    }
-  throw Symphero::Errors::SiteConfig "$data->{class}::cgi() Storing new CGI requires allow_special_access()";
+  throw XAO::Errors::SiteConfig "$data->{class}::cgi() Storing new CGI requires allow_special_access()";
 }
 
 ###############################################################################
@@ -418,7 +418,7 @@ handler it gets permanently. That handler would be returned any time you
 call dbh() method.
 
 If it cannot connect to the database it throws
-Symphero::Errors::SiteConfig error that you can catch if you want.
+XAO::Errors::SiteConfig error that you can catch if you want.
 
 Arguments are:
 
@@ -445,7 +445,7 @@ sub dbconnect ($%)
 { my $self=shift;
   my $args=get_args(\@_);
   my $dbh=DBI->connect($args->{db_dsn},$args->{db_user},$args->{db_pass});
-  $dbh || throw Symphero::Errors::SiteConfig ref($self)."::dbconnect - can't connect to the database";
+  $dbh || throw XAO::Errors::SiteConfig ref($self)."::dbconnect - can't connect to the database";
   $self->fill($args);
   $self->enable_special_access();
   $self->dbh($dbh);
@@ -459,20 +459,20 @@ sub dbconnect ($%)
 
 Returns or sets database handler for the current site configuration. If
 you asked it for database handler and it was not created during site
-initialization dbh() method will throw Symphero::Errors::SiteConfig
+initialization dbh() method will throw XAO::Errors::SiteConfig
 error.
 
 Normally you can assume that if you need DBH you get it.
 
 Example:
 
- my $db=Symphero::MultiValueDB->new(dbh => $self->siteconfig->dbh,
+ my $db=XAO::MultiValueDB->new(dbh => $self->siteconfig->dbh,
                                     table => "test");
 
-Dbh() method is also duplicated in Symphero::Objects::Page and therefor
+Dbh() method is also duplicated in XAO::Objects::Page and therefor
 is available from all displayable objects by simply saying:
 
- my $db=Symphero::MultiValueDB->new(dbh => $self->dbh,
+ my $db=XAO::MultiValueDB->new(dbh => $self->dbh,
                                     table => "test");
 
 =cut
@@ -485,10 +485,10 @@ sub dbh ($$)
       { $data->{dbh}=$newdbh;
         return $newdbh;
       }
-     throw Symphero::Errors::SiteConfig
+     throw XAO::Errors::SiteConfig
            ref($self)."::dbh - Storing new DBH requires allow_special_access()";
    }
-  $data->{dbh} || throw Symphero::Errors::SiteConfig ref($self)."::dbh - no DBH available";
+  $data->{dbh} || throw XAO::Errors::SiteConfig ref($self)."::dbh - no DBH available";
 }
 
 ###############################################################################
@@ -608,12 +608,12 @@ object. Should be overridden in every site's configuration object.
 
 Complete example of site configuration object implementation:
 
- package Symphero::Objects::testsite::Config;
+ package XAO::Objects::testsite::Config;
  use strict;
- use Symphero::SiteConfig;
+ use XAO::SiteConfig;
 
  use vars qw(@ISA);
- @ISA=qw(Symphero::SiteConfig);
+ @ISA=qw(XAO::SiteConfig);
 
  ##
  # Configuration data
@@ -647,12 +647,12 @@ sub init ($)
 
 =item odbconnect (%)
 
-Connects to the Object Database (see L<Symphero::OS>) using given DSN,
+Connects to the Object Database (see L<XAO::OS>) using given DSN,
 user name and password. That handler would be returned any time you call
 odb() method later.
 
 If it cannot connect to the database it throws
-Symphero::Errors::SiteConfig error that you can catch if you want.
+XAO::Errors::SiteConfig error that you can catch if you want.
 
 Arguments are:
 
@@ -682,12 +682,12 @@ sub odbconnect ($%) {
     my $self=shift;
     my $args=get_args(\@_);
 
-    my $odb=Symphero::Objects->new(objname => 'Data::System::Glue',
+    my $odb=XAO::Objects->new(objname => 'Data::System::Glue',
                                    dsn => $args->{odb_dsn},
                                    user => $args->{odb_user},
                                    password => $args->{odb_password} ||
                                                $args->{odb_pass});
-    $odb || throw Symphero::Errors::SiteConfig
+    $odb || throw XAO::Errors::SiteConfig
                   ref($self)."::odbconnect - can't connect to the object database ($args->{odb_dsn})";
 
     $self->enable_special_access();
@@ -704,14 +704,14 @@ sub odbconnect ($%) {
 Returns or sets object database handler for the current site
 configuration. If you asked for database handler and it was
 not created during site initialization the method will throw
-a Symphero::Errors::SiteConfig error.
+a XAO::Errors::SiteConfig error.
 
 Example:
 
  my $customers=$self->siteconfig->odb->fetch('/Customers');
 
 Odb() method is also duplicated for convenience in
-Symphero::Objects::Page and therefore is available from all displayable
+XAO::Objects::Page and therefore is available from all displayable
 objects by simply saying:
 
  my $customers=$self->odb->fetch('/Customers');
@@ -727,11 +727,11 @@ sub odb ($$) {
             $data->{odb}=$newodb;
             return $newodb;
         }
-        throw Symphero::Errors::SiteConfig
+        throw XAO::Errors::SiteConfig
               ref($self)."::odb - Storing new ODB requires allow_special_access()";
     }
 
-    $data->{odb} || throw Symphero::Errors::SiteConfig
+    $data->{odb} || throw XAO::Errors::SiteConfig
                           ref($self)."::odb - no ODB available";
 }
 
@@ -832,7 +832,7 @@ sub sitename ($)
 ##
 # Error package for MultiValueDB.
 #
-package Symphero::Errors::SiteConfig;
+package XAO::Errors::SiteConfig;
 use Error;
 use vars qw(@ISA);
 @ISA=qw(Error::Simple);
@@ -840,7 +840,7 @@ use vars qw(@ISA);
 sub throw ($$) {
     my $self=shift;
     my $text=shift;
-    $self->SUPER::throw("Symphero::Objects::" . $text);
+    $self->SUPER::throw("XAO::Objects::" . $text);
 }
 
 ##
@@ -857,10 +857,9 @@ get_site_name(), get_site_config().
 
 =head1 AUTHOR
 
-Brave New Worlds, Inc.: Andrew Maltsev <am@xao.com>.
+XAO, Inc.: Andrew Maltsev <am@xao.com>.
 
 =head1 SEE ALSO
 
-Recommended reading:
-L<Symphero::Web>,
-L<Symphero::Page>.
+Have a look at L<XAO::Base> for general overview and at
+L<XAO::SimpleHash> for the list of derived methods.

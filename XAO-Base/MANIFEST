@@ -10,5 +10,7 @@ lib/XAO/SimpleHash.pm
 lib/XAO/SiteConfig.pm
 lib/XAO/Utils.pm
  ------------------------------------------- testcases
+testcases/SimpleHash.pm
+testcases/SiteConfig.pm
 testcases/Utils.pm
 testcases/base.pm
