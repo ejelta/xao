@@ -36,10 +36,10 @@ sub test_uri {
     # Creating deeper structure required for better tests.
     #
     $odb->fetch('/Customers/c1')->add_placeholder(
-        name => 'Orders',
-        type => 'list',
-        class => 'Data::Order',
-        key => 'order_id',
+        name    => 'Orders',
+        type    => 'list',
+        class   => 'Data::Order',
+        key     => 'order_id',
     );
     my $orders=$odb->fetch('/Customers/c1/Orders');
     $orders->put(o1 => $orders->get_new());

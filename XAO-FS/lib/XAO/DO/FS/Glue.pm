@@ -1324,7 +1324,7 @@ sub _list_store_object ($$$) {
         push @flist, $fn;
     }
     my %fields;
-    @fields{@flist}=$value->get(@flist);
+    @fields{@flist}=$value->get(@flist) if @flist;
 
     my $table=$desc->{table};
     $table || $self->throw("_list_store_object - no table");

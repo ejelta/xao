@@ -1,4 +1,4 @@
-1.01 - 20-Nov-2001
+1.01 - 15-Dec-2001
     * added describe method for List
     * added embeddable Config object
     * fixed Makefile.PL to store test db password correctly
@@ -7,6 +7,7 @@
     * uri() fixed on objects created by container_object()
     * 'unique' always assumes that 'index' is set too, fixes
       problem with build_structure()
+    * diagnostic of connection failure improved
 
 1.1 - 2-Nov-2001
     * Initial public release

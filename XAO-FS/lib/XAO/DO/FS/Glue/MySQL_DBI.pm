@@ -29,7 +29,7 @@ package XAO::DO::FS::Glue::MySQL_DBI;
 use strict;
 use XAO::Utils qw(:debug :args :keys);
 use XAO::Objects;
-use Error;
+use XAO::Errors qw(XAO::DO::FS::Glue::MySQL_DBI);
 use DBI;
 use DBD::mysql;
 
@@ -947,7 +947,9 @@ sub lock_tables ($@) {
 
 sub unlock_tables ($) {
     my $self=shift;
-    $self->{dbh}->do('UNLOCK TABLES') || die 'unlock_tables - failed';
+    return unless $self->{dbh};
+    $self->{dbh}->do('UNLOCK TABLES') ||
+        die 'unlock_tables - failed';
 }
 
 ##
@@ -956,7 +958,7 @@ sub unlock_tables ($) {
 sub throw ($@) {
     my $self=shift;
     $self->unlock_tables();
-    throw Error::Simple ref($self)."::".join('',@_,"\n");
+    throw XAO::E::DO::FS::Glue::MySQL_DBI join('',@_);
 }
 
 sub throw_sql ($$) {
