@@ -33,7 +33,7 @@ use XAO::Utils;
 use XAO::Errors;
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: Atom.pm,v 1.3 2002/03/11 23:45:28 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: Atom.pm,v 1.4 2002/06/20 00:20:30 am Exp $ =~ /(\d+\.\d+)/);
 
 ###############################################################################
 
@@ -41,7 +41,7 @@ use vars qw($VERSION);
 
 Generic new - just stores everything that it gets in a hash. Can be
 overriden if an object uses something different then a hash as a base or
-need a different behavior.
+needs a different behavior.
 
 =cut
 
