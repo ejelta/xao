@@ -1,5 +1,5 @@
 1.03 - XXX
-    * Put search capability of Search.pm into FS.pm where it belongs.
+    * Put search capability of Web::Search into Web::FS where it belongs.
     * Web::FilloutForm - html block is now available for `email' style
     * Web::FilloutForm - passes original arguments to form and success
       templates
