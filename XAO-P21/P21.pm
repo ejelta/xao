@@ -600,7 +600,8 @@ sub view_order_details {
             @arr==8 ||
                 throw XAO::E::P21 "view_order_details - wrong INVOICE ($str)";
             @line{qw(type ship_number ord_date inv_date ship_date
-                     total_stax_amt out_freight cust_code ship_inst1)}=@arr;
+                     total_stax_amt out_freight cust_code
+                     ship_inst1 ship_branch)}=@arr;
         }
         elsif($arr[0] eq 'ITEM') {
             @arr==5 ||

@@ -62,7 +62,8 @@ FOR EACH wbw_head WHERE wbw_head.ord_number = onum NO-LOCK:
         wbw_head.total_stax_amt         d_d
         wbw_head.out_freight            d_d
         wbw_head.cust_code              d_d
-        wbw_head.ship_inst1             skip
+        wbw_head.ship_inst1             d_d
+        wbw_head.ship_branch            skip
     .
 
 END.
