@@ -1,7 +1,7 @@
 use ExtUtils::MakeMaker;
 
 WriteMakefile(
-    'AUTHOR'         => 'Andrew Maltsev, XAO Inc. <am@xao.com>',
+    'AUTHOR'         => 'Andrew Maltsev, http://ejelta.com/',
     'ABSTRACT'       => 'XAO::Web plugin for viewing .pod files',
     'NAME'           => 'XAO::DO::Web::PodView',
     'DISTNAME'       => 'XAO-PodView',
@@ -18,7 +18,7 @@ sub MY::postamble
 config::	README
 
 README:	PodView.pm
-	pod2text PodView.pm > README
+	\@COLUMNS=80 pod2text PodView.pm > README
 
 install::
 	\$(PERL) -MXAO::PluginUtils=install_templates \\

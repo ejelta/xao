@@ -1,0 +1,13 @@
+# http://module-build.sourceforge.net/META-spec.html
+#XXXXXXX This is a prototype!!!  It will change in the future!!! XXXXX#
+name:         XAO-PodView
+version:      1.03
+version_from: PodView.pm
+installdirs:  site
+requires:
+    IO::String:                    1.01
+    Pod::Parser:                   1.12
+    XAO::Web:                      1.02
+
+distribution_type: module
+generated_by: ExtUtils::MakeMaker version 6.17

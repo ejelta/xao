@@ -1,5 +1,8 @@
 Revision history for Perl extension XAO::DO::Web::PodView
 
+1.03: 13-Jan-2005
+    * License changed over to Artistic
+
 1.02: 3-Jan-2002
     * Mistake in HTML encoding of paragraphs
 
