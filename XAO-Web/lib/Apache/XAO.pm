@@ -241,7 +241,8 @@ EOT
     # We don't serve subrequests. Don't know why, but they produce
     # double output under some circumstances.
     #
-    if(!MP2 && !$r->main) {
+    ### $r->server->log_error("uri=$uri ptype=$ptype subreq=".$r->main);
+    if(!MP2 && $r->main) {
         $r->server->log_error("SUBREQ: ignoring (uri=$uri)");
         return Apache::DECLINED;
     }
