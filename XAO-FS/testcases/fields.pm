@@ -597,7 +597,6 @@ sub test_null {
         my $got=$c->get($name);
         $self->assert(defined($got),
                       "Got 'undef' for name=$name (initial)");
-
         $self->assert($got eq $expect,
                       "Expect $expect, got $got for name=$name (initial)");
 
@@ -610,7 +609,6 @@ sub test_null {
         $got=$c->get($name);
         $self->assert(defined($got),
                       "Got 'undef' for name=$name (deleted)");
-
         $self->assert($got eq $expect,
                       "Expect $expect, got $got for name=$name (deleted)");
 
@@ -621,9 +619,18 @@ sub test_null {
         $got=$c->get($name);
         $self->assert(defined($got),
                       "Got 'undef' for name=$name (put undef)");
-
         $self->assert($got eq $expect,
                       "Expect $expect, got $got for name=$name (put undef)");
+
+        $c->put($name => '');
+
+        $c=$clist->get('c2');
+
+        $got=$c->get($name);
+        $self->assert(defined($got),
+                      "Got 'undef' for name=$name (put undef, detached)");
+        $self->assert($got eq $expect,
+                      "Expect $expect, got $got for name=$name (put empty)");
 
         $c->put($name => $expect);
 
@@ -632,7 +639,6 @@ sub test_null {
         $got=$c->get($name);
         $self->assert(defined($got),
                       "Got 'undef' for name=$name (put default)");
-
         $self->assert($got eq $expect,
                       "Expect $expect, got $got for name=$name (put default)");
 
@@ -663,6 +669,14 @@ sub test_null {
                       "Got 'undef' for name=$name (put undef, detached)");
         $self->assert($got eq $expect,
                       "Expect $expect, got $got for name=$name (put undef, detached)");
+
+        $c->put($name => '');
+
+        $got=$c->get($name);
+        $self->assert(defined($got),
+                      "Got 'undef' for name=$name (put undef, detached)");
+        $self->assert($got eq $expect,
+                      "Expect $expect, got $got for name=$name (put empty, detached)");
 
         $c->put($name => $expect);
 
