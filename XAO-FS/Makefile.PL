@@ -110,7 +110,7 @@ WriteMakefile(
         'Error'         => '0.15',
         'Pod::Usage'    => '1.12',
         'Test::Unit'    => '0.15',
-        'XAO::Base'     => '1.05',
+        'XAO::Base'     => '1.06',
     },
     'EXE_FILES'     => [
         'scripts/xao-fs',

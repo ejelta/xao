@@ -1,3 +1,5 @@
+1.06 -
+
 1.05 - 12-Nov-2003
     * XAO::Utils - get_args works as merge_refs on multiple hash refs
     * XAO::TestUtils - new module, automated testing for XAO packages
