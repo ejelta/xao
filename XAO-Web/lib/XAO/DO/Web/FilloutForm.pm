@@ -62,7 +62,7 @@ use XAO::Errors qw(XAO::DO::Web::FilloutForm);
 use base XAO::Objects->load(objname => 'Web::Page');
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: FilloutForm.pm,v 1.9 2003/08/18 21:53:58 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: FilloutForm.pm,v 1.10 2003/08/25 19:46:42 am Exp $ =~ /(\d+\.\d+)/);
 
 sub setup ($%);
 sub field_desc ($$);
@@ -298,8 +298,30 @@ sub display ($;%) {
                 }
             }
         }
-        elsif($style eq 'phone') {
-            # No checks
+        elsif($style eq 'phone') {      # +99 (123) 456-78-90 x 123
+            $fdata->{maxlength}=30 unless $fdata->{maxlength};
+            if(length($value)) {
+                my ($p,$e)=split(/[a-zA-Z]/,$value);
+
+                $p=~s/\D//g;
+                $e||='';
+                $e=~s/\D//g;
+
+                if(length($p)<10) {
+                    $newerr="Needs area code!";
+                }
+                elsif(length($p)==10) {
+                    $p='1' . $p;
+                }
+                elsif(length($p)>13) {
+                    $newerr="Too many digits!";
+                }
+
+                if(!$newerr) {
+                    ($value=$p)=~s/^(.+)(...)(...)(....)$/+$1 ($2) $3-$4/;
+                    $value.=" ext. $e" if $e;
+                }
+            }
         }
         elsif($style eq 'int' || $style eq 'integer' || $style eq 'number') {
             if(length($value) && $value !~ /^\d+$/) {
@@ -384,8 +406,24 @@ sub display ($;%) {
             $value=$value ? 1 : 0;
         }
         elsif($style eq 'selection') {
-            if(length($value) && !exists($fdata->{options}->{$value})) {
-                $newerr='Bad option value!';
+            if(length($value)) {
+                my $opt=$fdata->{options};
+                if(ref($opt) eq 'HASH') {
+                    $newerr='Bad option value!' unless $opt->exists($value);
+                }
+                elsif(ref($opt) eq 'ARRAY') {
+                    my $found;
+                    for(my $i=0; $i<@$opt; $i+=2) {
+                        if($opt->[$i] eq $value) {
+                            $found=1;
+                            last;
+                        }
+                    }
+                    $newerr='Bad option value!' unless $found;
+                }
+                else {
+                    $newerr='Unknown data in options!';
+                }
             }
         }
         else {
@@ -457,18 +495,43 @@ sub display ($;%) {
             my $opt=$fdata->{options} ||
                 $self->throw("display - no 'options' for '$name' selection");
 
+            my $has_empty;
+            my $used_selected;
             my $html='';
-            foreach my $v (sort { $opt->{$a} cmp $opt->{$b} } keys %$opt) {
-                my $sel=$value eq $v ? ' SELECTED' : '';
-                $html.='<OPTION VALUE="' . 
-                       t2hf($v) .
-                       '"' .  $sel . '>' .
-                       t2ht($opt->{$v}) .
+            my $html_sub=sub {
+                my ($v,$t)=@_;
+                $has_empty=1 if !length($v);
+                my $sel='';
+                if(!$used_selected && $value eq $v) {
+                    $sel=' SELECTED';
+                    $used_selected=1;
+                }
+                $html.='<OPTION VALUE="' . t2hf($v) . '"' . $sel . '>' .
+                       t2ht($t) .
                        '</OPTION>';
-            }
+            };
 
+            if(ref($opt) eq 'HASH') {
+                foreach my $v (sort { $opt->{$a} cmp $opt->{$b} } keys %$opt) {
+                    &{$html_sub}($v,$opt->{$v});
+                }
+            }
+            elsif(ref($opt) eq 'ARRAY') {
+                for(my $i=0; $i<@$opt; $i+=2) {
+                    &{$html_sub}($opt->[$i],$opt->[$i+1]);
+                }
+            }
+            else {
+                throw $self "Unknown data type in 'options' name=$name";
+            };
+
+            ##
+            # We do not display 'Please select' if there is an empty
+            # value in the list, we assume that that empty value is the
+            # prompt of some sort.
+            #
             $fdata->{html}='<SELECT NAME="' . t2hf($name) . '">' .
-                           '<OPTION VALUE="">Please select</OPTION>' .
+                           ($has_empty ? '' : '<OPTION VALUE="">Please select</OPTION>') .
                            $html .
                            '</SELECT>';
         }
