@@ -219,7 +219,7 @@ use XAO::Objects;
 use base XAO::Objects->load(objname => 'Web::Action');
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: IdentifyUser.pm,v 1.16 2002/11/09 02:22:15 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: IdentifyUser.pm,v 1.17 2002/12/20 02:18:35 am Exp $ =~ /(\d+\.\d+)/);
 
 ###############################################################################
 
@@ -464,6 +464,11 @@ Logs in user. Saves current time to vf_time_prop database field.
 Generates pseudo unique key and saves it value to vf_key_prop
 (optional). Sets identification cookies.
 
+There is a parameter named 'force' that allows to log in a user without
+checking the password. One should be very careful not to abuse this
+possibility! For security reasons 'force' will only have effect when
+there is no 'password' parameter at all.
+
 =cut
 
 sub login ($;%) {
@@ -492,11 +497,15 @@ sub login ($;%) {
     ##
     # Checking password
     #
+    my $password=$args->{password};
     if($user) {
-        my $password=$args->{password};
-
-        if(! $password) {
-            $errstr="No password given";
+        if(!defined($password)) {
+            if($args->{force}) {
+                # success!
+            }
+            else {
+                $errstr="No password given";
+            }
         }
         else {
             my $pass_encrypt=lc($config->{pass_encrypt} || 'plaintext');
@@ -518,20 +527,21 @@ sub login ($;%) {
             if($dbpass ne $password) {
                 $errstr='Password mismatch';
             }
-            else {
-
-                ##
-                # Calling overridable function that can check some
-                # additional condition. Return a string with the
-                # suggested error message or an empty string on success.
-                #
-                $errstr=$self->login_check(name => $username,
-                                           object => $user,
-                                           password => $password,
-                                           type => $type,
-                                          );
-            }
         }
+    }
+
+    ##
+    # Calling overridable function that can check some
+    # additional condition. Return a string with the
+    # suggested error message or an empty string on success.
+    #
+    if(!$errstr) {
+        $errstr=$self->login_check(
+            name        => $username,
+            object      => $user,
+            password    => $password,
+            type        => $type,
+        );
     }
 
     ##
