@@ -170,7 +170,9 @@ sub analyze ($$;$$) {
                     last;
                 }
                 elsif($type eq 'xaoweb') {
-                    throw XAO::E::Web "analyze - no objname/objargs for '$dir'";
+                    if(!$od->{'objname'} || !$od->{'objargs'}) {
+                        throw XAO::E::Web "analyze - no objname/objargs for '$dir'";
+                    }
                     $rhash=merge_refs($od);
                 }
                 elsif($allow_other_types) {
