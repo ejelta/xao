@@ -53,24 +53,24 @@ hash (first argument) using unique id from the second argument.
 sub analyze_text ($$$@) {
     my $self=shift;
     my $kw_data=shift;
-    my $unique_id=shift;
+    my $unique_id=0+shift;
 
     $kw_data->{keywords}||={};
     my $kw_info=$kw_data->{keywords};
 
-    my $field_num=1;
+    my $field_num=0;
     foreach my $text (@_) {
-        my $kwlist=$self->analyze_text_split($field_num,$text);
+        my $kwlist=$self->analyze_text_split($field_num+1,$text);
         my $pos=1;
         foreach my $kw (@$kwlist) {
             $kw_data->{count_uid}->{$unique_id}->{$kw}++;
             if(! exists $kw_data->{ignore}->{$kw}) {
                 my $kwt=$kw_info->{lc($kw)}->{$unique_id};
-                if(! $kwt->{$field_num}) {
-                    $kw_info->{lc($kw)}->{$unique_id}->{$field_num}=[ $pos ];
+                if(! $kwt->[$field_num]) {
+                    $kw_info->{lc($kw)}->{$unique_id}->[$field_num]=[ $pos ];
                 }
-                elsif(scalar(@{$kwt->{$field_num}}) < 15) {
-                    push(@{$kwt->{$field_num}},$pos);
+                elsif(scalar(@{$kwt->[$field_num]}) < 15) {
+                    push(@{$kwt->[$field_num]},$pos);
                 }
                 else {
                     ### dprint "Only first 15 same keywords in a field get counted ($kw, $field_num, $pos)";
@@ -452,6 +452,9 @@ sub update ($%) {
     $ni->put(create_time => $now);
     $nd->put(create_time => $now);
 
+    my %o_prepare;
+    my %o_finish;
+
     my @keywords=keys %{$kw_data{keywords}};
     $total=scalar(@keywords);
     $count=0;
@@ -478,9 +481,20 @@ sub update ($%) {
         my $o_hash=$self->get_orderings;
 
         foreach my $o_name (keys %$o_hash) {
+            if(!exists($o_prepare{$o_name})) {
+                $o_prepare{$o_name}=$o_hash->{$o_name}->{sortprepare};
+                $o_finish{$o_name}=$o_hash->{$o_name}->{sortfinish};
+
+                if($o_prepare{$o_name}) {
+                    &{$o_prepare{$o_name}}($self,$index_object,\%kw_data);
+                }
+            }
+
             my $o_sub=$o_hash->{$o_name}->{sortsub};
+
             my $o_seq=$o_hash->{$o_name}->{seq} ||
                 throw $self "update - no ordering sequence number for '$o_name'";
+
             my $iddata='';
             my $posdata='';
 
@@ -491,14 +505,17 @@ sub update ($%) {
             #
             foreach my $id (sort { &{$o_sub}(\%kw_data,$a,$b) } keys %$kwd) {
                 $iddata.=pack('w',$id);
+
+                my $field_num=0;
                 $posdata.=pack('ww',0,0) if length($posdata);
                 $posdata.=
                     pack('w',$id) .
                     join(pack('w',0),
                         map {
-                            pack('w',$_) .
-                            pack('w*',@{$kwd->{$id}->{$_}});
-                        } keys %{$kwd->{$id}}
+                            ++$field_num;
+                            defined($_) ? (pack('w',$field_num) . pack('w*',@$_))
+                                        : ()
+                        } @{$kwd->{$id}}
                     );
             }
 
@@ -514,6 +531,14 @@ sub update ($%) {
         );
 
         $data_list->put($kwmd5 => $nd);
+    }
+
+    ##
+    # Finishing sorting (freeing memory and so on)
+    #
+    foreach my $o_name (keys %o_finish) {
+        next unless $o_finish{$o_name};
+        &{$o_finish{$o_name}}($self,$index_object,\%kw_data);
     }
 
     ##
