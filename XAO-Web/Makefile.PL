@@ -108,6 +108,7 @@ WriteMakefile(
     'NAME'          => 'XAO::Web',
     'VERSION_FROM'  => 'Web.pm',
     'PREREQ_PM'     => {
+        'Digest::MD5'   => '2.13',
         'Error'         => '0.13',
         'XAO::Base'     => '1.01',
         'XAO::FS'       => '1.01',

@@ -36,7 +36,9 @@ Nothing.
 
 =head1 AUTHOR
 
-Brave New Worlds, Inc.: Andrew Maltsev <am@xao.com>.
+Copyright (c) 2000-2001 XAO, Inc.
+
+Andrew Maltsev <am@xao.com>.
 
 =head1 SEE ALSO
 

@@ -41,6 +41,14 @@ sub test_all {
         $self->assert($got eq $expect,
                       "Test $test failed - expected '$expect', got '$got'");
     }
+
+    $template='<%SetArg name="TEST" value="NEW" override%><%TEST%><%End%>';
+    my $got=$page->expand(template => $template,
+                          TEST => 'OLD',
+                         );
+    my $expect='NEW';
+    $self->assert($got eq $expect,
+                  "Test with override failed - expected '$expect', got '$got'");
 }
 
 1;
