@@ -20,7 +20,7 @@ use XAO::Utils;
 use base XAO::Objects->load(objname => 'Web::Page');
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: Redirect.pm,v 1.4 2003/01/29 04:20:38 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: Redirect.pm,v 1.5 2003/01/29 19:25:07 am Exp $ =~ /(\d+\.\d+)/);
 
 ###############################################################################
 
@@ -76,14 +76,14 @@ sub display {
         if(substr($url_path,0,1) eq '/') {
             my $base_url=$self->base_url(
                 active  => $base ? 0 : 1,
-                secure  => $secure ? 1 : 0,
+                secure  => $secure,
             );
             $url=$base_url . $url_path;
         }
         else {
             $url=$self->pageurl(
                 active  => $base ? 0 : 1,
-                secure  => $secure ? 1 : 0,
+                secure  => $secure,
             );
             $url=~s/^(.*\/)(.*?)$/$1$url_path/;
         }
