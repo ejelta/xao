@@ -1,3 +1,5 @@
+1.04 - XXX
+
 1.03 - 18-Mar-2002
     * XAO::Cache - generic cache interface (new)
     * XAO::DO::Cache::Memory - memory cache (new)

@@ -843,8 +843,8 @@ Arguments are:
 
  name           => content name
  comment        => comment for that release
- text           => full text for that release; stripped of whitespace in the
-                   end and in the beginning
+ text           => full text for that release; stripped of whitespace
+                   in the end and in the beginning
  mime_type      => MIME type, default is text/plain
 
 =cut
@@ -893,10 +893,14 @@ sub content_store ($%) {
 
 =back
 
+=head1 INTERNAL METHODS
+
 The following methods are not available through 'mode' argument and
 serve various internal purposes.
 
 =over
+
+=cut
 
 ###############################################################################
 
