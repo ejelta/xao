@@ -4,6 +4,7 @@ MANIFEST
 MANIFEST.SKIP
 README
 TODO
+META.yml
 Makefile.PL
 Web.pm
 test.pl
@@ -125,4 +126,3 @@ bench/bench.pl
 bench/results-20020719-am-workstation.txt
 bench/results-20020723-am-workstation.txt
 bench/results-20030610-shuttle-xpc-sb51.txt
-META.yml                                 Module meta-data (added by MakeMaker)
