@@ -1,4 +1,5 @@
-#!/usr/bin/perl -w
+# Copyright (c) 1997-2001 XAO Inc.
+###############################################################################
 use strict;
 use ExtUtils::MakeMaker;
 use ExtUtils::Manifest;

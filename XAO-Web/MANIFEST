@@ -10,8 +10,20 @@ PageSupport/PageSupport.xs
  --------------------------------- XAO::*
 lib/XAO/DO/Web/Config.pm
 lib/XAO/DO/Web/Page.pm
+lib/XAO/PluginUtils.pm
 lib/XAO/Templates.pm
+ --------------------------------- Handlers
+handlers/xao-apache.pl
+ --------------------------------- Standard Templates
+templates/index.html
  --------------------------------- Test Cases
 testcases/base.pm
+testcases/FS.pm
 testcases/Page.pm
 testcases/PageSupport.pm
+ --------------------------------- Test installation tree
+testcases/testroot/projects/test/objects/Config.pm
+testcases/testroot/projects/test/templates/bits/local-test
+testcases/testroot/projects/test/templates/local.txt
+testcases/testroot/templates/bits/system-test
+testcases/testroot/templates/system.txt

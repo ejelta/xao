@@ -1,9 +1,22 @@
-##
-# Templates retriever. Uses inter-process persistent cache in shared
-# memory to store once retrieved templates.
-# Cache top level keys are site names, for system templates '/' is used as
-# a site name.
-#
+=head1 NAME
+
+XAO::Templates - templates caching and retrieving module
+
+=head1 SYNOPSIS
+
+XXX
+
+=head1 DESCRIPTION
+
+XXX
+
+Templates retriever. Uses persistent cache to store once retrieved
+templates.  Cache top level keys are site names, for system templates
+'/' is used as a site name.
+
+=cut
+
+###############################################################################
 package XAO::Templates;
 use strict;
 use XAO::Base qw($homedir $projectsdir);
@@ -105,9 +118,14 @@ sub list (%)
   wantarray ? @list : (@list ? \@list : undef);
 }
 
-##
-# That's it
-#
+###############################################################################
 use vars qw($VERSION);
-($VERSION)=('$Id: Templates.pm,v 1.1 2001/10/26 02:47:01 am Exp $' =~ /(\d+\.\d+)/);
+($VERSION)=('$Id: Templates.pm,v 1.2 2001/11/14 02:13:13 am Exp $' =~ /(\d+\.\d+)/);
 1;
+__END__
+
+=head1 AUTHOR
+
+Copyright (c) 2000-2001 XAO Inc.
+
+The author is Andrew Maltsev <am@xao.com>

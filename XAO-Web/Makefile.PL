@@ -1,7 +1,7 @@
 # Copyright (c) 1997-2001 XAO Inc.
 ###############################################################################
-
 use ExtUtils::MakeMaker;
+use ExtUtils::Manifest;
 
 ##
 # This is the version for XAO::Web, should be updated manually.
@@ -79,6 +79,34 @@ EOT
     }
 }
 
+##
+# This rather stupid workaround is here because for some reason
+# MakeMaker excludes /Config/ files from MAN3PODS
+#
+my %man3pods;
+foreach my $n (keys %{ExtUtils::Manifest::maniread()}) {
+    next unless $n =~ '^(Web).pm$' ||
+                $n =~ '^lib/XAO/(.*)\.(pm|pod)$';
+    my $man=$1;
+    $man=~s/\/+/::/g;
+    $man='XAO::' . $man;
+
+    open(F,$n) || die "Can't read $n: $!";
+    my $pod=0;
+    while(<F>) {
+        if(/^=(\w+)/) {
+            $pod=1;
+            last;
+        }
+    }
+    $pod || die "$n ($man) does not have documentation";
+
+    $man3pods{$n}='$(INST_MAN3DIR)/' . $man . '.3';
+}
+
+
+use XAO::Base qw($homedir);
+
 WriteMakefile(
     'ABSTRACT'      => 'XAO Web Developer',
     'AUTHOR'        => 'XAO Inc. http://xao.com/',
@@ -86,16 +114,20 @@ WriteMakefile(
     'VERSION'       => $version,
     'PREREQ_PM'     => {
         'Error'         => '0.13',
-        'XAO::Base'     => '1.0',
-        'XAO::FS'       => '1.0',
+        'XAO::Base'     => '1.01',
+        'XAO::FS'       => '1.01',
     },
+    'INSTALLBIN'	=> $homedir . '/bin',
+    'INSTALLSCRIPT'	=> $homedir . '/handlers',
+    'EXE_FILES'     => [ 'handlers/xao-apache.pl' ],
+    'MAN3PODS'      => \%man3pods,
 );
 
 #sub MY::postamble
 #{ <<EOT;
 #
 #install::
-#	[ -d $homedir ] || mkdir $homedir && chmod 755 $homedir
+	#[ -d $homedir ] || mkdir $homedir && chmod 755 $homedir
 #
 #EOT
 #}
