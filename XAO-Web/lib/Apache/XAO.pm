@@ -95,32 +95,39 @@ use XAO::Web;
 
 ###############################################################################
 
-use mod_perl;
-use Apache::Server;
-use Apache::Log;
+use mod_perl 1.26;
+use constant MP2 => ($mod_perl::VERSION && $mod_perl::VERSION >= 1.99);
 
 BEGIN {
-    if($mod_perl::VERSION && $mod_perl::VERSION >= 1.99) {
+    if(MP2) {
         require Apache::Const;
-        Apache::Const->import(qw(:common));
+        Apache::Const->import(qw(OK DECLINED SERVER_ERROR NOT_FOUND));
+
+        ##
+        # Required to bring in methods used below
+        #
+        require Apache::Server;
+        Apache::Server->import();
         require Apache::ServerUtil;
         Apache::ServerUtil->import();
-        require Apache::RequestRec;
-        Apache::RequestRec->import();
-        require Apache::RequestIO;
-        Apache::RequestIO->import();
+        require Apache::Log;
+        Apache::Log->import();
+
+        ##
+        # Asking dprint/eprint to use Apache logging
+        #
+        #XXX#TODO#
     }
     else {
         require Apache::Constants;
-        Apache::Constants->import(qw(:common));
+        Apache::Constants->import(qw(OK DECLINED SERVER_ERROR NOT_FOUND));
     }
 }
 
 ###############################################################################
 
 sub handler_content ($);
-sub parse_ip_port ($);
-sub server_error ($$$);
+sub server_error ($$;$);
 
 ###############################################################################
 
@@ -131,6 +138,7 @@ sub handler {
     # Request URI
     #
     my $uri=$r->uri;
+    ### $r->server->log_error("HANDLER: $uri");
 
     ##
     # Checking if we were called as a PerlHandler and complaining
@@ -146,7 +154,7 @@ EOT
     # By convention we disallow access to /bits/ for security reasons.
     #
     if(index($uri,'/bits/')>=0) {
-        $r->server->log_error("Attempt of direct access to /bits/ ($uri)");
+        ### $r->server->log_error("Attempt of direct access to /bits/ ($uri)");
         return NOT_FOUND;
     }
 
@@ -204,6 +212,7 @@ EOT
     }
     my $ptype=$pagedesc->{type} || 'xaoweb';
     if($ptype eq 'external') {
+        ### $r->server->log_error("EXTERNAL: uri=$uri");
         return Apache::DECLINED;
     }
     elsif($ptype eq 'maptodir') {
@@ -220,27 +229,47 @@ EOT
         $dir.='/' . $uri;
         $dir=~s/\/{2,}/\//g;
         $r->filename($dir);
+        ### $r->server->log_error("MAPTODIR: => $dir");
         return Apache::OK;
     }
 
     ##
-    # This may be wrong, I do not completely understand mechanics that
-    # lead to it, but we get sub-requests from Apache::Status that
-    # install a handler and then it gets called on the main request, not
-    # a sub-request.
+    # We don't serve subrequests. Don't know why, but they produce
+    # double output under some circumstances.
     #
-    return Apache::DECLINED if $r->main;
+    if(!$r->is_main) {
+        ### $r->server->log_error("SUBREQ: ignoring (uri=$uri)");
+        return Apache::DECLINED;
+    }
 
     ##
-    # Default is to install a content handler to produce actual
-    # output. We also pass the knowledge along in the 'notes' table.
+    # We pass the knowledge along in the 'notes' table.
     #
-    dprint "Installing XAO::Web handler to handle uri=$uri";
     $r->pnotes(sitename  => $sitename);
     $r->pnotes(xaoweb    => $web);
     $r->pnotes(pagedesc  => $pagedesc);
-    $r->push_handlers(PerlHandler => \&handler_content);
-    return Apache::OK;
+
+    ##
+    # Default is to install a content handler to produce actual
+    # output. Under mod_perl 2.x (tested under 1.99 actually) it does
+    # not work for some reason.
+    #
+    # Besides, it could be more optimal to have two always present
+    # handlers instead of pushing/popping automatically.
+    #
+    my $htype=lc($r->dir_config('HandlerType') || 'auto');
+    if($htype eq 'auto') {
+        $r->push_handlers(PerlHandler => \&handler_content);
+        ### $r->server->log_error("TRANS: auto (uri=$uri)");
+        return Apache::DECLINED;
+    }
+    elsif($htype eq 'static') {
+        ### $r->server->log_error("TRANS: static (uri=$uri)");
+        return Apache::DECLINED;
+    }
+    else {
+        return server_error($r,"Unknown HandlerType '$htype'");
+    }
 }
 
 ###############################################################################
@@ -249,10 +278,13 @@ sub handler_content ($) {
     my $r=shift;
 
     ##
-    # Getting the data
+    # Getting the data. If there is no sitename then trans handler
+    # was not executed or has declined, so we do not need to do anything.
     #
     my $uri=$r->uri;
-    my $sitename=$r->pnotes('sitename');
+    ### $r->server->log_error("CONTENT: uri=$uri");
+    my $sitename=$r->pnotes('sitename') ||
+        return Apache::DECLINED;
     my $web=$r->pnotes('xaoweb');
     my $pagedesc=$r->pnotes('pagedesc');
 
@@ -276,15 +308,10 @@ sub handler_content ($) {
 
 ###############################################################################
 
-sub parse_ip_port ($) {
-    my ($port,$ip)=unpack_sockaddr_in($_[0]);
-    return (inet_ntoa($ip),$port);
-}
-
-###############################################################################
-
-sub server_error ($$$) {
+sub server_error ($$;$) {
     my ($r,$name,$desc)=@_;
+
+    $desc=$name unless $desc;
 
     $r->server->log_error("*ERROR: Apache::XAO - $name");
     $r->custom_response(SERVER_ERROR,"<H2>XAO::Web System Error: $name</H2>\n$desc");

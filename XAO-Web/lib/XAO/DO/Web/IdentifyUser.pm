@@ -297,7 +297,7 @@ use XAO::Objects;
 use base XAO::Objects->load(objname => 'Web::Action');
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: IdentifyUser.pm,v 1.28 2004/03/17 08:18:41 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: IdentifyUser.pm,v 1.29 2004/05/19 00:04:48 am Exp $ =~ /(\d+\.\d+)/);
 
 ###############################################################################
 
@@ -395,6 +395,7 @@ sub check {
             throw $self "check - no 'id_cookie' in the configuration";
 
         my $cookie_value=$self->cgi->cookie($id_cookie);
+
         if(!$cookie_value) {
             return $self->display_results($args,'anonymous');
         }
@@ -942,6 +943,11 @@ sub login ($;%) {
             );
             $key_id=$key_list->put($key_obj);
             $key_obj=$key_list->get($key_id);
+        }
+        else {
+            $key_obj->put(
+                $vf_time_prop       => $now,
+            );
         }
 
         if($config->{vf_time_user_prop}) {
