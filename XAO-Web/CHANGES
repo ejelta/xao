@@ -1,4 +1,5 @@
 1.04 - XXX
+    * Web::Utility - 'show-pagedesc' fixed
     * Web::Utility - 'number-ordinal-suffix' added
     * XAO::Web - clipboard() method added
     * XAO::Web - expand() method added

@@ -34,7 +34,7 @@ use XAO::Objects;
 use base XAO::Objects->load(objname => 'Web::Action');
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: Utility.pm,v 1.7 2002/04/10 21:24:49 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: Utility.pm,v 1.8 2002/04/25 18:52:14 am Exp $ =~ /(\d+\.\d+)/);
 
 sub check_mode ($$) {
     my $self=shift;
@@ -355,11 +355,11 @@ mapped documents.
 
 =cut
 
-sub show_pagedesc ($)
-{ my $self=shift;
-  my $args=get_args(\@_);
-  my $name=$args->{name} || 'fullpath';
-  $self->textout($self->siteconfig->get('pagedesc')->{$name} || '');
+sub show_pagedesc ($) {
+    my $self=shift;
+    my $args=get_args(\@_);
+    my $name=$args->{name} || 'fullpath';
+    $self->textout($self->clipboard->get('pagedesc')->{$name} || '');
 }
 
 ###############################################################################

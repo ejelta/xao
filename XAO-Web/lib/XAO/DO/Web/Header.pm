@@ -9,7 +9,8 @@ Currently is only useful in XAO::Web site context.
 =head1 DESCRIPTION
 
 Simple HTML header object. Accepts the following arguments, modifies
-them as appropriate and displays "/bits/page-header" template.
+them as appropriate and displays "/bits/page-header" template passig the
+rest of arguments unmodified.
 
 =over
 
@@ -87,7 +88,7 @@ use XAO::Objects;
 use base XAO::Objects->load(objname => 'Web::Page');
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: Header.pm,v 1.2 2002/01/04 02:13:23 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: Header.pm,v 1.3 2002/04/25 18:52:13 am Exp $ =~ /(\d+\.\d+)/);
 
 ###############################################################################
 # Displaying HTML header.
@@ -104,10 +105,12 @@ sub display ($;%) {
     my $meta="";
     $meta.=qq(<META NAME="Keywords" CONTENT="$args->{keywords}">\n) if $args->{keywords};
     $meta.=qq(<META NAME="Description" CONTENT="$args->{description}">\n) if $args->{description};
-    $self->SUPER::display(path => $args->{path} || "/bits/page-header",
-                          TITLE => $args->{title} || "XAO::Web -- No Title",
-                          META=>$meta,
-                         );
+
+    $self->SUPER::display(merge_refs($args, {
+                            path => $args->{path} || "/bits/page-header",
+                            TITLE => $args->{title} || "XAO::Web -- No Title",
+                            META => $meta,
+                         }));
 }
 
 ###############################################################################
