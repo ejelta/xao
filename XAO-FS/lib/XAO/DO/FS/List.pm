@@ -33,7 +33,7 @@ use XAO::Objects;
 use base XAO::Objects->load(objname => 'FS::Glue');
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: List.pm,v 1.8 2002/10/29 09:23:59 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: List.pm,v 1.9 2002/12/11 21:09:14 am Exp $ =~ /(\d+\.\d+)/);
 
 ###############################################################################
 
@@ -196,6 +196,9 @@ sub get ($$) {
         my $id=$self->_find_unique_id($_) ||
             throw $self "get - no such object ($_)";
 
+        $self->check_name($_) ||
+            throw $self "get - bad name ($_)";
+
         XAO::Objects->new(
             objname => $$self->{class_name},
             glue => $self->_glue,
@@ -333,8 +336,17 @@ retrieve new stored object from database you will have to call get().
 
 sub put ($$;$) {
     my $self=shift;
-    my $name=(@_ == 1) ? undef : shift;
-    my $value=shift;
+
+    my ($value,$name);
+    if(@_ == 1) {
+        $name=undef;
+        $value=$_[0];
+    }
+    else {
+        ($name,$value)=@_;
+        $self->check_name($name) ||
+            throw $self "put - wrong name (name=$name, class=$$self->{class_name}";
+    }
 
     if($$self->{detached}) {
         $self->throw("put - is not implemented yet for detached mode");
