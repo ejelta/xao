@@ -180,7 +180,7 @@ use XAO::Errors qw(XAO::DO::Web::FS);
 use base XAO::Objects->load(objname => 'Web::Action');
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: FS.pm,v 1.28 2002/06/25 23:00:47 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: FS.pm,v 1.29 2002/08/01 23:13:54 am Exp $ =~ /(\d+\.\d+)/);
 
 ###############################################################################
 
@@ -656,7 +656,6 @@ sub search ($;%) {
                 my $item=$list->get($id);
                 @{$pass}{@ucfields}=$item->get(@fields);
             }
-            dprint "ARGS: ",join(",",%$pass);
             $page->display($pass);
 
             ##
@@ -673,10 +672,8 @@ sub search ($;%) {
             #last if $count>10000;
         }
         continue {
-            dprint $count;
             $count++;
         }
-        dprint "Done, going to display footer";
 
         $page->display(merge_refs($args, {
             template        => $args->{'footer.template'},
