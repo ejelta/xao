@@ -430,12 +430,23 @@ sub expand ($%) {
     $objargs=merge_refs($objargs,$pd->{objargs},$args->{objargs});
 
     ##
+    # Setting expiration time in the page header to immediate
+    # expiration. If that's not what the page wants -- it can override
+    # these.
+    #
+    $siteconfig->header_args(-expires => 'now',
+                             -Pragma => 'no-cache');
+
+    ##
     # Loading page displaying object and executing it.
     #
     my $obj=XAO::Objects->new(objname => 'Web::' . $pd->{objname});
     $pagetext.=$obj->expand($objargs);
-    my $header=$siteconfig->header;
 
+    ##
+    # Getting page header
+    #
+    my $header=$siteconfig->header;
 
     ##
     # Cleaning up the configuration
