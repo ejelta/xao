@@ -1,0 +1,42 @@
+<%Page path="/bits/header" PAGENAME="account" VERIFY%>
+<%SetArg name="PAYMETHOD_ID" value={<%CgiParam/f name="id" default="NONEXISTENT"%>}%>
+
+<DIV ALIGN="center"><H1>Delete Pay Method</H1></DIV>
+
+<DIV ALIGN="center">
+
+<%Condition
+  x.cgiparam="confirm"
+  x.path="/bits/commerce/account/paymethod/delete-confirm"
+  x.pass.PAYMETHOD_ID="<%PAYMETHOD_ID/f%>"
+%>
+
+
+<TABLE><TR><TD>
+<%FS
+  mode="show-hash"
+  base.clipboard={<%IdentifyUser/f
+                    mode="check"
+                    type="customer"
+                    verified.path="/bits/commerce/account/customer-cb-uri"
+                  %>/object}
+  uri="PayMethods/<%PAYMETHOD_ID%>"
+  fields="*"
+  path="/bits/paymethod/show"
+%>
+</TD></TR></TABLE>
+<P>
+
+<FORM METHOD="get" ACTION="delete.html">
+<INPUT TYPE="hidden" NAME="id"          VALUE="<%PAYMETHOD_ID/f%>">
+<INPUT TYPE="submit" NAME="confirm"     VALUE=" Confirm! ">
+</FORM>
+
+<%Condition
+  default.path="/bits/commerce/account/footer-accounts"
+  default.pass
+%>
+
+</DIV>
+
+<%Page path="/bits/footer"%>

@@ -1,0 +1,20 @@
+<%FIRST_NAME%> <%LAST_NAME%>,
+
+Thank you for your order.  Selected order details are shown below
+for your reference.
+
+Sincerely,
+
+The Team at <%Utility mode="config-param" name="adminable/site_name/main"%>.
+
+
+========================================================
+
+
+<%Order
+  path="/bits/order/mail-confirm"
+  item.path="/bits/order/mail-item"
+%>
+
+
+========================================================

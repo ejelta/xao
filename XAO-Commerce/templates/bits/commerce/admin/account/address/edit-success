@@ -1,0 +1,1 @@
+<%Redirect url={/admin/account/address/index.html?id=<%CgiParam/f name="customer_id" default=""%>}%>

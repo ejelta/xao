@@ -1,0 +1,61 @@
+<TABLE ALIGN="center" BORDER="0" CELLPADDING="2" CELLSPACING="2">
+<TR>
+  <TD COLSPAN="2" ALIGN="center">
+    <TABLE BORDER="3" CELLPADDING="2">
+      <TR>
+        <TD><STRONG>Order ID:</STRONG></TD>
+        <TD ALIGN="right"><%ORDER_ID%></TD>
+      </TR>
+      <TR>
+        <TD><STRONG>Customer Email:</STRONG></TD>
+        <TD ALIGN="right"><%FS
+                            mode="show-hash"
+                            uri="/Customers/<%CUSTOMER_ID%>"
+                            fields="*"
+                            path="/bits/commerce/admin/order/email"
+                            default="nope"
+                          %></TD>
+      </TR>
+      <TR>
+        <TD><STRONG>Time Placed:</STRONG></TD>
+        <TD ALIGN="right"><%Date gmtime="<%PLACE_TIME%>" format="%m/%d/%Y %H:%M:%S" %></TD>
+      </TR>
+      <TR>
+        <TD><STRONG>Order Status:</STRONG></TD>
+        <TD ALIGN="right"><%STATUS%></TD>
+      </TR>
+      <%Condition
+       x.arg="MERCHANT_COMMENT"
+       x.pass.MERCHANT_COMMENT
+       x.path="/bits/order/admin/order-fixed-merchant-comment"
+      %>
+    </TABLE>
+  </TD>
+</TR>
+<TR><TD COLSPAN="2"><BR></TD></TR>
+<TR>
+  <TD VALIGN="top">
+    <%Condition
+      c.length="<%SHIPTO_LINE_1/h%>"
+      c.pass
+      c.path="/bits/order/shipto"
+    %>
+  </TD>
+  <TD VALIGN="top" ALIGN="right">
+    <%Condition
+      c.length="<%PAY_METHOD/h%>"
+      c.pass
+      c.path="/bits/order/admin/paymethod"
+    %>
+  </TD>
+</TR>
+<TR>
+  <TD COLSPAN="2" ALIGN="center">
+    <%Condition
+      c.length="<%ITEMS/h%>"
+      c.pass
+      c.path="/bits/order/items-fixed"
+    %>
+  </TD>
+</TR>
+</TABLE>

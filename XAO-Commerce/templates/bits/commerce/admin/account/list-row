@@ -1,0 +1,9 @@
+<TR>
+  <TD><STRONG><%EMAIL/f%></STRONG></TD>
+  <TD><%FIRST_NAME/f%> <%LAST_NAME/f%></TD>
+  <TD>
+    <A HREF="/admin/account/show.html?id=<%ID/f%>">show</A> |
+    <A HREF="/admin/account/edit.html?id=<%ID/f%>">edit</A> |
+    <A HREF="/admin/account/delete.html?id=<%ID/f%>">delete</A>
+  </TD>
+</TR>

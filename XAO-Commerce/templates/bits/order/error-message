@@ -1,0 +1,20 @@
+<%Condition
+
+  a.arg="NO_CUSTOMER"
+  a.template="No customer found"
+
+  b.arg="NO_ORDER"
+  b.template="No order found"
+
+  c.arg="NO_SHIP_ID"
+  c.template="No shipping address given"
+
+  d.arg="NO_SHIP_METHOD"
+  d.template="No shipping method given"
+
+  e.arg="NO_PAY_ID"
+  e.template="No payment method given"
+
+  default.template="<%MESSAGE/f%>"
+
+%><%End%>

@@ -1,0 +1,44 @@
+<%Condition
+  c.arg="ERRSTR"
+  c.template={<BLOCKQUOTE><%ERRSTR%></BLOCKQUOTE><P>}
+%>
+
+<TABLE ALIGN="center" BORDER="0" CELLPADDING="4" CELLSPACING="2">
+
+<TR>
+  <TD><STRONG><%FIRST_NAME.TEXT/h%>:</STRONG></TD>
+  <TD><%FIRST_NAME.HTML%></TD>
+</TR>
+
+<TR>
+  <TD><STRONG><%MIDDLE_NAME.TEXT/h%>:</STRONG></TD>
+  <TD><%MIDDLE_NAME.HTML%></TD>
+</TR>
+
+<TR>
+  <TD><STRONG><%LAST_NAME.TEXT/h%>:</STRONG></TD>
+  <TD><%LAST_NAME.HTML%></TD>
+</TR>
+
+<TR>
+  <TD><STRONG><%EMAIL.TEXT/h%>:</STRONG></TD>
+  <TD><%EMAIL.HTML%></TD>
+</TR>
+
+<TR>
+  <TD><%PASSWORD.TEXT/h%>:</TD>
+  <TD><%PASSWORD.HTML%></TD>
+</TR>
+
+<TR>
+  <TD><%PASSWORD2.TEXT/h%>:</TD>
+  <TD><%PASSWORD2.HTML%></TD>
+</TR>
+
+<TR>
+  <TD></TD>
+  <TD><INPUT TYPE="SUBMIT" VALUE=" Store! " NAME="done"></TD>
+</TR>
+
+</TABLE>
+<BR>

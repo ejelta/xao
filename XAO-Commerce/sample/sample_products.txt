@@ -1,0 +1,34 @@
+HM0002	Hot Munchies	Sweltering	Jalapeno Jelly Beans	4.5	0.99	HM0002_T.JPG	HM0002.JPG	0			1
+HM0003	Hot Munchies	Blistering	Ass Kicking Chili Fixins	7.32	0.99			0	Kick Yo' Ass Hot! Complete with Beans, Spices, Masa flour and the World's HOTTIEST Pepper- The Habanero!		2
+HM0015	Hot Munchies	Sweltering	Il Primo Giardiniera Hot Sandwich Dressing	4	0.99			0	This is a sqeezable blend of Olive Oil and Red Wine Vinegar, Diced Garden Vegetables, Herbs and Spices. Made with Italian Tradition and flavor.		2
+HM0016	Hot Munchies	Sweltering	Il Primo Giardiniera Hot Mix 16oz	5	0.99			0	Made famous by spreading over Chicago-Style Italian Beef, Sausage, Meatball  and Cold Cut Sandwiches.		1
+HM0555	Hot Munchies	Sweltering	Galena Strawberry Hot Pepper Jelly	5.5	0.99	HM0555_T.JPG	HM0555.JPG	0			1
+KM0032	Ketchup & Mustard	Sweltering	Jalapeno Mango Mustard	4	0.99	KM0032_T.JPG	KM0032.JPG	0			1
+KM0034	Ketchup & Mustard	Toasty	Il Primo Jalapeno Hot Mustard	4	0.99	KM0034_T.JPG	KM0034.JPG	0			1
+KM0035	Ketchup & Mustard	Toasty	Il Primo Ketchinera Hot Tomato	4	0.99	KM0035_T.JPG	KM0035.JPG	0	Hot Tomato!		1
+KM0039	Ketchup & Mustard	Toasty	Jim Beam Honey'n Bourbon Mustard	5	0.99			0			1
+MQ0061	Marinades & BBQ Sauce	Toasty	Huy Fong Chili Garlic Sauce	3.34	0.99	MQ0061_T.JPG	MQ0061.JPG	0			2
+MQ0071	Marinades & BBQ Sauce	Wussy	Jim Beam BBQ Sauce	7	0.99	MQ0071_T.JPG	MQ0071.JPG	0	You'll be surprised at the richness.....AND IT DOESNT ADD ANY FAT!		1
+MQ0072	Marinades & BBQ Sauce	Wussy	Jim Beam Marinade	7	0.99	MQ0072_T.JPG	MQ0072.JPG	0	Great for use with Steaks, Chicken, Ribs and Chops....		1
+MQ0073	Marinades & BBQ Sauce	Toasty	Jim Beam Wing Sauce	6.5	0.99	MQ0073_T.JPG	MQ0073.JPG	0			1
+MQ0083	Marinades & BBQ Sauce	Sweltering	Roadhouse Hot & Spicy BBQ Sauce	5.5	0.99	MQ0083_T.JPG	MQ0083.JPG	0	Hot Dang! This is seriously warm stuff..... Not for Amateurs....		1
+PS0181	Pepper & Steak Sauce	Atomic	Da Bomb Beyond Insanity	6.7	0.99	PS0181_T.JPG	PS0181.JPG	0	Hotter than any other Sauce on earth		2
+PS0186	Pepper & Steak Sauce	Atomic	Dave's Insanity Sauce	6.5	0.99	PS0186_T.JPG	PS0186.JPG	0	"The hottest sauce in the Universe"		3
+PS0187	Pepper & Steak Sauce	Atomic	Dave's Insanity Private Reserve	30	0.99	PS0187_T.JPG	PS0187.JPG	0	Not for people with heart or respiratory problems		1
+PS0469	Pepper & Steak Sauce	Atomic	Crazy Jerry's Mustard Gas Hot Sauce	8	0.99	PS0469_T.JPG	PS0469.JPG	0	May Cause Nose Hairs To Combust...		2
+PS0470	Pepper & Steak Sauce	Atomic	Galena Blasting Sauce	8	0.99	PS0470_T.JPG	PS0470.JPG	0	100% All Natural		2
+PS0474	Pepper & Steak Sauce	Atomic	Endorphin Rush Mini Me	2.5	0.99	PS0474_T.JPG	PS0474.JPG	0	Here's the rush you've wanted to experience...		3
+PS0475	Pepper & Steak Sauce	Blistering	YEOW Habanero Sauce	5.5	0.99	PS0475_T.JPG	PS0475.JPG	0	"Super Charged Habanero"		2
+PS0545	Pepper & Steak Sauce	Sweltering	Alberta Crude Hot Sauce	6.5	0.99	PS0545_T.JPG	PS0545.JPG	0			1
+PS0546	Pepper & Steak Sauce	Blistering	$3 Bill Sauce	5.66	0.99	PS0546_T.JPG	PS0546.JPG	0	A pretty hot sauce, the label features a likeness of Bill Clinton on a three dollar bill. This sauce will probably become rare as collectors snap it up. 5 ounces.		2
+PS0556	Pepper & Steak Sauce	Blistering	See Dick Burn Hot Sauce	4.3	0.99	PS0556_T.JPG	PS0556.JPG	0			2
+PS0560	Pepper & Steak Sauce	Blistering	Don't Be a Chicken Shit Hot Sauce	5.66	0.99	PS0560_T.JPG	PS0560.JPG	0			2
+PS0564	Pepper & Steak Sauce	Atomic	Harry's Dead Heat Limted Edition Hot Sauce	18	0.99	PS0564_T.JPG	PS0564.JPG	0			1
+PS0566	Pepper & Steak Sauce	Blistering	Blair's Jalapeno Death Sauce	7	0.99			0	Feel Alive...		1
+SD0290	Salsas & Dip	Sweltering	Matouk's Hot Calypso Salsa	6	0.99	SD0290_T.JPG	SD0290.JPG	0			1
+SD0291	Salsas & Dip	Sweltering	Matouk's Hot Flambeau Sauce	6	0.99	SD0291_T.JPG	SD0291.JPG	0			1
+SD0292	Salsas & Dip	Sweltering	Matouk's West Indian Salsa Picante	6	0.99	SD0292_T.JPG	SD0292.JPG	0			1
+SD0413	Salsas & Dip	Blistering	Original Ass Kicking Salsa	7.5	0.99	SD0413_T.JPG	SD0413.JPG	0	Kick Yo' Ass Hot!		1
+SD0426	Salsas & Dip	Atomic	Dave's Insanity Salsa	6.25	0.99	SD0426_T.JPG	SD0426.JPG	0			1
+SD0455	Salsas & Dip	Sweltering	Peach n' Pepper Gormet Salsa	6.5	0.99	SD0455_T.JPG	SD0455.JPG	0			1
+SD0458	Salsas & Dip	Blistering	Habanero Salsa From Hell	7.5	0.99	SD0458_T.JPG	SD0458.JPG	0			1

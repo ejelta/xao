@@ -1,0 +1,17 @@
+<TABLE ALIGN="center" BORDER="0">
+<TR>
+  <TD COLSPAN="2" ALIGN="center">
+    <%Condition
+     x.arg="ORDER_ID"
+     x.pass.ORDER_ID
+     x.path="/bits/commerce/admin/order/footer-order"
+    %>
+    |
+    <A HREF="/admin/order/">new orders</A> |
+    <A HREF="/admin/order/pending.html">pending orders</A> |
+    <A HREF="/admin/order/shipped.html">shipped orders</A> |
+    <A HREF="/admin/order/cancelled.html">cancelled orders</A> |
+ <!--   <A HREF="/admin/order/all.html">all orders</A> | -->
+  </TD>
+</TR>
+</TABLE>

@@ -1,0 +1,32 @@
+<%Page path="/bits/header-admin"%>
+<%SetArg name="ORDER_ID"  value={<%CgiParam/f name="id" default="NONEXISTENT"%>}%>
+
+<DIV ALIGN="center"><H1>Change Order Status</H1></DIV>
+<P>
+
+<DIV ALIGN="center">
+
+<FORM METHOD="get"   ACTION="edit.html">
+<INPUT TYPE="hidden" NAME="id" VALUE="<%ORDER_ID%>">
+<%Order
+  mode="edit-object"
+  uri="/Orders"
+  id="<%ORDER_ID%>"
+  form.path="/bits/commerce/admin/order/edit-form"
+  success.path="/bits/commerce/admin/order/edit-success"
+%>
+</FORM>
+
+<BR><HR WIDTH="80%"><BR>
+
+<H1>Order Details</H1>
+<P>
+<%Page path="/bits/commerce/admin/order/show" ORDER_ID="<%ORDER_ID%>"%>
+
+<%Condition
+  default.path="/bits/commerce/admin/order/footer-orders"
+  default.pass
+%>
+</DIV>
+
+<%Page path="/bits/footer-admin"%>

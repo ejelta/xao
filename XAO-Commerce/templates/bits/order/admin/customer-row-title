@@ -1,0 +1,6 @@
+<%FS
+  mode="show-hash"
+  uri="/Customers/<%CUSTOMER_ID/f%>"
+  fields="customer_id,email"
+  path="/bits/order/admin/customer-row-title-show"
+%>

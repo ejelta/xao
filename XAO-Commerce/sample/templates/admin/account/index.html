@@ -1,0 +1,32 @@
+<%Debug set="show-path"%>
+<%Page path="/bits/header-admin"%>
+
+<DIV ALIGN="center"><H1>Customer Accounts</H1></DIV>
+<P>
+
+<DIV ALIGN="center">
+
+<%FS
+  mode="search"
+  uri="/Customers"
+
+  orderby="last_name"
+  start_item={<%CgiParam/f name="start_item" default="1"%>}
+  items_per_page={<%CgiParam/f name="items_per_page" default="10"%>}
+  fields="*"
+
+  header.path="/bits/commerce/admin/account/list-header"
+  path="/bits/commerce/admin/account/list-row"
+  footer.path="/bits/commerce/admin/account/list-footer"
+  default.template="<EM>No accounts found.</EM>"
+%>
+<P>
+
+<%Condition
+  default.path="/bits/commerce/admin/account/footer-accounts"
+  default.pass
+%>
+
+</DIV>
+
+<%Page path="/bits/footer-admin"%>

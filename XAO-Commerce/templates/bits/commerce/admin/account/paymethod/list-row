@@ -1,0 +1,17 @@
+  <TR>
+    <TD>
+      <!--
+        Condition here is only a means to passing
+        all parameters to pay method display template
+      -->
+      <%Condition
+        default.path="/bits/paymethod/show"
+        default.pass
+      %>
+    </TD>
+    <TD>
+      <A HREF="/admin/account/paymethod/edit.html?id=<%PAYMETHOD_ID/f%>&customer_id=<%CUSTOMER_ID/f%>"><IMG SRC="/images/buttons/edit.gif" ALT="Edit" BORDER="0"></A>
+      <A HREF="/admin/account/paymethod/delete.html?id=<%PAYMETHOD_ID/f%>&customer_id=<%CUSTOMER_ID/f%>"><IMG SRC="/images/buttons/delete.gif" ALT="Delete" BORDER="0"></A>
+    </TD>
+  </TR>
+  <TR><TD COLSPAN="2" HEIGHT="5"> </TD></TR>

@@ -1,0 +1,40 @@
+<%Page path="/bits/header"%>
+
+<%Styler text="Administrator Authorization Required" style="page-title"%>
+
+<!-- Checking if we got displayed as anonymous
+     template and have ERRSTR with error description
+-->
+<%SetArg name="ERRSTR" value=""%>
+<%Condition
+  errstr.arg="ERRSTR"
+  errstr.template={<FONT COLOR="#880000"><%ERRSTR/h%></FONT><P>}
+%>
+
+<!-- Setting reasonable default for username -
+     entered value or cookie value
+-->
+<%SetArg
+  name="USERNAME"
+  value={<%Condition/f
+           cgi.cgiparam="username"
+           cgi.template={<%CgiParam/f name="username" default=""%>}
+           cookie.cookie={<%Utility/f mode="config-param" name="identify_user/admin/id_cookie"%>}
+           cookie.template={<%Cookie/f name={<%Utility/f
+                                               mode="config-param"
+                                               name="identify_user/admin/id_cookie"
+                                             %>} default=""%>}
+           default.template=""
+         %>}
+%>
+
+<!-- The login form
+-->
+<FORM METHOD="GET" ACTION="/admin/login.html">
+<INPUT TYPE="HIDDEN" NAME="return" VALUE="<%CgiParam/f name="return" default="/admin/"%>">
+Log name: <INPUT TYPE="TEXT" NAME="username" VALUE="<%USERNAME/f%>" MAXLENGTH="30"><P>
+Password: <INPUT TYPE="PASSWORD" NAME="password" MAXLENGTH="50"><P>
+<INPUT TYPE="SUBMIT" VALUE="  Administrator Log in  ">
+</FORM>
+
+<%Page path="/bits/footer"%>

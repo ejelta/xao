@@ -1,0 +1,23 @@
+    <TABLE WIDTH="200" ALIGN="center" BORDER="0" CELLPADDING="0" CELLSPACING="0"><TR><TD>
+    <STRONG>Shipping Info:</STRONG><BR>
+    <BR>
+    <STRONG>[ <%SHIPTO_REF_NAME/h%> ]</STRONG><BR>
+    <%SHIPTO_NAME_LINE1/h%><BR>
+    <%Condition
+      c.arg="SHIPTO_NAME_LINE2"
+      c.template="<%SHIPTO_NAME_LINE2/h%><BR>"
+    %>
+    <%SHIPTO_LINE_1/h%><BR>
+    <%Condition
+      c.arg="SHIPTO_LINE_2"
+      c.template="<%SHIPTO_LINE_2/h%><BR>"
+    %>
+    <%SHIPTO_CITY/h%>, <%SHIPTO_STATE/h%> <%SHIPTO_ZIPCODE/h%><BR>
+    <%SHIPTO_PHONE/h%>
+    <%Condition
+      c.arg="SHIPTO_PHONE"
+      c.template="<%SHIPTO_PHONE/h%><BR>"
+    %>
+    <STRONG>Shipping Method:</STRONG><BR>
+    &nbsp;&nbsp; <%SHIPMETHOD%>
+    </TD></TR></TABLE>

@@ -1,0 +1,14 @@
+<%Debug set="show-path"%>
+<%Page path="/bits/header"%>
+
+<DIV ALIGN="center"><H1>Category Search Results</H1></DIV>
+<P>
+
+<%Category
+  mode="search-keyword"
+  keyword={<%CgiParam/f name="keyword" default="QWERTY"%>}
+  header.path="/bits/commerce/category/list-header"
+  path="/bits/commerce/category/list-row"
+  footer.path="/bits/commerce/category/list-footer"
+%>
+<%Page path="/bits/footer"%>

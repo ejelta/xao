@@ -1,0 +1,5 @@
+    |
+    <A HREF="/admin/order/show.html?id=<%ORDER_ID%>">show order</A> |
+    <A HREF="/admin/order/edit.html?id=<%ORDER_ID%>">edit order</A> |
+    <A HREF="/admin/order/delete.html?id=<%ORDER_ID%>">delete order</A> |
+    <BR>

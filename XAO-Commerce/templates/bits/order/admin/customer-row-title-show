@@ -1,0 +1,1 @@
+<A HREF="/admin/accounts/show.html?id=<%CUSTOMER_ID/f%>"><%EMAIL/h%></A>

@@ -1,0 +1,55 @@
+<TABLE BORDER="0" WIDTH="100%" CELLSPACING="10">
+
+<FORM ACTION="/order/add.html" METHOD="GET">
+<INPUT TYPE="HIDDEN" NAME="item1" VALUE="<%ID/f%>">
+
+<TR VALIGN="TOP">
+
+  <TD WIDTH="1%"><%Condition
+        img.arg="THUMBNAIL_URL"
+        img.template={<IMG SRC="/images/products/small/<%THUMBNAIL_URL%>" BORDER="0" ALT="<%NAME/f%>">}
+        default.template={<IMG SRC="/images/image_not_avail.gif" ALT="<%NAME/f%>">}
+      %></TD>
+  <TD WIDTH="100%">
+
+    <STRONG><%NAME/h%></STRONG>
+    <P>
+
+    Price: <STRONG><%Styler dollars="<%PRICE/f%>"%></STRONG><BR>
+    <%Condition
+      c1.arg="UPC"
+      c1.template={UPC: <%UPC/f%><BR>}
+    %>
+    <%Condition
+      c1.arg="MANUFACTURER"
+      c1.template={Manufacturer: <%MANUFACTURER/f%><BR>}
+    %>
+    <%Condition
+      c1.arg="MANUFACTURER_ID"
+      c1.template={Manufacturer code: <%MANUFACTURER_ID/f%><BR>}
+    %>
+    ABC ID: <%SKU/f%><BR>
+  </TD>
+
+  <TD ALIGN="CENTER" WIDTH="1%">
+    <INPUT TYPE="TEXT" NAME="quantity1" VALUE="1" SIZE="6" MAXLENGTH="5">
+    <P>
+
+    <INPUT TYPE="IMAGE" SRC="/images/buttons/add_to_order.gif" BORDER="0" ALT="Add to Order">
+  </TD>
+
+  </TR>
+
+</FORM>
+
+  <TR>
+  <TD COLSPAN="3">
+    <STRONG>Description</STRONG>
+    <P>
+
+    <%DESCRIPTION/h%>
+    <P>
+
+    </TD>
+  </TR>
+</TABLE>

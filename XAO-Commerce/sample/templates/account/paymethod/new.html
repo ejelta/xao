@@ -1,0 +1,29 @@
+<%Page path="/bits/header" PAGENAME="account" VERIFY%>
+
+<DIV ALIGN="center"><H1>New Pay Method</H1></DIV>
+<P>
+
+<DIV ALIGN="center">
+
+<FORM METHOD="GET" ACTION="new.html">
+<%PayMethod
+  mode="edit-object"
+  base.clipboard={<%IdentifyUser/f
+                    mode="check"
+                    type="customer"
+                    verified.path="/bits/commerce/account/customer-cb-uri"
+                  %>/object}
+  uri="PayMethods"
+  form.path="/bits/commerce/account/paymethod/edit-form"
+  success.path="/bits/commerce/account/paymethod/edit-success"
+%>
+</FORM>
+
+<%Condition
+  default.path="/bits/commerce/account/footer-accounts"
+  default.pass
+%>
+
+</DIV>
+
+<%Page path="/bits/footer"%>

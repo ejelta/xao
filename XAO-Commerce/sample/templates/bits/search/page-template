@@ -1,0 +1,17 @@
+<%Category
+  mode="search-keyword"
+  keyword={<%CgiParam/f name="keyword" default="QWERTY"%>}
+  limit="5"
+  header.path="/bits/search/category-header"
+  path="/bits/search/category-row"
+  footer.path="/bits/search/category-footer"
+%>
+
+<%Product
+  mode="search-keyword"
+  keyword={<%CgiParam/f name="keyword" default="QWERTY"%>}
+  items_per_page="5"
+  header.path="/bits/search/product-header"
+  path="/bits/search/product-row"
+  footer.path="/bits/search/product-footer"
+%>

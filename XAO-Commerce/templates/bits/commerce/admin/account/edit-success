@@ -1,0 +1,1 @@
+<%Redirect url={/admin/account/index.html}%>

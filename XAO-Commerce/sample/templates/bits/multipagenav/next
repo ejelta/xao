@@ -1,0 +1,7 @@
+<A HREF="<%Utility
+           mode="current-url"%>?<%Utility
+                                  mode="pass-cgi-params"
+                                  params="*"
+                                  except="start_item"
+                                  result="query"
+                                %>&start_item=<%PAGE_START_ITEM%>"> &gt;&gt; next</A>

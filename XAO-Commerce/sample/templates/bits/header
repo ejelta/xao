@@ -1,0 +1,303 @@
+<HTML>
+<HEAD>
+<TITLE>XAO Commerce</TITLE>
+
+<SCRIPT LANGUAGE="JavaScript">
+<!--//
+<%SetArg name="PAGENAME" value=""%>
+<%Condition
+  name.value="<%PAGENAME/f%>"
+  name.template={self.myName = '<%PAGENAME/f%>';}
+%>
+
+//-->
+</SCRIPT>
+<!-- LINK REL="stylesheet" TYPE="text/css" HREF="/images/style.css" -->
+<STYLE TYPE="text/css">
+a {
+    text-decoration: none
+}
+body {
+    font-family: Verdana, Arial, "MS Sans Serif", Helvetica;
+    font-size: 10pt;
+    color: #666666;
+    background-color: #FFFFFF;
+}
+td, th, form, ol, ul, p .normal {
+    font-family: Verdana, Arial, "MS Sans Serif", Helvetica;
+    font-size: 10pt;
+    color: #555555;
+}
+pre, tt .mono {
+    font-family: monospace;
+    font-size: 10pt;
+}
+td.header {
+    color: #EEEEEE;
+    background-color: #336699;
+}
+.forward {
+    color: #555555;
+    background-color: #FFFFFF;
+}
+.inverse {
+    color: #FFFFFF;
+    background-color: #555555;
+}
+.large {
+    font-size: 12pt;
+}
+.border {
+    border: thin solid #FF9900
+}
+</STYLE>
+</HEAD>
+<BODY BGCOLOR="#FFFFFF"
+      MARGINHEIGHT="0"
+      TOPMARGIN="0"
+      MARGINWIDTH="0"
+      LEFTMARGIN="0" 
+      TEXT="#333333"
+      LINK="#FF6600"
+      ALINK="#FF9900"
+      VLINK="#FF9900">
+<!-- tagline -->
+<TABLE BGCOLOR="#336699" WIDTH="100%" CELLPADDING="0" CELLSPACING="0" BORDER="0">
+  <TR>
+    <TD BGCOLOR="#FFFFFF" WIDTH="240" HEIGHT="14" ALIGN="LEFT">
+    <img src="/images/pix_clear.gif" ALT="" WIDTH="240" HEIGHT="14" BORDER="0"></TD>
+
+    <TD WIDTH="14" HEIGHT="14" ALIGN="LEFT">
+    <img src="/images/top_left.gif" ALT="" WIDTH="14" HEIGHT="14" BORDER="0"></TD>
+        
+    <TD WIDTH="236" HEIGHT="14" ALIGN="LEFT">
+    <img src="/images/tagline.gif" ALT="" WIDTH="236" HEIGHT="14" BORDER="0"></TD>
+
+    <TD WIDTH="100%" HEIGHT="14" ALIGN="LEFT">
+    <img src="/images/pix_clear.gif" ALT="" WIDTH="252" HEIGHT="14" BORDER="0"></TD>
+  </TR>
+</TABLE>
+<!-- end tagline -->
+
+<!-- line -->
+<TABLE WIDTH="100%" CELLPADDING="0" CELLSPACING="0" BORDER="0">  
+  <TR>
+    <TD BGCOLOR="#FFFFFF" WIDTH="254" HEIGHT="1" ALIGN="LEFT">
+    <img src="/images/pix_clear.gif" ALT="" WIDTH="254" HEIGHT="1" BORDER="0"></TD>
+    
+    <TD BGCOLOR="#000000" WIDTH="100%" HEIGHT="1" ALIGN="LEFT">
+    <img src="/images/pix_clear.gif" ALT="" WIDTH="488" HEIGHT="1" BORDER="0"></TD>
+  </TR>
+</TABLE>
+<!-- end line -->
+
+<!-- branding -->
+<TABLE BGCOLOR="#FFFFFF" WIDTH="100%" CELLPADDING="0" CELLSPACING="0" BORDER="0">
+  <TR>
+    <TD WIDTH="161" HEIGHT="38" ALIGN="LEFT"><A HREF="http://www.xao.com/"><img src="/images/logo.gif" ALT="" WIDTH="161" HEIGHT="38" BORDER="0"></A></TD>
+    
+    <TD WIDTH="47" HEIGHT="38" ALIGN="LEFT">
+    <img src="/images/pix_clear.gif" ALT="" WIDTH="47" HEIGHT="38" BORDER="0"></TD>
+
+    <TD WIDTH="100%" HEIGHT="38" ALIGN="LEFT">
+    <img src="/images/sample.gif" ALT="" WIDTH="534" HEIGHT="38" BORDER="0"></TD>
+  </TR>
+</TABLE>
+<!-- end branding -->
+
+<!-- line -->
+<TABLE WIDTH="100%" CELLPADDING="0" CELLSPACING="0" BORDER="0">  
+  <TR>
+    <TD BGCOLOR="#FFFFFF" WIDTH="186" HEIGHT="1" ALIGN="LEFT">
+    <img src="/images/pix_clear.gif" ALT="" WIDTH="186" HEIGHT="1" BORDER="0"></TD>
+    
+    <TD BGCOLOR="#000000" WIDTH="100%" HEIGHT="1" ALIGN="LEFT">
+    <img src="/images/pix_clear.gif" ALT="" WIDTH="556" HEIGHT="1" BORDER="0"></TD>
+  </TR>
+</TABLE>
+<!-- end line -->
+
+<!-- orange line -->
+<TABLE BGCOLOR="#FF9900" WIDTH="100%" CELLPADDING="0" CELLSPACING="0" BORDER="0">
+  <TR>
+    <TD BGCOLOR="#FFFFFF" WIDTH="180" HEIGHT="6" ALIGN="LEFT">
+    <img src="/images/pix_clear.gif" ALT="" WIDTH="180" HEIGHT="6" BORDER="0"></TD>
+
+    <TD WIDTH="6" HEIGHT="6" ALIGN="LEFT">
+    <img src="/images/orange_tri.gif" ALT="" WIDTH="6" HEIGHT="6" BORDER="0"></TD>
+        
+    <TD WIDTH="100%" HEIGHT="6" ALIGN="LEFT">
+    <img src="/images/pix_clear.gif" ALT="" WIDTH="556" HEIGHT="6" BORDER="0"></TD>
+  </TR>
+</TABLE>
+<!-- end orange line -->
+
+<!-- top-level navigation -->
+<TABLE BGCOLOR="#363636" WIDTH="100%" CELLPADDING="0" CELLSPACING="0" BORDER="0">
+  <TR>
+    <TD WIDTH="182" HEIGHT="22" ALIGN="LEFT">
+    <img src="/images/complex_lines.gif" ALT="" WIDTH="182" HEIGHT="22" BORDER="0"></TD>
+
+    <TD WIDTH="23" HEIGHT="22" ALIGN="LEFT">
+    <img src="/images/pix_clear.gif" ALT="" WIDTH="23" HEIGHT="22" BORDER="0"></TD>
+
+    <TD WIDTH="100%" HEIGHT="22" ALIGN="LEFT">
+      <TABLE WIDTH="530" CELLPADDING="0" CELLSPACING="0" BORDER="0">
+        <TR>
+          <TD BGCOLOR="#336699" WIDTH="60" HEIGHT="20" ALIGN="CENTER" VALIGN="MIDDLE">
+          <A HREF="/"><font color="#FFFFFF"><B>home</B></A></font></TD>
+          
+          <TD BGCOLOR="#363636" WIDTH="1" HEIGHT="20" ALIGN="CENTER" VALIGN="MIDDLE">
+          <img src="/images/pix_clear.gif" ALT="" WIDTH="1" HEIGHT="20" BORDER="0"></TD>
+          
+          <TD BGCOLOR="#336699" WIDTH="60" HEIGHT="20" ALIGN="CENTER" VALIGN="MIDDLE">
+          <A HREF="/order/"><font color="#FFFFFF"><B>shopping cart</B></A></font></TD>
+          
+          <TD BGCOLOR="#363636" WIDTH="1" HEIGHT="20" ALIGN="CENTER" VALIGN="MIDDLE">
+          <img src="/images/pix_clear.gif" ALT="" WIDTH="1" HEIGHT="20" BORDER="0"></TD>
+          
+          <TD BGCOLOR="#336699" WIDTH="60" HEIGHT="20" ALIGN="CENTER" VALIGN="MIDDLE">
+          <A HREF="/account/"><font color="#FFFFFF"><B>your account</B></A></font></TD>
+          
+          <TD BGCOLOR="#363636" WIDTH="1" HEIGHT="20" ALIGN="CENTER" VALIGN="MIDDLE">
+          <img src="/images/pix_clear.gif" ALT="" WIDTH="1" HEIGHT="20" BORDER="0"></TD>
+          
+          <TD BGCOLOR="#336699" WIDTH="60" HEIGHT="20" ALIGN="CENTER" VALIGN="MIDDLE">
+          <A HREF="/account/new.html"><font color="#FFFFFF"><B>new account</B></A></font></TD>
+          
+          <TD BGCOLOR="#363636" WIDTH="1" HEIGHT="20" ALIGN="CENTER" VALIGN="MIDDLE">
+          <img src="/images/pix_clear.gif" ALT="" WIDTH="1" HEIGHT="20" BORDER="0"></TD>
+          
+          <TD BGCOLOR="#336699" WIDTH="60" HEIGHT="20" ALIGN="CENTER" VALIGN="MIDDLE">
+          <A HREF="/logout.html"><font color="#FFFFFF"><B>logout</B></A></font></TD>
+          
+          <TD BGCOLOR="#363636" WIDTH="1" HEIGHT="20" ALIGN="CENTER" VALIGN="MIDDLE">
+          <img src="/images/pix_clear.gif" ALT="" WIDTH="1" HEIGHT="20" BORDER="0"></TD>
+          
+        </TR>
+      </TABLE>
+    </TD>
+        
+    <TD WIDTH="100%" HEIGHT="22" ALIGN="LEFT">
+    <img src="/images/pix_clear.gif" ALT="" WIDTH="7" HEIGHT="22" BORDER="0"></TD>
+  </TR>
+</TABLE>
+<!-- end top-level navigation -->
+<%Condition
+    verify.arg="VERIFY"
+    verify.path="/bits/id/customer-verify"
+%>
+<!-- main product navigation and main content table -->
+<TABLE BGCOLOR="#FFFFFF" CELLPADDING="0" CELLSPACING="0" BORDER="0">
+  <TR>
+    <TD BGCOLOR="#363636" WIDTH="160" HEIGHT="100%" ALIGN="left" VALIGN="TOP">
+      <TABLE BGCOLOR="#363636" CELLPADDING="0" CELLSPACING="0" BORDER="0">
+        <%IdentifyUser
+          mode="check"
+          type="customer"
+          verified.path="/bits/id/identified"
+        %>
+        <TR>
+          <TD BGCOLOR="#000000" WIDTH="160" HEIGHT="1" ALIGN="left" VALIGN="TOP"> 
+          <img src="/images/pix_clear.gif" ALT="" WIDTH="160" HEIGHT="1" BORDER="0"></TD>
+        </TR>        
+        <TR>  
+          <TD BGCOLOR="#7D7D7D" WIDTH="160" HEIGHT="100%" ALIGN="CENTER" VALIGN="MIDDLE">
+            <TABLE BGCOLOR="#7D7D7D" CELLPADDING="4" CELLSPACING="0" BORDER="0">
+              <TR>
+                <TD BGCOLOR="#7D7D7D" WIDTH="160" HEIGHT="100%" ALIGN="CENTER" VALIGN="MIDDLE">
+                <font color="#FFFFFF"><B>STUFF WE SELL</B></font></TD>
+              </TR>
+            </TABLE>
+          </TD>
+        </TR>
+        <TR>
+          <TD BGCOLOR="#000000" WIDTH="160" HEIGHT="1" ALIGN="left" VALIGN="TOP"> 
+          <img src="/images/pix_clear.gif" ALT="" WIDTH="160" HEIGHT="1" BORDER="0"></TD>
+        </TR>
+        <%FS
+          mode="search"
+          uri="/Categories"
+
+          index_1="parent_id"
+          value_1=""
+          compare_1="eq"
+
+          index_2="empty"
+          value_2="1"
+          compare_2="ne"
+
+          expression="[ 1 and 2 ]"
+          orderby="name"
+
+          path="/bits/header-category"
+        %>
+        <TR>
+          <TD WIDTH="160" HEIGHT="19" ALIGN="left" VALIGN="TOP"> 
+          <img src="/images/search.gif" ALT="" WIDTH="160" HEIGHT="19" BORDER="0"></TD>
+        </TR>
+        <TR>  
+          <TD WIDTH="160" HEIGHT="100%" ALIGN="LEFT" VALIGN="MIDDLE">
+            <TABLE CELLPADDING="0" CELLSPACING="0" BORDER="0">
+<FORM METHOD="GET" ACTION="/product/index.html">
+              <TR>
+                <TD WIDTH="12" HEIGHT="1" ALIGN="LEFT" VALIGN="TOP"><img src="/images/pix_clear.gif" ALT="" WIDTH="12" HEIGHT="12" BORDER="0"></TD>
+                <TD WIDTH="148" HEIGHT="100%" ALIGN="LEFT" VALIGN="TOP"><INPUT STYLE="font-size: 8pt" TYPE="text" NAME="keyword" SIZE="9" ALIGN="center" VALUE="<%CgiParam/f name="keyword" default=""%>"></TD>
+                <TD WIDTH="56" HEIGHT="29" ALIGN="LEFT" VALIGN="MIDDLE"><INPUT TYPE="image" SRC="/images/buttons/go_gray.gif" ALT="Go" WIDTH="56" HEIGHT="29" BORDER="0"></TD>
+              </TR>
+            </TABLE>
+          </TD>
+        </TR>        
+        <TR>  
+          <TD WIDTH="160" HEIGHT="100%" ALIGN="LEFT" VALIGN="MIDDLE">
+            <TABLE CELLPADDING="0" CELLSPACING="0" BORDER="0">
+              <TR>
+                <TD WIDTH="160" ALIGN="LEFT" VALIGN="TOP"><font STYLE="font-size: 8pt" color="#FFFFFF"><EM>
+                <BR>
+                <STRONG>Note:</STRONG> Products are for demonstration purposes only.
+                </EM></FONT>
+                </TD>
+              </TR>
+</FORM>
+            </TABLE>
+          </TD>
+        </TR>
+        <TR>
+          <TD BGCOLOR="#363636" WIDTH="160" HEIGHT="10" ALIGN="left" VALIGN="TOP"> 
+          <img src="/images/pix_clear.gif" ALT="" WIDTH="160" HEIGHT="10" BORDER="0"></TD>
+        </TR>
+        <TR>
+          <TD WIDTH="160" HEIGHT="100%" ALIGN="LEFT" VALIGN="BOTTOM">
+                
+          <font STYLE="font-size: 8pt" color="#FFFFFF">
+            <B>&nbsp;XAO Inc.</B>
+            <BR>&nbsp;221 East Walnut St.
+            <BR>&nbsp;Suite 102
+            <BR>&nbsp;Pasadena, CA 91101
+            <P>&nbsp;Toll Free: (877) 796-7437 x-24
+            <BR>&nbsp;Phone: (626) 584-9335
+            <BR>&nbsp;Fax: (626) 584-9364 fax
+            <P>&nbsp;<A HREF="mailto:sales@xao.com"><font color="#FFFFFF">sales@xao.com</A></font>
+          </TD>
+        </TR>          
+        <TR>
+          <TD WIDTH="160" HEIGHT="67" ALIGN="left" VALIGN="TOP"> 
+          <img src="/images/copy_logo.gif" ALT="" WIDTH="160" HEIGHT="67" BORDER="0"></TD>
+        </TR>
+      </TABLE>
+    </TD>
+
+    <TD BGCOLOR="#000000" WIDTH="1" HEIGHT="100%" ALIGN="left" VALIGN="TOP">
+    <img src="/images/pix_clear.gif" ALT="" WIDTH="1" HEIGHT="50" BORDER="0"></TD>
+              
+    <TD WIDTH="22" HEIGHT="1" ALIGN="left" VALIGN="TOP">
+    <img src="/images/pix_clear.gif" ALT="" WIDTH="22" HEIGHT="1" BORDER="0"></TD>
+    
+    <TD WIDTH="559" HEIGHT="100%" ALIGN="left" VALIGN="TOP">
+      <TABLE CELLPADDING="0" CELLSPACING="0" BORDER="0">
+        <TR>
+          <TD WIDTH="559" HEIGHT="20" ALIGN="left" VALIGN="TOP">
+          <img src="/images/pix_clear.gif" ALT="" WIDTH="559" HEIGHT="20" BORDER="0">
+<!--// *************************************************************************** -->
+<!--// *************************************************************************** -->
+<!--// *************************************************************************** -->

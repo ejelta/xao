@@ -1,0 +1,13 @@
+<%Condition
+  cond.arg="LEVEL"
+  cond.template="::"
+%><%Condition
+  cond.arg="LAST"
+  cond.template=""
+  default.template={<A HREF="<%ID%>.html">}
+%><%NAME/h
+%><%Condition
+  cond.arg="LAST"
+  cond.template=""
+  default.template="</A>"
+%><%End%>

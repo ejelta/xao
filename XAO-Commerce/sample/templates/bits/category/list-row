@@ -1,0 +1,10 @@
+<LI><A HREF="<%ID/q%>.html"><%NAME/h%></A></LI>
+<%End%>
+
+A version with thumbnail image. Does not really work for loctite, we
+need to scale their images.
+
+<LI><A HREF="<%ID/q%>.html"><%Condition
+  cond.arg="THUMBNAIL_URL"
+  cond.template={<IMG SRC="/images/products/small/<%THUMBNAIL_URL%>" BORDER="0">&nbsp;&nbsp;&nbsp;}
+%><%NAME/h%></A></LI>

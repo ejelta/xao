@@ -1,0 +1,21 @@
+<TABLE BORDER="0"><TR VALIGN="TOP">
+
+<TD WIDTH="1%"><IMG
+    SRC="<%Condition/f
+           img.arg="THUMBNAIL_URL"
+           img.template="/images/products/small/<%THUMBNAIL_URL/f%>"
+           default.template="/images/image_not_avail_sm.gif"
+         %>" ALT="More info" WIDTH="40" HEIGHT="40" BORDER="0"></TD>
+
+<TD CLASS="small">
+  <STRONG><A HREF="/products/<%ID/q%>.html"><%NAME/h%></A></STRONG>
+  <BR>
+  Price: <STRONG><%Styler dollar="<%PRICE/f%>"%></STRONG>
+</TD>
+
+<TD WIDTH="1%">
+  <A HREF="/order/add.html?item1=<%ID/q%>&quantity1=1"><IMG
+     SRC="/images/buttons/add_to_order.gif" BORDER="0" ALT="Add to Order"></A>
+</TD>
+
+</TABLE>

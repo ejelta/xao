@@ -1,0 +1,13 @@
+<%Condition
+  c.length="PRODUCT_ID"
+  c.template={
+    <TR>
+      <INPUT TYPE="hidden" NAME="item<%COUNT%>" VALUE="<%PRODUCT_ID%>">
+      <INPUT TYPE="hidden" NAME="set<%COUNT%>"  VALUE="1">
+      <TD><INPUT STYLE="font-size: 8pt" TYPE="text" SIZE="4"
+                 NAME="quantity<%COUNT%>" VALUE="<%QUANTITY%>"></TD>
+      <TD><%NAME%></td>
+      <TD ALIGN="right"><%Styler dollars="<%PRICE/h%>"%></TD>
+      <TD ALIGN="right"><%Styler dollars="<%TOTAL_ITEM/h%>"%></TD>
+    </TR>
+  }%>

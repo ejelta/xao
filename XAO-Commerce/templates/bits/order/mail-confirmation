@@ -1,0 +1,8 @@
+<%Mailer
+  to={<%EMAIL/f%>}
+  from={<%Utility mode="config-param" name="adminable/email/customer_service"%>}
+  subject={Your <%Utility mode="config-param" name="adminable/site_name/main"%> order has been submitted!}
+  text.path="/bits/order/mail-confirmation-text"
+  FIRST_NAME="<%FIRST_NAME%>"
+  LAST_NAME="<%LAST_NAME%>"
+%>

@@ -1,0 +1,42 @@
+<%Page path="/bits/header" PAGENAME="account" VERIFY%>
+<%SetArg name="ADDRESS_ID"  value={<%CgiParam/f name="id"          default="NONEXISTENT"%>}%>
+
+<DIV ALIGN="center"><H1>Delete Shipping Address</H1></DIV>
+
+<DIV ALIGN="center">
+
+<%Condition
+  x.cgiparam="confirm"
+  x.path="/bits/commerce/account/address/delete-confirm"
+  x.ADDRESS_ID="<%ADDRESS_ID/f%>"
+%>
+
+<TABLE><TR><TD>
+<%FS
+  mode="show-hash"
+  uri="/Customers/<%CUSTOMER_ID%>/Addresses/<%ADDRESS_ID%>"
+  base.clipboard={<%IdentifyUser/f
+                    mode="check"
+                    type="customer"
+                    verified.path="/bits/commerce/account/customer-cb-uri"
+                  %>/object}
+  uri="Addresses/<%ADDRESS_ID%>"
+  fields="*"
+  path="/bits/address/show"
+%>
+</TD></TR></TABLE>
+<P>
+
+<FORM METHOD="get" ACTION="delete.html">
+<INPUT TYPE="hidden" NAME="id"          VALUE="<%ADDRESS_ID/f%>">
+<INPUT TYPE="submit" NAME="confirm"     VALUE=" Confirm! ">
+</FORM>
+
+<%Condition
+  default.path="/bits/commerce/account/footer-accounts"
+  default.pass
+%>
+
+</DIV>
+
+<%Page path="/bits/footer"%>

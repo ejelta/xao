@@ -1,0 +1,58 @@
+<%Condition
+  c.arg="ERRSTR"
+  c.template={<BLOCKQUOTE><%ERRSTR%></BLOCKQUOTE><P>}
+%>
+
+<TABLE ALIGN="center" BORDER="0" CELLPADDING="4" CELLSPACING="2">
+
+<TR>
+  <TD><STRONG><%REF_NAME.TEXT/h%>:</STRONG></TD>
+  <TD><%REF_NAME.HTML%></TD>
+</TR>
+
+<TR>
+  <TD><STRONG><%NAME_LINE1.TEXT/h%>:</STRONG></TD>
+  <TD><%NAME_LINE1.HTML%></TD>
+</TR>
+
+<TR>
+  <TD><%NAME_LINE2.TEXT/h%>:</TD>
+  <TD><%NAME_LINE2.HTML%></TD>
+</TR>
+
+<TR>
+  <TD><STRONG><%LINE_1.TEXT/h%>:</STRONG></TD>
+  <TD><%LINE_1.HTML%></TD>
+</TR>
+
+<TR>
+  <TD><%LINE_2.TEXT/h%>:</TD>
+  <TD><%LINE_2.HTML%></TD>
+</TR>
+
+<TR>
+  <TD><STRONG><%CITY.TEXT/h%>:</STRONG></TD>
+  <TD><%CITY.HTML%></TD>
+</TR>
+
+<TR>
+  <TD><STRONG><%STATE.TEXT/h%>:</STRONG></TD>
+  <TD><%STATE.HTML%></TD>
+</TR>
+
+<TR>
+  <TD><STRONG><%ZIPCODE.TEXT/h%>:</STRONG></TD>
+  <TD><%ZIPCODE.HTML%></TD>
+</TR>
+
+<TR>
+  <TD><STRONG><%PHONE.TEXT/h%>:</STRONG></TD>
+  <TD><%PHONE.HTML%></TD>
+</TR>
+
+<TR>
+  <TD></TD>
+  <TD><INPUT TYPE="SUBMIT" VALUE=" Store! " NAME="done"></TD>
+</TR>
+
+</TABLE>

@@ -1,0 +1,11 @@
+<%Address
+  mode="delete-object"
+  base.clipboard={<%IdentifyUser/f
+                    mode="check"
+                    type="customer"
+                    verified.path="/bits/commerce/account/customer-cb-uri"
+                  %>/object}
+  uri="Addresses"
+  id="<%ADDRESS_ID/f%>"
+%>
+<%Page path="/bits/commerce/account/address/edit-success"%>

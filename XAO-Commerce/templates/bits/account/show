@@ -1,0 +1,11 @@
+<TABLE ALIGN="center" BORDER="0" CELLPADDING="4" CELLSPACING="2">
+<TR>
+  <TD>Name:</TD>
+  <TD><%FIRST_NAME/h%> <%MIDDLE_NAME/h%> <%LAST_NAME/h%></TD>
+</TR>
+<TR>
+  <TD>Email:</TD>
+  <TD><%EMAIL/h%></TD>
+</TR>
+</TABLE>
+<BR>

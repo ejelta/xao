@@ -1,0 +1,14 @@
+<TABLE ALIGN="center" BORDER="0">
+<TR>
+  <TD COLSPAN="2" ALIGN="center">
+    <%Condition
+     x.arg="CUSTOMER_ID"
+     x.pass.CUSTOMER_ID
+     x.path="/bits/commerce/admin/account/footer-account"
+    %>
+    |
+    <A HREF="/admin/account/new.html">add new account</A> |
+    <A HREF="/admin/account/">show accounts</A> |
+  </TD>
+</TR>
+</TABLE>

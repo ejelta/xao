@@ -1,0 +1,7 @@
+<LI><A HREF="/catalog/<%ID/q%>.html"><B><%Category
+  mode="show-path"
+  category="<%ID/f%>"
+  path="/bits/category/path-simple"
+  ellipsis.limit="4"
+  ellipsis.template=":: ... "
+%></B></A></LI>

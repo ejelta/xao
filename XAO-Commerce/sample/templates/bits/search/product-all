@@ -1,0 +1,9 @@
+<%Product
+  mode="search-keyword"
+  keyword={<%CgiParam/f name="keyword" default="QWERTY"%>}
+  items_per_page="20"
+  start_item={<%CgiParam/f name="start_item" default="0"%>}
+  header.path="/bits/search/product-header"
+  path="/bits/search/product-row"
+  footer.path="/bits/search/product-footer-nav"
+%>

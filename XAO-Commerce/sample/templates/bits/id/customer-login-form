@@ -1,0 +1,63 @@
+<%Page path="/bits/header" PAGENAME="login"%>
+
+<H1>Authorization Required</H1>
+<P>
+
+<!-- Checking if we got displayed as anonymous
+     template and have ERRSTR with error description
+-->
+<%SetArg name="ERRSTR" value=""%>
+<%Condition
+  errstr.arg="ERRSTR"
+  errstr.template={<SPAN STYLE="color: #880000"><%ERRSTR/h%></SPAN><P>}
+%>
+
+<!-- Setting reasonable default for username -
+     entered value or cookie value
+-->
+<%SetArg
+  name="USERNAME"
+  value={<%Condition/f
+      cgi.cgiparam="username"
+      cgi.template={<%CgiParam/f name="username" default=""%>}
+      cookie.cookie={<%Utility/f mode="config-param" name="identify_user/customer/id_cookie"%>}
+      cookie.template={<%Cookie/f name={<%Utility/f
+                                          mode="config-param"
+                                          name="identify_user/customer/id_cookie"
+                                       %>} default=""%>}
+      default.template=""
+  %>}
+%>
+
+<!-- The login form -->
+<TABLE BORDER="0" CELLSPACING="0" CELLPADDING="0">
+<FORM METHOD="GET" ACTION="/login.html">
+<INPUT TYPE="HIDDEN" NAME="return" VALUE="<%CgiParam/f name="return" default="/"%>">
+
+<TR>
+  <TD>Email:&nbsp;</TD>
+  <TD><INPUT TYPE="TEXT" STYLE="font-size: 8pt" NAME="username" VALUE="<%USERNAME/f%>" SIZE="12" MAXLENGTH="30"></TD>
+</TR>
+
+<TR><TD COLSPAN="2" HEIGHT="10"></TD></TR>
+
+<TR>
+  <TD>Password:&nbsp;</TD>
+  <TD><INPUT TYPE="PASSWORD" STYLE="font-size: 8pt" NAME="password" SIZE="12" MAXLENGTH="50"></TD>
+</TR>
+
+<TR><TD COLSPAN="2" HEIGHT="10"></TD></TR>
+
+<TR>
+  <TD COLSPAN="2"><INPUT TYPE="IMAGE" SRC="/images/buttons/submit.gif" ALT="Log in" BORDER="0">
+  </TD>
+</TR>
+
+</FORM>
+</TABLE>
+<P>
+
+<A HREF="/account/new.html">Create new login account.</A>
+<P>
+
+<%Page path="/bits/footer"%>

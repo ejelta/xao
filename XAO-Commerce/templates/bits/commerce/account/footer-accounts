@@ -1,0 +1,14 @@
+<TABLE ALIGN="center" BORDER="0">
+<TR>
+  <TD COLSPAN="2" ALIGN="center">
+    |
+    <A HREF="/account/order/index.html">show orders</A> |
+    <A HREF="/account/address/index.html">show address book</A> |
+    <A HREF="/account/paymethod/index.html">show wallet</A> |
+    <BR>
+    |
+    <A HREF="/account/show.html">show account</A> |
+    <A HREF="/account/edit.html">edit account</A> |
+  </TD>
+</TR>
+</TABLE>

@@ -1,0 +1,15 @@
+<%Page path="/bits/header-admin" PAGENAME="accounts"%>
+
+<%Styler text="Customer Info" style="page-title"%>
+
+<%Condition
+  password.cgiparam="edit_password"
+  password.path="/admin/bits/customer-edit-password"
+  profile.cgiparam="edit_profile"
+  profile.path="/admin/bits/customer-edit-profile"
+  hqaddr.cgiparam="edit_hqaddr"
+  hqaddr.path="/admin/bits/customer-edit-hqaddr"
+  default.path="/admin/bits/customer-info"
+%>
+
+<%Page path="/bits/footer-admin"%>

@@ -1,0 +1,11 @@
+<!-- We redirect to home page if current page has some CGI parameters -->
+<!-- Would not override already existing RETURN parameter -->
+<%SetArg
+  name="RETURN"
+  value={<%Condition
+           c1.value={<%Utility/f mode="pass-cgi-params" result="query" params="*"%>}
+           c1.template="/"
+           default.template={<%Utility/f mode="current-url"%>}
+         %>}
+%>
+<%Redirect url="/login.html?return=<%RETURN/q%>"%>

@@ -1,0 +1,36 @@
+<%Debug set="show-path"%>
+<%Page path="/bits/header-admin"%>
+
+<DIV ALIGN="center"><H1>All Orders</H1></DIV>
+<P>
+
+<DIV ALIGN="center">
+
+<%FS
+  mode="search"
+  uri="/Orders"
+
+  index_1="customer_id"
+  compare_1="ws"
+  value_1="Placed"
+
+  orderby="-place_time"
+  start_item={<%CgiParam/f name="start_item" default="1"%>}
+  items_per_page={<%CgiParam/f name="items_per_page" default="10"%>}
+  fields="*"
+
+  header.path="/bits/commerce/admin/order/list-header"
+  path="/bits/commerce/admin/order/list-row"
+  footer.path="/bits/commerce/admin/order/list-footer"
+  default.template="<EM>No orders found</EM>"
+%>
+<P>
+
+<%Condition
+  default.path="/bits/commerce/admin/order/footer-orders"
+  default.pass
+%>
+
+</DIV>
+
+<%Page path="/bits/footer-admin"%>

@@ -1,0 +1,33 @@
+<%Page path="/bits/header" PAGENAME="products"%>
+
+<STRONG>
+<%Category
+  mode="show-path"
+  category="<%CATEGORY/f%>"
+  path="/bits/category/path-template"
+  ellipsis.limit="4"
+  ellipsis.template=":: ... "
+%>
+</STRONG>
+<P>
+
+<%Category
+  mode="show-list"
+  category="<%CATEGORY/f%>"
+  header.path="/bits/category/list-header"
+  path="/bits/category/list-row"
+  footer.path="/bits/category/list-footer"
+%>
+
+<%Category
+  mode="show-products"
+  items_per_page={<%CgiParam/f name="items_per_page" default="5"%>}
+  start_item={<%CgiParam/f name="start_item" default="0"%>}
+  category="<%CATEGORY/f%>"
+  header.path="/bits/commerce/product/list-header"
+  path="/bits/commerce/product/list-row"
+  footer.path="/bits/commerce/product/list-footer"
+  nothing="/bits/category/no-products"
+%>
+
+<%Page path="/bits/footer"%>

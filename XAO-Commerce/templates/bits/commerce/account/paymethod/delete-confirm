@@ -1,0 +1,11 @@
+<%PayMethod
+  mode="delete-object"
+  base.clipboard={<%IdentifyUser/f
+                    mode="check"
+                    type="customer"
+                    verified.path="/bits/commerce/account/customer-cb-uri"
+                  %>/object}
+  uri="PayMethods"
+  id="<%PAYMETHOD_ID/f%>"
+%>
+<%Page path="/bits/commerce/account/paymethod/edit-success"%>

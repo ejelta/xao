@@ -1,0 +1,13 @@
+<%Condition
+  c1.arg="LIMIT_REACHED"
+  c1.template={
+<LI><A HREF="/search-cat.html?keyword=<%CgiParam/q name="keyword"%>"><B>...
+See all <%Styler number="<%NUMBER/f%>"%> category matches</B></A></LI>
+</UL>
+}
+  c2.arg="NUMBER"
+  c2.template={
+</UL>
+<P>
+}
+%>

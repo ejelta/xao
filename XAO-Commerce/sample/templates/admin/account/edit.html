@@ -1,0 +1,26 @@
+<%Page path="/bits/header-admin"%>
+<%SetArg name="CUSTOMER_ID" value={<%CgiParam/f name="id" default="NONEXISTENT"%>}%>
+
+<DIV ALIGN="center"><H1>Edit Account</H1></DIV>
+
+<DIV ALIGN="center">
+
+<FORM METHOD="get"   ACTION="edit.html">
+<INPUT TYPE="hidden" NAME="id" VALUE="<%CUSTOMER_ID%>">
+<%Account
+  mode="edit-object"
+  uri="/Customers"
+  id="<%CUSTOMER_ID%>"
+  form.path="/bits/commerce/account/edit-form"
+  success.path="/bits/commerce/admin/account/edit-success"
+%>
+</FORM>
+
+<%Condition
+  default.path="/bits/commerce/admin/account/footer-accounts"
+  default.pass
+%>
+
+</DIV>
+
+<%Page path="/bits/footer-admin"%>

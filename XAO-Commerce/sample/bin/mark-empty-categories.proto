@@ -1,0 +1,62 @@
+#!/usr/bin/perl -w
+use strict;
+use XAO::Utils;
+use XAO::Objects;
+use XAO::Web;
+
+sub is_empty ($);
+
+if($ARGV[0] eq '--debug') {
+    XAO::Utils::set_debug(1);
+    shift(@ARGV);
+}
+
+if(!@ARGV || $ARGV[0] ne 'yes') {
+    print <<EOT;
+Usage: $0 [--debug] yes
+
+Marks categories that have no products with 'empty' tag. Can take very
+long to run depending on database content.
+EOT
+    exit(1);
+}
+
+##
+# Reading configuration and connecting to the database
+#
+my $site=XAO::Web->new(sitename => '<%PROJECT%>');
+$site->set_current();
+my $odb=$site->config->odb();
+
+##
+# Creating new Person object
+#
+my $cat_list=$odb->fetch('/Categories');
+my $prod_list=$odb->collection(class => 'Data::ProductCategory');
+foreach my $id ($cat_list->keys) {
+    my $empty=is_empty($id);
+    dprint "----- Analyzing $id (",$cat_list->get($id)->get('name'),") -- empty=$empty";
+    $cat_list->get($id)->put(empty => $empty);
+}
+
+##
+# Done
+#
+exit 0;
+
+###############################################################################
+
+sub is_empty ($) {
+    my $id=shift;
+    my $prods=$prod_list->search('prod_cat_id','eq',$id);
+    return 0 if $prods && @$prods;
+
+    my $cats=$cat_list->search('parent_id','eq',$id);
+    foreach my $cat_id (@$cats) {
+        return 0 unless is_empty($cat_id);
+    }
+
+    return 1;
+}
+
+###############################################################################

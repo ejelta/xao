@@ -1,0 +1,23 @@
+<%Condition
+  c.arg="ERRSTR"
+  c.template={<BLOCKQUOTE><%ERRSTR%></BLOCKQUOTE><P>}
+%>
+
+<TABLE BORDER="0">
+
+  <TR>
+    <TD><%STATUS.TEXT/h%>:</TD>
+    <TD><%STATUS.HTML%></TD>
+  </TR>
+
+  <TR>
+    <TD><%MERCHANT_COMMENT.TEXT/h%>:</TD>
+    <TD><TEXTAREA NAME="merchant_comment" ROWS="5" COLS="30" WRAP="virtual"><%MERCHANT_COMMENT.VALUE/h%></TEXTAREA></TD>
+  </TR>
+
+  <TR>
+    <TD></TD>
+    <TD><INPUT TYPE="SUBMIT" VALUE=" Store! " NAME="done"></TD>
+  </TR>
+
+</TABLE>

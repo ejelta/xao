@@ -1,0 +1,17 @@
+<%Page path="/bits/header-admin" PAGENAME="accounts"%>
+
+<%Styler text="Customers Database" style="page-title"%>
+
+<FORM METHOD="GET" ACTION="/admin/accounts.html">
+<INPUT NAME="text" VALUE="<%CgiParam/f name="text"%>" SIZE="20" MAXLENGTH="20">
+<INPUT TYPE="SUBMIT" VALUE="  Search  ">
+</FORM>
+<P>
+
+<%Condition
+  search.cgiparam="text"
+  search.path="/admin/bits/customers-search"
+  default.path="/admin/bits/customers-list"
+%>
+
+<%Page path="/bits/footer-admin"%>

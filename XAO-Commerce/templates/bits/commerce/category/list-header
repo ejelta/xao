@@ -1,0 +1,8 @@
+<%Condition
+  num.arg="NUMBER"
+  num.template={
+    <H2>Category Matches</H2>
+    <P>
+    <UL>
+  }
+%>

@@ -1,0 +1,25 @@
+<%Page path="/bits/header"%>
+
+<DIV ALIGN="center"><H1>Product Search Results</H1></DIV>
+<P>
+
+<%Product
+  mode="search"
+  uri="/Products"
+
+  index_1="name|description"
+  value_1={<%CgiParam/f name="keyword" default=""%>}
+  compare_1="cs"
+
+  fields="*"
+  orderby="name"
+
+  start_item={<%CgiParam/f name="start_item" default="1"%>}
+  items_per_page={<%CgiParam/f name="items_per_page" default="5"%>}
+
+  header.path="/bits/commerce/product/list-header"
+  path="/bits/commerce/product/list-row"
+  footer.path="/bits/commerce/product/list-footer"
+  default.template={<DIV ALIGN="center"><EM>No matches found.</EM></DIV>}
+%>
+<%Page path="/bits/footer"%>

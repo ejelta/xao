@@ -1,0 +1,16 @@
+<TR>
+  <TD BGCOLOR="#363636" WIDTH="160" HEIGHT="100%" ALIGN="left" VALIGN="TOP"> 
+  <img src="/images/pix_clear.gif" ALT="" WIDTH="160" HEIGHT="23" BORDER="0">
+  <DIV ALIGN="center"><FONT COLOR="#FFFFFF">
+  Logged in as
+  <BR>
+  <STRONG>
+  <%Clipboard
+    mode="show"
+    name="IdentifyUser/customer/name"
+    default="Unknown"%>
+  </STRONG>
+  <BR><BR>
+  </FONT></DIV>
+  </TD>
+</TR>

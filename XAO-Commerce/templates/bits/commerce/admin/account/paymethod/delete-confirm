@@ -1,0 +1,6 @@
+<%PayMethod
+  mode="delete-object"
+  uri="/Customers/<%CUSTOMER_ID%>/PayMethods"
+  id="<%PAYMEHTOD_ID/f%>"
+%>
+<%Page path="/bits/commerce/admin/account/paymethod/edit-success"%>

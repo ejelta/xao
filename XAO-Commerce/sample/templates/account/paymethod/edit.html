@@ -1,0 +1,32 @@
+<%Page path="/bits/header" PAGENAME="account" VERIFY%>
+<%SetArg name="PAYMETHOD_ID" value={<%CgiParam/f name="id" default="NONEXISTENT"%>}%>
+
+<DIV ALIGN="center"><H1>Editing Pay Method</H1></DIV>
+
+<DIV ALIGN="center">
+
+<FORM METHOD="get"   ACTION="edit.html">
+<INPUT TYPE="hidden" NAME="id" VALUE="<%PAYMETHOD_ID%>">
+
+<%PayMethod
+  mode="edit-object"
+  base.clipboard={<%IdentifyUser/f
+                    mode="check"
+                    type="customer"
+                    verified.path="/bits/commerce/account/customer-cb-uri"
+                  %>/object}
+  uri="PayMethods"
+  id="<%PAYMETHOD_ID%>"
+  form.path="/bits/commerce/account/paymethod/edit-form"
+  success.path="/bits/commerce/account/paymethod/edit-success"
+%>
+</FORM>
+
+<%Condition
+  default.path="/bits/commerce/account/footer-accounts"
+  default.pass
+%>
+
+</DIV>
+
+<%Page path="/bits/footer"%>

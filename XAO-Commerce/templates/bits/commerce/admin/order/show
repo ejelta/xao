@@ -1,0 +1,11 @@
+<%Order
+  id="<%ORDER_ID%>"
+  path="/bits/order/admin/order-fixed"
+  sorry.template={
+    <DIV ALIGN="center">
+    <EM>There are no items in this order.</EM>
+    </DIV>
+    <BR><BR>
+  }
+  item.path="/bits/order/item-fixed"
+%>

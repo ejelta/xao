@@ -1,0 +1,7 @@
+<%IdentifyUser
+  mode="check"
+  type="customer"
+  identified.path="/bits/id/customer-verify-redirect"
+  anonymous.path="/bits/id/customer-verify-redirect"
+  stop
+%>

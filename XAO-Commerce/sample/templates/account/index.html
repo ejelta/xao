@@ -1,0 +1,31 @@
+<%Page path="/bits/header" PAGENAME="account" VERIFY%>
+
+<DIV ALIGN="center"><H1>Your Account</H1>
+<P>
+
+<DL>
+
+<DIV ALIGN="center">
+
+<DT><A HREF="order/index.html"><STRONG>Order History</STRONG></A>
+<DD>Follow this link to view your past orders and see tracking information.
+<P>
+
+<DT><A HREF="address/index.html"><STRONG>Address Book</STRONG></A>
+<DD>Follow this link to add new shipping address or modify an existing one.
+<P>
+
+<DT><A HREF="paymethod/index.html"><STRONG>Wallet</STRONG></A>
+<DD>Follow this link to add new credit card or modify an existing one.
+<P>
+
+</DL>
+
+<%Condition
+  default.path="/bits/commerce/account/footer-accounts"
+  default.pass
+%>
+
+</DIV>
+
+<%Page path="/bits/footer"%>

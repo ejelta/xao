@@ -1,0 +1,38 @@
+<%Page path="/bits/header-admin"%>
+<%SetArg name="ORDER_ID"  value={<%CgiParam/f name="id" default="NONEXISTENT"%>}%>
+
+<DIV ALIGN="center"><H1>Delete Order</H1></DIV>
+
+<%Condition
+  c.cgiparam="confirm"
+  c.path="/bits/commerce/admin/order/delete-confirm"
+  c.ORDER_ID="<%ORDER_ID/f%>"
+%>
+
+<DIV ALIGN="center">
+  <TABLE><TR><TD>
+    <%Order
+      id={<%CgiParam/f name="id" default=""%>}
+      path="/bits/order/admin/order-fixed"
+      sorry.template={
+        <DIV ALIGN="center">
+        <EM>There are no items in this order.</EM>
+        </DIV>
+        <BR><BR>
+      }
+      item.path="/bits/order/item-fixed"
+    %>
+  </TD></TR></TABLE>
+  <P>
+  <FORM METHOD="get" ACTION="delete.html">
+  <INPUT TYPE="hidden" NAME="id" VALUE="<%ORDER_ID%>">
+  <INPUT TYPE="submit" NAME="confirm"     VALUE=" Confirm! ">
+  </FORM>
+
+<%Condition
+  default.path="/bits/commerce/admin/order/footer-orders"
+  default.pass
+%>
+</DIV>
+
+<%Page path="/bits/footer-admin"%>

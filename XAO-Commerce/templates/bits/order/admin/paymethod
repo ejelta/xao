@@ -1,0 +1,21 @@
+    <TABLE WIDTH="200" ALIGN="center" BORDER="0" CELLPADDING="0" CELLSPACING="0"><TR><TD>
+    <STRONG>Payment Info:</STRONG><BR>
+    <BR>
+
+    <STRONG>[ <%PAY_REF_NAME/h%> ]</STRONG><BR>
+    <%PAY_NAME/h%><BR>
+    <%PAY_LINE_1/h%><BR>
+    <%Condition
+      c.arg="PAY_LINE_2"
+      c.template="<%PAY_LINE_2/h%><BR>"
+    %>
+    <%PAY_CITY/h%>, <%PAY_STATE/h%> <%PAY_ZIPCODE/h%><BR>
+    <%Condition
+      c.arg="PAY_PHONE"
+      c.template="<%PAY_PHONE/h%><BR>"
+    %>
+    <HR>
+    <STRONG>Payment Method:</STRONG><BR>
+    &nbsp;&nbsp; <%PAY_METHOD/h%> #<%PAY_NUMBER/h%><BR>
+    &nbsp;&nbsp; Exp. <%PAY_EXPIRE_MONTH/h%>/<%PAY_EXPIRE_YEAR/h%><BR>
+    </TD></TR></TABLE>

@@ -1,0 +1,17 @@
+<!--// ************************************** -->
+<TR>
+  <TD BGCOLOR="#636363" WIDTH="160" HEIGHT="100%" ALIGN="CENTER" VALIGN="MIDDLE">
+    <TABLE BGCOLOR="#636363" CELLPADDING="4" CELLSPACING="0" BORDER="0">
+      <TR>
+        <TD BGCOLOR="#636363" WIDTH="160" HEIGHT="100%" ALIGN="CENTER" VALIGN="MIDDLE">
+        <A HREF="/catalog/<%ID/q%>.html"><font color="#FFFFFF"><%FS/html uri="/Categories/<%ID/f%>/name" %></font></A>
+        </TD>
+      </TR>
+    </TABLE>
+  </TD>
+</TR>
+<TR>
+  <TD BGCOLOR="#000000" WIDTH="160" HEIGHT="1" ALIGN="left" VALIGN="TOP"> 
+  <img src="/images/pix_clear.gif" ALT="" WIDTH="160" HEIGHT="1" BORDER="0"></TD>
+</TR>
+<!--// ====================================== -->

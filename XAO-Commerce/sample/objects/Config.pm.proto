@@ -1,0 +1,610 @@
+# To build actual objects/Config.pm from this file run
+# `make' at the top level
+###############################################################################
+package XAO::DO::Config;
+use strict;
+use XAO::Utils;
+use XAO::Objects;
+use base XAO::Objects->load(objname => 'Config', baseobj => 1);
+
+my %data = (
+
+    adminable => {
+        site_name => {
+            main => 'XAO Inc.',
+            alt  => 'xao.com',
+        },
+        email => {
+            contact          => 'sales@xao.com',
+            customer_service => 'sales@xao.com',
+        },
+        style => {
+        },
+    },
+
+    identify_user => {
+        customer => {
+            #cb_uri           => '/IdentifyCustomers', # optional
+            list_uri         => '/Customers',
+            id_cookie        => 'id_customer',
+            id_cookie_expire => 126230400,             # (seconds) optional
+            user_prop        => 'email',               # optional
+            pass_prop        => 'password',
+            pass_encrypt     => 'md5',
+            vf_key_cookie    => 'vf_key_customer',     # optional
+            vf_key_prop      => 'verify_key',          # optional
+            vf_time_prop     => 'verify_time',
+            vf_expire_time   => 30*60,                 # (seconds)
+        },
+        admin => {
+            list_uri         => '/Admins',
+            id_cookie        => 'id_admin',
+            pass_prop        => 'password',
+            pass_encrypt     => 'md5',
+            vf_key_cookie    => 'vf_key_admin',
+            vf_key_prop      => 'verify_key',
+            vf_time_prop     => 'verify_time',
+            vf_expire_time   => 30*60,
+        },
+    },
+
+    order => {
+        #cb_uri             => '/Order',         # optional
+        list_uri            => '/Orders',
+        order_cookie        => 'id_order',
+        order_cookie_expire => 126230400,         # (seconds) optional
+    },
+
+    path_mapping_table  => {
+       '/catalog/index.html'   => [ 'Redirect',    url => '/' ],
+       '/catalog'              => [ 'AutoCatalog'  ],
+       #'/products/index.html'  => [ 'Redirect',    url => '/' ],
+       #'/products/images'      => [ 'AutoProduct', mode => 'image' ],
+       #'/products'             => [ 'AutoProduct'  ],
+    },
+
+    product_structure => {
+        lists => {
+            Categories => {
+                type        => 'list',
+                class       => 'Data::ProductCategory',
+                key         => 'prod_cat_id',
+            },
+        },
+        fixed => {
+            source_ref => {
+                type        => 'text',
+                maxlength   => 30,
+            },
+            source_seq => {
+                type        => 'integer',
+                minvalue    => 0,
+            },
+            source_sku => {
+                type        => 'text',
+                maxlength   => 30,
+            },
+            manufacturer => {
+                type        => 'text',
+                maxlength   => 50,
+            },
+            manufacturer_id => {
+                type        => 'text',
+                maxlength   => 30,
+            },
+            sku => {
+                type        => 'text',
+                maxlength   => '30',
+                index       => 1,
+                unique      => 1,
+            },
+            name => {
+                type        => 'text',
+                maxlength   => 100,
+            },
+            description => {
+                type        => 'text',
+                maxlength   => 2000,
+            },
+            thumbnail_url => {
+                type        => 'text',
+                maxlength   => 200,
+            },
+            image_url => {
+                type        => 'text',
+                maxlength   => 200,
+            },
+        },
+        site_specific => {
+            attribute => {
+                type        => 'text',
+                maxlength   => 100,
+            },
+            price => {
+                type        => 'real',
+            },
+            sale_price => {
+                type        => 'real',
+            },
+            weight => {
+                type        => 'real',
+                minvalue    => 0,
+            },
+        },
+        flatfile_spec => {
+            fields => [
+                'sku',
+                'category1',
+                'category2',
+                'name',
+                'price',
+                'weight',
+                'thumbnail_url',
+                'image_url',
+                'attribute',
+                'description',
+                'sale_price',
+                'inventory',
+            ],
+            category_hierarchy => {
+                category1 => {
+                    category2 => {},
+                },
+            },
+        },
+    },
+);
+###############################################################################
+sub init {
+    my $self=shift;
+
+    my $fsconfig = XAO::Objects->new(
+        objname  => 'FS::Config',
+        odb_args => {
+            dsn       => '<%ODB_DSN%>',
+            user      => '<%ODB_USER%>',
+            password  => '<%ODB_PASSWORD%>',
+        }
+    );
+
+    $self->embed(fs => $fsconfig);
+
+    $self->embedded('hash')->fill(\%data);
+
+    $self->SUPER::init();
+}
+###############################################################################
+sub build_structure ($) {
+    my $self=shift;
+
+    #
+    # Prepare structures for 'products' and 'ordered products'
+    #
+    my $prod_struct         = {};
+    my $ordered_prod_struct = {};
+    my $spec = $data{product_structure};
+    foreach my $type (sort keys %$spec) {
+        next if $type eq 'flatfile_spec';
+        my $rhash = $spec->{$type};
+        foreach (keys %$rhash) {
+            $prod_struct->{$_}  = $rhash->{$_};
+            # XXX add 'lists' support once XAO::DO::Web::Orders::_clone_list()
+            # is properly implemented:
+            $ordered_prod_struct->{$_} = $rhash->{$_} unless $type eq 'lists';
+        }
+    }
+    $ordered_prod_struct->{quantity} = {
+        type        => 'integer',
+        minvalue    => 0,
+    },
+    $ordered_prod_struct->{order_price} = {
+        type        => 'real',
+    },
+
+    my %structure = (
+        Admins => {
+            type        => 'list',
+            class       => 'Data::Admin',
+            key         => 'admin_id',
+            structure   => {
+                name => {
+                    type        => 'text',
+                    maxlength   => 100,
+                },
+                email => {
+                    type        => 'text',
+                    maxlength   => 100,
+                    index       => 1,
+                },
+                password => {
+                    type        => 'text',
+                    maxlength   => 100,
+                },
+                verify_key => {
+                    type        => 'text',
+                    maxlength   => 100,
+                },
+                verify_time => {
+                    type        => 'integer',
+                    minvalue    => 0,
+                },
+            },
+        },
+        Catalogs => {
+            type        => 'list',
+            class       => 'Data::Catalog',
+            key         => 'catalog_id',
+            structure   => {
+                CategoryMap => {
+                    type        => 'list',
+                    class       => 'Data::CatalogCategoryMap',
+                    key         => 'id',
+                    structure   => {
+                        src_cat => {
+                            type        => 'text',
+                            maxlength   => 200,
+                        },
+                        dst_cat => {
+                            type        => 'text',
+                            maxlength   => 200,
+                        },
+                    },
+                },
+                Data => {
+                    type        => 'list',
+                    class       => 'Data::CatalogData',
+                    key         => 'id',
+                    structure   => {
+                        type => {
+                            type        => 'text',
+                            maxlength   => 10,
+                            index       => 1,
+                        },
+                        value => {
+                            type        => 'text',
+                            maxlength   => 60000,
+                        },
+                    },
+                },
+                export_map => {
+                    type        => 'text',
+                    maxlength   => 100,
+                },
+                import_map => {
+                    type        => 'text',
+                    maxlength   => 100,
+                },
+                manufacturer => {
+                    type        => 'text',
+                    maxlength   => 100,
+                },
+                source_seq => {
+                    type        => 'integer',
+                    minvalue    => 0,
+                },
+            },
+        },
+
+        Categories => {
+            type        => 'list',
+            class       => 'Data::Category',
+            key         => 'category_id',
+            structure   => {
+                name => {
+                    type        => 'text',
+                    maxlength   => 80,
+                },
+                description => {
+                    type        => 'text',
+                    maxlength   => 2000,
+                },
+                parent_id => {
+                    type        => 'text',
+                    maxlength   => 30,
+                },
+                thumbnail_url => {
+                    type        => 'text',
+                    maxlength   => 200,
+                },
+                image_url => {
+                    type        => 'text',
+                    maxlength   => 200,
+                },
+                empty => {
+                    type        => 'integer',   # Flag that the category is empty
+                    minvalue    => 0,
+                    maxvalue    => 1,
+                },
+            },
+        },
+
+        Products => {
+            type        => 'list',
+            class       => 'Data::Product',
+            key         => 'product_id',
+            structure   => $prod_struct,
+        },
+
+        Customers => {
+            type        => 'list',
+            class       => 'Data::Customer',
+            key         => 'customer_id',
+            structure   => {
+                Addresses => {
+                    type        => 'list',
+                    class       => 'Data::CustomerAddress',
+                    key         => 'address_id',
+                    structure   => {
+                        ref_name => {
+                            type        => 'text',
+                            maxlength   => 100,
+                        },
+                        name_line1 => {
+                            type        => 'text',
+                            maxlength   => 100,
+                        },
+                        name_line2 => {
+                            type        => 'text',
+                            maxlength   => 100,
+                        },
+                        line_1 => {
+                            type        => 'text',
+                            maxlength   => 100,
+                        },
+                        line_2 => {
+                            type        => 'text',
+                            maxlength   => 100,
+                        },
+                        city => {
+                            type        => 'text',
+                            maxlength   => 30,
+                        },
+                        state => {
+                            type        => 'text',
+                            maxlength   => 30,
+                        },
+                        zipcode => {
+                            type        => 'text',
+                            maxlength   => 10,
+                        },
+                        phone => {
+                            type        => 'text',
+                            maxlength   => 100,
+                        },
+                    },
+                },
+                PayMethods => {
+                    type        => 'list',
+                    class       => 'Data::PayMethod',
+                    key         => 'paymethod_id',
+                    structure   => {
+                        ref_name => {
+                            type        => 'text',
+                            maxlength   => 100,
+                        },
+                        method => {
+                            type        => 'text',
+                            maxlength   => 100,
+                        },
+                        number => {
+                            type        => 'text',
+                            maxlength   => 100,
+                        },
+                        expire_month => {
+                            type        => 'integer',
+                            minvalue    => 0,
+                        },
+                        expire_year => {
+                            type        => 'integer',
+                            minvalue    => 0,
+                        },
+                        name => {
+                            type        => 'text',
+                            maxlength   => 100,
+                        },
+                        line_1 => {
+                            type        => 'text',
+                            maxlength   => 100,
+                        },
+                        line_2 => {
+                            type        => 'text',
+                            maxlength   => 100,
+                        },
+                        city => {
+                            type        => 'text',
+                            maxlength   => 30,
+                        },
+                        state => {
+                            type        => 'text',
+                            maxlength   => 30,
+                        },
+                        zipcode => {
+                            type        => 'text',
+                            maxlength   => 10,
+                        },
+                        phone => {
+                            type        => 'text',
+                            maxlength   => 100,
+                        },
+                    },
+                },
+                first_name => {
+                    type        => 'text',
+                    maxlength   => 100,
+                },
+                middle_name => {
+                    type        => 'text',
+                    maxlength   => 100,
+                },
+                last_name => {
+                    type        => 'text',
+                    maxlength   => 100,
+                },
+                email => {
+                    type        => 'text',
+                    maxlength   => 100,
+                    index       => 1,
+                    unique      => 1,
+                },
+                password => {
+                    type        => 'text',
+                    maxlength   => 100,
+                },
+                verify_key => {
+                    type        => 'text',
+                    maxlength   => 100,
+                },
+                verify_time => {
+                    type        => 'integer',
+                    minvalue    => 0,
+                },
+            },
+        },
+
+        Orders => {
+            type        => 'list',
+            class       => 'Data::Order',
+            key         => 'order_id',
+            structure   => {
+                customer_id => {
+                    type        => 'text',
+                    maxlength   => 100,
+                },
+                # Merchant info:
+                create_time => {
+                    type        => 'integer',
+                    minvalue    => 0,
+                },
+                place_time => {
+                    type        => 'integer',
+                    minvalue    => 0,
+                },
+                status => {
+                    type        => 'text',
+                    maxlength   => 100,
+                },
+                merchant_comment => {
+                    type        => 'text',
+                    maxlength   => 1000,
+                },
+                # General info:
+                shipmethod => {
+                    type        => 'text',
+                    maxlength   => 100,
+                },
+                total_items => {
+                    type        => 'text',
+                    maxlength   => 100,
+                },
+                total_shipping => {
+                    type        => 'text',
+                    maxlength   => 100,
+                },
+                total_tax => {
+                    type        => 'text',
+                    maxlength   => 100,
+                },
+                total_grand => {
+                    type        => 'text',
+                    maxlength   => 100,
+                },
+                # Address info:
+                shipto_ref_name => {
+                    type        => 'text',
+                    maxlength   => 100,
+                },
+                shipto_name_line1 => {
+                    type        => 'text',
+                    maxlength   => 100,
+                },
+                shipto_name_line2 => {
+                    type        => 'text',
+                    maxlength   => 100,
+                },
+                shipto_line_1 => {
+                    type        => 'text',
+                    maxlength   => 100,
+                },
+                shipto_line_2 => {
+                    type        => 'text',
+                    maxlength   => 100,
+                },
+                shipto_city => {
+                    type        => 'text',
+                    maxlength   => 30,
+                },
+                shipto_state => {
+                    type        => 'text',
+                    maxlength   => 30,
+                },
+                shipto_zipcode => {
+                    type        => 'text',
+                    maxlength   => 10,
+                },
+                shipto_phone => {
+                    type        => 'text',
+                    maxlength   => 100,
+                },
+                # PayMethod info:
+                pay_ref_name => {
+                    type        => 'text',
+                    maxlength   => 100,
+                },
+                pay_method => {
+                    type        => 'text',
+                    maxlength   => 100,
+                },
+                pay_number => {
+                    type        => 'text',
+                    maxlength   => 100,
+                },
+                pay_expire_month => {
+                    type        => 'integer',
+                    minvalue    => 0,
+                },
+                pay_expire_year => {
+                    type        => 'integer',
+                    minvalue    => 0,
+                },
+                pay_name => {
+                    type        => 'text',
+                    maxlength   => 100,
+                },
+                pay_line_1 => {
+                    type        => 'text',
+                    maxlength   => 100,
+                },
+                pay_line_2 => {
+                    type        => 'text',
+                    maxlength   => 100,
+                },
+                pay_city => {
+                    type        => 'text',
+                    maxlength   => 30,
+                },
+                pay_state => {
+                    type        => 'text',
+                    maxlength   => 30,
+                },
+                pay_zipcode => {
+                    type        => 'text',
+                    maxlength   => 10,
+                },
+                pay_phone => {
+                    type        => 'text',
+                    maxlength   => 100,
+                },
+                # Product List
+                Products => {
+                    type        => 'list',
+                    class       => 'Data::OrderedProduct',
+                    key         => 'product_id',
+                    structure   => $ordered_prod_struct,
+                },
+            },
+        },
+    );
+    $self->odb->fetch('/')->build_structure(\%structure);
+}
+###############################################################################
+1;

@@ -1,0 +1,29 @@
+<%Page path="/bits/header-admin"%>
+<%SetArg name="CUSTOMER_ID" value={<%CgiParam/f name="customer_id" default=""%>}%>
+<%SetArg name="ADDRESS_ID"  value={<%CgiParam/f name="id"          default="NONEXISTENT"%>}%>
+
+<DIV ALIGN="center"><H1>Editing Shipping Address</H1></DIV>
+
+<DIV ALIGN="center">
+
+<FORM METHOD="get"   ACTION="edit.html">
+<INPUT TYPE="hidden" NAME="id"          VALUE="<%ADDRESS_ID%>">
+<INPUT TYPE="hidden" NAME="customer_id" VALUE="<%CUSTOMER_ID%>">
+
+<%Address
+  mode="edit-object"
+  uri="/Customers/<%CUSTOMER_ID%>/Addresses"
+  id="<%ADDRESS_ID%>"
+  form.path="/bits/commerce/account/address/edit-form"
+  success.path="/bits/commerce/admin/account/address/edit-success"
+%>
+</FORM>
+
+<%Condition
+  default.path="/bits/commerce/admin/account/footer-accounts"
+  default.pass
+%>
+
+</DIV>
+
+<%Page path="/bits/footer-admin"%>

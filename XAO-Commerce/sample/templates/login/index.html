@@ -1,0 +1,11 @@
+<%Page path="/bits/header" PAGENAME="login"%>
+
+<%IdentifyUser
+  mode="check"
+  type="customer"
+  anonymous.path="/login/bits/login-redirect"
+  identified.path="/login/bits/login-redirect"
+  verified.path="/login/bits/login-already"
+%>
+
+<%Page path="/bits/footer"%>

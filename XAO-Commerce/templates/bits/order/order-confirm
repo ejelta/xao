@@ -1,0 +1,31 @@
+<TABLE WIDTH="500" ALIGN="center" BORDER="0" CELLPADDING="2" CELLSPACING="2">
+<TR>
+  <TD VALIGN="top">
+    <%Condition
+      c.length="<%SHIPTO_LINE_1/h%>"
+      c.pass
+      c.path="/bits/order/shipto"
+    %>
+  </td>
+  </TD>
+  <TD VALIGN="top" ALIGN="right">
+    <%Condition
+      c.length="<%PAY_METHOD/h%>"
+      c.pass
+      c.path="/bits/order/paymethod"
+    %>
+  </TD>
+</TR>
+<TR>
+  <TD COLSPAN="2" ALIGN="center">
+    <%Condition
+      c.length="<%ITEMS/h%>"
+      c.pass
+      c.path="/bits/order/items-fixed"
+    %>
+  </TD>
+</TR>
+</TABLE>
+
+<P>
+<A HREF="/order/submit.html"><IMG SRC="/images/buttons/submit.gif" ALT="Submit Order" BORDER="0"></A>

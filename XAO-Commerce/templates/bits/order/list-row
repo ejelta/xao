@@ -1,0 +1,14 @@
+<TR>
+  <TD><STRONG><%STATUS/f%></STRONG></TD>
+  <TD><%Date gmtime="<%PLACE_TIME/f%>" format="%m/%d/%Y %H:%M:%S" %></TD>
+  <TD><A HREF="/account/show.html?id=<%CUSTOMER_ID/f%>"><%FS
+                                                            mode="show-hash"
+                                                            uri="/Customers/<%CUSTOMER_ID%>"
+                                                            fields="*"
+                                                            path="/bits/commerce/admin/order/email"
+                                                            default="nope"
+                                                          %></A></TD>
+  <TD>
+    <A HREF="/account/order/show.html?id=<%ID/f%>">show</A>
+  </TD>
+</TR>

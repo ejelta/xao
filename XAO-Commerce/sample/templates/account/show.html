@@ -1,0 +1,25 @@
+<%Page path="/bits/header" PAGENAME="account" VERIFY%>
+
+<DIV ALIGN="center"><H1>Customer Account</H1></DIV>
+
+<DIV ALIGN="center">
+
+<%FS
+  mode="show-hash"
+  base.clipboard={<%IdentifyUser/f
+                    mode="check"
+                    type="customer"
+                    verified.path="/bits/commerce/account/customer-cb-uri"
+                  %>/object}
+  fields="*"
+  path="/bits/account/show"
+%>
+
+<%Condition
+  default.path="/bits/commerce/account/footer-accounts"
+  default.pass
+%>
+
+</DIV>
+
+<%Page path="/bits/footer"%>

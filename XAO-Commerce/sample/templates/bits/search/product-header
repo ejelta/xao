@@ -1,0 +1,7 @@
+<%Condition
+  num.arg="TOTAL_ITEMS"
+  num.template={
+<H2>Product Matches</H2>
+<P>
+<UL>}
+%>

@@ -1,0 +1,11 @@
+<%Page path="/bits/header" PAGENAME="products"%>
+
+<CENTER>
+<A HREF="/products/<%ID/q%>.html">
+Back to product description
+<P>
+<IMG SRC="/images/products/large/<%IMAGE_URL%>" ALT="Product Image" BORDER="0">
+</A>
+</CENTER>
+
+<%Page path="/bits/footer"%>

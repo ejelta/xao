@@ -1,0 +1,10 @@
+<%IdentifyUser
+  mode="login"
+  type="customer"
+  username={<%CgiParam/f name="username" default=""%>}
+  password={<%CgiParam/f name="password" default=""%>}
+  anonymous.path="/bits/id/customer-login-form"
+  identified.path="/bits/id/customer-login-form"
+  verified.path="/bits/id/customer-login-success"
+  stop
+%><%End%>

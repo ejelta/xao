@@ -1,0 +1,1 @@
+<%Redirect url={/admin/account/paymethod/index.html?id=<%CgiParam/f name="customer_id" default=""%>}%>

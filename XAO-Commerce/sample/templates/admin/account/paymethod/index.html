@@ -1,0 +1,38 @@
+<%Page path="/bits/header-admin"%>
+<%SetArg name="CUSTOMER_ID" value={<%CgiParam/f name="id" default=""%>}%>
+
+<DIV ALIGN="center"><H1>Customer Wallet</H1></DIV>
+<P>
+
+<DIV ALIGN="center">
+
+<%FS
+  mode="search"
+  uri={/Customers/<%CUSTOMER_ID%>/PayMethods}
+  
+  orderby="ref_name"
+  start_item={<%CgiParam/f name="start_item" default="1"%>}
+  items_per_page={<%CgiParam/f name="items_per_page" default="10"%>}
+  fields="*"
+  CUSTOMER_ID="<%CUSTOMER_ID%>"
+
+  header.path="/bits/commerce/account/paymethod/list-header"
+  path="/bits/commerce/admin/account/paymethod/list-row"
+  footer.path="/bits/commerce/account/paymethod/list-footer"
+  default.template="<EM>No pay methods found for this account. (ID: <STRONG><%CUSTOMER_ID%></STRONG>).</EM><BR>"
+%>
+<P>
+
+<TABLE><TR><TD>
+<STRONG><A HREF="/admin/account/paymethod/new.html?customer_id=<%CUSTOMER_ID%>">Add new pay method</A></STRONG>
+</TD></TR></TABLE>
+<P>
+
+<%Condition
+  default.path="/bits/commerce/admin/account/footer-accounts"
+  default.pass
+%>
+
+</DIV>
+
+<%Page path="/bits/footer-admin"%>

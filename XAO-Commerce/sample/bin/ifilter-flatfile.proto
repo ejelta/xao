@@ -1,0 +1,100 @@
+#!/usr/bin/perl -w
+#
+# Implementation of sample import splitting filter for ClearingPoint.
+#
+use strict;
+use XML::DOM;
+use XAO::Utils;
+use XAO::Web;
+
+use constant SITENAME    => '<%PROJECT%>';
+use constant SOURCE_NAME => 'FlatFile';
+use constant IMPORT_MAP  => 'ImportMap::FlatFile';
+use constant EXPORT_MAP  => 'ExportMap::FlatFile';
+
+if(@ARGV && $ARGV[0] eq '--debug') {
+    XAO::Utils::set_debug(1);
+    shift @ARGV;
+}
+
+if (!@ARGV) {
+    print <<EOT;
+Usage: $0 [--debug] input.xml
+
+See docs/import-filter.pod for more details and sample XML catalog
+format.
+EOT
+    exit(1);
+}
+
+my $file=shift(@ARGV);
+
+##
+# Connecting to the database
+#
+my $site=XAO::Web->new(sitename => SITENAME);
+$site->set_current();
+my $odb=$site->config->odb();
+
+my $catlist=$odb->fetch('/Catalogs');
+my $catalog;
+if(! $catlist->exists(SOURCE_NAME)) {
+    my $c=$catlist->get_new();
+    $c->put(import_map => IMPORT_MAP);
+    $c->put(export_map => EXPORT_MAP);
+    $catlist->put(SOURCE_NAME,$c);
+}
+$catalog=$catlist->get(SOURCE_NAME);
+
+##
+# Cleaning the content of catalog
+#
+my $datalist=$catalog->get('Data');
+$datalist->destroy();
+my $data=$datalist->get_new();
+
+my $parser=XML::DOM::Parser->new() || die "Can't create XML::DOM parser";
+my $doc=$parser->parsefile($file) || die "Can't parse $file";
+
+my $rootnode=$doc->getDocumentElement();
+$rootnode->getNodeName() eq 'catalog' || die "Root element is not <catalog>";
+
+foreach my $node ($rootnode->getChildNodes()) {
+
+    if($node->getNodeType() == ELEMENT_NODE) {
+
+        my $categories=$node->getNodeName() eq 'categories';
+        my $products=$node->getNodeName() eq 'products';
+
+        if($categories || $products) {
+            foreach my $subnode ($node->getChildNodes()) {
+                if($subnode->getNodeType() == TEXT_NODE) {
+                    if($subnode->getNodeValue() =~ /\s*/) {
+                        $node->removeChild($subnode);
+                        next;
+                    }
+                }
+                elsif($subnode->getNodeType() == ELEMENT_NODE) {
+                    my $name=$subnode->getNodeName();
+                    next if $products && $name ne 'product';
+                    next if $categories && $name ne 'catdesc';
+
+                    $data->put(type => $products ? 'product' : 'category');
+                    $data->put(value => $subnode->toString());
+
+                    $datalist->put($data);
+
+                    $node->removeChild($subnode);
+                }
+            }
+        }
+    }
+}
+
+$data->put(type => 'extra');
+$data->put(value => $rootnode->toString());
+$datalist->put(ExtraTags => $data);
+
+$doc->dispose();
+
+exit(0);

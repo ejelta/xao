@@ -1,0 +1,207 @@
+#!/usr/bin/perl -w
+# Reads data from flat text file dumped from database
+# and builds universal catalog .XML file.
+#
+use strict;
+use XAO::Utils;
+use XAO::Web;
+use XML::Writer;
+
+XAO::Utils::set_debug(1);
+
+use constant SITENAME => '<%PROJECT%>';
+##
+# The catalog name and ID
+#
+my $catalog_name = "Type anything here!";
+my $catalog_id	 = "0001";
+
+##
+# File names 
+#
+my $flatfile = shift;
+
+if (!$flatfile) {
+    print "Usage:\n scan-test.pl data_file.txt > output.xml\n";
+    exit 0;
+}
+
+my @cat;
+my @prod;
+my $category_id = 0;
+
+##
+# Getting flat file specifications
+#
+my $site=XAO::Web->new(sitename => SITENAME);
+
+my $flatfile_spec = 
+    $site->config->embedded('hash')->{product_structure}->{flatfile_spec};
+
+my %Product_fields;
+my %Category_fields;
+
+# Configuration processing
+fields_prepare($flatfile_spec);
+# Incoming data reading to internal data
+load_flatfile($flatfile);
+# Making XML document from internal data
+make_xml();
+
+1;
+
+##
+# Make two hashes Field_name=>Field_position for
+# Product fields and Category fields separately.
+sub fields_prepare {
+    my $spec = shift;
+    my $fields_ref = $spec->{fields};
+    my $category_ref = $spec->{category_hierarchy};
+    for (my $i=0;$i<@$fields_ref;$i++) {
+	$Product_fields{$fields_ref->[$i]} = $i;
+    }
+    split_fields($category_ref);
+}
+##
+# Split flatfile fields to Product fielda and 
+# Category fields using category hierarchy description
+sub split_fields {
+    my $level = shift;
+    foreach my $key (keys %$level) {
+	if (exists($Product_fields{$key})) {
+	    $Category_fields{$key} = $Product_fields{$key};
+	    delete($Product_fields{$key});
+	}
+	my $child = $level->{$key};
+	if ((ref($child) eq 'HASH') &&
+	    (keys(%$child) > 0)) {
+	    split_fields($child);
+	}
+    }    
+}
+
+##
+# Reading flatfile to Categories hash and Products array. 
+#
+sub load_flatfile {
+    my $file = shift;
+    open(F,$file) || die "Can't open '$file': $!\n";
+    while(my $str=<F>) {
+	chop $str while $str=~/[\r\n\s]$/;
+	# Remove unprintable character with code higher 200
+	$str =~ s/[\200-\377]//g;
+    
+	my @line = split(/\t/,$str);
+
+        my $category = category_level('',
+	      $flatfile_spec->{category_hierarchy},
+	      \@line
+	);
+	my $hash_ref = {category => $category }; 
+	# product processing
+        foreach my $key (keys %Product_fields) {
+	    $hash_ref->{$key} = $line[$Product_fields{$key}]; 
+	}
+	push(@prod, $hash_ref);
+
+    }
+    close(F);
+}
+##
+# Making XML document from Categories hash and Products array. 
+#
+sub make_xml {
+    my $xml=XML::Writer->new(DATA_MODE => 1, DATA_INDENT => 1);
+    $xml->xmlDecl;
+    ##
+    # Writing out categories
+    #
+    $xml->startTag('catalog', 
+	id => $catalog_id, 
+	name => $catalog_name
+    );
+    
+    $xml->startTag('categories');
+    for(my $key=0;$key<@cat;$key++) {
+	my $attr_ref = $cat[$key];
+	$xml->emptyTag('catdesc', %$attr_ref);
+    }
+    ##
+    # Finishing 'categories'
+    #
+    $xml->endTag('categories');
+    ##
+    # Writing out products
+    #    
+    $xml->startTag('products');
+
+    for (my $key=0;$key<@prod;$key++) {
+	my $hash_ref = $prod[$key];
+	my $category = $hash_ref->{category};
+	delete($hash_ref->{category});
+	$xml->startTag('product', %$hash_ref);
+	$xml->emptyTag('category', id => $category) if $category;
+	$xml->endTag('product');
+    }
+    $xml->endTag('products');
+    $xml->endTag('catalog');
+}
+##
+# Categories hierarchy processing to make parent-child
+# categories pairs in categories hash.
+sub category_level {
+    my $parent_key = shift;
+    my $level = shift;
+    my $data = shift;
+    my $cat_name = '';
+    my $parent_id = '';
+    my $parent_name = '';
+    my $this_category_id;
+    
+    if ($parent_key ne '') {
+        if (exists($Category_fields{$parent_key}) && 
+    		    scalar($Category_fields{$parent_key})) {
+    	    $parent_name = $data->[$Category_fields{$parent_key}] || '';
+
+	    if (defined($parent_name)) {
+		for (my $i=0;$i<@cat;$i++){
+		    $parent_id = $i if (($cat[$i]->{name} || '') eq $parent_name);
+		}
+	    }
+	}
+    }
+    
+    foreach my $key (keys %$level) {
+	if (exists($Category_fields{$key}) && scalar($Category_fields{$key})) {
+	    $cat_name = $data->[$Category_fields{$key}] || '';
+	    my $found = '';
+	    for (my $i=0;$i<@cat;$i++){
+		if (
+		     (($cat[$i]->{name} || '') eq $cat_name) && 
+		     (($cat[$i]->{parent_id} || '') eq $parent_id)
+		   ) {
+		    $this_category_id = $i;
+		    $found = 1;
+		}
+	    }
+	    if ($found eq '') {
+		$cat[$category_id] = {
+			    id		=> $category_id,
+			    name	=> $cat_name,
+			    parent_id 	=> $parent_id,
+			    parent_name => $parent_name,
+		    };
+		$this_category_id = $category_id;
+		$category_id++;
+	    }
+	    my $child = $level->{$key};
+	    if ((ref($child) eq 'HASH') &&
+		(keys(%$child) > 0)) {
+		$this_category_id = category_level($key,$child,$data);
+	    }
+	}else{
+	    die "Can't get category by '$Category_fields{$key}'\nCheck your Config.pm!\n";
+	}
+    }
+    return $this_category_id;
+}

@@ -1,0 +1,22 @@
+<%Page path="/bits/header-admin"%>
+<%SetArg name="CUSTOMER_ID" value={<%CgiParam/f name="id" default=""%>}%>
+
+<DIV ALIGN="center"><H1>Customer Account</H1></DIV>
+
+<DIV ALIGN="center">
+
+<%FS
+  mode="show-hash"
+  uri={/Customers/<%CUSTOMER_ID%>}
+  fields="*"
+  path="/bits/account/show"
+%>
+
+<%Condition
+  default.path="/bits/commerce/admin/account/footer-accounts"
+  default.pass
+%>
+
+</DIV>
+
+<%Page path="/bits/footer-admin"%>

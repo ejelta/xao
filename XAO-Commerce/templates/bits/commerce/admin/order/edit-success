@@ -1,0 +1,1 @@
+<%Redirect url={/admin/order/show.html?id=<%CgiParam/f name="id" default="NONEXISTENT"%>}%>

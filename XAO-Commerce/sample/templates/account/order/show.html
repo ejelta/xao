@@ -1,0 +1,19 @@
+<%Page path="/bits/header"%>
+<%SetArg name="ORDER_ID"  value={<%CgiParam/f name="id" default="NONEXISTENT"%>}%>
+
+<CENTER><H1>Order Details</H1></CENTER>
+<P>
+
+<%Page
+  path="/bits/order/show"
+  ORDER_ID={<%CgiParam/f name="id" default="NONEXISTENT"%>}
+%>
+
+<DIV ALIGN="center">
+<%Condition
+  default.path="/bits/commerce/account/footer-accounts"
+  default.pass
+%>
+</DIV>
+
+<%Page path="/bits/footer"%>

@@ -1,0 +1,17 @@
+<%Condition
+  c1.arg="LIMIT_REACHED"
+  c1.template={
+<LI><A HREF="/search-prod.html?keyword=<%CgiParam/q name="keyword"%>"><B>...
+See all <%Styler number="<%TOTAL_ITEMS/f%>"%> product matches</B></A></LI>
+</UL>
+}
+  c2.arg="TOTAL_ITEMS"
+  c2.template={
+</UL>
+<P>
+}
+  default.template={
+<B>No matched products found</B>
+<P>
+}
+%><%End%>

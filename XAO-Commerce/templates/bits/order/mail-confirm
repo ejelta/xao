@@ -1,0 +1,46 @@
+Order ID: <%ORDER_ID/f%>
+
+Products ordered:
+
+<%ITEMS%>
+
+Products Sub-Total: $<%TOTAL_ITEMS/f%>
+Shipping:           $<%TOTAL_SHIPPING/f%>
+Tax:                $<%TOTAL_TAX/f%>
+Grand Total:        $<%TOTAL_GRAND/f%>
+
+
+Shipping Information:
+---------------------
+
+Reference Name: <%SHIPTO_REF_NAME/h%>
+
+<%SHIPTO_NAME_LINE1/h%><%Condition
+                         c.length="<%SHIPTO_NAME_LINE2/f%>"
+                         c.template={
+<%SHIPTO_NAME_LINE2/h%>}%>
+<%SHIPTO_LINE_1/h%><%Condition
+                     c.length="<%SHIPTO_LINE_2/f%>"
+                     c.template={
+<%SHIPTO_LINE_2/h%>}%>
+<%SHIPTO_CITY/h%>, <%SHIPTO_STATE/h%> <%SHIPTO_ZIPCODE/h%><%Condition
+                                                            c.length="<%SHIPTO_PHONE/f%>"
+                                                            c.template={
+<%SHIPTO_PHONE/h%>}%>
+Shipping Method: <%SHIPMETHOD/h%>
+
+
+Billing Information:
+--------------------
+
+Reference Name: <%PAY_REF_NAME/h%>
+Pay Method:     <%PAY_METHOD/h%>
+<%PAY_NAME/h%>
+<%PAY_LINE_1/h%><%Condition
+                  c.length="<%PAY_LINE_2/h%>"
+                  c.template={
+<%PAY_LINE_2/h%>}%>
+<%PAY_CITY/h%>, <%PAY_STATE/h%> <%PAY_ZIPCODE/h%><%Condition
+                                                   c.length="<%PAY_PHONE/f%>"
+                                                   c.template={
+<%PAY_PHONE/h%>}%>

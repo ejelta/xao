@@ -1,0 +1,26 @@
+<%Page path="/bits/header-admin"%>
+<%SetArg name="CUSTOMER_ID" value={<%CgiParam/f name="customer_id" default=""%>}%>
+
+<DIV ALIGN="center"><H1>New Pay Method</H1></DIV>
+<P>
+
+<DIV ALIGN="center">
+
+<FORM METHOD="GET" ACTION="new.html">
+<INPUT TYPE="hidden" NAME="customer_id" VALUE="<%CUSTOMER_ID%>">
+<%PayMethod
+  mode="edit-object"
+  uri="/Customers/<%CUSTOMER_ID%>/PayMethods"
+  form.path="/bits/commerce/account/paymethod/edit-form"
+  success.path="/bits/commerce/admin/account/paymethod/edit-success"
+%>
+</FORM>
+
+<%Condition
+  default.path="/bits/commerce/admin/account/footer-accounts"
+  default.pass
+%>
+
+</DIV>
+
+<%Page path="/bits/footer-admin"%>

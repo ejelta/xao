@@ -1,0 +1,35 @@
+<%Page path="/bits/header-admin"%>
+<%SetArg name="CUSTOMER_ID"  value={<%CgiParam/f name="id" default="NONEXISTENT"%>}%>
+
+<DIV ALIGN="center"><H1>Delete Account</H1></DIV>
+
+<%Condition
+  c.cgiparam="confirm"
+  c.path="/bits/commerce/admin/account/delete-confirm"
+  c.CUSTOMER_ID="<%CUSTOMER_ID/f%>"
+%>
+
+<DIV ALIGN="center">
+
+<TABLE><TR><TD>
+<%FS
+  mode="show-hash"
+  uri="/Customers/<%CUSTOMER_ID%>"
+  fields="*"
+  path="/bits/account/show"
+%>
+</TD></TR></TABLE>
+<P>
+<FORM METHOD="get" ACTION="delete.html">
+<INPUT TYPE="hidden" NAME="id" VALUE="<%CUSTOMER_ID%>">
+<INPUT TYPE="submit" NAME="confirm"     VALUE=" Confirm! ">
+</FORM>
+
+<%Condition
+  default.path="/bits/commerce/admin/account/footer-accounts"
+  default.pass
+%>
+
+</DIV>
+
+<%Page path="/bits/footer-admin"%>

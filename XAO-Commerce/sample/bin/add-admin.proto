@@ -1,0 +1,35 @@
+#!/usr/bin/perl -w
+use strict;
+use XAO::Utils;
+use XAO::Objects;
+use XAO::Web;
+use Digest::MD5 qw(md5_base64);
+
+if(@ARGV != 4) {
+    print "Usage: $0 logname password email real_name\n";
+    exit(1);
+}
+my ($logname,$password,$email,$name)=@ARGV;
+
+##
+# Reading configuration and connecting to the database
+#
+my $site=XAO::Web->new(sitename => '<%PROJECT%>');
+$site->set_current();
+my $odb=$site->config->odb();
+
+##
+# Creating new Person object
+#
+my $list=$odb->fetch('/Admins');
+my $admin=$list->get_new();
+$admin->put(email => $email);
+$admin->put(password => md5_base64($password));
+$admin->put(name => $name);
+
+##
+# Storing
+#
+$list->put($logname => $admin);
+
+exit(0);

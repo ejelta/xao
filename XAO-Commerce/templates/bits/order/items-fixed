@@ -1,0 +1,55 @@
+<STRONG>Products:</STRONG><BR>
+<BR>
+
+<table width="550" border="0" cellpadding="4" cellspacing="2">
+    <TR bgcolor="#cccccc">
+      <TD ALIGN="center" CLASS="header"><STRONG>Qty</STRONG></TD>
+      <TD ALIGN="center" CLASS="header"><STRONG><NOBR>Product Name</NOBR></STRONG></TD>
+      <TD ALIGN="center" CLASS="header"><STRONG><NOBR>Unit Price</NOBR></STRONG></TD>
+      <TD ALIGN="center" CLASS="header"><STRONG><NOBR>Sub-Totals</NOBR></STRONG></TD>
+    </TR>
+<%ITEMS%>
+    <TR>
+      <TD COLSPAN="4"><HR WIDTH="100%"></TD>
+    </TR>
+<%Condition
+  c.length="<%TOTAL_ITEMS/h%>"
+  c.template={
+    <TR>
+      <TD> </TD>
+      <TD COLSPAN="2"><STRONG>Products Sub-Total</STRONG></TD>
+      <TD ALIGN="right">$<%TOTAL_ITEMS/h%></TD>
+    </TR>
+  }
+%>
+<%Condition
+  c.length="<%TOTAL_SHIPPING/h%>"
+  c.template={
+    <TR>
+      <TD> </TD>
+      <TD COLSPAN="2"><STRONG>Shipping</STRONG></TD>
+      <TD ALIGN="right">$<%TOTAL_SHIPPING/h%></TD>
+    </TR>
+  }
+%>
+<%Condition
+  c.length="<%TOTAL_TAX/h%>"
+  c.template={
+    <TR>
+      <TD> </TD>
+      <TD COLSPAN="2"><STRONG>Tax</STRONG></TD>
+      <TD ALIGN="right">$<%TOTAL_TAX/h%></TD>
+    </TR>
+  }
+%>
+<%Condition
+  c.length="<%TOTAL_GRAND/h%>"
+  c.template={
+    <TR>
+      <TD> </TD>
+      <TD COLSPAN="2"><STRONG>Grand Total</STRONG></TD>
+      <TD ALIGN="right"><STRONG>$<%TOTAL_GRAND/h%></STRONG></TD>
+    </TR>
+  }
+%>
+</table>

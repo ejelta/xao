@@ -1,0 +1,6 @@
+<%Address
+  mode="delete-object"
+  uri="/Customers/<%CUSTOMER_ID%>/Addresses"
+  id="<%ADDRESS_ID/f%>"
+%>
+<%Page path="/bits/commerce/admin/account/address/edit-success"%>

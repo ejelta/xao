@@ -1,0 +1,7 @@
+<%Category
+  mode="search-keyword"
+  keyword={<%CgiParam/f name="keyword" default="QWERTY"%>}
+  header.path="/bits/search/category-header"
+  path="/bits/search/category-row"
+  footer.path="/bits/search/category-footer"
+%>

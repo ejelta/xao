@@ -1,0 +1,8 @@
+<TABLE ALIGN="center" BORDER="0" CELLPADDING="4" CELLSPACING="2">
+<TR>
+  <TD CLASS="header" ALIGN="center"><STRONG>Order ID</STRONG></TD>
+  <TD CLASS="header" ALIGN="center"><STRONG>Customer ID</STRONG></TD>
+  <TD CLASS="header" ALIGN="center"><STRONG>Time</STRONG></TD>
+  <TD CLASS="header" ALIGN="center"><STRONG>Options</STRONG></TD>
+  <TD CLASS="header" ALIGN="center"><STRONG>Status</STRONG></TD>
+</TR>

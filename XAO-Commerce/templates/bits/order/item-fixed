@@ -1,0 +1,10 @@
+<%Condition
+  c.length="PRODUCT_ID"
+  c.template={
+    <TR>
+      <TD ALIGN="center"><STRONG><%QUANTITY%></STRONG></TD>
+      <TD><%NAME%></TD>
+      <TD ALIGN="right"><%Styler dollars="<%PRICE%>"%></TD>
+      <TD ALIGN="right"><%Styler dollars="<%TOTAL_ITEM%>"%></TD>
+    </TR>
+  }%>

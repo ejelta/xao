@@ -1,0 +1,38 @@
+<%Page path="/bits/header-admin"%>
+<%SetArg name="CUSTOMER_ID" value={<%CgiParam/f name="id" default=""%>}%>
+
+<DIV ALIGN="center"><H1>Customer Address Book</H1></DIV>
+<P>
+
+<DIV ALIGN="center">
+
+<%FS
+  mode="search"
+  uri={/Customers/<%CUSTOMER_ID%>/Addresses}
+  
+  orderby="ref_name"
+  start_item={<%CgiParam/f name="start_item" default="1"%>}
+  items_per_page={<%CgiParam/f name="items_per_page" default="10"%>}
+  fields="*"
+  CUSTOMER_ID="<%CUSTOMER_ID%>"
+
+  header.path="/bits/commerce/account/address/list-header"
+  path="/bits/commerce/admin/account/address/list-row"
+  footer.path="/bits/commerce/account/address/list-footer"
+  default.template="<EM>No addresses found for this account. (ID: <STRONG><%CUSTOMER_ID%></STRONG>). </EM><BR>"
+%>
+<P>
+
+<TABLE><TR><TD>
+<STRONG><A HREF="/admin/account/address/new.html?customer_id=<%CUSTOMER_ID%>">Add new address</A></STRONG>
+</TD></TR></TABLE>
+<P>
+
+<%Condition
+  default.path="/bits/commerce/admin/account/footer-accounts"
+  default.pass
+%>
+
+</DIV>
+
+<%Page path="/bits/footer-admin"%>

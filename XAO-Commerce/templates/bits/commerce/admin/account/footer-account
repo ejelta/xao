@@ -1,0 +1,10 @@
+    |
+    <A HREF="/admin/account/orders.html?id=<%CUSTOMER_ID%>">show orders</A> |
+    <A HREF="/admin/account/address/index.html?id=<%CUSTOMER_ID%>">show address book</A> |
+    <A HREF="/admin/account/paymethod/index.html?id=<%CUSTOMER_ID%>">show wallet</A> |
+    <BR>
+    |
+    <A HREF="/admin/account/show.html?id=<%CUSTOMER_ID%>">show account</A> |
+    <A HREF="/admin/account/edit.html?id=<%CUSTOMER_ID%>">edit account</A> |
+    <A HREF="/admin/account/delete.html?id=<%CUSTOMER_ID%>">delete account</A> |
+    <BR>

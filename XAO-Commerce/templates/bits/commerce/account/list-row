@@ -1,0 +1,15 @@
+<TR>
+  <TD><STRONG>Name:</STRONG></TD>
+  <TD><%FIRST_NAME/f%> <%LAST_NAME/f%></TD>
+</TR>
+<TR>
+  <TD><STRONG>Email:</STRONG></TD>
+  <TD><%EMAIL/f%></TD>
+</TR>
+<TR>
+  <TD COLSPAN="2" ALIGN="center">
+    <A HREF="/account/show.html?id=<%ID/f%>">show</A> |
+    <A HREF="/account/edit.html?id=<%ID/f%>">edit</A> |
+    <A HREF="/account/delete.html?id=<%ID/f%>">delete</A>
+  </TD>
+</TR>

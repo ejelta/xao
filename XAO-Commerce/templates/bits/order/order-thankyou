@@ -1,0 +1,13 @@
+Your order ID is <b><%ORDER_ID/f%></b>.
+<BR><BR>
+Thank you for your order!
+<%FS
+  mode="show-hash"
+  base.clipboard={<%IdentifyUser/f
+                    mode="check"
+                    type="customer"
+                    verified.path="/bits/commerce/account/customer-cb-uri"
+                  %>/object}
+  fields="*"
+  path="/bits/order/mail-confirmation"
+%>

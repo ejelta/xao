@@ -1,0 +1,45 @@
+Setting up data structures:
+----------------------------------------------------------------------
+
+1) First, run configure.pl, which will prompt you for some respones.
+A typical set of responses to the prompts could be as follows:
+
+ PROJECT=commerce
+ ODB_DSN=OS:MySQL_DBI:commerce
+ ODB_USER=commerce
+ ODB_PASSWORD=abc123
+
+Note that the values here are consistent with the example given
+in the Commerce.pm docs for setting up XAO::FS with the
+script `xao-fs' (see README for XAO-Commerce).
+
+Running configure.pl will set up the following files from their
+*.proto counterparts:
+  - objects/Config.pm
+  - bin/add-admin
+  - bin/build-structure
+  - bin/ifilter-flatfile
+  - bin/import-map
+  - bin/mark-empty-categories
+  - bin/scan-flatfile
+
+2) To set up the Foundation Server data structure objects/Config.pm
+for this sample site run bin/build-structure.
+
+3) To load data from sample flatfile follow the steps:
+
+  - Convert flatfile to RawXML file conversion by executing:
+
+    % bin/scan-flatfile sample_products.txt > sample_products.xml
+
+  - Upload RawXML data to XAO::FS project by executing:
+
+    % bin/ifilter-flatfile sample_products.xml
+
+  - Perform end-level data processing by executing:
+
+    % bin/import-map FlatFile
+
+  - You may check data content using the SQL query from 'select.sql'
+    to get loaded data directly from database to tab delimited file
+    'out_selected.txt'.

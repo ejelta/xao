@@ -1,0 +1,48 @@
+<%Page path="/bits/header" PAGENAME="account" VERIFY%>
+
+<DIV ALIGN="center"><H1>Customer Wallet</H1></DIV>
+<P>
+
+<DIV ALIGN="center">
+
+<%FS
+  mode="search"
+  base.clipboard={<%IdentifyUser/f
+                    mode="check"
+                    type="customer"
+                    verified.path="/bits/commerce/account/customer-cb-uri"
+                  %>/object}
+  uri="PayMethods"
+  
+  orderby="ref_name"
+  start_item={<%CgiParam/f name="start_item" default="1"%>}
+  items_per_page={<%CgiParam/f name="items_per_page" default="10"%>}
+  fields="*"
+
+  header.path="/bits/commerce/account/paymethod/list-header"
+  path="/bits/commerce/account/paymethod/list-row"
+  footer.path="/bits/commerce/account/paymethod/list-footer"
+  default.template="<EM>No pay methods found in your Wallet.</EM><BR>"
+%>
+<P>
+
+<TABLE>
+<TR>
+  <TD>
+    <STRONG>[ <A HREF="new.html">ADD NEW PAY METHOD</A> ]</STRONG>
+  </TD>
+  <TD>
+    <STRONG>[ <A HREF="/order/checkout.html">CHECKOUT</A> ]</STRONG>
+  </TD>
+</TR>
+</TABLE>
+<P>
+
+<%Condition
+  default.path="/bits/commerce/account/footer-accounts"
+  default.pass
+%>
+
+</DIV>
+
+<%Page path="/bits/footer"%>

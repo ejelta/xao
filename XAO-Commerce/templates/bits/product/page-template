@@ -1,0 +1,15 @@
+<%Page path="/bits/header" PAGENAME="products"%>
+
+<%Product
+  mode="show-info"
+  id="<%ID/f%>"
+  path="/bits/product/product-template"
+  spec.header.path="/bits/product/spec-header"
+  spec.path="/bits/product/spec-row"
+  spec.footer.path="/bits/product/spec-footer"
+  category.header.path="/bits/product/category-header"
+  category.path="/bits/product/category-row"
+  category.footer.path="/bits/product/category-footer"
+%>
+
+<%Page path="/bits/footer"%>

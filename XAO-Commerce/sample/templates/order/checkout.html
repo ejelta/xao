@@ -1,0 +1,84 @@
+<%Page path="/bits/header" PAGENAME="order" VERIFY%>
+<form mehtod="post" action="/order/confirm.html">
+
+<b>Select:</b>
+
+<blockquote>
+
+<table border="0" cellpadding="2" cellspacing="2">
+
+    <tr>
+      <td>
+        <b>Shipping Address:</b>
+      </td>
+      <td>
+
+        <select name="shipto">
+        <%FS
+          mode="show-list"
+          base.clipboard={<%IdentifyUser/f
+                            mode="check"
+                            type="customer"
+                            verified.path="/bits/commerce/account/customer-cb-uri"
+                          %>/object}
+          uri="Addresses"
+          fields="ref_name"
+          path="/bits/order/selection-address"
+        %>
+        </select>
+
+      </td>
+      <td>
+        <nobr>[ <a href="/account/address/new.html">New Shipping Address</a> ]</nobr>
+      </td>
+    </tr>
+
+    <tr>
+      <td>
+        <b>Shipping Method:</b>
+      </td>
+      <td>
+        <select name="shipmethod">
+          <option value="UPS Next Day"> UPS Next Day
+          <option value="UPS 2nd Day">  UPS 2nd Day
+          <option value="UPS Ground">   UPS Ground
+          <option value="USPS Ground">  USPS Ground
+        </select>
+      </td>
+    </tr>
+
+
+    <tr>
+      <td>
+        <b>Pay Method:</b>
+      </td>
+      <td>
+        <select name="paymethod">
+        <%FS
+          mode="show-list"
+          base.clipboard={<%IdentifyUser/f
+                            mode="check"
+                            type="customer"
+                            verified.path="/bits/commerce/account/customer-cb-uri"
+                          %>/object}
+          uri="PayMethods"
+          fields="ref_name"
+          path="/bits/order/selection-pay"
+        %>
+        
+        </select>
+      </td>
+      <td>
+        <nobr>[ <a href="/account/paymethod/new.html">New Payment Method</a> ]</nobr>
+      </td>
+    </tr>
+
+</table>
+
+<INPUT TYPE="IMAGE" SRC="/images/buttons/continue.gif" ALT="Proceed" BORDER="0">
+<!--b><input type="submit" value="Proceed"></b-->
+
+</form>
+
+<br><br>
+<%Page path="/bits/footer"%>

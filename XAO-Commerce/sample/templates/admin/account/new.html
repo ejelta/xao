@@ -1,0 +1,25 @@
+<%Page path="/bits/header-admin"%>
+
+<DIV ALIGN="center"><H1>New Shipping Address</H1></DIV>
+<P>
+
+<DIV ALIGN="center">
+
+<FORM METHOD="GET" ACTION="new.html">
+<%Account
+  mode="edit-object"
+  uri="/Customers"
+  form.path="/bits/commerce/account/edit-form"
+  success.path="/bits/commerce/admin/account/edit-success"
+%>
+</FORM>
+<P>
+
+<%Condition
+  default.path="/bits/commerce/admin/account/footer-accounts"
+  default.pass
+%>
+
+</DIV>
+
+<%Page path="/bits/footer-admin"%>

@@ -1,0 +1,48 @@
+<%Page path="/bits/header" PAGENAME="account" VERIFY%>
+
+<DIV ALIGN="center"><H1>Address Book</H1></DIV>
+<P>
+
+<DIV ALIGN="center">
+
+<%FS
+  mode="search"
+  base.clipboard={<%IdentifyUser/f
+                    mode="check"
+                    type="customer"
+                    verified.path="/bits/commerce/account/customer-cb-uri"
+                  %>/object}
+  uri="Addresses"
+  
+  orderby="ref_name"
+  start_item={<%CgiParam/f name="start_item" default="1"%>}
+  items_per_page={<%CgiParam/f name="items_per_page" default="10"%>}
+  fields="*"
+
+  header.path="/bits/commerce/account/address/list-header"
+  path="/bits/commerce/account/address/list-row"
+  footer.path="/bits/commerce/account/address/list-footer"
+  default.template="<EM>No addresses found in your Address Book.</EM><BR>"
+%>
+<P>
+
+<TABLE>
+<TR>
+  <TD>
+    <STRONG>[ <A HREF="new.html">ADD NEW ADDRESS</A> ]</STRONG>
+  </TD>
+  <TD>
+    <STRONG>[ <A HREF="/order/checkout.html">CHECKOUT</A> ]</STRONG>
+  </TD>
+</TR>
+</TABLE>
+<P>
+
+<%Condition
+  default.path="/bits/commerce/account/footer-accounts"
+  default.pass
+%>
+
+</DIV>
+
+<%Page path="/bits/footer"%>

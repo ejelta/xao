@@ -1,0 +1,36 @@
+<%Page path="/bits/header-admin"%>
+<%SetArg name="CUSTOMER_ID" value={<%CgiParam/f name="id" default="NONEXISTENT"%>}%>
+
+<DIV ALIGN="center"><H1>Order History</H1></DIV>
+<P>
+
+<DIV ALIGN="center">
+
+<%FS
+  mode="search"
+  uri="/Orders"
+
+  index_1="customer_id"
+  compare_1="eq"
+  value_1="<%CUSTOMER_ID%>"
+
+  orderby="-place_time"
+  start_item={<%CgiParam/f name="start_item" default="1"%>}
+  items_per_page={<%CgiParam/f name="items_per_page" default="10"%>}
+  fields="*"
+
+  header.path="/bits/commerce/admin/order/list-header"
+  path="/bits/commerce/admin/order/list-row"
+  footer.path="/bits/commerce/admin/order/list-footer"
+  default.template="<EM>No orders with '<STRONG>placed</STRONG>' status found</EM>"
+%>
+<P>
+
+<%Condition
+  default.path="/bits/commerce/admin/account/footer-accounts"
+  default.pass
+%>
+
+</DIV>
+
+<%Page path="/bits/footer-admin"%>

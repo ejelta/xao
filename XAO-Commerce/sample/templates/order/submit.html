@@ -1,0 +1,12 @@
+<%Page path="/bits/header" PAGENAME="order" VERIFY%>
+<%Order
+  mode="save"
+  path="/bits/order/order-thankyou"
+  sorry.template={
+    <DIV ALIGN="center">
+    You have no items on order.
+    </DIV>
+  }
+  item.path="/bits/order/item"
+%>
+<%Page path="/bits/footer"%>

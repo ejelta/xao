@@ -1,0 +1,27 @@
+<%Condition
+  c.arg="REF_NAME"
+  c.template="<STRONG><%REF_NAME/f%></STRONG><BR>"
+%>
+<%Condition
+  c.arg="NAME_LINE1"
+  c.template="<%NAME_LINE1/f%><BR>"
+%>
+<%Condition
+  c.arg="NAME_LINE2"
+  c.template="<%NAME_LINE2/f%><BR>"
+%>
+<%Condition
+  c.arg="LINE_1"
+  c.template="<%LINE_1/f%><BR>"
+  default.template={<SPAN STYLE="color: #880000">Wrong address</SPAN>}
+%>
+<%Condition
+  c.arg="LINE_2"
+  c.template="<%LINE_2/f%><BR>"
+%>
+<%CITY/h%>, <%STATE/h%> <%ZIPCODE/h%>
+<BR>
+<%Condition
+  c.arg="PHONE"
+  c.template="Phone: <%PHONE/f%><BR>"
+%>

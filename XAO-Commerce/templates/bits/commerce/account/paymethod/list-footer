@@ -1,0 +1,28 @@
+</TABLE>
+<CENTER>
+<%Condition
+  c1.arg="LIMIT_REACHED"
+  c1.template={
+    </UL>
+    <%MultiPageNav
+      start_item="<%START_ITEM%>"
+      items_per_page="<%ITEMS_PER_PAGE%>"
+      total_items="<%TOTAL_ITEMS%>"
+      n_adjacent_pages="2"
+      n_edge_pages="2"
+      n_block_pages="1"
+      max_blocks="3"
+      min_period="3"
+      path="/bits/multipagenav/base"
+      previous_page.path="/bits/multipagenav/prev"
+      next_page.path="/bits/multipagenav/next"
+      current_page.path="/bits/multipagenav/current"
+      numbered_page.path="/bits/multipagenav/page"
+      spacer.path="/bits/multipagenav/spacer"
+    %>
+  }
+  c2.arg="TOTAL_ITEMS"
+  c2.template={</UL>}
+  default.template={<STRONG>No matched items found</STRONG><P>}
+%>
+</CENTER>
