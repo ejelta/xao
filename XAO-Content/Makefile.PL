@@ -90,7 +90,7 @@ EOT
 }
 
 WriteMakefile(
-    'AUTHOR'         => 'Andrew Maltsev, XAO Inc. <am@xao.com>',
+    'AUTHOR'         => 'Andrew Maltsev, http://ejelta.com/xao/',
     'ABSTRACT'       => 'XAO::Web plugin for managing dynamic content',
     'NAME'           => 'XAO::DO::Web::Content',
     'DISTNAME'       => 'XAO-Content',
@@ -106,7 +106,7 @@ sub MY::postamble
 config::	README
 
 README:	Content.pm
-	pod2text Content.pm > README
+	\@COLUMNS=80 pod2text Content.pm > README
 
 install::
 	\$(PERL) -MXAO::PluginUtils=install_templates \\

@@ -74,7 +74,6 @@ INSTALLATION AND USE
     want to just see XAO Content in action.
 
   TEST SITE TO SEE XAO CONTENT IN ACTION
-
     Here are the steps you need to follow to get a simple working site that
     uses XAO Content:
 
@@ -132,7 +131,6 @@ INSTALLATION AND USE
         how content management works.
 
   INTEGRATING XAO CONTENT INTO AN EXISTING SITE
-
     To integrate XAO Content into an existing site you shoul follow these
     steps (depending on your site setup not all of them might be
     applicable):
@@ -375,6 +373,5 @@ AUTHORS
     Andrew Maltsev <am@xao.com>
 
 SEE ALSO
-    Recommended reading: the XAO::DO::Web::Content manpage, the XAO::FS
-    manpage, the XAO::Web manpage.
+    Recommended reading: XAO::DO::Web::Content, XAO::FS, XAO::Web.
 

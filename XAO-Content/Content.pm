@@ -228,7 +228,7 @@ use XAO::Utils;
 use XAO::Objects;
 
 use vars qw($VERSION);
-$VERSION='1.0';
+$VERSION='1.02';
 
 use base XAO::Objects->load(objname => 'Web::FS');
 
