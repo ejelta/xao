@@ -25,6 +25,15 @@ static unsigned long bufpos=0;
 static unsigned long pstack[MAX_STACK];
 static unsigned stacktop=0;
 
+/* Workaround for older versions of perl that do not define these macros
+*/
+#ifndef pTHX_
+#define pTHX_
+#endif
+#ifndef aTHX_
+#define aTHX_
+#endif
+
 /************************************************************************/
 
 /* Allows letters, digits, underscore and dot

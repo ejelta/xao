@@ -20,7 +20,6 @@ functions.
 ###############################################################################
 package XAO::Utils;
 use strict;
-require 5.6.0;
 use XAO::Errors qw(XAO::Utils);
 
 ##
@@ -39,7 +38,7 @@ sub merge_refs (@);
 sub fround ($$);
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: Utils.pm,v 1.8 2003/02/06 03:54:52 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: Utils.pm,v 1.9 2003/02/27 02:45:21 am Exp $ =~ /(\d+\.\d+)/);
 
 ###############################################################################
 # Export control
