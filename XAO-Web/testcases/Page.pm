@@ -13,12 +13,13 @@ sub test_expand {
     $self->assert(ref($page),
                   "Can't load Page object");
 
-    my $str='\'"!@#$%^&*()_-=[]\<>?';
+    my $str='\'"!@#$%^&*()_-=[]\<>? ';
     my %ttt=(
         '<%TEST%>'      => $str,
-        '<%TEST/h%>'    => '\'"!@#$%^&amp;*()_-=[]\&lt;&gt;?',
-        '<%TEST/f%>'    => '\'&quot;!@#$%^&amp;*()_-=[]\&lt;&gt;?',
-        '<%TEST/q%>'    => '\'%22!@%23$%25^%26*()_-%3d[]\%3c%3e%3f',
+        '<%TEST/h%>'    => '\'"!@#$%^&amp;*()_-=[]\&lt;&gt;? ',
+        '<%TEST/f%>'    => '\'&quot;!@#$%^&amp;*()_-=[]\&lt;&gt;? ',
+        '<%TEST/q%>'    => '\'%22!@%23$%25^%26*()_-%3d[]\%3c%3e%3f%20',
+        '<%TEST/u%>'    => '\'%22!@%23$%25^%26*()_-%3d[]\%3c%3e%3f%20',
     );
     foreach my $template (keys %ttt) {
         my $got=$page->expand(template => $template,

@@ -170,7 +170,7 @@ sub analyze ($@) {
                 objargs => \%args,
                 path => join('/',@path[$i..$#path]),
                 prefix => $dir,
-                fullpath => $path
+                fullpath => $path,
             };
         }
     }
@@ -417,6 +417,7 @@ sub expand ($%) {
     # redirecting with appended slash if this is the case.
     #
     my @path=split(/\//,$path);
+    push(@path,"") unless @path;
     push(@path,"index.html") if $cgi->path_info =~ /\/$/;
     if($path[-1] !~ /\.\w+$/) {
         my $pd=$self->analyze(@path,'index.html');

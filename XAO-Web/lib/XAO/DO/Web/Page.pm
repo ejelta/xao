@@ -269,7 +269,7 @@ Will convert '123<BR>234' into '123&lt;BR&gt;234'.
 
 Converts text for safe use in HTML query parameters. Mnemonic - (q)uery.
 
-Will convert '123 234' into '123+234'.
+Will convert '123 234' into '123%20234'.
 
 Example: <A HREF="test.html?name=<$VAR/q$>">Test '<$VAR/h$>'</A>
 
@@ -277,6 +277,11 @@ Example: <A HREF="test.html?name=<$VAR/q$>">Test '<$VAR/h$>'</A>
 
 The same as 'h' excepts that it translates empty string into
 '&nbsp;'. Suitable for inserting pieces of text into table cells.
+
+=item u
+
+The same as 'q'. Mnemonic - (U)RL, as it can be used to convert text for
+inclusion into URLs.
 
 =back
 
@@ -399,7 +404,7 @@ use Error qw(:try);
 use base XAO::Objects->load(objname => 'Atom');
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: Page.pm,v 1.23 2003/01/08 21:04:16 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: Page.pm,v 1.24 2003/01/10 23:02:05 am Exp $ =~ /(\d+\.\d+)/);
 
 ##
 # Prototypes
@@ -581,8 +586,9 @@ sub display ($%) {
         }
 
         ##
-        # Safety conversion - q for query, h - for html, s - for nbsp'ced
-        # html, f - for tag fields, t - for text as is (default).
+        # Safety conversion - q for query, h - for html, s - for
+        # nbsp'ced html, f - for tag fields, u - for URLs, t - for text
+        # as is (default).
         #
         if(defined($text) && $itemflag && $itemflag ne 't') {
             if($itemflag eq 'h') {
@@ -596,6 +602,9 @@ sub display ($%) {
             }
             elsif($itemflag eq 'f') {
                 $text=XAO::Utils::t2hf($text)
+            }
+            elsif($itemflag eq 'u') {
+                $text=XAO::Utils::t2hq($text)
             }
         }
 
