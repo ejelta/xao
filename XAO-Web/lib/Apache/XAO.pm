@@ -101,7 +101,7 @@ use constant MP2 => ($mod_perl::VERSION && $mod_perl::VERSION >= 1.99);
 BEGIN {
     if(MP2) {
         require Apache::Const;
-        Apache::Const->import(qw(OK DECLINED SERVER_ERROR NOT_FOUND));
+        Apache::Const->import(qw(:common OK DECLINED SERVER_ERROR NOT_FOUND));
 
         ##
         # Required to bring in methods used below
@@ -112,6 +112,10 @@ BEGIN {
         Apache::ServerUtil->import();
         require Apache::Log;
         Apache::Log->import();
+        require Apache::RequestRec;
+        Apache::RequestRec->import();
+        require Apache::RequestIO;
+        Apache::RequestIO->import();
 
         ##
         # Asking dprint/eprint to use Apache logging
@@ -237,8 +241,8 @@ EOT
     # We don't serve subrequests. Don't know why, but they produce
     # double output under some circumstances.
     #
-    if(!$r->is_main) {
-        ### $r->server->log_error("SUBREQ: ignoring (uri=$uri)");
+    if(!MP2 && !$r->main) {
+        $r->server->log_error("SUBREQ: ignoring (uri=$uri)");
         return Apache::DECLINED;
     }
 
