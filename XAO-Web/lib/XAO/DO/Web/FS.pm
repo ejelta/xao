@@ -184,7 +184,7 @@ use XAO::Errors qw(XAO::DO::Web::FS);
 use base XAO::Objects->load(objname => 'Web::Action');
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: FS.pm,v 1.32 2002/12/12 17:54:20 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: FS.pm,v 1.33 2003/01/07 00:45:04 am Exp $ =~ /(\d+\.\d+)/);
 
 ###############################################################################
 
@@ -519,8 +519,6 @@ sub search ($;%) {
     #
     #############
 
-    #$args->{uri} = $args->{db_list} unless $args->{uri};
-
     #
     # Add default arguments as specified in configuration
     # unless there are input arguments to override them.
@@ -528,17 +526,7 @@ sub search ($;%) {
     my $rh_defaults     = $rh_conf->{default_search_args};
     my $rh_default_args = $rh_defaults->{$args->{uri}};
     if (ref($rh_default_args) eq 'HASH') {
-        foreach (keys %$rh_default_args) {
-            next if defined $args->{$_};
-            $args->{$_}  = $rh_default_args->{$_};
-            #dprint "*** Add Default Argument: $_ = $rh_default_args->{$_}";
-        }
-    }
-
-    if ($args->{debug}) {
-        #dprint '*** Processed Parameters:';
-        #foreach (sort keys %$args) { dprint " arg> $_: $args->{$_}"; }
-        #dprint '';
+        $args=merge_refs($rh_default_args,$args);
     }
 
     #############
@@ -548,8 +536,9 @@ sub search ($;%) {
     #############
 
     my $list = $self->get_object($args);
-    $list->objname eq 'FS::List' || throw $self "show_list - not a list";
-    #dprint "*** LIST: $list";
+    $list->objname eq 'FS::List' ||
+        $list->objname eq 'FS::Collection' ||
+        throw $self "search - '$uri' must be a list or a collection";
 
     #dprint "*** Go Search...\n\n";
     my $ra_query   = $self->_create_query($args, $rh_conf);

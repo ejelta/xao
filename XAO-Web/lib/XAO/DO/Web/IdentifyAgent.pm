@@ -64,7 +64,7 @@ use XAO::Objects;
 use base XAO::Objects->load(objname => 'Web::Page');
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: IdentifyAgent.pm,v 1.2 2002/04/25 18:52:14 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: IdentifyAgent.pm,v 1.3 2003/01/07 00:45:04 am Exp $ =~ /(\d+\.\d+)/);
 
 ###############################################################################
 
@@ -115,10 +115,10 @@ sub display($){
 	my $expire=$config->{id_cookie_expire} ? "+$config->{id_cookie_expire}s"
                                            : "+4y";
 	$self->siteconfig->add_cookie(
-        -name   => $id_cookie,
-        -value  => $agent_id,
-        -path   => '/',
-        -expire => $expire,
+        -name    => $id_cookie,
+        -value   => $agent_id,
+        -path    => '/',
+        -expires => $expire,
     );
 }
 
