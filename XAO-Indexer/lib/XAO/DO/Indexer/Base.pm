@@ -85,7 +85,19 @@ sub analyze_text_split ($$$) {
 ###############################################################################
 
 sub ignore_limit ($) {
-    return 500;
+    my $config=get_current_project();
+    my $limit;
+    if($config) {
+        my $self=shift;
+        my $args=get_args(\@_);
+        if($args->{index_object}) {
+            my $index_id=$args->{index_object}->container_key;
+            $limit=$config->get("/indexer/$index_id/ignore_limit");
+        }
+        $limit||=$config->get('/indexer/default/ignore_limit');
+    }
+
+    return $limit || 500;
 }
 
 ###############################################################################
@@ -361,7 +373,7 @@ sub update ($%) {
 
     my ($coll,$coll_ids)=$self->get_collection($args);
 
-    my $ignore_limit=$self->ignore_limit;
+    my $ignore_limit=$self->ignore_limit($args);
 
     ##
     # Getting keyword data
