@@ -81,7 +81,7 @@ sub get_orderings ($) {
                 my ($kw_data,$a,$b)=@_;
                 my @na=split(/\s+/,$kw_data->{sorting}->{name}->{$a});
                 my @nb=split(/\s+/,$kw_data->{sorting}->{name}->{$b});
-                return (scalar(@na) <=> scalar(@nb));
+                return (scalar(@na) <=> scalar(@nb)) || ($a <=> $b);
             },
         },
     };

@@ -67,7 +67,7 @@ sub test_search {
         },
         t04 => {
             query       => 'burden',
-            name_wnum   => '57,62,21,2,76,143,12,17,33,115',
+            name_wnum   => '57,62,2,21,76,143,12,17,33,115',
         },
         t05 => {
             query       => 'foo',
