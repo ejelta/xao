@@ -121,6 +121,20 @@ v_cur_size = v_item_alt_unit_size.
 v_item_qty = v_item_qty * v_cur_size.
 v_cost = v_item_cost. /* Price in eaches */
 
+def var vss_cust_item as logical init false no-undo.
+FIND p21.S36 WHERE RECID(p21.S36) EQ 36 NO-LOCK.
+vss_cust_item = p21.S36.cust_item.
+if vss_cust_item then do:
+        find first p21.cust_item where
+                p21.cust_item.cust_code EQ v_cust_code AND
+                p21.cust_item.item_code LE v_item_code AND
+                p21.cust_item.item_code GE v_item_code
+                use-index item_code no-lock no-error.
+        if available(p21.cust_item) and p21.cust_item.part_number NE "" then do:
+                v_item_code=p21.cust_item.part_number.
+        end.
+end.
+
 RUN ip_pricing. /* Get price */
 
 put unformatted of_price "\t" of_mult "\n".

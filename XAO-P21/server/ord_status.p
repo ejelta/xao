@@ -5,7 +5,7 @@ DEF VAR onum AS INTEGER.
 DEF VAR total_stax_amt LIKE dyn1.wbw_head.total_stax_amt.
 DEF VAR out_freight LIKE dyn1.wbw_head.out_freight.
 
-/* Separator
+/* Fields separator
 */
 d_d=chr(1).
 
@@ -15,7 +15,6 @@ ASSIGN onum=INTEGER(OS-GETENV("P0")).
 
 /* Tax and freight amount for the order if available
 */
-
 FIND FIRST dyn1.wbw_head WHERE dyn1.wbw_head.ord_number = onum
                          NO-LOCK NO-ERROR.
 IF available(dyn1.wbw_head) THEN
@@ -42,16 +41,16 @@ FOR EACH p21.ord_line WHERE p21.ord_line.ord_number = onum NO-LOCK:
     .
 
     PUT UNFORMATTED
-        p21.ord_line.item_code			d_d
-        p21.ord_line.ord_qty			d_d
-        open_qty				d_d
-        net_price				d_d
-        total_stax_amt				d_d
-	out_freight				d_d
-        p21.ord_line.unit			d_d
-        p21.ord_line.ut_size			d_d
-        p21.ord_line.last_shipment		d_d
-        p21.ord_line.disposition		d_d
-        p21.ord_line.disposition_desc		skip
+        p21.ord_line.item_code                  d_d
+        p21.ord_line.ord_qty                    d_d
+        open_qty                                d_d
+        net_price                               d_d
+        total_stax_amt                          d_d
+        out_freight                             d_d
+        p21.ord_line.unit                       d_d
+        p21.ord_line.ut_size                    d_d
+        p21.ord_line.last_shipment              d_d
+        p21.ord_line.disposition                d_d
+        p21.ord_line.disposition_desc           skip
     .
 END.

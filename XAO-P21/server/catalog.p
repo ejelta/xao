@@ -25,7 +25,7 @@ do while available (catalog):
                 catalog.pkg_size d_d
                 catalog.sales_unit d_d
                 catalog.sku d_d
-                catalog.prices_list_price d_d
+                catalog.prices_col1_price d_d
                 alt_ut_name d_d
                 alt_ut_size d_d
                 catalog.desc1 d_d catalog.desc2  d_d

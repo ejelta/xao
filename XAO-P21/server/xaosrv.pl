@@ -9,7 +9,7 @@ use Errno qw/EINTR EAGAIN/;
 use POSIX qw(:sys_wait_h setsid);
 
 $VERSION='0.05';
-$REVISION='$Id: xaosrv.pl,v 1.3 2002/04/10 04:22:54 am Exp $';
+$REVISION='$Id: xaosrv.pl,v 1.4 2002/04/10 20:52:39 am Exp $';
 
 my $spooldir='/tmp/p21ec';
 
