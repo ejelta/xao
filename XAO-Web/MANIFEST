@@ -17,6 +17,7 @@ lib/XAO/DO/Web/Config.pm
 lib/XAO/DO/Web/Date.pm
 lib/XAO/DO/Web/Default.pm
 lib/XAO/DO/Web/Footer.pm
+lib/XAO/DO/Web/FS.pm
 lib/XAO/DO/Web/Header.pm
 lib/XAO/DO/Web/IdentifyAgent.pm
 lib/XAO/DO/Web/IdentifyUser.pm
