@@ -56,9 +56,9 @@ use XAO::Utils;
 use XAO::Objects;
 use base XAO::Objects->load(objname => 'Web::Page');
 
-##
-# Displaying footer.
-#
+use vars qw($VERSION);
+($VERSION)=(q$Id: Footer.pm,v 1.3 2002/01/04 02:13:23 am Exp $ =~ /(\d+\.\d+)/);
+
 sub display ($;%) {
     my $self=shift;
     my $args=get_args(\@_);

@@ -25,6 +25,9 @@ use XAO::Utils;
 use XAO::Errors qw(XAO::DO::Web::Clipboard);
 use base XAO::Objects->load(objname => 'Web::Action');
 
+use vars qw($VERSION);
+($VERSION)=(q$Id: Clipboard.pm,v 1.2 2002/01/04 02:13:23 am Exp $ =~ /(\d+\.\d+)/);
+
 sub check_mode ($$) {
     my $self = shift;
     my $args = get_args(\@_);

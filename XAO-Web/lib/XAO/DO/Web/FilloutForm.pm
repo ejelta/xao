@@ -60,6 +60,9 @@ use XAO::Utils qw(:args :debug :html);
 use XAO::Errors qw(XAO::DO::Web::FilloutForm);
 use base XAO::Objects->load(objname => 'Web::Page');
 
+use vars qw($VERSION);
+($VERSION)=(q$Id: FilloutForm.pm,v 1.2 2002/01/04 02:13:23 am Exp $ =~ /(\d+\.\d+)/);
+
 sub setup ($%);
 sub field_desc ($$);
 sub display ($;%);

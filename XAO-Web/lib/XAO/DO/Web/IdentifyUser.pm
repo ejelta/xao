@@ -191,10 +191,8 @@ use XAO::Errors qw(XAO::DO::Web::IdentifyUser);
 use XAO::Objects;
 use base XAO::Objects->load(objname => 'Web::Action');
 
-##
-# Version
 use vars qw($VERSION);
-($VERSION)=(q$Id: IdentifyUser.pm,v 1.9 2001/12/19 02:56:40 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: IdentifyUser.pm,v 1.10 2002/01/04 02:13:23 am Exp $ =~ /(\d+\.\d+)/);
 
 ###############################################################################
 

@@ -135,7 +135,9 @@ Nothing.
 
 =head1 AUTHOR
 
-XAO, Inc.: Marcos Alves <alves@xao.com>.
+Copyright (c) XAO, Inc.
+
+Marcos Alves <alves@xao.com>.
 
 =head1 SEE ALSO
 
@@ -152,9 +154,8 @@ use XAO::Utils;
 use XAO::Objects;
 use base XAO::Objects->load(objname => 'Web::Page');
 
-# XXX - remove that!!!
-$XAO::DO::Web::Search::TESTMODE__DEBUG = 0;
-
+use vars qw($VERSION);
+($VERSION)=(q$Id: Search.pm,v 1.3 2002/01/04 02:13:23 am Exp $ =~ /(\d+\.\d+)/);
 
 ###############################################################################
 sub display ($;%)
@@ -164,8 +165,6 @@ sub display ($;%)
   my $rh_args = get_args(\@_);
   my $rh_conf = $self->siteconfig;
 
-  $rh_args->{debug} = $XAO::DO::Web::Search::TESTMODE__DEBUG
-                      if $XAO::DO::Web::Search::TESTMODE__DEBUG;
   if ($rh_args->{debug})
   {
     &XAO::Utils::set_debug(1);

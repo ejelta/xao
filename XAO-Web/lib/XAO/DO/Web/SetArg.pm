@@ -53,6 +53,9 @@ use XAO::Errors qw(XAO::DO::Web::SetArg);
 use XAO::Objects;
 use base XAO::Objects->load(objname => 'Web::Page');
 
+use vars qw($VERSION);
+($VERSION)=(q$Id: SetArg.pm,v 1.2 2002/01/04 02:13:23 am Exp $ =~ /(\d+\.\d+)/);
+
 ##
 # Setting arguments. Actual merging is done in Page object. We just set
 # merge_args here.

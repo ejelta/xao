@@ -8,15 +8,12 @@ use vars qw(@ISA $VERSION);
 
 @ISA = qw(DynaLoader);
 
-$VERSION = '0.2';
+($VERSION)=(q$Id: PageSupport.pm,v 1.2 2002/01/04 02:13:23 am Exp $ =~ /(\d+\.\d+)/);
 
 bootstrap XAO::PageSupport $VERSION;
 
-# Preloaded methods go here.
-
 1;
 __END__
-# Below is stub documentation for your module. You better edit it!
 
 =head1 NAME
 

@@ -25,12 +25,11 @@ then just displaying 404 error message.
 package XAO::DO::Web::Default;
 use strict;
 use XAO::Utils;
-
-##
-# Inheritance
-#
 use XAO::Objects;
 use base XAO::Objects->load(objname => 'Web::Page');
+
+use vars qw($VERSION);
+($VERSION)=(q$Id: Default.pm,v 1.2 2002/01/04 02:13:23 am Exp $ =~ /(\d+\.\d+)/);
 
 ###############################################################################
 

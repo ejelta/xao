@@ -19,6 +19,9 @@ use strict;
 use XAO::Utils;
 use base XAO::Objects->load(objname => 'Web::Page');
 
+use vars qw($VERSION);
+($VERSION)=(q$Id: Redirect.pm,v 1.2 2002/01/04 02:13:23 am Exp $ =~ /(\d+\.\d+)/);
+
 ###############################################################################
 
 =pod

@@ -23,6 +23,9 @@ use XAO::Base qw($homedir $projectsdir);
 use XAO::Utils;
 use XAO::Projects qw(get_current_project_name);
 
+use vars qw($VERSION);
+($VERSION)=('$Id: Templates.pm,v 1.3 2002/01/04 02:13:23 am Exp $' =~ /(\d+\.\d+)/);
+
 ##
 # Cache for templates.
 #
@@ -119,8 +122,6 @@ sub list (%)
 }
 
 ###############################################################################
-use vars qw($VERSION);
-($VERSION)=('$Id: Templates.pm,v 1.2 2001/11/14 02:13:13 am Exp $' =~ /(\d+\.\d+)/);
 1;
 __END__
 

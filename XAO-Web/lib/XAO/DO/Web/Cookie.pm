@@ -28,6 +28,9 @@ use strict;
 use XAO::Utils;
 use base XAO::Objects->load(objname => 'Web::Page');
 
+use vars qw($VERSION);
+($VERSION)=(q$Id: Cookie.pm,v 1.3 2002/01/04 02:13:23 am Exp $ =~ /(\d+\.\d+)/);
+
 sub display ($;%) {
     my $self=shift;
     my $args=get_args(\@_);

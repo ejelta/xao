@@ -74,6 +74,9 @@ use XAO::Utils;
 use XAO::Errors qw(XAO::DO::Web::Mailer);
 use base XAO::Objects->load(objname => 'Web::Page');
 
+use vars qw($VERSION);
+($VERSION)=(q$Id: Mailer.pm,v 1.4 2002/01/04 02:13:23 am Exp $ =~ /(\d+\.\d+)/);
+
 sub display ($;%) {
     my $self=shift;
     my $args=get_args(\@_);

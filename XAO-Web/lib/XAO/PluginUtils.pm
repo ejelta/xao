@@ -36,6 +36,8 @@ use vars qw(@ISA @EXPORT_OK @EXPORT $VERSION);
 @EXPORT_OK=qw(install_templates);
 @EXPORT=();
 
+($VERSION)=(q$Id: PluginUtils.pm,v 1.3 2002/01/04 02:13:23 am Exp $ =~ /(\d+\.\d+)/);
+
 sub install_templates ($;$) {
     my $manifest=shift || 'MANIFEST';
     my $force=shift || 0;

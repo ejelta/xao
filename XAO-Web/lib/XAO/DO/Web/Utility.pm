@@ -32,6 +32,9 @@ use XAO::Utils qw(:args :debug :html);
 use XAO::Objects;
 use base XAO::Objects->load(objname => 'Web::Action');
 
+use vars qw($VERSION);
+($VERSION)=(q$Id: Utility.pm,v 1.3 2002/01/04 02:13:23 am Exp $ =~ /(\d+\.\d+)/);
+
 sub check_mode ($$) {
     my $self=shift;
     my $args=get_args(\@_);
