@@ -60,6 +60,9 @@ sub test_project {
     $self->assert($config->get('LocalConfig') == 1,
                   "Initialization did not make it to the local config");
 
+    $self->assert(ref($config->check) eq ref($config),
+                  "Error using base_config() method");
+
     $config->cleanup();
 }
 

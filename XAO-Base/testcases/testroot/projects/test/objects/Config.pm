@@ -10,6 +10,10 @@ sub init ($$) {
 
     $self->embed('local' => $lc);
 
+    my $em=XAO::Objects->new(objname => 'EmbeddableTest', sitename => 'test');
+
+    $self->embed('etest' => $em);
+
     $self->SUPER::init();
 }
 

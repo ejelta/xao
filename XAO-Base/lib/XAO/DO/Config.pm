@@ -52,7 +52,7 @@ use XAO::Objects;
 use base XAO::Objects->load(objname => 'Atom');
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: Config.pm,v 1.6 2002/02/12 20:25:49 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: Config.pm,v 1.7 2003/02/19 21:54:25 am Exp $ =~ /(\d+\.\d+)/);
 
 ###############################################################################
 # Prototypes
@@ -127,6 +127,11 @@ sub embed ($%) {
         my $obj=$args->{$name};
         $obj->can('embeddable_methods') ||
             throw $self "embed - object (".ref($obj).") does not have embeddable_methods() method";
+
+        ##
+        # Setting base for the object we embed, it might need it
+        #
+        $obj->set_base_config($self) if $obj->can('set_base_config');
 
         ##
         # Building perl code for proxy methods definitions
