@@ -240,23 +240,33 @@ EOT
     $r->pnotes(uri      => $uri);
 
     ##
-    # Default is to install a content handler to produce actual
-    # output. Under mod_perl 2.x (tested under 1.99 actually) it does
-    # not work for some reason.
-    #
-    # Besides, it could be more optimal to have two always present
-    # handlers instead of pushing/popping automatically.
+    # Default is to install a content handler to produce actual output.
+    # It could be more optimal to have two always present handlers
+    # instead of pushing/popping automatically -- in this case
+    # 'HandlerType' must be set to 'static' in the server config.
     #
     # We return OK to indicate to Apache that there is no need to try
     # to map that URI to anything else, we know how to produce results
     # for it.
     #
-    $r->filename($r->document_root . '/index.html');
     my $htype=lc($r->dir_config('HandlerType') || 'auto');
     if($htype eq 'auto') {
-        $r->push_handlers(PerlHandler => \&handler_content);
         ### $r->server->log_error("TRANS: auto (uri=$uri)");
-        return MP2 ? Apache::OK : Apache::Constants::OK;
+
+        ##
+        # In mod_perl 2.x filepath translation is done in a separate
+        # phase, we need to set up a handler for it -- otherwise apache
+        # will still attempt to map filename, and worse yet -- attempt
+        # to redirect to language specific 'index.html.en' for example.
+        #
+        if(MP2) {
+            $r->push_handlers(PerlMapToStorageHandler => \&handler_map_to_storage);
+            $r->push_handlers(PerlResponseHandler => \&handler_content);
+            return Apache::OK();
+        }
+        else {
+            return Apache::Constants::OK();
+        }
     }
     elsif($htype eq 'static') {
         ### $r->server->log_error("TRANS: static (uri=$uri)");
@@ -284,7 +294,7 @@ sub handler_content ($) {
     # We have to get the original URI, the one in $r->uri get mangled
     #
     my $uri=$r->pnotes('uri');
-    ### $r->server->log_error("CONTENT: uri=$uri");
+    $r->server->log_error("CONTENT: uri=$uri");
 
     ##
     # Executing
@@ -296,6 +306,15 @@ sub handler_content ($) {
     );
 
     return MP2 ? Apache::OK : Apache::Constants::OK;
+}
+
+###############################################################################
+
+sub handler_map_to_storage {
+    my $r=shift;
+    $r->server->log_error("MAPTOSTORAGE: uri=".$r->uri);
+    $r->server->log_error("MAPTOSTORAGE: filename=".$r->filename);
+    return Apache::OK();
 }
 
 ###############################################################################
