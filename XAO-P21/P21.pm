@@ -204,6 +204,7 @@ is provided it will return a reference to an array of hash references:
  col1_price     => column 1 price
  col2_price     => column 1 price
  col3_price     => column 1 price
+ catg_list	=> category end point
  alt_units      => array of alternative units if any, each
                    one in NAME/SIZE format
 
@@ -215,7 +216,7 @@ sub catalog {
         my ($item_code, $prod_group, $sales_group, $vend_number,
             $pkg_size, $sales_unit,
             $sku, $desc1, $desc2, $upc, $cat_page,
-            $list_price, $col1_price, $col2_price, $col3_price,
+            $list_price, $col1_price, $col2_price, $col3_price, $catg_list,
             @alt_units) = split /\t/, $_[0];
         return {
             item_code   => $item_code,
@@ -233,6 +234,7 @@ sub catalog {
             col1_price  => $col1_price,
             col2_price  => $col2_price,
             col3_price  => $col3_price,
+            catg_list	=> $catg_list,
             alt_units   => \@alt_units,
         };
     }, $callback, 'catalog');
