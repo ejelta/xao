@@ -587,7 +587,7 @@ sub view_order_details {
 
         my %line;
         if($arr[0] eq 'LINE') {
-            @arr==11 ||
+            @arr==13 ||
                 throw XAO::E::P21 "view_order_details - wrong LINE ($str)";
             @line{qw(type line_number item_code entry_date
                      ord_qty inv_qty canc_qty
@@ -597,7 +597,7 @@ sub view_order_details {
                      req_date)}=@arr;
         }
         elsif($arr[0] eq 'INVOICE') {
-            @arr==8 ||
+            @arr==10 ||
                 throw XAO::E::P21 "view_order_details - wrong INVOICE ($str)";
             @line{qw(type ship_number ord_date inv_date ship_date
                      total_stax_amt out_freight cust_code
