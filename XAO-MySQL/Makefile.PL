@@ -87,21 +87,14 @@ WriteMakefile(
     'DISTNAME'      => 'XAO-MySQL',
     'VERSION_FROM'	=> 'MySQL.pm',
     'PREREQ_PM'     => { 
-        'Error'         => '0.14',
-        'Test::Unit'    => '0.14',
-        'XAO::Base'     => '1.04',
-        'XAO::FS'       => '1.04',
+        'Error'         => '0.15',
+        'Test::Unit'    => '0.15',
+        'XAO::Base'     => '1.05',
+        'XAO::FS'       => '1.05',
     },
     INC             => $mysql_cflags,
     LIBS            => $mysql_libs,
 );
-
-###  'LIBS'		=> [''], # e.g., '-lm'
-###  'DEFINE'		=> '', # e.g., '-DHAVE_SOMETHING'
-###  # Insert -I. if you add *.h files later:
-###  'INC'		=> '', # e.g., '-I/usr/include/other'
-###  # Un-comment this if you add C files to link with later:
-###  # 'OBJECT'		=> '$(O_FILES)', # link all the C files too
 
 sub MY::postamble
 { <<EOT;

@@ -1,5 +1,9 @@
 Revision history for Perl extension XAO::DO::FS::Glue::MySQL.
 
+1.01 - 12-Nov-2003
+    - some bugs and compilation problems on different platforms
+    - new tests shared with XAO::FS
+
 1.0 - 9-Aug-2002
     Works fine, tested in some real-life projects. No problems found
     during about 2 weeks testing.
