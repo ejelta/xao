@@ -116,11 +116,6 @@ BEGIN {
         Apache::RequestRec->import();
         require Apache::RequestIO;
         Apache::RequestIO->import();
-
-        ##
-        # Asking dprint/eprint to use Apache logging
-        #
-        #XXX#TODO#
     }
     else {
         require Apache::Constants;
@@ -240,8 +235,9 @@ EOT
     ##
     # We pass the knowledge along in the 'notes' table.
     #
-    $r->pnotes(xaoweb    => $web);
-    $r->pnotes(pagedesc  => $pagedesc);
+    $r->pnotes(xaoweb   => $web);
+    $r->pnotes(pagedesc => $pagedesc);
+    $r->pnotes(uri      => $uri);
 
     ##
     # Default is to install a content handler to produce actual
@@ -280,11 +276,15 @@ sub handler_content ($) {
     # Getting the data. If there is no data then trans handler was not
     # executed or has declined, so we do not need to do anything.
     #
-    my $uri=$r->uri;
-    ### $r->server->log_error("CONTENT: uri=$uri");
     my $web=$r->pnotes('xaoweb') ||
         return MP2 ? Apache::DECLINED : Apache::Constants::DECLINED;
     my $pagedesc=$r->pnotes('pagedesc');
+
+    ##
+    # We have to get the original URI, the one in $r->uri get mangled
+    #
+    my $uri=$r->pnotes('uri');
+    ### $r->server->log_error("CONTENT: uri=$uri");
 
     ##
     # Executing

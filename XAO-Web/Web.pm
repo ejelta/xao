@@ -187,6 +187,7 @@ sub analyze ($$;$) {
             }
 
             $rhash->{path}=join('/',@{$patharr}[$i..$#$patharr]);
+            $rhash->{patharr}=$patharr;
             $rhash->{prefix}=$dir;
             $rhash->{fullpath}=$path;
 
@@ -205,6 +206,7 @@ sub analyze ($$;$) {
             objname     => 'Page',
             objargs     => { },
             path        => $path,
+            patharr     => $patharr,
             fullpath    => $path,
             prefix      => join('/',@{$patharr}[0..($#$patharr-1)]),
             filename    => $filename,
@@ -218,6 +220,7 @@ sub analyze ($$;$) {
         type        => 'notfound',
         objname     => 'Default',
         path        => $path,
+        patharr     => $patharr,
         fullpath    => $path,
         prefix      => ''
     };
@@ -400,10 +403,13 @@ sub process ($%) {
     # Analyzing the path. We have to do that up here because the object
     # might specify that we should not touch CGI.
     #
-    my @path=split(/\//,$path);
-    push(@path,"") unless @path;
-    push(@path,"index.html") if $path =~ /\/$/;
-    my $pd=$args->{pagedesc} || $self->analyze(\@path);
+    my $pd=$args->{pagedesc};
+    if(!$pd) {
+        my @path=split(/\//,$path);
+        push(@path,"") unless @path;
+        push(@path,"index.html") if $path =~ /\/$/;
+        $pd=$self->analyze(\@path);
+    }
 
     ##
     # Figuring out current active URL. It might be the same as base_url
@@ -529,15 +535,15 @@ sub process ($%) {
     # Checking for directory index url without trailing slash and
     # redirecting with appended slash if this is the case.
     #
-    if($path[-1] !~ /\.\w+$/) {
-        my $pd=$self->analyze([ @path,'index.html' ]);
+    if($pd->{patharr}->[-1] !~ /\.\w+$/) {
+        my $pd=$self->analyze([ @{$pd->{patharr}},'index.html' ]);
         #use Data::Dumper; dprint "pd=",Dumper($pd);
         if($pd->{objname} ne 'Default') {
             my $newpath=$siteconfig->get('base_url') . $path . '/';
             dprint "Redirecting $path to $newpath";
             $siteconfig->header_args(
                 -Location   => $newpath,
-                -Status     => 302,
+                -Status     => 301,
             );
             return "Directory index redirection\n";
         }
@@ -546,11 +552,13 @@ sub process ($%) {
     ##
     # Separator for the error_log :)
     #
-    my @d=localtime;
-    my $date=sprintf("%02u:%02u:%02u %u/%02u/%04u",$d[2],$d[1],$d[0],$d[4]+1,$d[3],$d[5]+1900);
-    undef(@d);
-    dprint "============ date=$date, mod_perl=$mod_perl",
-                      ", path='",join('/',@path),"', translated='",$pd->{path},"'";
+    if(XAO::Utils::get_debug()) {
+        my @d=localtime;
+        my $date=sprintf("%02u:%02u:%02u %u/%02u/%04u",$d[2],$d[1],$d[0],$d[4]+1,$d[3],$d[5]+1900);
+        undef(@d);
+        dprint "============ date=$date, mod_perl=$mod_perl, " .
+               "path='$path', translated='$pd->{path}'";
+    }
 
     ##
     # Putting path decription into the site clipboard
