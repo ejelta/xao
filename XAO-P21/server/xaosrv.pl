@@ -9,7 +9,7 @@ use Errno qw/EINTR EAGAIN/;
 use POSIX qw(:sys_wait_h setsid);
 
 $VERSION='0.05';
-$REVISION='$Id: xaosrv.pl,v 1.1 2002/03/06 02:40:10 am Exp $';
+$REVISION='$Id: xaosrv.pl,v 1.2 2002/04/02 01:16:44 am Exp $';
 
 my $spooldir='/tmp/p21ec';
 
@@ -43,6 +43,20 @@ sub open_query {
     }
     $ENV{ORIGIN}='P21';
     open IN, qq(/usr/lpp/p21pro/bin/p21pro -S 0 -P p21/www/query/www.p -p -b|)
+      or die $!; # XXX FIXME
+    *IN;  
+}
+
+sub open_local_query {
+    local *IN;
+    $ENV{'PROCNAME'}=shift;
+    my $envn=0; 
+    foreach (@_) {
+        $ENV{"P$envn"}=$_;
+        ++$envn;
+    }
+    $ENV{ORIGIN}='P21';
+    open IN, qq(/usr/lpp/p21pro/bin/p21pro -S 0 -P /home/amaltsev/current/www.p -p -b|)
       or die $!; # XXX FIXME
     *IN;  
 }
@@ -132,6 +146,15 @@ while(1) {
 
     my $answer = sub {
         my $in = open_query @_;
+        while(<$in>) {
+            next if /^(OK)*\s*$/;
+            s/\t/ /g; s/\001/\t/g;
+            printsock $_;
+        }
+    };
+    
+    my $answer_local = sub {
+        my $in = open_local_query @_;
         while(<$in>) {
             next if /^(OK)*\s*$/;
             s/\t/ /g; s/\001/\t/g;
@@ -255,7 +278,7 @@ Placing order into spool. Input data is:
 =cut
 
         } elsif ($opcode eq "view_open_order_details") {
-            $answer->('ord_item', @args);
+            $answer_local->('orditem1', @args);
             
 =head1 list_all_invoices
 

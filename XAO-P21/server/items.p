@@ -16,7 +16,8 @@ do while available (item):
                 item_unit_data.alt_ut_name "\t"
                 item_unit_data.alt_ut_size "\t"
                 item.desc1 "\t" item.desc2 "\t"
-                item.upc_code 
+                item.upc_code "\t"
+		item.cat_page
                 "\n".
         get next qitem.                
 end.        

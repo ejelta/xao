@@ -29,7 +29,8 @@ do while available (catalog):
                 alt_ut_name d_d
                 alt_ut_size d_d
                 catalog.desc1 d_d catalog.desc2  d_d
-                catalog.upc_code
+                catalog.upc_code d_d
+		catalog.cat_page
                 "\n".
         get next qcatalog.                
 end.        
