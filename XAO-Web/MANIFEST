@@ -28,6 +28,7 @@ lib/XAO/DO/Web/Header.pm
 lib/XAO/DO/Web/IdentifyAgent.pm
 lib/XAO/DO/Web/IdentifyUser.pm
 lib/XAO/DO/Web/Mailer.pm
+lib/XAO/DO/Web/MenuBuilder.pm
 lib/XAO/DO/Web/MultiPageNav.pm
 lib/XAO/DO/Web/Page.pm
 lib/XAO/DO/Web/Redirect.pm
