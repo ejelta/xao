@@ -14,6 +14,7 @@
 #include "perl.h"
 #include "XSUB.h"
 #include <string.h>
+#include <ctype.h>
 
 #define	MAX_STACK	200
 #define	CHUNK_SIZE	1000
@@ -31,60 +32,276 @@ static unsigned stacktop=0;
 
 static SV*
 parse_text(pTHX_ char * template, unsigned length) {
-    unsigned i;
-    char *str;
-
     AV* parsed=newAV();
 
-    enum {
-        TEXT,
-        OBJECT,
-        ARGUMENT,
-    } state=TEXT;
-
+    char *str=template;
     char *text_ptr=template;
+    char *end=template+length;
 
-    for(i=0, str=template; i!=length; i++, str++) {
-        if(*str=='<' && i+1<length && str[1]=='%') {
-            if(state==TEXT) {
-                if(i+3<length && str[2]=='%' && str[3]=='>') {
-                    /* An way to embed '<%' -- <%%> */
-                    str+=2;
-                    i+=2;
-                    state=TEXT;
-                }
-                else {
-                    state=OBJECT;
-                }
-
-                if(text_ptr!=str) {
-                    HV* hv=newHV();
-                    hv_store(hv,"text",4,
-                                newSVpvn(text_ptr,str-text_ptr),0);
-                    av_push(parsed,newRV_noinc((SV*)hv));
-                    text_ptr=str+2;
-                }
-
-                str++;
-                i++;
-            }
-            else if(state==ARGUMENT) {
-                fprintf(stderr,"Got here");
-            }
-
-        }
-        else {
-            if(state==OBJECT) {
-                fprintf(stderr,"Got here O\n");
-            }
-        }
+    if(!length) {
+        return newRV_noinc((SV*)parsed);
     }
 
-    if(state==TEXT) {
-        if(text_ptr!=str) {
-            HV* hv=newHV();
-            hv_store(hv,"text",4,
-                        newSVpvn(text_ptr,str-text_ptr),0);
+    while(str<end) {
+        char var_flag;
+        HV* hv;
+
+        /* Simple parser with basically just two states -- text and
+         * object, instead of tracking states we just have two separate
+         * loops for each one.
+         *
+         * First is text.
+        */
+        while(1) {
+            if(*str=='<' && str+1<end && (str[1]=='%' || str[1]=='$')) {
+                if(str+3<end && str[2]==str[1] && str[3]=='>') {
+                    /* A way to embed '<%' or '<$' -- <%%> or <$$> */
+                    hv=newHV();
+                    hv_store(hv,"text",4,
+                                newSVpvn(text_ptr,str+2-text_ptr),0);
+                    av_push(parsed,newRV_noinc((SV*)hv));
+
+                    str+=4;
+                    text_ptr=str;
+                }
+                else {
+                    if(text_ptr!=str) {
+                        hv=newHV();
+                        hv_store(hv,"text",4,
+                                    newSVpvn(text_ptr,str-text_ptr),0);
+                        av_push(parsed,newRV_noinc((SV*)hv));
+                    }
+                    break;
+                }
+            }
+            else {
+                str++;
+                if(str>=end) {
+                    if(text_ptr!=str) {
+                        hv=newHV();
+                        hv_store(hv,"text",4,
+                                    newSVpvn(text_ptr,str-text_ptr),0);
+                        av_push(parsed,newRV_noinc((SV*)hv));
+                        str+=2;
+                    }
+                    break;
+                }
+            }
+        }
+
+        /* Bailing out if we're at the end
+        */
+        if(str>=end)
+            break;
+
+        /* And now we're in the object or variable. Getting its name.
+        */
+        var_flag=str[1] == '$' ? 1 : 0;
+        str+=2;
+        while(str<end && isspace(*str)) str++;
+        text_ptr=str;
+        while(str<end && isalnum(*str)) str++;
+
+        /* End object is a special case, we stop parsing if we meet it
+         * and do not even look what's behind it. That helps if it there
+         * are some elements with broken syntax after the <%End%> that the
+         * developer intended to ignore.
+        */
+        if(!var_flag && str-text_ptr==3 && !strncmp(text_ptr,"End",3)) {
+            return newRV_noinc((SV*)parsed);
+        }
+
+        /* Storing the name
+        */
+        hv=newHV();
+        hv_store(hv,var_flag ? "varname" : "objname",7,
+                    newSVpvn(text_ptr,str-text_ptr),0);
+        while(str<end && isspace(*str)) str++;
+
+        /* Flag after the name if present -- <%VAR/f%>
+        */
+        if(*str=='/') {
+            text_ptr=++str;
+            while(str<end && isalnum(*str)) str++;
+            hv_store(hv,"flag",4,newSVpvn(text_ptr,1),0);
+            while(str<end && isspace(*str)) str++;
+        }
+
+        /* And finally, if that's a variable we're looking for the
+         * closing bracket, if that's an object -- we're scanning its
+         * arguments.
+        */
+        if(var_flag) {
+            if(*str=='$' && str+1<end && str[1]=='>') {
+                str+=2;
+                text_ptr=str;
+                av_push(parsed,newRV_noinc((SV*)hv));
+                continue;
+            }
+            else {
+                av_clear(parsed);
+                return newSVpvf("Variable is not closed in template, pos=%u (%*s)",
+                                str-template,
+                                end-str>10 ? 10 : end-str,str);
+            }
+        }
+        else {
+            HV* args=newHV();
+
+            while(1) {
+                char * name_end;
+
+                if(*str=='%' && str+1<end && str[1]=='>') {
+                    str+=2;
+                    text_ptr=str;
+                    break;
+                }
+
+                /* Argument name
+                */
+                text_ptr=str;
+                while(str<end && (isalnum(*str) || *str=='.')) str++;
+
+                if(str==text_ptr) {
+                    av_clear(parsed);
+                    return newSVpvf("Wrong argument name, pos=%u (%*s)",
+                                    str-template,
+                                    end-str>10 ? 10 : end-str,str);
+                }
+
+                /* Empty argument value gets replaced with 'on' text for
+                 * compatibility
+                */
+                name_end=str;
+                if(str==end || *str!='=') {
+                    AV* tav=newAV();
+                    HV* thv=newHV();
+                    hv_store(thv,"text",4,newSVpvn("on",2),0);
+                    av_push(tav,newRV_noinc((SV*)thv));
+                    hv_store(args,text_ptr,name_end-text_ptr,
+                                  newRV_noinc((SV*)tav),0);
+                }
+
+                /* We get here only when there is '=' sign in the str
+                 * position and therefore we expect an argument.
+                */
+                else {
+                    char * val_start;
+                    char * val_end;
+                    char literal;
+
+                    str++;
+                    while(str<end && isspace(*str)) str++;
+
+                    if(str==end) {
+                        av_clear(parsed);
+                        return newSVpvf("Unclosed object in template, pos=%u (..%*s)",
+                                        str-template,
+                                        length>10 ? 10 : length,
+                                        length>10 ? end-10 : template);
+                    }
+                    else if(*str=='"') {
+                        val_start=++str;
+                        while(str<end && *str!='"') str++;
+                        if(str==end) {
+                            av_clear(parsed);
+                            return newSVpvf("Unmatched \" in the argument, pos=%u (%*s)",
+                                            val_start-template,
+                                            end-val_start>10 ? 10 : end-val_start,val_start);
+                        }
+                        val_end=str++;
+                        literal=0;
+                    }
+                    else if(*str=='\'') {
+                        val_start=++str;
+                        while(str<end && *str!='\'') str++;
+                        if(str==end) {
+                            av_clear(parsed);
+                            return newSVpvf("Unmatched ' in the argument, pos=%u (%*s)",
+                                            val_start-template,
+                                            end-val_start>10 ? 10 : end-val_start,val_start);
+                        }
+                        val_end=str++;
+                        literal=1;
+                    }
+                    else if(*str=='{' && str+1<end && str[1]=='\'') {
+                        unsigned count=0;
+                        str+=2;
+                        val_start=str;
+                        while(str<end && (count || *str!='\'' || str+1>=end || str[1]!='}')) {
+                            if(*str=='{' && str+1<end && str[1]=='\'') {
+                                count++;
+                                str+=2;
+                            }
+                            else if(*str=='\'' && str+1<end && str[1]=='}') {
+                                count--;
+                                str+=2;
+                            }
+                            else {
+                                str++;
+                            }
+                        }
+                        if(str==end) {
+                            av_clear(parsed);
+                            return newSVpvf("Unmatched {' in the argument, pos=%u (%*s)",
+                                            val_start-template,
+                                            end-val_start>10 ? 10 : end-val_start,val_start);
+                        }
+                        val_end=str;
+                        str+=2;
+                        literal=1;
+                    }
+                    else if(*str=='{') {
+                        unsigned count=0;
+                        val_start=++str;
+                        while(str<end && (count || *str!='}')) {
+                            if(*str=='{') {
+                                count++;
+                            }
+                            else if(*str=='}') {
+                                count--;
+                            }
+                            str++;
+                        }
+                        if(str==end) {
+                            av_clear(parsed);
+                            return newSVpvf("Unmatched { in the argument, pos=%u (%*s)",
+                                            val_start-template,
+                                            end-val_start>10 ? 10 : end-val_start,val_start);
+                        }
+                        val_end=str++;
+                        literal=0;
+                    }
+                    else {
+                        val_start=str;
+                        while(str<end && !isspace(*str)) str++;
+                        val_end=str;
+                        literal=0;
+                    }
+
+                    if(literal) {
+                        hv_store(args,
+                                 text_ptr,name_end-text_ptr,
+                                 newSVpvn(val_start,val_end-val_start),
+                                 0);
+                    }
+                    else {
+                        SV* val=parse_text(aTHX_ val_start,val_end-val_start);
+                        if(SvROK(val)) {
+                            hv_store(args,text_ptr,name_end-text_ptr,
+                                          val,0);
+                        }
+                        else {
+                            av_clear(parsed);
+                            return val;
+                        }
+                    }
+                }
+
+                while(str<end && isspace(*str)) str++;
+            }
+
+            hv_store(hv,"args",4,newRV_noinc((SV*)args),0);
             av_push(parsed,newRV_noinc((SV*)hv));
         }
     }

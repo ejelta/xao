@@ -34,33 +34,194 @@ sub test_parse {
             {   text    => 'bbb',
             }
         ],
-        # 'aaa<%BB%>' => [
-        #     {   text    => 'aaa',
-        #     },
-        #     {   objname => 'BB',
-        #     }
-        # ],
-        # '<%Date style="dateonly" gmtime=  {<%VAR/f%>} %>' => [
-        #     {   objname => 'Date',
-        #         args    => {
-        #             style   => [
-        #                 {   text    => 'dateonly',
-        #                 },
-        #             ],
-        #             gmtime  => [
-        #                 {   objname => 'VAR',
-        #                     flags   => 'f',
-        #                 },
-        #             ],
-        #         },
-        #     },
-        # ],
+        'aaa<$$>bbb' => [
+            {   text    => 'aaa<$',
+            },
+            {   text    => 'bbb',
+            },
+        ],
+        'zzz<$BB/f$>' => [
+            {   text    => 'zzz',
+            },
+            {   varname => 'BB',
+                flag    => 'f',
+            }
+        ],
+        'zzz<$BB/f x $>' => 'error',
+        '<$BB' => 'error',
+        'aaa<%BB/f empty%>xx' => [
+            {   text    => 'aaa',
+            },
+            {   objname => 'BB',
+                args    => {
+                    empty => [
+                        {   text    => 'on',
+                        },
+                    ],
+                },
+                flag    => 'f',
+            },
+            {   text    => 'xx',
+            },
+        ],
+        'aaa<%BB%>' => [
+            {   text    => 'aaa',
+            },
+            {   objname => 'BB',
+                args    => {},
+            }
+        ],
+        '<%BB arg=' => 'error',
+        '<%BB arg="' => 'error',
+        '<%BB/f arg1="value1" arg2=value2 arg3=\'value3\' arg4%>' => [
+            {   objname => 'BB',
+                args    => {
+                    arg1 => [
+                        {   text    => 'value1',
+                        },
+                    ],
+                    arg2 => [
+                        {   text    => 'value2',
+                        },
+                    ],
+                    arg3 => 'value3',
+                    arg4 => [
+                        {   text    => 'on',
+                        },
+                    ],
+                },
+                flag    => 'f',
+            },
+        ],
+        '<$A$><$ A $><$  A  $><$  A  /f $>|<%A%><% A %><%  A  %><%   A /q%>' => [
+            {   varname => 'A',
+            },
+            {   varname => 'A',
+            },
+            {   varname => 'A',
+            },
+            {   varname => 'A',
+                flag    => 'f',
+            },
+            {   text    => '|',
+            },
+            {   objname => 'A',
+                args    => {},
+            },
+            {   objname => 'A',
+                args    => {},
+            },
+            {   objname => 'A',
+                args    => {},
+            },
+            {   objname => 'A',
+                args    => {},
+                flag    => 'q',
+            },
+        ],
+        '<%B a="<%D/f da="%>' => 'error',
+        '<$A$><%B a1={\'v1\'} a2=<%C/f%> a3={\'<%D/f da="1" db dc={\'<%E%>\'}%>' => 'error',
+        '<$A$><%B a1={\'v1\'} a2=<%C/f%> a3={\'<%D/f da="1" db dc={\'<%E%>\'}%>\'}%>' => [
+            {   varname => 'A'
+            },
+            {   objname => 'B',
+                args    => {
+                    a2 => [
+                        {   args    => {},
+                            flag    => 'f',
+                            objname => 'C'
+                        }
+                    ],
+                    a3 => '<%D/f da="1" db dc={\'<%E%>\'}%>',
+                    a1 => 'v1'
+                },
+            },
+        ],
+        '<%B a={<%D/f da="%>}%>' => 'error',
+        '<%B a={<%D/f da={%>}%>' => 'error',
+        '<$$><%B a={<%D/f da={va} db={\'vb\'} dc="<$DC/f$>"%>}%>$>' => [
+            {   text    => '<$',
+            },
+            {   objname => 'B',
+                args    => {
+                    a => [
+                        {   objname => 'D',
+                            flag    => 'f',
+                            args    => {
+                                da => [
+                                    {   text    => 'va',
+                                    },
+                                ],
+                                db => 'vb',
+                                dc => [
+                                    {   varname => 'DC',
+                                        flag    => 'f',
+                                    },
+                                ],
+                            },
+                        },
+                    ],
+                },
+            },
+            {   text    => '$>',
+            },
+        ],
+        '<%Date style="dateonly" gmtime=  {<%VAR/f%>} %>' => [
+            {   objname => 'Date',
+                args    => {
+                    style   => [
+                        {   text    => 'dateonly',
+                        },
+                    ],
+                    gmtime  => [
+                        {   objname => 'VAR',
+                            flag    => 'f',
+                            args    => {},
+                        },
+                    ],
+                },
+            },
+        ],
+        q(Text<%End%>Text<%) => [
+            {   text    => 'Text',
+            },
+        ],
+        # Sample from the man page
+        q(Text <%Object a=A b="B" c={<%C/f ca={CA}%>} d='D' e={'<$E$>'}%>) => [
+            {   text    => 'Text ',
+            },
+            {   objname => 'Object',
+                args    => {
+                    a => [
+                        {   text    => 'A',
+                        },
+                    ],
+                    b => [
+                        {   text    => 'B',
+                        },
+                    ],
+                    c => [
+                        {   objname => 'C',
+                            flag    => 'f',
+                            args    => {
+                                ca => [
+                                    {   text    => 'CA',
+                                    },
+                                ],
+                            },
+                        },
+                    ],
+                    d => 'D',
+                    e => '<$E$>',
+                },
+            },
+        ],
     );
 
     foreach my $template (keys %matrix) {
         my $parsed=XAO::PageSupport::parse($template);
         my $expect=$matrix{$template};
-        my $rc=Compare($expect,$parsed);
+        my $rc=ref($expect) ? Compare($expect,$parsed) : !ref($parsed);
         $rc ||
             dprint "========== Expect:",Dumper($expect),
                    "========== Got:",Dumper($parsed);

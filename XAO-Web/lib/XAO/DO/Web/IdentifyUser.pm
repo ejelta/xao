@@ -212,7 +212,7 @@ use XAO::Objects;
 use base XAO::Objects->load(objname => 'Web::Action');
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: IdentifyUser.pm,v 1.14 2002/06/20 23:46:36 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: IdentifyUser.pm,v 1.15 2002/06/22 00:03:01 am Exp $ =~ /(\d+\.\d+)/);
 
 ###############################################################################
 
@@ -661,7 +661,7 @@ sub logout{
             -name    => $config->{vf_key_cookie},
             -value   => '0',
             -path    => '/',
-            -expires => '-1s',
+            -expires => 'now',
         );
 
         $user->delete($config->{vf_key_prop}) if $user;
@@ -681,7 +681,7 @@ sub logout{
             -name    => $config->{id_cookie},
             -value   => '0'
             -path    => '/',
-            -expires => '-1s',
+            -expires => 'now',
         );
 
         return $self->display_results($args,'anonymous');
