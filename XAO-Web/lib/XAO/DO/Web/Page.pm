@@ -203,6 +203,8 @@ into the string matching pairs of {' and '} can be used:
 
 =back
 
+=head2 EMBEDDING SPECIAL CHARACTERS
+
 Sometimes it is necessary to include various special symbols into
 argument values. This can be done in the same way you would embed
 special symbols into HTML tags arguments:
@@ -225,6 +227,64 @@ re-written as follows to make it legal:
  name={single &#123; inside}
 
 =back
+
+=head2 OUTPUT CONVERSION
+
+As the very final step in the processing of an embedded object or
+variable the parser will check if it has any flags and convert it
+accordingly. This can (and should) be used to safely pass special
+characters into fields, HTML documents and so on.
+
+For instance, the following code might break if you do not use flags and
+variable will contain a duoble quote character in it:
+
+ <INPUT TYPE="TEXT" VALUE="<$VALUE$>">
+
+Correct way to write it would be (note /f after VALUE):
+
+ <INPUT TYPE="TEXT" VALUE="<$VALUE/f$>">
+
+Generic format for specifying flags is:
+
+ <%Object/x ...%> or <$VARIABLE/x$>
+
+Where 'x' could be one of:
+
+=over
+
+=item f
+
+Converts text for safe use in HTML elements attributes. Mnemonic for
+remembering - (f)ield.
+
+Will convert '123"234' into '123&quot;234'.
+
+=item h
+
+Converts text for safe use in HTML text. Mnemonic - (H)TML.
+
+Will convert '123<BR>234' into '123&lt;BR&gt;234'.
+
+=item q
+
+Converts text for safe use in HTML query parameters. Mnemonic - (q)uery.
+
+Will convert '123 234' into '123+234'.
+
+Example: <A HREF="test.html?name=<$VAR/q$>">Test '<$VAR/h$>'</A>
+
+=item s
+
+The same as 'h' excepts that it translates empty string into
+'&nbsp;'. Suitable for inserting pieces of text into table cells.
+
+=back
+
+It is a very good habit to use flags as much as possible and always
+specify a correct conversion. Leaving output untranslated may lead to
+anything from broken HTML to security violations.
+
+=head2 LEVELS OF PARSING
 
 Arguments can include as many level of embedding as you like, but you
 must remember:
@@ -339,7 +399,7 @@ use Error qw(:try);
 use base XAO::Objects->load(objname => 'Atom');
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: Page.pm,v 1.21 2002/06/27 22:16:05 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: Page.pm,v 1.22 2002/10/29 09:42:31 am Exp $ =~ /(\d+\.\d+)/);
 
 ##
 # Prototypes
