@@ -539,6 +539,16 @@ sub process ($%) {
     my $pagetext='';
 
     ##
+    # Setting expiration time in the page header to immediate
+    # expiration. If that's not what the page wants -- it can override
+    # these.
+    #
+    $siteconfig->header_args(
+        -expires        => 'now',
+        -cache_control  => 'no-cache',
+    );
+
+    ##
     # Do we need to run any objects before executing? A good place to
     # turn on debug mode if required using Debug object.
     #
@@ -574,16 +584,6 @@ sub process ($%) {
         prefix => $pd->{prefix},
     };
     $objargs=merge_refs($objargs,$pd->{objargs},$args->{objargs});
-
-    ##
-    # Setting expiration time in the page header to immediate
-    # expiration. If that's not what the page wants -- it can override
-    # these.
-    #
-    $siteconfig->header_args(
-        -expires        => 'now',
-        -cache_control  => 'no-cache',
-    );
 
     ##
     # Loading page displaying object and executing it.
