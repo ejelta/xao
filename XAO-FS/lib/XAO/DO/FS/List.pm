@@ -33,7 +33,7 @@ use XAO::Objects;
 use base XAO::Objects->load(objname => 'FS::Glue');
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: List.pm,v 1.9 2002/12/11 21:09:14 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: List.pm,v 1.10 2002/12/12 17:55:44 am Exp $ =~ /(\d+\.\d+)/);
 
 ###############################################################################
 
@@ -52,7 +52,9 @@ is not a legal property ID or List ID inside of a Hash.
 sub check_name ($$) {
     my $self=shift;
     my $name=shift;
-    return (defined($name) && $name =~ /^[a-z0-9_]*$/i && length($name)<=30);
+    return (defined($name) &&
+           $name =~ /^[a-z0-9_]+$/i &&
+           length($name)<=30);
 }
 
 ###############################################################################
@@ -103,8 +105,8 @@ sub container_object ($) {
     #
     my $uri=$self->uri;
     if(defined($uri)) {
-        $uri=~/^((\/\w+)*)\/(\w+)$/ || $self->throw("container_object - wrong uri ($uri)");
-        $uri=$1;
+        my @path=split(/\/+/,$uri);
+        $uri=join('/',@path[0..$#path-1]);
     }
 
     XAO::Objects->new(
@@ -197,7 +199,7 @@ sub get ($$) {
             throw $self "get - no such object ($_)";
 
         $self->check_name($_) ||
-            throw $self "get - bad name ($_)";
+            throw $self "get - wrong name ($_)";
 
         XAO::Objects->new(
             objname => $$self->{class_name},

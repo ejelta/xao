@@ -67,7 +67,7 @@ use XAO::Objects;
 use base XAO::Objects->load(objname => 'FS::Glue');
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: Hash.pm,v 1.9 2002/10/29 17:50:29 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: Hash.pm,v 1.10 2002/12/12 17:55:44 am Exp $ =~ /(\d+\.\d+)/);
 
 ###############################################################################
 
@@ -398,8 +398,8 @@ sub container_object ($) {
     #
     my $uri=$self->uri;
     if(defined($uri)) {
-        $uri=~/^((\/\w+)*)\/(\w+)$/ || $self->throw("container_object - wrong uri ($uri)");
-        $uri=$1;
+        my @path=split(/\/+/,$uri);
+        $uri=join('/',@path[0..$#path-1]);
     }
 
     XAO::Objects->new(

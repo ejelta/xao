@@ -1,3 +1,7 @@
+1.05 -
+    * name restrictions are now enforced in List according to
+      documentation
+
 1.04 - 1-Nov-2002
     * Flexible auto-generated IDs in Lists (including sequential)
     * Better treatment of default values and null/undefs
