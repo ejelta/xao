@@ -194,7 +194,7 @@ use base XAO::Objects->load(objname => 'Web::Action');
 ##
 # Version
 use vars qw($VERSION);
-($VERSION)=(q$Id: IdentifyUser.pm,v 1.6 2001/12/19 02:22:45 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: IdentifyUser.pm,v 1.7 2001/12/19 02:32:07 am Exp $ =~ /(\d+\.\d+)/);
 
 ###############################################################################
 
@@ -317,7 +317,15 @@ sub check {
             if ($config->{vf_key_prop} && $config->{vf_key_cookie}) {
                 my $web_key=$self->cgi->cookie($config->{vf_key_cookie});
                 my $db_key=$user->get($config->{vf_key_prop});
-                $verified=1 if $db_key eq $web_key;
+                if($db_key eq $web_key) {
+                    $verified=1;
+                    $self->siteconfig->add_cookie(
+                        -name    => $config->{vf_key_cookie},
+                        -value   => $web_key,
+                        -path    => '/',
+                        -expires => '+' . $config->{vf_expire_time} . 's',
+                    );
+                }
             }
             else {
                 $verified=1;
