@@ -77,7 +77,7 @@ use XAO::Errors qw(XAO::DO::Web::Mailer);
 use base XAO::Objects->load(objname => 'Web::Page');
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: Mailer.pm,v 1.7 2003/03/26 03:07:10 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: Mailer.pm,v 1.8 2003/03/29 01:53:51 am Exp $ =~ /(\d+\.\d+)/);
 
 sub display ($;%) {
     my $self=shift;
@@ -93,8 +93,6 @@ sub display ($;%) {
         dprint ref($self)."::display - overriding '$to' with '$config->{override_to}'";
         $to=$config->{override_to};
     }
-
-    return;
 
     my $from=$args->{from};
     if(!$from) {
