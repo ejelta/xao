@@ -18,7 +18,7 @@ while(!$d{test_dsn}) {
 
 XAO::Web will need access to a XAO::FS database in order to run tests.
 That database will be COMPLETELY DESTROYED AND OVERRIDEN every time you
-run `make test'.
+run 'make test'.
 
 The database have to be created, but it does not matter what it contains.
 
@@ -108,11 +108,12 @@ WriteMakefile(
     'NAME'          => 'XAO::Web',
     'VERSION_FROM'  => 'Web.pm',
     'PREREQ_PM'     => {
-        'Digest::MD5'   => '2.13',
-        'MIME::Lite'    => '2.117',
-        'Error'         => '0.13',
-        'XAO::Base'     => '1.03',
-        'XAO::FS'       => '1.03',
+        'Digest::MD5'       => 2.13,
+        'MIME::Lite'        => 2.117,
+        'Error'             => 0.13,
+        'XAO::Base'         => 1.03,
+        'XAO::FS'           => 1.03,
+        'Text::FormatTable' => 0.01,
     },
     'INSTALLBIN'	=> $homedir . '/bin',
     'INSTALLSCRIPT'	=> $homedir . '/handlers',

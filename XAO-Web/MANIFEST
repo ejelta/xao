@@ -35,6 +35,7 @@ lib/XAO/DO/Web/Redirect.pm
 lib/XAO/DO/Web/Search.pm
 lib/XAO/DO/Web/SetArg.pm
 lib/XAO/DO/Web/Styler.pm
+lib/XAO/DO/Web/TextTable.pm
 lib/XAO/DO/Web/Utility.pm
 lib/XAO/PluginUtils.pm
 lib/XAO/Templates.pm
@@ -71,21 +72,28 @@ testcases/WebFS.pm
 testcases/WebUtility.pm
 testcases/Web.pm
 testcases/WebSetArg.pm
+testcases/WebTextTable.pm
  --------------------------------- Test installation tree
 testcases/testroot/projects/test/objects/Config.pm
 testcases/testroot/projects/test/objects/Web/MyAction.pm
 testcases/testroot/projects/test/objects/Web/MyPage.pm
 testcases/testroot/projects/test/templates/bits/local-test
-testcases/testroot/projects/test/templates/local.txt
 testcases/testroot/projects/test/templates/index.html
+testcases/testroot/projects/test/templates/local.txt
 testcases/testroot/templates/bits/system-test
 testcases/testroot/templates/bits/WebCondition/text-default
 testcases/testroot/templates/bits/WebCondition/text-v2
 testcases/testroot/templates/bits/WebFS/hash
 testcases/testroot/templates/bits/WebFS/list-header
 testcases/testroot/templates/bits/WebFS/list-row
+testcases/testroot/templates/bits/WebTextTable/table-result
+testcases/testroot/templates/bits/WebTextTable/table-source
 testcases/testroot/templates/system.txt
  --------------------------------- Misc stuff
 misc/vim/HOWTO
 misc/vim/scripts.vim
 misc/vim/xaoweb.vim
+ --------------------------------- Benchmarking
+bench/bench.pl
+bench/results-20020719-am-workstation.txt
+bench/results-20020723-am-workstation.txt
