@@ -44,7 +44,8 @@ sub sql_connect ($%) {
     $dsn=~m/^dbi:mysql:(database=)?(\w+)(;hostname=(.*?)(;|$))?/i ||
         throw $self "sql_connect - wrong DSN format ($dsn)";
     my $dbname=$2 . "\0";
-    my $hostname=$3 ? $4 . "\0" : undef;
+    my $hostname=$3 ? $4 : "";
+    $hostname.="\0";
     my $user=$args->{user};
     $user.="\0" if $user;
     my $password=$args->{password};
@@ -54,7 +55,6 @@ sub sql_connect ($%) {
     # Perl complains about passing undefs into the sub which is ok and
     # expected in this case.
     #
-    no warnings;
     my $db=sql_real_connect($hostname,$user,$password,$dbname) ||
         throw $self "sql_connect - can't connect to the database ($dsn)";
 

@@ -4,6 +4,13 @@
 #include "perl.h"
 #include "XSUB.h"
 
+#ifndef pTHX_
+#define pTHX_
+#endif
+#ifndef aTHX_
+#define aTHX_
+#endif
+
 #include <mysql/mysql.h>
 
 /* #define SQL_TIMING */
@@ -133,7 +140,7 @@ sql_error_text(self)
         SV*     self;
     CODE:
         MYSQL *mysql=get_mysql_handler(aTHX_ self);
-        char const *error=mysql_error(mysql);
+        char *error=(char *)mysql_error(mysql);
         RETVAL=newSVpv(error,0);
     OUTPUT:
         RETVAL
@@ -146,10 +153,17 @@ sql_real_connect(hostname,user,password,dbname)
         SV*     dbname;
     CODE:
         MYSQL *mysql=mysql_init(NULL);
+#ifdef SvPV_nolen
         char *sh=(hostname == &PL_sv_undef) ? NULL : SvPV_nolen(hostname);
         char *su=(user == &PL_sv_undef) ? NULL : SvPV_nolen(user);
         char *sp=(password == &PL_sv_undef) ? NULL : SvPV_nolen(password);
         char *sd=(dbname == &PL_sv_undef) ? NULL : SvPV_nolen(dbname);
+#else
+        char *sh=(hostname == &PL_sv_undef) ? NULL : SvPV(hostname,PL_na);
+        char *su=(user == &PL_sv_undef) ? NULL : SvPV(user,PL_na);
+        char *sp=(password == &PL_sv_undef) ? NULL : SvPV(password,PL_na);
+        char *sd=(dbname == &PL_sv_undef) ? NULL : SvPV(dbname,PL_na);
+#endif
         if(mysql_real_connect(mysql,sh,su,sp,sd,0,NULL,0)) {
             RETVAL=newSViv((IV)mysql);
         }

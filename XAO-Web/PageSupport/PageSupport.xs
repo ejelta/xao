@@ -16,6 +16,15 @@
 #include <string.h>
 #include <ctype.h>
 
+/* If that version of perl does not have pTHX_ macros then defining them here
+*/
+#ifndef	pTHX_
+#define	pTHX_
+#endif
+#ifndef	aTHX_
+#define	aTHX_
+#endif
+
 #define	MAX_STACK	200
 #define	CHUNK_SIZE	1000
 

@@ -155,8 +155,14 @@ sub test_real_deep {
         },
     );
 
-    dprint "Structure done, filling up..";
     srand(876543);
+    if(int(rand(1000))!=838) {
+        print STDERR "Got incompatible random sequence, skipping the test\n";
+        return;
+    }
+    srand(876543);
+
+    dprint "Structure done, filling up..";
     my @wordlist=qw(qwe wer ert rty tyu yui uio iop op[ p[] []\
                     asdf sdfg dfgh fghj ghjk hjkl jkl; kl;'
                     zxcvb xcvbn cvbnm vbnm bnm. nm./
