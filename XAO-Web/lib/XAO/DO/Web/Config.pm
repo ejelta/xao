@@ -44,7 +44,7 @@ sub new ($@);
 # Package version for checks and reference
 #
 use vars qw($VERSION);
-($VERSION)=(q$Id: Config.pm,v 1.2 2001/12/05 03:51:41 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: Config.pm,v 1.3 2001/12/07 22:01:03 am Exp $ =~ /(\d+\.\d+)/);
 
 ###############################################################################
 
@@ -84,6 +84,8 @@ sub add_cookie ($@) {
     my $self=shift;
     my $cookie=(@_==1 ? $_[0] : get_args(\@_));
   
+    dprint ref($self)."::add_cookie - adding $cookie";
+
     ##
     # If new cookie has the same name, domain and path
     # as previously set one - we replace it. Works only for
@@ -179,6 +181,7 @@ Returns reference to an array of prepared cookies.
 
 sub cookies ($) {
     my $self=shift;
+
     my @baked;
     foreach my $c (@{$self->{cookies}}) {
         if(ref($c) && ref($c) eq 'HASH') {
@@ -188,6 +191,9 @@ sub cookies ($) {
             push @baked,$c;
         }
     }
+
+    dprint ref($self),"::cookies - ",join('|',@baked);
+
     \@baked;
 }
 

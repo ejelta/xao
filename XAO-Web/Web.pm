@@ -180,10 +180,16 @@ sub execute ($%) {
     my $self=shift;
     my $args=get_args(\@_);
 
-    my $path=$args->{path} || throw XAO::E::Web "execute - no 'path' given";
     my $cgi=$args->{cgi} || throw XAO::E::Web "execute - no 'cgi' given";
     my $siteconfig=$self->config;
     my $sitename=$self->sitename;
+
+    ##
+    # Making sure path starts from a slash
+    #
+    my $path=$args->{path} || throw XAO::E::Web "execute - no 'path' given";
+    $path='/' . $path;
+    $path=~s/\/{2,}/\//g;
 
     ##
     # Setting the current project context to our site.
@@ -209,6 +215,7 @@ sub execute ($%) {
         # plain CGI usage.
         #
         my $url=$cgi->url(-full => 1, -path_info => 0);
+        $url=$1 if $url=~/^(.*)($path)$/;
 
         ##
         # Trying to understand if rewrite module was used or not. If not

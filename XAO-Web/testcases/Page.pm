@@ -60,4 +60,17 @@ sub test_web {
                   "Can't get CGI reference from Page");
 }
 
+sub test_end {
+    my $self=shift;
+
+    my $page=XAO::Objects->new(objname => 'Web::Page');
+    $self->assert(ref($page),
+                  "Can't load Page object");
+
+    my $got=$page->expand(template => 'AAA<%End%>BBB');
+    my $expect='AAA';
+    $self->assert($got eq $expect,
+                  "<%End%> does not work, got '$got' instead of '$expect'");
+}
+
 1;

@@ -128,7 +128,7 @@ sub tracking_url ($%)
    { eprint "Unknown carrier '$carrier'";
      $url='';
    }
-  $self->textout(text => $url, objargs => $args);
+  $self->textout($url);
 }
 
 ###############################################################################
@@ -152,7 +152,7 @@ sub config_param ($%)
                          "config_param - no 'name' given";
   my $value=$config->get($args->{name});
   $value=$args->{default} if !defined($value) && defined($args->{default});
-  $self->textout(text => $value, objargs => $args) if defined $value;
+  $self->textout($value) if defined $value;
 }
 
 ###############################################################################
@@ -212,23 +212,23 @@ sub pass_cgi_params ($%)
 { my $self=shift;
   my $args=get_args(\@_);
 
-  ##
-  # Creating list of exceptions
-  #
-  my %except;
-  foreach my $param (split(/[,\s]/,$args->{except}))
-   { $param=~s/\s//gs;
-     next unless length($param);
-     if(index($param,'*') != -1)
-      { $param=substr($param,0,index($param,'*'));
-        foreach my $p ($self->{siteconfig}->cgi->param)
-         { next unless index($p,$param) == 0;
-           $except{$p}=1;
-         }
-        next;
-      }
-     $except{$param}=1;
-   }
+    ##
+    # Creating list of exceptions
+    #
+    my %except;
+    foreach my $param (split(/[,\s]/,$args->{except} || '')) {
+        $param=~s/\s//gs;
+        next unless length($param);
+        if(index($param,'*') != -1) {
+            $param=substr($param,0,index($param,'*'));
+            foreach my $p ($self->{siteconfig}->cgi->param) {
+                next unless index($p,$param) == 0;
+                $except{$p}=1;
+            }
+            next;
+        }
+        $except{$param}=1;
+    }
 
   ##
   # Expanding parameters in list
@@ -248,22 +248,26 @@ sub pass_cgi_params ($%)
      push @params,$param;
    }
 
-  ##
-  # Creating HTML code that will pass these parameters.
-  my $html;
-  foreach my $param (@params)
-   { next if $except{$param};
-     my $value=$self->{siteconfig}->cgi->param($param);
-     next unless defined $value;
-     if($args->{result} eq 'form')
-      { $html.='<INPUT TYPE="HIDDEN" NAME="' . t2hf($param) . '" VALUE="' . t2hf($value) . '">';
-      }
-     else
-      { $html.='&' if $html;
-        $html.=t2hq($param) . '=' . t2hq($value);
-      }
-   }
-  $self->textout(text => $html, objargs => $args);
+    ##
+    # Creating HTML code that will pass these parameters.
+    #
+    my $html;
+    foreach my $param (@params) {
+        next if $except{$param};
+
+        my $value=$self->{siteconfig}->cgi->param($param);
+        next unless defined $value;
+
+        if($args->{result} eq 'form') {
+            $html.='<INPUT TYPE="HIDDEN" NAME="' . t2hf($param) . '" VALUE="' . t2hf($value) . '">';
+        }
+        else {
+            $html.='&' if $html;
+            $html.=t2hq($param) . '=' . t2hq($value);
+        }
+    }
+
+    $self->textout($html) if defined $html;
 }
 
 ###############################################################################

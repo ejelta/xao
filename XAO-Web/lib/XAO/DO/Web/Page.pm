@@ -307,7 +307,7 @@ use XAO::PageSupport;
 # Package version
 #
 use vars qw($VERSION);
-($VERSION)=(q$Id: Page.pm,v 1.3 2001/12/06 23:03:35 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: Page.pm,v 1.4 2001/12/07 22:01:03 am Exp $ =~ /(\d+\.\d+)/);
 
 ##
 # Methods prototypes
@@ -514,7 +514,7 @@ sub display ($%)
      ##
      # Checking if this object required to stop processing
      #
-     last if $self->siteconfig->get('_no_more_output');
+     last if $self->clipboard->get('_no_more_output');
    }
 }
 
@@ -629,9 +629,11 @@ object. Although it is not recommended to do so.
 
 sub textout ($%) {
     my $self=shift;
+    return unless @_;
     if(@_ == 1) {
         XAO::PageSupport::addtext($_[0]);
-    } else {
+    }
+    else {
         my %args=@_;
         XAO::PageSupport::addtext($args{text});
     }
@@ -654,8 +656,7 @@ Accepts the same arguments as textout() method.
 sub finaltextout ($%) {
     my $self=shift;
     $self->textout(@_);
-    $self->siteconfig->session_specific('_no_more_output');
-    $self->siteconfig->put(_no_more_output => 1);
+    $self->clipboard->put(_no_more_output => 1);
 }
 
 ###############################################################################
@@ -731,7 +732,9 @@ sub cgi ($) {
 
 =item clipboard ()
 
-Returns clipboard object, which inherets XAO::SimpleHash methods.
+Returns clipboard object, which inherets XAO::SimpleHash methods. Use
+this object to pass data between various objects that work together to
+produce a page. Clipboard is cleaned before starting every new session.
 
 =cut
 
@@ -744,10 +747,9 @@ sub clipboard ($) {
 
 =item siteconfig ()
 
-Returns site configuration reference. Be careful with your changes
-to configuration - unless you call session_specific() method on
-configuration your values would be available for next session under
-mod_perl. See L<XAO::Projects> for more details.
+Returns site configuration reference. Be careful with your changes to
+configuration, try not to change configuration -- use clipboard to pass
+data between objects. See L<XAO::Projects> for more details.
 
 =cut
 
