@@ -1,3 +1,7 @@
+1.07 - 31-Jan-2005
+    * Fixed a problem with Web.pm for mod_perl usage, introduced last
+      minute just before releasing 1.06
+
 1.06 - 11-Jan-2005
     * Apache::XAO supports both Apache 2.x and Apache 1.x (with
       production grade sites successfully running on both)
