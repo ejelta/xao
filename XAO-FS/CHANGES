@@ -1,4 +1,4 @@
-1.01 - 15-Dec-2001
+1.01 - 27-Dec-2001
     * added describe method for List
     * added embeddable Config object
     * fixed Makefile.PL to store test db password correctly
@@ -8,6 +8,9 @@
     * 'unique' always assumes that 'index' is set too, fixes
       problem with build_structure()
     * diagnostic of connection failure improved
+    * default test database name changed to test_fs
+    * prefix for default table name changed to 'fs'
+    * xao-fs tool modified to accept 'drop' command
 
 1.1 - 2-Nov-2001
     * Initial public release

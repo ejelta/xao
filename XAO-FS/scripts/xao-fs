@@ -7,7 +7,7 @@ xao-fs - XAO::FS database tool
 
 =head1 SYNOPSIS
 
-odb-tool --dsn=OS:MySQL_DBI:testdb [options] command
+odb-tool --dsn=OS:MySQL_DBI:testdb [options] command [arguments]
 
  Options:
 
@@ -22,19 +22,42 @@ odb-tool --dsn=OS:MySQL_DBI:testdb [options] command
 
    --help       - show more details
 
- Example:
+ Commands:
 
-   odb-tool --dsn=DBI:mysql:testdb -u user -p pass init
+   drop URI ... - cleans content of the given URI
+
+   init         - completely destroys current content and
+                  create empty database.
 
 =head1 DESCRIPTION
 
-The only command currently supported is `init'. That command completely
-erases entire content of the given database and initializes minimal
-database in its place. B<Use with extreme care!>
+Commands are:
+
+=over
+
+=item drop URI URI ...
+
+Recursively drops content of the given URIs. B<Be careful> - you can
+irrevocably drop huge lists instantly without any questions asked.
+
+Example:
+
+ odb-tool --dsn=DBI:mysql:testdb -u user -p pass drop /People/jsilver
+
+=item init
+
+Completely destroys entire content of the given database and initializes
+minimal database in its place. B<Use with extreme care!>
+
+Example:
+
+ odb-tool --dsn=DBI:mysql:testdb -u user -p pass init
 
 =head1 AUTHOR
 
-XAO Inc.: Andrew Maltsev.
+Copyright (c) 2001 XAO Inc.
+
+Andrew Maltsev <am@xao.com>
 
 =cut
 
@@ -59,7 +82,36 @@ $dbdsn || pod2usage("No --dsn given!\n");
 
 my $cmd=lc(shift(@ARGV)) || pod2usage("No command given!\n");
 
-if($cmd eq 'init') {
+if($cmd eq 'drop') {
+    my $odb=XAO::Objects->new(objname => 'FS::Glue',
+                              dsn => $dbdsn,
+                              user => $dbuser,
+                              password => $dbpasswd);
+    $odb || die "Can't connect to the database\n";
+
+    foreach my $uri (@ARGV) {
+        my $element=$odb->fetch($uri);
+        if(ref($element)) {
+            my $container=$element->container_object;
+            my $key=$element->container_key;
+            if($container) {
+                $container->delete($key);
+            }
+            else {
+                $element->destroy();
+            }
+        }
+        else {
+            my @path=split(/\/+/,$uri);
+            my $key=pop(@path);
+            my $path='/' . join('/',@path);
+            my $element=$odb->fetch($path);
+            $element->delete($key);
+        }
+    }
+}
+
+elsif($cmd eq 'init') {
     my $odb=XAO::Objects->new(objname => 'FS::Glue',
                               dsn => $dbdsn,
                               user => $dbuser,

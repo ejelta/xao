@@ -6,7 +6,8 @@ use XAO::Objects;
 
 ##
 # This is not something you would normally do in your application - this
-# is here purely to safe get configuration values to connect to database.
+# is here purely to safely get configuration values to connect to the
+# test database.
 #
 my %d;
 if(open(F,'.config')) {

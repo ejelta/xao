@@ -1469,7 +1469,7 @@ sub _add_list_placeholder ($%) {
         $table =~ s/^Data:://;
         $table =~ s/::/_/g;
         $table =~ s/_{2,}/_/g;
-        $table='os' . $table;
+        $table='fs' . $table;
     }
 
     my $driver=$self->_driver;

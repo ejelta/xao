@@ -24,7 +24,7 @@ contains - they all will be dropped.
 Please enter access information (brackets contain default values):
 
 EOT
-    my $dsn='OS:MySQL_DBI:test_os';
+    my $dsn='OS:MySQL_DBI:test_fs';
     print "DSN: [$dsn] ";
     chomp(my $str=<STDIN>);
     if($str) {
