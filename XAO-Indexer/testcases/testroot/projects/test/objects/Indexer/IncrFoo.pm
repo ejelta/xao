@@ -1,4 +1,4 @@
-package XAO::DO::Indexer::Foo;
+package XAO::DO::Indexer::IncrFoo;
 use strict;
 use XAO::Utils;
 use XAO::Objects;
@@ -38,18 +38,36 @@ sub get_collection ($%) {
     my $self=shift;
     my $args=get_args(\@_);
 
-    wantarray ||
-        throw $self "get_collection - called in scalar context";
-
     my $index_object=$args->{index_object} ||
         throw $self "update - no 'index_object'";
 
     my $odb=$index_object->glue;
     my $collection=$odb->collection(class => 'Data::Foo');
 
-    my @ids=$collection->keys;
+    my $sr=$collection->search('indexed','eq',0, { limit => 18 });
 
-    return ($collection,\@ids);
+    return {
+        collection  => $collection,
+        ids         => $sr,
+        partial     => 1,
+    };
+}
+
+###############################################################################
+
+sub finish_collection ($%) {
+    my $self=shift;
+    my $args=get_args(\@_);
+    my $cinfo=$args->{collection_info} ||
+        throw $self "finish_collection - no 'collection_info' given";
+
+    return unless $cinfo->{partial};
+
+    my $coll=$cinfo->{collection};
+    foreach my $id (@{$cinfo->{ids}}) {
+        dprint ".marking $id as indexed";
+        $coll->get($id)->put(indexed => 1);
+    }
 }
 
 ###############################################################################
@@ -59,15 +77,10 @@ sub get_orderings ($) {
     return {
         name    => {
             seq     => 1,
-            sortprepare => sub {
-                my ($s,$i,$kw_data)=@_;
-                $s->prepare_inc;
-            },
-            sortsub => sub {
-                my ($kw_data,$a,$b)=@_;
-                my $cpa=lc($kw_data->{sorting}->{name}->{$a});
-                my $cpb=lc($kw_data->{sorting}->{name}->{$b});
-                return ($cpa cmp $cpb);
+            sortall => sub {
+                my $cinfo=shift;
+                my $collection=$cinfo->{collection};
+                return $collection->search({ orderby => 'name' });
             },
         },
         text    => {
@@ -78,19 +91,6 @@ sub get_orderings ($) {
                 return $collection->search({ orderby => 'text' });
             },
         },
-        name_wnum => {
-            seq     => 3,
-            sortsub => sub {
-                my ($kw_data,$a,$b)=@_;
-                my @na=split(/\s+/,$kw_data->{sorting}->{name}->{$a});
-                my @nb=split(/\s+/,$kw_data->{sorting}->{name}->{$b});
-                return (scalar(@na) <=> scalar(@nb)) || ($a <=> $b);
-            },
-            sortfinish => sub {
-                my ($s,$i,$kw_data)=@_;
-                $s->finish_inc;
-            },
-        },
     };
 }
 
@@ -98,29 +98,6 @@ sub get_orderings ($) {
 
 sub ignore_limit ($) {
     return 120;
-}
-
-###############################################################################
-
-# Help testcase track the use of sortprepare/sortfinish
-
-sub prepare_inc ($) {
-    my $self=shift;
-    dprint "Sort Prepare Called";
-    ++$self->{prepare_inc};
-}
-sub prepare_inc_get ($) {
-    my $self=shift;
-    return $self->{prepare_inc};
-}
-sub finish_inc ($) {
-    my $self=shift;
-    dprint "Sort Finish Called";
-    ++$self->{finish_inc};
-}
-sub finish_inc_get ($) {
-    my $self=shift;
-    return $self->{finish_inc};
 }
 
 ###############################################################################

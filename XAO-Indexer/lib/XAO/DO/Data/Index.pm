@@ -158,6 +158,32 @@ sub data_structure ($) {
 
 ###############################################################################
 
+=item get_collection_object ()
+
+A shortcut to indexer's get_collection_object method. If there is no
+such method, emulates it with a call to get_collection, which is usually
+slower (for compatibility).
+
+=cut
+
+sub get_collection_object ($) {
+    my $self=shift;
+
+    my $indexer=$self->indexer;
+    if($indexer->can('get_collection_object')) {
+        $indexer->get_collection_object(
+            index_object    => $self,
+        );
+    }
+    else {
+        return $self->indexer->get_collection(
+            index_object    => $self,
+        )->{collection};
+    }
+}
+
+###############################################################################
+
 =item get_collection ()
 
 Simply a shortcut to indexer's get_collection() method.

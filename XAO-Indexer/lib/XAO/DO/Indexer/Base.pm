@@ -34,7 +34,7 @@ use XAO::Projects qw(get_current_project);
 use Digest::MD5 qw(md5_base64);
 use base XAO::Objects->load(objname => 'Atom');
 
-### use Data::Dumper;
+use Data::Dumper;
 
 ###############################################################################
 
@@ -405,19 +405,63 @@ sub update ($%) {
     my $index_object=$args->{index_object} ||
         throw $self "update - no 'index_object'";
 
-    my ($coll,$coll_ids)=$self->get_collection($args);
+    ##
+    # For compatibility reasons we need to call it in scalar context.
+    #
+    my @carr=$self->get_collection($args);
+    my $cinfo;
+    if(@carr==2) {
+        $cinfo={
+            collection  => $carr[0],
+            ids         => $carr[1],
+        };
+    }
+    else {
+        $cinfo=$carr[0];
+    }
 
+    ##
+    # Maximum number of matches for a word for it to be completely
+    # ignored.
+    #
     my $ignore_limit=$self->ignore_limit($args);
+
+    ##
+    # If that's a partial update and we don't have any IDs to update
+    # we return immediately. Otherwise proceed even with empty set to
+    # remove records from the index.
+    #
+    my $is_partial=$cinfo->{partial};
+    my $coll_ids=$cinfo->{ids};
+    my $coll_ids_total=scalar(@$coll_ids);
+    if($is_partial && !$coll_ids_total) {
+        return 0;
+    }
+    my $coll=$cinfo->{collection};
+
+    ##
+    # For partial indexes we pre-load ignored words. Otherwise, as the
+    # data entry gets removed for ignored words, they will start from
+    # zero and become non-ignored again.
+    #
+    my $ignore_list=$index_object->get('Ignore');
+    my %kw_data;
+    if($is_partial) {
+        dprint "Loading ignored keywords for partial update";
+        foreach my $kwmd5 ($ignore_list->keys) {
+            my ($kw,$count)=$ignore_list->get($kwmd5)->get('keyword','count');
+            $kw_data{counts}->{$kw}=$count;
+            $kw_data{ignore}->{$kw}=($count > $ignore_limit ? 1 : 0);
+        }
+    }
 
     ##
     # Getting keyword data
     #
     dprint "Analyzing data..";
-    my %kw_data;
-    my $total=scalar(@$coll_ids);
     my $count=0;
     foreach my $coll_id (@$coll_ids) {
-        dprint "..$count/$total" if (++$count%5000)==0;
+        dprint "..$count/$coll_ids_total" if (++$count%1000)==0;
         my $coll_obj=$coll->get($coll_id);
         $self->analyze_object(
             collection      => $coll,
@@ -442,68 +486,188 @@ sub update ($%) {
     # Sorting and storing
     #
     dprint "Sorting and storing..";
-    $index_object->glue->transact_begin;
-    my $data_list=$index_object->get('Data');
-    my $nd=$data_list->get_new;
-    my $ignore_list=$index_object->get('Ignore');
-    my $ni=$ignore_list->get_new;
+
+=pod
+
+I think the best idea is to create sorted lists of uniqueids for each
+ordering (complete lists of ids, not partial). And then have a C routine
+sort a subset using that master list. We should probably cache lists in
+case another partial index update is coming our way.
+
+-------
+
+Another idea is to try and place the partial list of ids into the fully
+sorted list. That is, for each keyword we retrieve existing IDs anyway,
+so we sort our subset, take first -- take one in the middle and
+determine if it's above or below. And so on. If we do that taking ids
+from bottom and from top it should be relatively speedy.
+
+Depends on the fact, that the ordering is fully determined -- there is
+no "equal" state possible. Two pairs are always "greater" or "lesser",
+and consistently so.
+
+-------------
+
+Second variant will probably be easier on the database AND allows to
+remove ids that do not exist any more from the database.
+
+On the other hand, second requires more storage to compare strings
+and/or some complicated caching solution. May be the first way is
+better. Going with it.
+
+=cut
 
     my $now=time;
+
+    $index_object->glue->transact_begin;
+    my $data_list=$index_object->get('Data');
+    my $ni=$ignore_list->get_new;
     $ni->put(create_time => $now);
-    $nd->put(create_time => $now);
 
     my %o_prepare;
     my %o_finish;
 
+    ##
+    # As the list can potentially be huge, we go one ordering at a time,
+    # thus probably re-doing the same record -- which is fine for large
+    # datasets we're dealing with.
+    #
     my @keywords=keys %{$kw_data{keywords}};
-    $total=scalar(@keywords);
-    $count=0;
-    foreach my $kw (keys %{$kw_data{keywords}}) {
-        my $kwd=$kw_data{keywords}->{$kw};
+    my $kw_total=scalar(@keywords);
+    my $o_hash=$self->get_orderings;
+    my $o_first=1;
+    foreach my $o_name (keys %$o_hash) {
+        my $o_data=$o_hash->{$o_name};
+        my $o_seq=$o_data->{seq} ||
+            throw $self "update - no ordering sequence number for '$o_name'";
+        dprint ".ordering '$o_name' ($o_seq)";
 
-        dprint "..$count/$total" if (++$count%5000)==0;
-
-        my $kwmd5=md5_base64($kw);
-        $kwmd5=~s/\W/_/g;
-
-        if($kw_data{ignore}->{$kw}) {
-            #dprint "Ignoring $kw ($kwmd5)";
-            $ni->put(
-                keyword => $kw,
-                count   => $kw_data{counts}->{$kw},
-            );
-            $ignore_list->put($kwmd5 => $ni);
-            next;
+        ##
+        # Indexer implementation can provide optimized routine to get
+        # pre-sorted list of all IDs in the collection. Using it if it's
+        # available. Otherwise going through items manually using comparison
+        # routine.
+        #
+        my $sorted_ids;
+        if($o_data->{sortall}) {
+            $sorted_ids=&{$o_data->{sortall}}($cinfo);
         }
+        else {
+            if($is_partial) {
+                throw $self "update - manual sorting is not implemented for partial updates";
+            }
+            else {
+                dprint "Manual sorting is slow, please provide 'sortall' routine";
+                my $sortsub=$o_data->{sortsub};
+                if($o_data->{sortprepare}) {
+                    &{$o_data->{sortprepare}}($self,$index_object,\%kw_data);
+                }
+                $sorted_ids=[ sort { &$sortsub(\%kw_data,$a,$b) } @$coll_ids ];
+                if($o_data->{sortfinish}) {
+                    &{$o_data->{sortfinish}}($self,$index_object,\%kw_data);
+                }
+            }
+        }
+        my $sorted_ids_total=scalar(@$sorted_ids);
 
-        #dprint "Storing $kw ($kwmd5)";
+        $count=0;
+        foreach my $kw (keys %{$kw_data{keywords}}) {
+            my $kwd=$kw_data{keywords}->{$kw};
 
-        my $o_hash=$self->get_orderings;
+            dprint "..$count/$kw_total" if (++$count%1000)==0;
 
-        foreach my $o_name (keys %$o_hash) {
-            if(!exists($o_prepare{$o_name})) {
-                $o_prepare{$o_name}=$o_hash->{$o_name}->{sortprepare};
-                $o_finish{$o_name}=$o_hash->{$o_name}->{sortfinish};
+            ##
+            # Using md5 based IDs
+            #
+            my $kwmd5=md5_base64($kw);
+            $kwmd5=~s/\W/_/g;
+            my $data_obj;
+            if($data_list->exists($kwmd5)) {
+                $data_obj=$data_list->get($kwmd5);
+            }
+            else {
+                $data_obj=$data_list->get_new;
+                $data_obj->put(keyword => $kw);
+            }
 
-                if($o_prepare{$o_name}) {
-                    &{$o_prepare{$o_name}}($self,$index_object,\%kw_data);
+            ##
+            # To be ignored? When we go through first ordering it might
+            # only be known after we merge data, otherwise we know
+            # instantly.
+            #
+            if($kw_data{ignore}->{$kw}) {
+                $ni->put(
+                    keyword => $kw,
+                    count   => $kw_data{counts}->{$kw},
+                );
+                $ignore_list->put($kwmd5 => $ni);
+                $data_list->delete($kwmd5) if $data_obj->container_key;
+                next;
+            }
+
+            ##
+            # For partial - joining with the existing data, otherwise --
+            # replacing.
+            #
+            if($is_partial && $data_obj->container_key) {
+                my $posdata=$data_obj->get("idpos_$o_seq");
+                if(length($posdata)) {
+                    my $kw_count=$kw_data{counts}->{$kw};
+                    my $kwd_new=merge_refs($kwd);
+                    my @dstr=unpack('w*',$posdata);
+                    my $i=0;
+                    while($i<@dstr) {
+                        my $id=$dstr[$i++];
+                        last unless $id;
+                        my @wd;
+                        while($i<@dstr) {
+                            my $fnum=$dstr[$i++];
+                            last unless $fnum;
+                            my @poslist;
+                            while($i<@dstr) {
+                                my $pos=$dstr[$i++];
+                                last unless $pos;
+                                push(@poslist,$pos);
+                            }
+                            $wd[$fnum-1]=\@poslist;
+                        }
+                        if(!$kwd_new->{$id}) {
+                            $kwd_new->{$id}=\@wd;
+                            ++$kw_count;
+                        }
+                    }
+
+                    if($o_first) {
+                        $kw_data{counts}->{$kw}=$kw_count;
+                        if($kw_count > $ignore_limit) {
+                            $kw_data{ignore}->{$kw}=$kw_count;
+                            $ni->put(
+                                keyword => $kw,
+                                count   => $kw_count,
+                            );
+                            $ignore_list->put($kwmd5 => $ni);
+                            $data_list->delete($kwmd5);
+                            next;
+                        }
+                    }
+
+                    $kwd=$kwd_new;
                 }
             }
 
-            my $o_sub=$o_hash->{$o_name}->{sortsub};
-
-            my $o_seq=$o_hash->{$o_name}->{seq} ||
-                throw $self "update - no ordering sequence number for '$o_name'";
-
-            my $iddata='';
-            my $posdata='';
+            ##
+            # Preparing sorted list of IDs
+            #
+            my $kwids=fast_sort($sorted_ids,[ keys %$kwd ]);
 
             ##
             # Posdata format
             #
             # |UID|FN|POS|POS|POS|0|FN|POS|POS|0|0|UID|FN|POS|
             #
-            foreach my $id (sort { &{$o_sub}(\%kw_data,$a,$b) } keys %$kwd) {
+            my $iddata='';
+            my $posdata='';
+            foreach my $id (@$kwids) {
                 $iddata.=pack('w',$id);
 
                 my $field_num=0;
@@ -519,46 +683,60 @@ sub update ($%) {
                     );
             }
 
-            $nd->put(
-                "id_$o_seq"    => $iddata,
-                "idpos_$o_seq" => $posdata,
+            ##
+            # Storing
+            #
+            my %data_hash=(
+                "id_$o_seq"     => $iddata,
+                "idpos_$o_seq"  => $posdata,
             );
+            if($o_first) {
+                $data_hash{create_time}=$now;
+                $data_hash{count}=$kw_data{counts}->{$kw};
+            }
+            $data_obj->put(\%data_hash);
+            $data_list->put($kwmd5 => $data_obj) unless $data_obj->container_key;
         }
-
-        $nd->put(
-            keyword         => $kw,
-            count           => $kw_data{counts}->{$kw},
-        );
-
-        $data_list->put($kwmd5 => $nd);
     }
-
-    ##
-    # Finishing sorting (freeing memory and so on)
-    #
-    foreach my $o_name (keys %o_finish) {
-        next unless $o_finish{$o_name};
-        &{$o_finish{$o_name}}($self,$index_object,\%kw_data);
+    continue {
+        $o_first=0;
     }
 
     ##
     # Deleting outdated records
     #
     dprint "Deleting older records..";
-    my $sr=$data_list->search('create_time','ne',$now);
-    foreach my $id (@$sr) {
-        $data_list->delete($id);
+    if($is_partial) {
+        dprint "TODO - no deletion implementation yet for partials!";
     }
-    $sr=$ignore_list->search('create_time','ne',$now);
-    foreach my $id (@$sr) {
-        $ignore_list->delete($id);
+    else {
+        my $sr=$data_list->search('create_time','ne',$now);
+        foreach my $id (@$sr) {
+            $data_list->delete($id);
+        }
+        $sr=$ignore_list->search('create_time','ne',$now);
+        foreach my $id (@$sr) {
+            $ignore_list->delete($id);
+        }
     }
+
+    ##
+    # If indexer can we ask it to close the data set we were working
+    # on. Essential for partial updates, so that we know what to update
+    # next time.
+    #
+    dprint "Finishing collection";
+    $self->finish_collection($args,{
+        collection_info => $cinfo,
+    });
 
     ##
     # Committing changes into the database
     #
     dprint "Done";
     $index_object->glue->transact_commit;
+
+    return $coll_ids_total;
 }
 
 ###############################################################################
@@ -598,11 +776,40 @@ sub decode_posdata ($$) {
     return \@d;
 }
 
+
 ###############################################################################
 
 sub get_collection ($%) {
     my $self=shift;
     throw $self "get_collection - pure virtual method called";
+}
+
+###############################################################################
+
+sub finish_collection ($%) {
+    my $self=shift;
+    my $args=get_args(\@_);
+    my $cinfo=$args->{collection_info} ||
+        throw $self "finish_collection - no 'collection_info' given";
+
+    ##
+    # If it's partial and we're called -- we throw an exception to
+    # indicate that this method must be overriden.
+    #
+    if($cinfo->{partial}) {
+        throw $self "finish_collection - implementation required for partial collections";
+    }
+}
+
+###############################################################################
+
+sub fast_sort ($$) {
+    my ($allids,$ids)=@_;
+
+    my %t;
+    @t{@$ids}=@$ids;
+
+    return [ map { $t{$_} ? ($_) : () } @$allids ];
 }
 
 ###############################################################################

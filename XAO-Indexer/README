@@ -47,15 +47,13 @@ DESCRIPTION
     specifications).
 
   STRUCTURE
-
     XAO::Indexer is a stub module that only holds common documentation that
     you are reading now. Real functionality is provided by:
 
     XAO::DO::Data::Index
         This is a XAO FS Hash object that gets stored into some container in
         your database, usually /Indexes. It provides wrapper methods to all
-        indexing functionality, see the XAO::DO::Data::Index manpage for
-        details.
+        indexing functionality, see XAO::DO::Data::Index for details.
 
         Most of the time you will interact with this object in your code.
         Something like:
@@ -68,7 +66,7 @@ DESCRIPTION
         This is the core of XAO Indexer -- a base class for derived data
         collection specific indexers. Usually it is enough to override just
         a couple of its methods -- analyze_object(), get_collection() and
-        get_orderings(). See the XAO::DO::Indexer::Base manpage for details.
+        get_orderings(). See XAO::DO::Indexer::Base for details.
 
     xao-indexer script
         Provides command-line functions to create, update and delete
@@ -81,7 +79,6 @@ AUTHORS
     Andrew Maltsev <am@xao.com>
 
 SEE ALSO
-    Recommended reading: the XAO::DO::Data::Index manpage, the
-    XAO::DO::Indexer::Base manpage, the XAO::FS manpage, the XAO::Web
-    manpage.
+    Recommended reading: XAO::DO::Data::Index, XAO::DO::Indexer::Base,
+    XAO::FS, XAO::Web.
 

@@ -1,26 +1,34 @@
-package testcases::search;
+package testcases::incremental;
 use strict;
 use XAO::Utils;
 use Data::Dumper;
 
 use base qw(testcases::base);
 
-sub test_search {
+sub test_incremental {
     my $self=shift;
     my $odb=$self->{config}->odb;
 
     $self->generate_content();
 
+    $odb->fetch('/Foo')->get_new->add_placeholder(
+        name        => 'indexed',
+        type        => 'integer',
+        minvalue    => 0,
+    );
+
     ##
-    # Creating a new index
+    # Creating index one baby step at a time.
     #
     my $index_list=$odb->fetch('/Indexes');
     my $index_new=$index_list->get_new;
-    $index_new->put(indexer_objname => 'Indexer::Foo');
+    $index_new->put(indexer_objname => 'Indexer::IncrFoo');
     $index_list->put(foo => $index_new);
     my $foo_index=$index_list->get('foo');
-    dprint "Updating foo index";
-    $foo_index->update;
+    dprint "Updating foo index (incrementally)";
+    while($foo_index->update) {
+        #
+    }
 
     ##
     # Searching and checking if results we get are correct
@@ -39,10 +47,6 @@ sub test_search {
             query       => ' BurDEN  ',
             text        => '2,76,62,33,57,12,17,21,115,143',
         },
-        t04 => {
-            query       => 'burden',
-            name_wnum   => '57,62,2,21,76,143,12,17,33,115',
-        },
         t05 => {
             query       => 'foo',
             name        => '',
@@ -59,16 +63,16 @@ sub test_search {
             query       => '"should the the alien"',
             name        => 17,
             ignored     => {
-                the         => 150,
-                should      => undef,
+                the         => 1,
+                should      => 0,
             }
         },
         t09 => {
             query       => '"glassy hypothesis" "A display calls"',
             name        => 147,
             ignored     => {
-                a           => 145,
-                display     => undef,
+                a           => 1,
+                display     => 0,
             },
         },
         t10 => {
@@ -95,6 +99,16 @@ sub test_search {
             query       => 'believe rocket space watch alien mice',
             text        => '',
         },
+        t16 => {
+            query       => 'they of be on',
+            name        => '98,57,83,93,61,90,51,66,99,86,85,91,131,67,14,116,33,13,20,32,87,31,115,12,112,133,122,103,132,79,40,127,22,64,50,137,35,41,138,58,42,147,16,36,17,68,4,84,6,62,70,143,134,10,26,89,126,69,82,106,118,23,24,80,140,100,52,46,111,141,150,88,59,144,121,37,56,29,130',
+            ignored     => {
+                they        => 0,
+                be          => 0,
+                on          => 0,
+                of          => 1,
+            },
+        },
     );
     foreach my $test_id (keys %matrix) {
         my $test=$matrix{$test_id};
@@ -109,11 +123,9 @@ sub test_search {
                 foreach my $w (keys %{$test->{ignored}}) {
                     my $expect=$test->{ignored}->{$w};
                     my $got=$rcdata{ignored_words}->{$w};
-                    if(defined $expect) {
+                    if($expect) {
                         $self->assert(defined($got),
                                       "Expected '$w' to be ignored, but it is not");
-                        $self->assert($got == $expect,
-                                      "Expected count $expect on ignored $w, got $got");
                     }
                     else {
                         $self->assert(!defined($got),
@@ -126,9 +138,6 @@ sub test_search {
             }
             my $got=join(',',@$sr);
             my $expect=$test->{$oname};
-            ### if($got ne $expect) {
-            ###     dprint "===>>>> test=$test_id o=$oname got='$got' expected='$expect'";
-            ### }
             $self->assert($got eq $expect,
                           "Test $test_id, ordering $oname, expected $expect, got $got");
         }
