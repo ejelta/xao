@@ -79,7 +79,7 @@ use vars qw(@ISA @EXPORT_OK %EXPORT_TAGS);
 # Package version for checks and reference
 #
 use vars qw($VERSION);
-($VERSION)=(q$Id: Projects.pm,v 1.3 2001/10/26 02:47:33 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: Projects.pm,v 1.4 2001/12/05 03:55:40 am Exp $ =~ /(\d+\.\d+)/);
 
 ##
 # Cache with all active project contexts and variable with current
@@ -161,21 +161,12 @@ sub get_current_project_name () {
 
 =item get_project ($)
 
-XXX
-
 Looks into pre-initialized configurations list and returns object if
 found or undef if not.
 
 Example:
 
- my $cf=XAO::SiteConfig->find('testsite');
-
-You do not normally need to use this function. It is called from
-symphero.pl handler to find or initialize current site configuration.
-After that the configuration is available by a simple call to
-get_site_config() without any parameters. And more then that, inside of
-displayable objects it is recommended to use $self->siteconfig() method
-to get site configuration.
+ my $cf=XAO::Projects->get_projects('testsite');
 
 =cut
 
@@ -183,8 +174,6 @@ sub get_project ($) {
     shift if $_[0] eq 'XAO::Projects';
     my $name=shift ||
         throw XAO::E::Projects "get_project - no project name given";
-    exists $projects_cache{$name} ||
-        throw XAO::E::Projects "get_project - no such project ($name)";
     $projects_cache{$name};
 }
 

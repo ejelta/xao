@@ -52,9 +52,27 @@ use XAO::Errors qw(XAO::DO::Config);
 ###############################################################################
 # Prototypes
 #
+sub cleanup ($);
 sub embed ($%);
 sub embedded ($$);
 sub new ($);
+
+###############################################################################
+
+=item cleanup ()
+
+Calls cleanup method on all embedded configurations if it is
+available. Order of calls is random.
+
+=cut
+
+sub cleanup ($) {
+    my $self=shift;
+    foreach my $name (keys %{$self->{names}}) {
+        my $obj=$self->{names}->{$name}->{obj};
+        $obj->cleanup() if $obj->can('cleanup');
+    }
+}
 
 ###############################################################################
 

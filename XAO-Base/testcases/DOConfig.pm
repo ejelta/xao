@@ -55,6 +55,8 @@ sub test_project {
     my $got=$config->fubar('123');
     $self->assert($got eq 'X123X',
                   "Execution chain does not work for siteobj ($got ne X123X)");
+
+    $config->cleanup();
 }
 
 sub test_double {

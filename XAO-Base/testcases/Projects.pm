@@ -83,6 +83,13 @@ sub test_everything {
                   "set_current_project() did not return old name");
     $self->assert(get_current_project()->get('foo') eq 'bar',
                   "Wrong current project (test)");
+
+    ##
+    # Checking that get_project does not throw an error on non-existing
+    # project
+    #
+    $self->assert(!defined(get_project('abrakadabra')),
+                  "get_project on unknown project should return undef");
 }
 
 1;
