@@ -27,7 +27,7 @@ use XAO::Objects;
 use base XAO::Objects->load(objname => 'FS::Hash');
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: Global.pm,v 1.3 2002/11/09 02:04:11 am Exp $ =~ /(\d+\.\d+)/);
+$VERSION=(0+sprintf('%u.%03u',(q$Id: Global.pm,v 2.1 2005/01/14 00:23:54 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
 
 sub new ($%) {
     my $class=shift;
@@ -43,7 +43,11 @@ __END__
 
 =head1 AUTHORS
 
-XAO, Inc. (c) 2001
+Copyright (c) 2005 Andrew Maltsev
+
+Copyright (c) 2001-2004 Andrew Maltsev, XAO Inc.
+
+<am@ejelta.com> -- http://ejelta.com/xao/
 
 =head1 SEE ALSO
 

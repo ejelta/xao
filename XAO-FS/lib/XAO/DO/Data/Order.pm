@@ -21,12 +21,17 @@ use XAO::Objects;
 use vars qw(@ISA);
 @ISA=XAO::Objects->load(objname => 'FS::Hash');
 
+use vars qw($VERSION);
+$VERSION=(0+sprintf('%u.%03u',(q$Id: Order.pm,v 2.1 2005/01/14 00:23:54 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
+
 ###############################################################################
 1;
 __END__
 
 =head1 AUTHOR
 
-Copyright (c) 2001 XAO Inc.
+Copyright (c) 2005 Andrew Maltsev
 
-The author is Andrew Maltsev <am@xao.com>
+Copyright (c) 2001-2004 Andrew Maltsev, XAO Inc.
+
+<am@ejelta.com> -- http://ejelta.com/xao/

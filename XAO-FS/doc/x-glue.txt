@@ -117,7 +117,7 @@ PUBLIC METHODS
          xaofs://collection/class/Data::Page/5678/Hits/H234/name
 
         Both should yield the same result providing that 5678 is a
-        Collection (see the XAO::DS::FS::Collection manpage) code for P123.
+        Collection (see XAO::DS::FS::Collection) code for P123.
 
     glue ()
         Returns reference to the Glue object the current object is received
@@ -271,8 +271,8 @@ PUBLIC METHODS
 
     _list_search (%)
         Searches for elements in the list and returns a reference to the
-        array with object IDs. See search() method in the XAO::DO::FS::List
-        manpage for more details.
+        array with object IDs. See search() method in XAO::DO::FS::List for
+        more details.
 
         Works on Collections too.
 
@@ -323,10 +323,13 @@ BUGS
     does not compensate for that.
 
 AUTHORS
-    XAO, Inc. (c) 2001. This module was developed by Andrew Maltsev
-    <am@xao.com> with help and valuable comments of other team members.
+    Copyright (c) 2005 Andrew Maltsev
+
+    Copyright (c) 2001-2004 Andrew Maltsev, XAO Inc.
+
+    <am@ejelta.com> -- http://ejelta.com/xao/
 
 SEE ALSO
-    Further reading: the XAO::FS manpage, the XAO::DO::FS::Hash manpage (aka
-    FS::Hash), the XAO::DO::FS::List manpage (aka FS::List).
+    Further reading: XAO::FS, XAO::DO::FS::Hash (aka FS::Hash),
+    XAO::DO::FS::List (aka FS::List).
 

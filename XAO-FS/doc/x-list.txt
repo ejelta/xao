@@ -215,8 +215,8 @@ DESCRIPTION
         index.
 
         This can be extended as deep as you want. See also collection()
-        method on Glue and the XAO::DO::FS::Collection manpage for
-        additional search capabilities.
+        method on Glue and XAO::DO::FS::Collection for additional search
+        capabilities.
 
         Multiple blocks may be combined into complex expressions using
         logical operators.
@@ -266,6 +266,7 @@ DESCRIPTION
 
         and - true if both are true (has an alias -- '&&')
         or - true if either one is true (has an alias -- '||')
+
         Examples:
 
          ##
@@ -462,11 +463,13 @@ DESCRIPTION
          print "URI of that customer is: $uri\n";
 
 AUTHORS
-    Xao, Inc. (c) 2001. This module was developed by Andrew Maltsev
-    <am@xao.com> with the help and valuable comments from other team
-    members.
+    Copyright (c) 2005 Andrew Maltsev
+
+    Copyright (c) 2001-2004 Andrew Maltsev, XAO Inc.
+
+    <am@ejelta.com> -- http://ejelta.com/xao/
 
 SEE ALSO
-    Further reading: the XAO::FS manpage, the XAO::DO::FS::Hash manpage (aka
-    FS::Hash), the XAO::DO::FS::Glue manpage (aka FS::Glue).
+    Further reading: XAO::FS, XAO::DO::FS::Hash (aka FS::Hash),
+    XAO::DO::FS::Glue (aka FS::Glue).
 

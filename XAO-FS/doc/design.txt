@@ -179,24 +179,26 @@ STRUCTURE
      $addr->put(zipcode => $zipcode);
 
 SEE ALSO
-    Specifics of Hash and List API can be found in the XAO::DO::FS::Hash
-    manpage and the XAO::DO::FS::List manpage.
+    Specifics of Hash and List API can be found in XAO::DO::FS::Hash and
+    XAO::DO::FS::List.
 
-    For additional information please see the XAO::DO::FS::Glue manpage, the
-    XAO::DO::FS::Global manpage, the XAO::DO::FS::Glue::MySQL_DBI manpage,
-    the XAO::DO manpage, the XAO::Web manpage.
+    For additional information please see XAO::DO::FS::Glue,
+    XAO::DO::FS::Global, XAO::DO::FS::Glue::MySQL_DBI, XAO::DO, XAO::Web.
 
 BUGS AND MIS-FEATURES
     You have to be careful with deleting objects -- you can easily destroy
     long branches of objects. The same applies to drop_placeholder() - you
-    can completely destroy entire tables. No questions asked.
+    can completely and irreversibly destroy entire tables. No questions
+    asked.
 
-AUTHORS
+AUTHOR
+    Copyright (c) 2005 Andrew Maltsev Copyright (c) 2000-2004 XAO Inc.
+
     This document summarizes ideas from a set of design meetings held by XAO
     Inc. technical team.
 
-    The document is maintained by Andrew Maltsev <am@xao.com>. It is based
-    on earlier documentation set prepared by Bil Drury <bild@xao.com> and
-    would not be possible at all without valuable input from Marcos Alves,
-    Jimmy Xiang and everyone else on our team.
+    The document is maintained by Andrew Maltsev <am@ejelta.com>. It is
+    based on earlier documentation set prepared by Bil Drury <bild@xao.com>
+    and would not be possible at all without valuable input from Marcos
+    Alves, Jimmy Xiang, Jason Shupe and everyone else on our team.
 

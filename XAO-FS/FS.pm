@@ -227,14 +227,18 @@ L<XAO::Web>.
 
 You have to be careful with deleting objects -- you can easily destroy
 long branches of objects. The same applies to drop_placeholder() - you
-can completely destroy entire tables. No questions asked.
+can completely and irreversibly destroy entire tables. No questions
+asked.
 
-=head1 AUTHORS
+=head1 AUTHOR
+
+Copyright (c) 2005 Andrew Maltsev
+Copyright (c) 2000-2004 XAO Inc.
 
 This document summarizes ideas from a set of design meetings held by XAO
 Inc. technical team.
 
-The document is maintained by Andrew Maltsev <am@xao.com>. It is based
-on earlier documentation set prepared by Bil Drury <bild@xao.com> and
-would not be possible at all without valuable input from Marcos Alves,
-Jimmy Xiang and everyone else on our team.
+The document is maintained by Andrew Maltsev <am@ejelta.com>. It is
+based on earlier documentation set prepared by Bil Drury <bild@xao.com>
+and would not be possible at all without valuable input from Marcos
+Alves, Jimmy Xiang, Jason Shupe and everyone else on our team.

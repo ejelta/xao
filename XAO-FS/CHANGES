@@ -1,4 +1,7 @@
-1.06 -
+1.06 - 11-Jan-2005
+    * key_format allows to choose from different list key generation schemas
+    * Minor tweaks and improvements
+    * Moved to standard Artistic license
 
 1.05 - 12-Nov-2003
     * SPEEDUP: significantly faster list deletes

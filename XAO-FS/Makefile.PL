@@ -100,10 +100,10 @@ foreach my $n (keys %{ExtUtils::Manifest::maniread()}) {
 }
 
 WriteMakefile(
-    'AUTHOR'        => 'XAO Inc. http://xao.com/',
-    'ABSTRACT'      => 'XAO Foundation Server',
+    'AUTHOR'        => 'Andrew Maltsev, http://ejelta.com/xao/',
+    'ABSTRACT'      => 'XAO Foundation Server (OO database layer)',
     'NAME'          => 'XAO::FS',
-    'VERSION_FROM'	=> 'FS.pm',
+    'VERSION_FROM'  => 'FS.pm',
     'PREREQ_PM'     => { 
         'DBD::mysql'    => '2.0414',
         'DBI'           => '1.13',

@@ -31,7 +31,7 @@ use XAO::Objects;
 use base XAO::Objects->load(objname => 'FS::Glue');
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: Collection.pm,v 1.7 2003/10/29 22:07:30 am Exp $ =~ /(\d+\.\d+)/);
+$VERSION=(0+sprintf('%u.%03u',(q$Id: Collection.pm,v 2.1 2005/01/14 00:23:54 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
 
 ###############################################################################
 
@@ -286,9 +286,11 @@ __END__
 
 =head1 AUTHORS
 
-Xao, Inc. (c) 2001. This module was developed by Andrew Maltsev
-<am@xao.com> with the help and valuable comments from other team
-members.
+Copyright (c) 2005 Andrew Maltsev
+
+Copyright (c) 2001 Andrew Maltsev, XAO Inc.
+
+<am@ejelta.com> -- http://ejelta.com/xao/
 
 =head1 SEE ALSO
 

@@ -53,7 +53,7 @@ sub odb ($;$);
 # Package version for checks and reference
 #
 use vars qw($VERSION);
-($VERSION)=(q$Id: Config.pm,v 1.2 2003/07/31 02:08:10 am Exp $ =~ /(\d+\.\d+)/);
+$VERSION=(0+sprintf('%u.%03u',(q$Id: Config.pm,v 2.1 2005/01/14 00:23:54 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
 
 ###############################################################################
 
@@ -187,9 +187,11 @@ __END__
 
 =head1 AUTHOR
 
-Copyright (c) 1999-2001 XAO Inc.
+Copyright (c) 2005 Andrew Maltsev
 
-The author is Andrew Maltsev <am@xao.com>.
+Copyright (c) 2001-2004 Andrew Maltsev, XAO Inc.
+
+<am@ejelta.com> -- http://ejelta.com/xao/
 
 =head1 SEE ALSO
 

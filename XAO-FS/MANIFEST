@@ -6,6 +6,7 @@ TODO
 Makefile.PL
 MANIFEST
 MANIFEST.SKIP
+META.yml
 FS.pm
 test.pl
 sample.pl
@@ -51,3 +52,4 @@ bench/results-20020701-dual-p-dell.txt
 bench/results-20020702-am-workstation.txt
 bench/results-20020705-am-workstation-c.txt
 bench/results-20030128-dual-p-dell-c.txt
+bench/results-20040506-dual-p4-28-c.txt
