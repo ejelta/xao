@@ -5,6 +5,70 @@ use Error qw(:try);
 
 use base qw(XAO::testcases::FS::base);
 
+# If we have /Customers/Orders and /Orders and then drop_placeholder on
+# /Customers it also drops /Orders from _MEMORY_, not from the
+# database. Should not do that!
+#
+# AM: 2003-10-09
+#
+sub test_double_drop_20031009 {
+    my $self=shift;
+    my $odb=$self->get_odb();
+
+    my $root=$odb->fetch('/');
+    $root->add_placeholder(
+        name        => 'Orders',
+        type        => 'list',
+        class       => 'Data::Order',
+        key         => 'order_id',
+    );
+
+    $self->assert($root->exists('Orders'),
+                  "Orders was not created");
+
+    my $c1=$root->get('Customers')->get('c1');
+    $c1->add_placeholder(
+        name        => 'Orders',
+        type        => 'list',
+        class       => 'Data::Product',
+        key         => 'order_id',
+    );
+
+    $self->assert($c1->exists('Orders'),
+                  "c1/Orders was not created");
+
+    $root->drop_placeholder('Customers');
+
+    $self->assert(!$root->exists('Customers'),
+                  "Customers exists after drop_placeholder (1)");
+    $self->assert($root->exists('Orders'),
+                  "Orders does not exist, but should");
+
+    $root->add_placeholder(
+        name        => 'Customers',
+        type        => 'list',
+        class       => 'Data::Customer',
+        key         => 'order_id',
+    );
+
+    $self->assert($root->exists('Customers'),
+                  "Customers was not created");
+
+    $root->drop_placeholder('Customers');
+
+    $self->assert(!$root->exists('Customers'),
+                  "Customers exists after drop_placeholder (2)");
+    $self->assert($root->exists('Orders'),
+                  "Orders does not exist, but should");
+
+    $root->drop_placeholder('Orders');
+
+    $self->assert(!$root->exists('Customers'),
+                  "Customers exists after drop_placeholder (3)");
+    $self->assert(!$root->exists('Orders'),
+                  "Orders exists after drop_placeholder");
+}
+
 sub test_key_length {
     my $self=shift;
 
