@@ -179,7 +179,7 @@ use XAO::Errors qw(XAO::DO::Web::FS);
 use base XAO::Objects->load(objname => 'Web::Action');
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: FS.pm,v 1.16 2002/02/14 00:15:16 alves Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: FS.pm,v 1.17 2002/02/14 00:18:54 alves Exp $ =~ /(\d+\.\d+)/);
 
 ###############################################################################
 
@@ -595,11 +595,16 @@ sub search ($;%) {
             $default  = $args->{'default.path'};
         }
         $page->display(
-            $basetype      => $default,
-            START_ITEM     => $start_item,
-            ITEMS_PER_PAGE => $items_per_page,
-            TOTAL_ITEMS    => $total,
-            LIMIT_REACHED  => $limit_reached,
+            merge_refs(
+                $args,
+                {
+                    $basetype      => $default,
+                    START_ITEM     => $start_item,
+                    ITEMS_PER_PAGE => $items_per_page,
+                    TOTAL_ITEMS    => $total,
+                    LIMIT_REACHED  => $limit_reached,
+                }
+            )
         );
     }
     else {
@@ -616,11 +621,16 @@ sub search ($;%) {
             $header   = $args->{'header.path'};
         }
         $page->display(
-            $basetype      => $header,
-            START_ITEM     => $start_item,
-            ITEMS_PER_PAGE => $items_per_page,
-            TOTAL_ITEMS    => $total,
-            LIMIT_REACHED  => $limit_reached,
+            merge_refs(
+                $args,
+                {
+                    $basetype      => $header,
+                    START_ITEM     => $start_item,
+                    ITEMS_PER_PAGE => $items_per_page,
+                    TOTAL_ITEMS    => $total,
+                    LIMIT_REACHED  => $limit_reached,
+                }
+            )
         ) if $header;
 
         #
@@ -674,11 +684,16 @@ sub search ($;%) {
             $footer   = $args->{'footer.path'};
         }
         $page->display(
-            $basetype      => $footer,
-            START_ITEM     => $start_item,
-            ITEMS_PER_PAGE => $items_per_page,
-            TOTAL_ITEMS    => $total,
-            LIMIT_REACHED  => $limit_reached,
+            merge_refs(
+                $args,
+                {
+                    $basetype      => $footer,
+                    START_ITEM     => $start_item,
+                    ITEMS_PER_PAGE => $items_per_page,
+                    TOTAL_ITEMS    => $total,
+                    LIMIT_REACHED  => $limit_reached,
+                }
+           )
         ) if $footer;
     }   
 }
