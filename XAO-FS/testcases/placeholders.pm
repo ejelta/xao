@@ -235,7 +235,7 @@ sub test_build_structure {
         },
         text => {
             type => 'text',
-            maxlength => 300,
+            maxlength => 200,
             index => 1,
         },
         integer => {
@@ -256,6 +256,7 @@ sub test_build_structure {
             structure => {
                 total => {
                     type => 'real',
+                    default => 123.34,
                 },
                 foo => {
                     type => 'text',
@@ -269,12 +270,6 @@ sub test_build_structure {
         $self->assert($cust->exists($name),
                       "Field ($name) doesn't exist after build_structure()");
     }
-
-    ##
-    # Unique means index too.
-    #
-    $self->assert($cust->describe('uq')->{index},
-                  "Unique should assume index too");
 
 # TODO:
 # We need to re-load database structure from disk at this

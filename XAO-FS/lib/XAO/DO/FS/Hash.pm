@@ -67,7 +67,7 @@ use XAO::Objects;
 use base XAO::Objects->load(objname => 'FS::Glue');
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: Hash.pm,v 1.4 2002/01/17 19:29:03 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: Hash.pm,v 1.5 2002/03/19 03:37:08 am Exp $ =~ /(\d+\.\d+)/);
 
 ###############################################################################
 
@@ -97,6 +97,16 @@ Optional name of the key that would refer objects in the list to the
 object they are contained in. Default is 'parent_unique_id', you can
 change it to something more meaningfull so that it would make sense for
 somebody looking at the plain SQL tables.
+
+=item default
+
+Sets default values that would be returned from get() when no content is
+available. Valid only for data types. Defaults to 0 or minvalue if zero
+is not in the range for 'real' and 'integer' types and empty string for
+'text'.
+
+Maximum length of the default text is limited to 30 characters
+regardless of the 'maxlength'.
 
 =item index
 
@@ -202,12 +212,14 @@ sub add_placeholder ($%) {
 	my $self=shift;
 	my $args=get_args(\@_);
 
-	my $name=$args->{name} || $self->throw('add_placeholder - no name given');
-	my $type=$args->{type} || $self->throw('add_placeholder - no type given');
+	my $name=$args->{name} || throw $self 'add_placeholder - no name given';
+	my $type=$args->{type} || throw $self 'add_placeholder - no type given';
+
 	$self->check_name($name) ||
-	    $self->throw("add_placeholder - bad name ($name)");
+	    throw $self "add_placeholder - bad name ($name)";
+
 	$self->_field_description($name) &&
-	    $self->throw("add_placeholder - placeholder already exists ($name)");
+	    throw $self "add_placeholder - placeholder already exists ($name)";
 
 	if($type eq 'list') {
 	    $self->_add_list_placeholder($args);
@@ -354,17 +366,23 @@ sub container_object ($) {
 
 =item defined ($)
 
-Checks if there is value for the given property. For list properties
-will always return true even if the list is empty.
-
-For non existing properties will throw an error.
+Obsolete since version 1.03 when the concept of existing, but undefined
+value was eliminated for simplicity. Values are always defined --
+therefore this method will either return true or throw an error if the
+name is not correct.
 
 =cut
 
 sub defined ($$) {
     my $self=shift;
     my $name=shift;
-    defined($self->get($name));
+
+    return 1 if $name eq 'unique_id';
+
+    my $f=$self->_class_description->{fields};
+
+    exists $f->{$name} ||
+        throw $self "defined - unknown property ($name)";
 }
 
 ###############################################################################
@@ -396,12 +414,18 @@ sub delete ($$) {
     my $type=$field->{type};
     if($type eq 'list') {
         $self->get($name)->destroy();
-    } elsif($type eq 'connector') {
-        $self->throw("delete($name) - deleting connectors is not allowed");
-    } elsif($name eq 'unique_id') {
-        $self->throw("delete($name) - attempt to delete unique_id");
-    } else {
-        $self->_empty_field($name);
+    }
+    elsif($type eq 'connector') {
+        throw $self "delete($name) - deleting connectors is not allowed";
+    }
+    elsif($name eq 'unique_id') {
+        throw $self "delete($name) - attempt to delete unique_id";
+    }
+    elsif($type eq 'key') {
+        throw $self "delete($name) - attempt to delete the key";
+    }
+    else {
+        $self->put($name => undef);
     }
 }
 
@@ -636,7 +660,9 @@ sub get ($$) {
             if($type eq 'list') {
                 $self->throw("get - retrieval of lists on detached objects not implemented yet");
             } else {
-                return $$self->{data}->{$name};
+                my $value=$$self->{data}->{$name};
+                $value=$self->_field_default($name,$field) unless defined($value);
+                return $value;
             }
         }
         else {
@@ -651,7 +677,9 @@ sub get ($$) {
                             key_value => $name);
             }
             else {
-                return $self->_retrieve_data_fields($name);
+                my $value=$self->_retrieve_data_fields($name);
+                $value=$self->_field_default($name,$field) unless defined($value);
+                return $value;
             }
         }
     }
@@ -674,7 +702,11 @@ sub get ($$) {
                 $self->throw("get - retrieval of lists on detached objects not implemented yet");
 
             return map {
-                $$self->{data}->{$_};
+                my $value=$$self->{data}->{$_};
+                if(!defined($value)) {
+                    $value=$self->_field_default($_,$fields->{$_});
+                }
+                $value;
             } @_;
         }
         else {
@@ -694,7 +726,11 @@ sub get ($$) {
                                       key_value => $_);
                 }
                 else {
-                    $datahash{$_};
+                    my $value=$datahash{$_};
+                    if(!defined($value)) {
+                        $value=$self->_field_default($_,$fields->{$_});
+                    }
+                    $value;
                 }
             } @_;
         }
@@ -848,6 +884,8 @@ sub put ($$$) {
     my $field=$self->_field_description($name);
     $field || $self->throw("put($name,...) - not defined field name");
 
+    $value=$self->_field_default($name,$field) unless defined($value);
+
     my $type=$field->{type};
     if($type eq 'list') {
         $self->throw("put - storing lists not implemented yet");
@@ -859,25 +897,28 @@ sub put ($$$) {
         $self->throw("put - attempt to modify unique_id");
     }
     elsif($type eq 'text' || $type eq 'words') {
-        $value='' unless defined($value);
         length($value) <= $field->{maxlength} ||
             $self->throw("put - value is longer then $field->{maxlength} for $name");
+
         if($$self->{detached}) {
             $$self->{data}->{$name}=$value;
-        } else {
+        }
+        else {
             if($type eq 'words') {
                 $self->_store_dictionary_field($name,$value);
-            } else {
+            }
+            else {
                 $self->_store_data_field($name,$value);
             }
         }
     }
     elsif($type eq 'integer' || $type eq 'real') {
-        $value=0 unless defined($value);
         !defined($field->{minvalue}) || $value>=$field->{minvalue} ||
             $self->throw("put - value ($value) is bigger then $field->{minvalue} for $name");
+
         !defined($field->{maxvalue}) || $value<=$field->{maxvalue} ||
             $self->throw("put - value ($value) is less then $field->{maxvalue} for $name");
+
         if($$self->{detached}) {
             $$self->{data}->{$name}=$value;
         } else {

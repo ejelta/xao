@@ -6,7 +6,19 @@ use Error qw(:try);
 
 use base qw(testcases::base);
 
-sub nostderr (&);
+##
+# MySQL is noisy about mistakes that we expect. So we hide DBD
+# messages.
+#
+use vars qw(*SE);
+sub stderr_stop {
+    open(SE,">&STDERR");
+    open(STDERR,">/dev/null");
+}
+sub stderr_restore {
+    open(STDERR,">&SE");
+    close(SE);
+}
 
 sub test_update_field {
     my $self=shift;
@@ -42,8 +54,9 @@ sub test_delete_field {
     $global->put(project => '123abc');
     $global->delete('project');
 
-    $self->assert(!defined($global->get('project')),
-                  "Field is still defined after delete()");
+    my $got=$global->get('project');
+    $self->assert(defined($got) && $got eq '',
+                  "Field is incorrect after delete");
 
 }
 
@@ -84,10 +97,6 @@ sub test_defined {
 
     $self->assert($cust->defined('name'),
                   "Method defined('name') returned false instead of true");
-
-    $cust->delete('name');
-    $self->assert(! $cust->defined('name'),
-                  "Method defined('name') returned true instead of false");
 }
 
 sub test_exists {
@@ -179,6 +188,8 @@ sub test_describe {
                   "Describe() returned wrong type ($desc->{type}!='text')");
     $self->assert($desc->{maxlength} eq 123,
                   "Describe() returned wrong maxlength ($desc->{maxlength}!='123')");
+    $self->assert($desc->{default} eq '',
+                  "Describe() returned wrong default ($desc->{default})");
 }
 
 sub test_integer {
@@ -332,14 +343,14 @@ sub test_unique {
         $self->assert($c1->get('uf') == 1,
                       "Wrong value in the unique field of the first object (1)");
         my $mistake;
+        stderr_stop();
         try {
-            nostderr {
-                $list->put(u2 => $c);
-            };
+            $list->put(u2 => $c);
             $mistake=1;
         } otherwise {
             $mistake=0;
         };
+        stderr_restore();
         $self->assert(! $mistake,
                 "Succeded in putting the same object twice, 'unique' does not work");
 
@@ -355,16 +366,14 @@ sub test_unique {
         $self->assert($c2->get('uf') == 3,
                       "Wrong value in the unique field of the first object (3)");
 
+        stderr_stop();
         try {
-            dprint "xxx";
-            nostderr {
-                $c1->put(uf => 3);
-            };
-            dprint "zzz";
+            $c1->put(uf => 3);
             $mistake=1;
         } otherwise {
             $mistake=0;
         };
+        stderr_restore();
         $self->assert(! $mistake,
                       "Succeded in storing two equal values into unique field");
         $self->assert($c1->get('uf') == 1,
@@ -375,32 +384,97 @@ sub test_unique {
     }
 }
 
+=cut
+
 ##
-# MySQL is noisy about mistakes that we expect. So we hide DBD
-# messages.
+# Checking how 'unique' works for second level objects. The trick with
+# them is that the field should be unique in the space of an enclosing
+# container, but two containers can have identical properties.
 #
-sub nostderr (&) {
-    my $sub=shift;
-    my $rc;
-    open(SE,">&STDERR");
-    open(STDERR,">/dev/null");
-    $rc=&$sub;
-    close(STDERR);
-    open(STDERR,">&SE");
+sub test_unique_2 {
+    my $self=shift;
+    my $odb=$self->get_odb();
 
-#    if(! open(STDERR,"|-")) {
-#        while(<>) {
-#            print unless /DBD/;
-#        }
-#        exit(0);
-#    }
-#    else {
-#        $rc=&$sub;
-#        close(STDERR);
-#    }
+    my $list=$odb->fetch('/Customers');
+    my $c1=$list->get('c1');
+    my $c2=$list->get('c2');
 
-    $rc;
+    $c1->add_placeholder(
+        name    => 'Orders',
+        type    => 'list',
+        class   => 'Data::Order',
+        key     => 'order_id',
+    );
+
+    my $c1list=$c1->get('Orders');
+    my $c2list=$c2->get('Orders');
+
+    my $order=$c1->get('Orders')->get_new;
+
+    foreach my $type (qw(text words integer real)) {
+        $order->add_placeholder(
+            name    => 'foo',
+            type    => $type,
+            unique  => 1,
+        );
+
+        $order->put(foo => 1);
+
+        my $mistake;
+        stderr_stop();
+        try {
+            $c1list->put(o1 => $order);
+            $c2list->put(o1 => $order);
+            $mistake=0;
+        }
+        otherwise {
+            $mistake=1;
+        };
+        stderr_restore();
+        $self->assert(! $mistake,
+            "Can't put the same object into two different parents' lists");
+
+        stderr_stop();
+        try {
+            $c1list->put(o2 => $order);
+            $mistake=1;
+        }
+        otherwise {
+            $mistake=0;
+        };
+        stderr_restore();
+        $self->assert(! $mistake,
+            "Put the same object twice (type=$type), 'unique' does not work on the second level");
+
+        $order->put(foo => 2);
+        $c2list->put(o2 => $order);
+
+        stderr_stop();
+        try {
+            $c2list->put(o1 => $order);
+            $mistake=1;
+        } otherwise {
+            $mistake=0;
+        };
+        stderr_restore();
+        $self->assert(! $mistake,
+            "Put the same object twice (type=$type), replacement");
+
+        $self->assert(! $c1list->exists('o2'),
+            "Got o2 from the c1list");
+
+        $self->assert($c1list->get('o1')->get('foo') eq '1',
+            "Got wrong value from c1list");
+        $self->assert($c2list->get('o1')->get('foo') eq '1',
+            "Got wrong value from c2list/o2");
+        $self->assert($c2list->get('o2')->get('foo') eq '2',
+            "Got wrong value from c2list/o2");
+
+        $order->drop_placeholder('foo');
+    }
 }
+
+=pod
 
 sub test_get_multi {
     my $self=shift;
@@ -459,21 +533,25 @@ sub test_null {
     my $cust=$clist->get('c1');
     $self->assert($cust, 'Hash object fetch failed');
 
-    $cust->add_placeholder(name => 'text',
-                           type => 'text',
+    $cust->add_placeholder(name     => 'text',
+                           type     => 'text',
                           );
-    $cust->add_placeholder(name => 'integer',
-                           type => 'integer',
+    $cust->add_placeholder(name     => 'text2',
+                           type     => 'text',
+                           default  => 'test',
                           );
-    $cust->add_placeholder(name => 'real',
-                           type => 'real',
+    $cust->add_placeholder(name     => 'integer',
+                           type     => 'integer',
                           );
-    $cust->add_placeholder(name => 'int2',
-                           type => 'integer',
+    $cust->add_placeholder(name     => 'real',
+                           type     => 'real',
+                          );
+    $cust->add_placeholder(name     => 'int2',
+                           type     => 'integer',
                            minvalue => 1000,
                           );
-    $cust->add_placeholder(name => 'real2',
-                           type => 'real',
+    $cust->add_placeholder(name     => 'real2',
+                           type     => 'real',
                            minvalue => 256,
                           );
 
@@ -498,6 +576,10 @@ sub test_null {
             name    => 'real2',
             default => 256,
         },
+        t6  => {
+            name    => 'text2',
+            default => 'test',
+        },
     );
 
     foreach my $test (map { $matrix{$_} } sort keys %matrix) {
@@ -505,6 +587,12 @@ sub test_null {
         my $expect=$test->{default};
 
         my $c=$clist->get('c2');
+
+        my $desc=$c->describe($name);
+        $self->assert(defined($desc->{default}),
+                      "Default value not set in describe() for $name");
+        $self->assert($desc->{default} eq $expect,
+                      "Default value is wrong for $name (got '$desc->{default}', expected '$expect')");
 
         my $got=$c->get($name);
         $self->assert(defined($got),
@@ -515,7 +603,7 @@ sub test_null {
 
         $c->put($name => 12345);
 
-        $c=$clist->get($name);
+        $c=$clist->get('c2');
 
         $c->delete($name);
 
@@ -528,7 +616,7 @@ sub test_null {
 
         $c->put($name => undef);
 
-        $c=$clist->get($name);
+        $c=$clist->get('c2');
 
         $got=$c->get($name);
         $self->assert(defined($got),
@@ -539,7 +627,7 @@ sub test_null {
 
         $c->put($name => $expect);
 
-        $c=$clist->get($name);
+        $c=$clist->get('c2');
 
         $got=$c->get($name);
         $self->assert(defined($got),
@@ -586,5 +674,7 @@ sub test_null {
 
     }
 }
+
+=cut
 
 1;

@@ -68,6 +68,15 @@ DESCRIPTION
             you can change it to something more meaningfull so that it would
             make sense for somebody looking at the plain SQL tables.
 
+        default
+            Sets default values that would be returned from get() when no
+            content is available. Valid only for data types. Defaults to 0
+            or minvalue if zero is not in the range for 'real' and 'integer'
+            types and empty string for 'text'.
+
+            Maximum length of the default text is limited to 30 characters
+            regardless of the 'maxlength'.
+
         index
             Optional parameter that when set to non-zero value suggests that
             you are going to use this field in searches a lot. This works
@@ -212,10 +221,10 @@ DESCRIPTION
          my $orders_list=$order->container_object();
 
     defined ($)
-        Checks if there is value for the given property. For list properties
-        will always return true even if the list is empty.
-
-        For non existing properties will throw an error.
+        Obsolete since version 1.03 when the concept of existing, but
+        undefined value was eliminated for simplicity. Values are always
+        defined -- therefore this method will either return true or throw an
+        error if the name is not correct.
 
     delete ($)
         Deletes content of the given property. If you use get() on the

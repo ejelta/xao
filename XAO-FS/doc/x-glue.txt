@@ -165,11 +165,16 @@ PUBLIC METHODS
     _driver ()
         Returns a reference to the driver for both Glue and derived objects.
 
-    _empty_field ($)
-        Cleans out given field
-
     _field_description ($)
         Returns the description of the given field.
+
+    _field_default ($;$) {
+        Returns default value for the given field for a hash object. Also
+        sets 'default' in class description if it is not there -- this might
+        happen when old database is used with new FS.
+
+        Optional second argument is for optimization. It should hold field
+        description hash reference if it is available in calling context.
 
     _glue ()
         Returns glue object reference. Makes sense only in derived objects!

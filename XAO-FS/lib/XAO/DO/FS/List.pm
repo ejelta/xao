@@ -33,7 +33,7 @@ use XAO::Objects;
 use base XAO::Objects->load(objname => 'FS::Glue');
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: List.pm,v 1.4 2002/01/04 01:47:37 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: List.pm,v 1.5 2002/03/19 03:37:08 am Exp $ =~ /(\d+\.\d+)/);
 
 ###############################################################################
 
@@ -174,7 +174,7 @@ sub get ($$) {
 
     my @results=map {
         my $id=$self->_find_unique_id($_) ||
-            $self->throw("get - no such object ($_)");
+            throw $self "get - no such object ($_)";
 
         XAO::Objects->new(
             objname => $$self->{class_name},

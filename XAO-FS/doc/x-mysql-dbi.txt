@@ -34,9 +34,6 @@ METHODS
 
         Note: Indexes only work with MySQL 3.23 and later.
 
-        Note: Unique modifier has a side effect of making that field NOT
-        NULL.
-
     add_field_real ($$;$$)
         Adds new real field to the given table. First parameter is table
         name, then field name, then index flag, then unique flag, then
@@ -44,20 +41,17 @@ METHODS
 
         Note: Indexes only work with MySQL 3.23 and later.
 
-        Note: Unique modifier has a side effect of making that field NOT
-        NULL.
-
-    add_field_text ($$$$)
+    add_field_text ($$$$$)
         Adds new text field to the given table. First is table name, then
-        field name, then index flag, then unique flag and then maximum
-        length. Depending on maximum length it will create CHAR, TEXT,
-        MEDIUMTEXT or LONGTEXT.
+        field name, then index flag, then unique flag, maximum length and
+        'connected' flag. Depending on maximum length it will create CHAR,
+        TEXT, MEDIUMTEXT or LONGTEXT.
 
-        Note: Indexes only work with MySQL 3.23 and later.
+        'Connected' flag must be set if that table holds elements deeper
+        into the tree then the top level.
 
-        Note: Unique modifier has a side effect of making that field NOT
-        NULL. In most of the cases that means that you can only add it on
-        empty table.
+        Note: Modifiers 'index' and 'unique' only work with MySQL 3.23 and
+        later.
 
     add_table ($$$)
         Creates new empty table with unique_id, key and optionally connector
@@ -70,17 +64,16 @@ METHODS
         Permanently disconnects driver from database. Normally perl's
         garbage collector will do that for you.
 
-    drop_field ($$)
+    drop_field ($$$$$)
         Drops the given field from the given table in the database. Whatever
         content was in that field is lost irrevocably.
+
+        If index, unique and connected flags are given then it first will
+        drop the appropriate index.
 
     drop_table ($)
         Drops the given table with all its data. Whatever content was in
         that table before is lost irrevocably.
-
-    empty_field ($$$)
-        Removes content of given field in the given table by storing NULL in
-        it.
 
     initialize_database ($)
         Removes all data from all tables and creates minimal tables that

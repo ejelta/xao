@@ -50,7 +50,7 @@ use XAO::Objects;
 use base XAO::Objects->load(objname => 'Atom');
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: Glue.pm,v 1.11 2002/02/12 21:04:40 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: Glue.pm,v 1.12 2002/03/19 03:37:08 am Exp $ =~ /(\d+\.\d+)/);
 
 ###############################################################################
 
@@ -139,12 +139,12 @@ sub new ($%) {
         $$self->{driver}=$driver;
 
         ##
-        # Checking if this is a request to trash everything and produce
+        # Checking if this is a request to trash everything and produce a
         # squeky clean new database.
         #
         if($args->{empty_database}) {
             $args->{empty_database} eq 'confirm' ||
-                $self->throw("new - request for 'empty_database' is not 'confirm'ed");
+                throw $self "new - request for 'empty_database' is not 'confirm'ed";
 
             $driver->initialize_database();
         }
@@ -161,7 +161,7 @@ sub new ($%) {
         # or from an object being cloned..
         #
         my $glue=ref($proto) ? $proto : $args->{glue};
-        $glue || $self->throw("new - required parameter missed 'glue'");
+        $glue || throw $self "new - required parameter missed 'glue'";
         $$self->{glue}=$glue;
     }
 
@@ -255,7 +255,9 @@ Rough equivalent of:
 
 sub destroy ($) {
     my $self=shift;
-    foreach my $key ($self->keys()) {
+    foreach my $key ($self->keys) {
+        my $type=$self->describe($key)->{type};
+        next if $type eq 'key';
         $self->delete($key);
     }
 }
@@ -534,21 +536,6 @@ sub _driver ($) {
 
 ###############################################################################
 
-=item _empty_field ($)
-
-Cleans out given field
-
-=cut
-
-sub _empty_field ($$) {
-    my $self=shift;
-    my $name=shift;
-    my $table=$self->_class_description->{table};
-    $self->_driver->empty_field($table,$$self->{unique_id},$name);
-}
-
-###############################################################################
-
 =item _field_description ($)
 
 Returns the description of the given field.
@@ -559,6 +546,62 @@ sub _field_description ($$) {
     my $self=shift;
     my $field=shift;
     $self->_class_description->{fields}->{$field};
+}
+
+###############################################################################
+
+=item _field_default ($;$) {
+
+Returns default value for the given field for a hash object. Also sets
+'default' in class description if it is not there -- this might happen
+when old database is used with new FS.
+
+Optional second argument is for optimization. It should hold field
+description hash reference if it is available in calling context.
+
+=cut
+
+sub _field_default ($$) {
+    my $self=shift;
+    my $field=shift;
+
+    my $desc=shift || $self->_field_description($field);
+
+#dprint "Checking default for '$field', stored=",$desc->{default};
+
+    return $desc->{default} if defined($desc->{default});
+
+    my $type=$desc->{type};
+    my $default;
+    if($type eq 'text' || $type eq 'words') {
+        $default='';
+    }
+    elsif($type eq 'integer' || $type eq 'real') {
+        if(!defined($desc->{minvalue}) && !defined($desc->{maxvalue})) {
+
+            # This happens only for 'real' type where we do not set any
+            # borders unless specified.
+            #
+            $default=0;
+        }
+        elsif($desc->{minvalue} <= 0 &&
+              (!defined($desc->{maxvalue}) || $desc->{maxvalue} >= 0)) {
+            $default=0;
+        }
+        else {
+            $default=$desc->{minvalue};
+        }
+    }
+    else {
+        eprint "Wrong type for trying to get default (name=$field, type=$type)";
+        $default='';
+    }
+
+    $desc->{default}=$default;
+
+#dprint "Checking default for '$field', calculated=",$desc->{default};
+
+    return $default;
 }
 
 ###############################################################################
@@ -1384,7 +1427,7 @@ sub _add_data_placeholder ($%) {
     my $args=get_args(\@_);
 
     ##
-    # Temporary make words -> text.
+    # Temporarily make words -> text until words handling is fixed.
     #
     $args->{type}='text' if $args->{type} eq 'words';
 
@@ -1403,47 +1446,71 @@ sub _add_data_placeholder ($%) {
     undef $args;
 
     ##
-    # Whenever unique is set index is set too.
+    # Checking if this is a hash in a list stored in some other hash
+    # other then Global.
     #
-    $fdesc{index}=1 if $fdesc{unique};
+    my $connected=$self->upper_class eq 'FS::Global' ? 0 : 1;
 
+    ##
+    # Adding...
+    #
     if($type eq 'words') {
         $fdesc{maxlength}=100 unless $fdesc{maxlength};
-        $driver->add_field_text($table,$name,$fdesc{index},$fdesc{unique},$fdesc{maxlength});
+        $driver->add_field_text($table,$name,$fdesc{index},$fdesc{unique},
+                                $fdesc{maxlength},$connected);
         $driver->setup_dictionary($table,$name,$fdesc{maxlength});
     }
     elsif ($type eq 'text') {
         $fdesc{maxlength}=100 unless $fdesc{maxlength};
-        $driver->add_field_text($table,$name,$fdesc{index},$fdesc{unique},$fdesc{maxlength});
+        $driver->add_field_text($table,$name,$fdesc{index},$fdesc{unique},
+                                $fdesc{maxlength},$connected);
     }
     elsif ($type eq 'integer') {
         $fdesc{minvalue}=-0x80000000 unless defined($fdesc{minvalue});
         $fdesc{maxvalue}=0x7FFFFFFF unless defined($fdesc{maxvalue});
         $driver->add_field_integer($table,$name,$fdesc{index},$fdesc{unique},
-                                   $fdesc{minvalue},$fdesc{maxvalue});
+                                   $fdesc{minvalue},$fdesc{maxvalue},$connected);
     }
     elsif ($type eq 'real') {
         $fdesc{minvalue}+=0 if defined($fdesc{minvalue});
         $fdesc{maxvalue}+=0 if defined($fdesc{maxvalue});
         $driver->add_field_real($table,$name,$fdesc{index},$fdesc{unique},
-                                $fdesc{minvalue},$fdesc{maxvalue});
+                                $fdesc{minvalue},$fdesc{maxvalue},$connected);
     }
     else {
         $self->throw("_add_data_placeholder - unknown type ($type)");
     }
 
     ##
+    # Updating in-memory data with our new field and setting default
+    # value for it.
+    #
+    $fdesc{default}=$self->_field_default($name,\%fdesc);
+    $desc->{fields}->{$name}=\%fdesc;
+
+    ##
+    # Checking default value length
+    #
+    if($type eq 'text' || $type eq 'words') {
+        my $dl=length($fdesc{default});
+        $dl <= 30 ||
+            throw $self "_add_data_placeholder - default text is longer then 30 characters";
+        $dl <= $fdesc{maxlength} ||
+            throw $self "_add_data_placeholder - default text is longer then maxlength ($fdesc{maxlength})";
+    }
+
+    ##
     # Updating Global_Fields
     #
-    $desc->{fields}->{$name}=\%fdesc;
     $driver->store_row('Global_Fields',
                        'field_name',$name,
                        'table_name',$table,
                        { type => $fdesc{type},
-                         maxlength => $fdesc{maxlength},
                          index => $fdesc{unique} ? 2 : ($fdesc{index} ? 1 : 0),
-                         minvalue => $fdesc{minvalue},
+                         default => $fdesc{default},
+                         maxlength => $fdesc{maxlength},
                          maxvalue => $fdesc{maxvalue},
+                         minvalue => $fdesc{minvalue},
                        });
 }
 
@@ -1580,9 +1647,17 @@ sub _drop_data_placeholder ($$) {
     $uid || $self->throw("_drop_data_placeholder - no description for $table.$name in the Global_Fields");
     $driver->delete_row('Global_Fields',$uid);
 
-    delete $desc->{fields}->{$name};
+    ##
+    # If that field was marked as 'unique' or 'index' then we need to
+    # drop index as well.
+    #
+    my $connected=$self->upper_class eq 'FS::Global' ? 0 : 1;
+    my $index=$desc->{fields}->{$name}->{index};
+    my $unique=$desc->{fields}->{$name}->{unique};
 
-    $driver->drop_field($table,$name);
+    $driver->drop_field($table,$name,$index,$unique,$connected);
+
+    delete $desc->{fields}->{$name};
 }
 
 ##
