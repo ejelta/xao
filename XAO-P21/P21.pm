@@ -446,7 +446,8 @@ The hash contains following attributes:
  card_exp_year    => customer's cc expiry year
  name             => the customer's dba name
  address1         => the first ship-to address line
- address2         => the second ship-to address line
+ address2         => optional second ship-to address line
+ address3         => optional third ship-to address line
  city             => the customer's ship-to city
  state            => the customer's ship-to state
  zip              => the customer's ship-to zip
@@ -462,6 +463,7 @@ The hash contains following attributes:
  stax_exemp       => order line sales tax exemption status
  suspended_order  => boolean for the initial state of the order
                      once injected into p21
+ taker_number     => taker number
 
 Returns a hash reference with 'result' and 'info' members. Where
 result is zero for success and info contains internally used
@@ -516,6 +518,12 @@ sub order {
         $_->{unit_name} || '',              #  7 | 31
         $_->{unit_size} || 1,               #  8 | 32
         $_->{account_number} || '',         #  9 | 33
+        '',                                 # 10 | 34
+        '',                                 # 11 | 35
+        $_->{address3} || '',               # 12 | 36
+        '',                                 #  1 | 37
+        '',                                 #  2 | 38
+        $_->{taker_number} || '',           #  3 | 39
     } @$order_list;
 
     $self->call($constr,$callback, 'order_entry', @order_array);
