@@ -33,10 +33,12 @@ try {
     ##
     # Getting CGI object and path
     #
-    my @path=split('/+','/'.$cgi->path_info);
+    my $path_info=$cgi->path_info;
+    my @path=split('/+','/'.$path_info);
     shift @path;
     my $sitename=shift @path;
     $sitename || throw XAO::E::Handler "No site name given!";
+    push @path,'' if $path_info=~/\/$/;
 
     ##
     # This is not very good way to check it here, should be more

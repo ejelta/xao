@@ -10,7 +10,7 @@ XAO::DO::Web::CgiParam - Retrieves parameter from CGI environment
 
 Displays CGI parameter. Arguments are:
 
- param => parameter name
+ name => parameter name
  default => default text
 
 =cut
@@ -19,21 +19,25 @@ Displays CGI parameter. Arguments are:
 package XAO::DO::Web::CgiParam;
 use strict;
 use XAO::Utils;
+use XAO::Errors qw(XAO::DO::Web::CgiParam);
 use base XAO::Objects->load(objname => 'Web::Page');
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: CgiParam.pm,v 1.1 2001/12/07 22:00:13 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: CgiParam.pm,v 1.2 2001/12/08 02:51:23 am Exp $ =~ /(\d+\.\d+)/);
 
 sub display ($;%) {
     my $self=shift;
     my $args=get_args(\@_);
 
+    my $name=$args->{name} || $args->{param} ||
+        throw XAO::E::DO::Web::CgiParam "display - no 'param' and no 'name' given";
+
     my $text;
-    $text=$self->{siteconfig}->cgi->param($args->{param});
+    $text=$self->cgi->param($name);
     $text=$args->{default} unless defined $text;
     return unless defined $text;
 
-    $self->textout(text => $text, objargs => $args);
+    $self->textout($text);
 }
 
 ###############################################################################

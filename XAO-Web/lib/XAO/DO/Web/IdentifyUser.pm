@@ -194,7 +194,7 @@ use base XAO::Objects->load(objname => 'Web::Action');
 ##
 # Version
 use vars qw($VERSION);
-($VERSION)=(q$Id: IdentifyUser.pm,v 1.3 2001/12/07 22:01:03 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: IdentifyUser.pm,v 1.4 2001/12/08 02:51:23 am Exp $ =~ /(\d+\.\d+)/);
 
 ###############################################################################
 
@@ -290,6 +290,7 @@ sub check {
     $clipboard->put("$cb_uri/name"   => $username);
     $clipboard->put("$cb_uri/object" => $user);
 
+
     ##
     # Checking clipboard to determine if there is 'verified' flag set and
     # if so user's status is 'verified'
@@ -305,6 +306,7 @@ sub check {
         my $vf_time_prop=$config->{vf_time_prop} ||
             throw XAO::E::DO::Web::IdentifyUser "No 'vf_time_prop' in the configuration";
         my $last_vf=$user->get($vf_time_prop);
+
         if($last_vf && time - $last_vf <= $vf_expire_time) {
             
             ##
@@ -314,8 +316,9 @@ sub check {
             #
             my $verified;
             if ($config->{vf_key_prop} && $config->{vf_key_cookie}) {
-                my $c=$self->cgi->cookie(-name => $config->{vf_key_cookie});
-                $verified=1 if $c eq $user->get($config->{vf_key_prop});
+                my $web_key=$self->cgi->cookie($config->{vf_key_cookie});
+                my $db_key=$user->get($config->{vf_key_prop});
+                $verified=1 if $db_key eq $web_key;
             }
             else {
                 $verified=1;
@@ -398,7 +401,7 @@ sub find_user ($$$) {
 =item login ()
 
 Logs in user. Saves current time to vf_time_prop database field.
-Generates pseudo unique key and saves it value to vf_key_property
+Generates pseudo unique key and saves it value to vf_key_prop
 (optional). Sets identification cookies.
 
 =cut
@@ -427,26 +430,30 @@ sub login ($;%) {
     # Checking password
     #
     if($user) {
-        my $password=$args->{password} ||
-            throw XAO::E::DO::Web::IdentifyUser "login - no 'password' given";
-
-        my $pass_encrypt=lc($config->{pass_encrypt} || 'plaintext');
-        if($pass_encrypt eq 'plaintext') {
-            # Nothing
-        }
-        elsif($pass_encrypt eq 'md5') {
-            $password=md5_base64($password);
+        my $password=$args->{password};
+        if(! $password) {
+            $errstr="No password given";
         }
         else {
-            throw XAO::E::DO::Web::IdentifyUser "login - unknown encryption mode '$pass_encrypt'";
-        }
+            my $pass_encrypt=lc($config->{pass_encrypt} || 'plaintext');
+            if($pass_encrypt eq 'plaintext') {
+                # Nothing
+            }
+            elsif($pass_encrypt eq 'md5') {
+                $password=md5_base64($password);
+            }
+            else {
+                throw XAO::E::DO::Web::IdentifyUser
+                      "login - unknown encryption mode '$pass_encrypt'";
+            }
 
-        my $pass_prop=$config->{pass_prop} || 
-            throw XAO::E::DO::Web::IdentifyUser "login - no 'pass_prop' in the configuration";
-        my $dbpass=$user->get($pass_prop);
+            my $pass_prop=$config->{pass_prop} || 
+                throw XAO::E::DO::Web::IdentifyUser "login - no 'pass_prop' in the configuration";
+            my $dbpass=$user->get($pass_prop);
 
-        if($dbpass ne $password) {
-            $errstr='Password mismatch';
+            if($dbpass ne $password) {
+                $errstr='Password mismatch';
+            }
         }
     }
 
@@ -554,7 +561,7 @@ sub logout{
     if($config->{vf_key_prop} && $config->{vf_key_cookie}) {
         $self->siteconfig->add_cookie(
             -name    => $config->{vf_key_cookie},
-            -value   => '0'
+            -value   => '0',
             -path    => '/',
             -expires => '-1s',
         );

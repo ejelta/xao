@@ -272,7 +272,6 @@ sub execute ($%) {
     # Checking for directory index url without trailing slash and
     # redirecting with appended slash if this is the case.
     #
-    $path=~s/\/{2,}/\//g;
     my @path=split(/\//,$path);
     push(@path,"index.html") if $cgi->path_info =~ /\/$/;
     if($path[-1] !~ /\.\w+$/) {
