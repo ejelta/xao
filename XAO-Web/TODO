@@ -1,0 +1,4 @@
+* A method on IdentifyUser that returns clipboard location or the
+  clibpoard itself for the given user type.
+
+

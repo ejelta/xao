@@ -17,8 +17,8 @@ Methods are:
 ###############################################################################
 package XAO::DO::ImportMap::Base;
 use strict;
-use Error;
 use XAO::Utils;
+use XAO::Errors qw(XAO::DO::ImportMap::Base);
 
 ###############################################################################
 
@@ -57,7 +57,6 @@ sub category_hash_to_array ($$;$$) {
     my $self=shift;
     my $hash=shift;
     my $src_root=shift || '';
-    my $keep_original=shift || $hash->{_keep_original};
 
     my $src_root_o=$src_root;
     $src_root.='::' if $src_root;
@@ -78,8 +77,6 @@ sub category_hash_to_array ($$;$$) {
 
         foreach my $src (keys %{$hash}) {
 
-            next if $src=~/^_/;
-
             my $dst_ar=$hash->{$src};
             $dst_ar=[ $dst_ar ] unless ref($dst_ar) && ref($dst_ar) eq 'ARRAY';
             foreach my $dst (@{$dst_ar}) {
@@ -88,7 +85,7 @@ sub category_hash_to_array ($$;$$) {
 
                     my $sroot=$src_root . $src;
 
-                    my ($s,$d)=$self->category_hash_to_array($dst,$sroot,$keep_original);
+                    my ($s,$d)=$self->category_hash_to_array($dst,$sroot);
                     push(@src_cat,@{$s});
                     push(@dst_cat,@{$d});
 
@@ -100,13 +97,6 @@ sub category_hash_to_array ($$;$$) {
                     push(@dst_cat,$dst);
 
                 }
-
-            }
-
-            if($keep_original) {
-
-                push(@src_cat,$src_root . $src);
-                push(@dst_cat,$keep_original . '::' . $src);
 
             }
         }
@@ -155,6 +145,9 @@ Second argument is a category path to be translated.
 
 Always returns a list reference even if that was one to one match.
 
+May return empty list if that category is not mapped anywhere and should
+be ignored.
+
 =cut
 
 sub map_category ($$$$) {
@@ -182,27 +175,30 @@ sub map_category ($$$$) {
 
     dprint "not in the cache path=$path";
 
-    my @p=split(/::/,$path);
-    for(my $i=$#p; $i>=0; $i--) {
-        my $np=join('::',@p[0..$i]);
-        return $category_cache->{$np . '::Other'} if $category_cache->{$np . '::Other'};
-        if($category_cache->{$np}) {
-            my @list;
-            foreach my $translated (@{$category_cache->{$np}}) {
-                if(grep(/^${translated}::/,values %{$category_cache})) {
-                    push(@list,$translated . '::Other');
-                }
-                else {
-                    push(@list,$translated);
-                }
-            }
-
-            return $category_cache->{$path}=\@list;
-
+    my @list;
+    if($category_cache->{_keep_original}) {
+        foreach my $cat (@{$category_cache->{_keep_original}}) {
+            push(@list,$cat ? $cat.'::'.$path : $path);
         }
     }
 
-    [ 'Other' ];
+    my @p=split(/::/,$path);
+    for(my $i=$#p; $i>=0; $i--) {
+        my $np=join('::',@p[0..$i]);
+
+        if($category_cache->{$np . '::Other'}) {
+            push(@list,@{$category_cache->{$np . '::Other'}});
+            last;
+        }
+    }
+
+    if($category_cache->{Other}) {
+        push(@list,@{$category_cache->{Other}});
+    }
+
+    dprint "TRANSLATION: ",join(",",@list);
+
+    \@list;
 }
 
 ###############################################################################
@@ -281,21 +277,22 @@ sub normalize_category_path ($$) {
 
 =item product_id ($$)
 
-Generates product ID by given XML product ID and prefix (first argument
-of map_xml_products() method).
+Analyzes product and generates product SKU and suggested product ID
+(list ID). Supposed to be overriden in project specific implementations.
 
 =cut
 
 sub product_id ($$$) {
     my $self=shift;
-    my $prefix=shift;
-    my $id=shift;
+    my $product=shift;
 
-    my $pid=$prefix . '-' . $id;
-    $pid=~s/\s//gs;
-    $pid=~s/\W/-/gs;
-    $pid=~s/-{2,}/-/gs;
-    $pid;
+    if(@_) {
+        throw XAO::E::DO::ImportMap::Base
+              "product_id - you're using old syntax, please change" .
+              " your ImportMap accordingly";
+    }
+
+    undef;
 }
 
 ###############################################################################
