@@ -309,7 +309,7 @@ use XAO::Errors;
 # Package version
 #
 use vars qw($VERSION);
-($VERSION)=(q$Id: Page.pm,v 1.9 2002/02/04 07:35:24 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: Page.pm,v 1.10 2002/02/04 07:58:45 am Exp $ =~ /(\d+\.\d+)/);
 
 ##
 # Methods prototypes
@@ -1196,14 +1196,15 @@ sub throw ($@) {
 sub debug_check ($$) {
     my $self=shift;
     my $type=shift;
-    return $self->{debug} && $self->{debug}->{$type};
+    return $self->clipboard->get("debug/Web/Page/$type");
 }
 
 sub debug_set ($%) {
     my $self=shift;
     my $args=get_args(\@_);
-    $self->{debug}={} unless $self->{debug};
-    @{$self->{debug}}{keys %$args}=values %$args;
+    foreach my $type (keys %$args) {
+        $self->clipboard->put("debug/Web/Page/$type",$args->{$type} ? 1 : 0);
+    }
 }
 
 ###############################################################################

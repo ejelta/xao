@@ -6,7 +6,7 @@ XAO::DO::Web::Debug - debug helper object
 
  <%Debug text="Got here :)"%>
 
- <%Debug add="show-path"%>
+ <%Debug set="show-path"%>
  <%Page path="/bits/some-complex-template-that-fails"%>
  <%Debug clear="show-path"%>
 
@@ -24,20 +24,20 @@ use XAO::Objects;
 use base XAO::Objects->load(objname => 'Web::Page');
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: Debug.pm,v 1.1 2002/02/04 07:35:24 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: Debug.pm,v 1.2 2002/02/04 07:58:45 am Exp $ =~ /(\d+\.\d+)/);
 
 sub display ($%) {
     my $self=shift;
     my $args=get_args(\@_);
 
     if($args->{set}) {
-        my %set=map { $_ => 1 } split(/[,;\s]/,$args->{add});
+        my %set=map { $_ => 1 } split(/[,;\s]/,$args->{set});
         $self->debug_set(\%set);
         dprint "Debug set='",join(',',keys %set),"'";
     }
 
     if($args->{clear}) {
-        my %set=map { $_ => 1 } split(/[,;\s]/,$args->{clear});
+        my %set=map { $_ => 0 } split(/[,;\s]/,$args->{clear});
         $self->debug_set(\%set);
         dprint "Debug clear='",join(',',keys %set),"'";
     }
