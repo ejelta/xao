@@ -62,7 +62,7 @@ use XAO::Errors qw(XAO::DO::Web::FilloutForm);
 use base XAO::Objects->load(objname => 'Web::Page');
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: FilloutForm.pm,v 1.18 2004/05/25 00:43:57 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: FilloutForm.pm,v 1.19 2004/07/23 03:30:34 am Exp $ =~ /(\d+\.\d+)/);
 
 sub setup ($%);
 sub field_desc ($$);
@@ -223,13 +223,6 @@ sub display ($;%) {
     #
     my $obj=$self->object;
 
-    # Special parameter named 'submit_name' contains submit button name
-    # and used for pre-filled forms - these forms usually already have
-    # valid data and we need some way to know when the form was really
-    # checked and corrected by user.
-    #
-    my $filled=$self->{submit_name} && $cgi->param($self->{submit_name}) ? 1 : 0;
-
     # First checking all parameters and collecting mistakes into errstr.
     #
     # Also creating hash with parameters for form diplaying while we are
@@ -237,11 +230,13 @@ sub display ($;%) {
     #
     my $errstr;
     my %formparams;
+    my $have_cgivalues=0;
     foreach my $fdata (@{$fields}) {
         my $name=$fdata->{name};
         my $cgivalue=$cgi->param($name);
-        $filled++ if defined($cgivalue) &&
-                     (!defined($fdata->{phase}) || $fdata->{phase} eq $phase);
+        $have_cgivalues++ if defined($cgivalue) &&
+                             (!defined($fdata->{phase}) ||
+                              $fdata->{phase} eq $phase);
 
         ##
         # Checking form phase for multi-phased forms if required.
@@ -266,21 +261,21 @@ sub display ($;%) {
         my $newerr;
         my $style=$fdata->{style};
         if(!length($value) && $fdata->{required}) {
-            $newerr="Required field!";
+            $newerr=$self->Tx('Required field!');
         }
         elsif($fdata->{maxlength} && length($value) > $fdata->{maxlength}) {
-            $newerr="Value is too long!";
+            $newerr=$self->Tx('Value is too long!');
         }
         elsif($fdata->{minlength} && length($value) &&
               length($value) < $fdata->{minlength}) {
-            $newerr="Value is too short!";
+            $newerr=$self->Tx("Value is too short!");
         }
         elsif($style eq 'text') {
             # No checks for text
         }
         elsif($style eq 'email') {
             if(length($value) && $value !~ /^.*\@([a-z0-9-]+\.)+[a-z]+$/i) {
-                $newerr="Value is not in the form of user\@host.domain!";
+                $newerr=$self->Tx("Value is not in the form of user\@host.domain!");
             }
         }
         elsif($style eq 'usphone') {
@@ -288,15 +283,15 @@ sub display ($;%) {
             if(length($value)) {
                 $value =~ s/\D//g;
                 if(length($value) == 7) {
-                    $newerr="Needs area code!";
+                    $newerr=$self->Tx("Needs area code!");
                 }
                 elsif(length($value) == 11) {
                     if(substr($value,0,1) ne '1') {
-                        $newerr="Must be a US phone!";
+                        $newerr=$self->Tx("Must be a US phone!");
                     }
                 }
                 elsif(length($value) != 10) {
-                    $newerr="Does not look like a right phone!";
+                    $newerr=$self->Tx("Does not look like a right phone!");
                 }
                 else {
                     $value=~s/^.?(...)(...)(....)/($1) $2-$3/;
@@ -313,13 +308,13 @@ sub display ($;%) {
                 $e=~s/\D//g;
 
                 if(length($p)<10) {
-                    $newerr="Needs area code!";
+                    $newerr=$self->Tx("Needs area code!");
                 }
                 elsif(length($p)==10) {
                     $p='1' . $p;
                 }
                 elsif(length($p)>13) {
-                    $newerr="Too many digits!";
+                    $newerr=$self->Tx("Too many digits!");
                 }
 
                 if(!$newerr) {
@@ -332,9 +327,17 @@ sub display ($;%) {
             if(length($value)) {
                 if($value =~ /^[\d,']+$/) {
                     $value=~s/[,']+//g;
+                    if(defined($fdata->{minvalue}) && $value<$fdata->{minvalue}) {
+                        $newerr=$self->Tx("Value is less than {{min}}",
+                                            { min => $fdata->{minvalue} });
+                    }
+                    if(defined($fdata->{maxvalue}) && $value>$fdata->{maxvalue}) {
+                        $newerr=$self->Tx("Value is greater than {{max}}",
+                                            { max => $fdata->{maxvalue} });
+                    }
                 }
                 else {
-                    $newerr="Is not an integer!"
+                    $newerr=$self->Tx("Is not an integer!");
                 }
             }
         }
@@ -342,16 +345,24 @@ sub display ($;%) {
             if(length($value)) {
                 if($value =~ /^[\d,'\.]+$/) {
                     $value=~s/[,']+//g;
+                    if(defined($fdata->{minvalue}) && $value<$fdata->{minvalue}) {
+                        $newerr=$self->Tx("Value is less than {{min}}",
+                                            { min => $fdata->{minvalue} });
+                    }
+                    if(defined($fdata->{maxvalue}) && $value>$fdata->{maxvalue}) {
+                        $newerr=$self->Tx("Value is greater than {{max}}",
+                                            { max => $fdata->{maxvalue} });
+                    }
                 }
                 else {
-                    $newerr="Is not an number!"
+                    $newerr=$self->Tx("Is not an number!");
                 }
             }
         }
         elsif($style eq 'password') {
             if(length($value) && $fdata->{pair} &&
                $value ne $cgi->param($fdata->{pair})) {
-                $newerr="Does not match the copy!";
+                $newerr=$self->Tx("Does not match the copy!");
             }
         }
         elsif($style eq 'country') {
@@ -362,7 +373,7 @@ sub display ($;%) {
                 last if $match;
             }
             if(length($value) && !$match) {
-                $newerr="Unknown country";
+                $newerr=$self->Tx("Unknown country");
             }
         }
         elsif($style eq 'usstate' || $style eq 'uscontst') {
@@ -375,7 +386,7 @@ sub display ($;%) {
                 last if $match;
             }
             if(length($value) && !$match) {
-                $newerr="Unknown state";
+                $newerr=$self->Tx("Unknown state");
             }
         }
         elsif($style eq 'cctype') {
@@ -386,7 +397,7 @@ sub display ($;%) {
                 last if $match;
             }
             if(length($value) && !$match) {
-                $newerr="Unknown credit card type";
+                $newerr=$self->Tx("Unknown credit card type");
             }
         }  
         elsif($style eq 'ccnum') {
@@ -398,7 +409,9 @@ sub display ($;%) {
         elsif($style eq 'month') {
             if(length($value)) {
                 $value=int($value);
-                $newerr='Invalid month!' if $value<1 || $value>12;
+                if($value<1 || $value>12) {
+                    $newerr=$self->Tx('Invalid month!');
+                }
             }
         }
         elsif($style eq 'year') {
@@ -408,17 +421,19 @@ sub display ($;%) {
                 if(length($value)) {
                     $value=$self->calculate_year($value);
                     if($value<$minyear) {
-                        $newerr="Must be after $minyear!";
+                        $newerr=$self->Tx("Must be after {{year}}",
+                                            { year => $minyear });
                     }
                     elsif($value>$maxyear) {
-                        $newerr="Must be before $maxyear!";
+                        $newerr=$self->Tx("Must be before {{year}}",
+                                            { year => $maxyear });
                     }
                 }
             }
             elsif(length($value)) {
                 $value=$self->calculate_year($value);
                 if($value<1900 || $value>2099) {
-                    $newerr='Invalid year!';
+                    $newerr=$self->Tx('Invalid year!');
                 }
             }
         }
@@ -431,7 +446,7 @@ sub display ($;%) {
             # checkbox or this is the first display and form was not
             # submitted yet.
             #
-            if($filled) {
+            if($have_cgivalues) {
                 $value=$cgivalue ? 1 : 0;
             }
             else {
@@ -442,7 +457,9 @@ sub display ($;%) {
             if(length($value)) {
                 my $opt=$fdata->{options};
                 if(ref($opt) eq 'HASH') {
-                    $newerr='Bad option value!' unless defined $opt->{$value};
+                    if(!defined $opt->{$value}) {
+                        $newerr=$self->Tx('Bad option value!');
+                    }
                 }
                 elsif(ref($opt) eq 'ARRAY') {
                     my $found;
@@ -453,10 +470,12 @@ sub display ($;%) {
                             last;
                         }
                     }
-                    $newerr='Bad option value!' unless $found;
+                    if(!$found) {
+                        $newerr=$self->Tx('Bad option value!');
+                    }
                 }
                 else {
-                    $newerr='Unknown data in options!';
+                    $newerr=$self->Tx('Unknown data in options!');
                 }
             }
         }
@@ -622,10 +641,19 @@ sub display ($;%) {
         $formparams{"$param.ERRSTR"}=$fdata->{errstr} || '';
     }
 
+    # Special parameter named 'submit_name' contains submit button name
+    # and used for pre-filled forms - these forms usually already have
+    # valid data and we need some way to know when the form was really
+    # checked and corrected by user.
+    #
+    if($self->{submit_name}) {
+        $have_cgivalues=$cgi->param($self->{submit_name}) ? 1 : 0;
+    }
+
     # Checking content for general compatibility by overriden
     # method. Called only if data are basicly good.
     #
-    if($filled && !$errstr) {
+    if($have_cgivalues && !$errstr) {
         ($errstr,my $fname)=$self->check_form(merge_refs($args,\%formparams));
         if($fname) {
             my $fdata=$self->field_desc($fname);
@@ -641,7 +669,7 @@ sub display ($;%) {
     # If the form is not filled at all we remove errstr's from
     # individual fields.
     #
-    if(!$filled) {
+    if(!$have_cgivalues) {
         foreach my $fdata (@{$fields}) {
             my $param=$fdata->{param} || uc($fdata->{name});
             $formparams{"$param.ERRSTR"}='';
@@ -654,10 +682,10 @@ sub display ($;%) {
     # asked to keep displaying it using 'keep_form' setup parameter.
     #
     my $keep_form=$self->{keep_form};
-    if(!$filled || $errstr || $keep_form) {
+    if(!$have_cgivalues || $errstr || $keep_form) {
         my $eh;
         my $et;
-        if($errstr && $filled) {
+        if($errstr && $have_cgivalues) {
             $eh=$obj->expand(
                 path => '/bits/fillout-form/errstr',
                 ERRSTR => $errstr,
@@ -673,7 +701,7 @@ sub display ($;%) {
             'ERRSTR.HTML' => $eh || '',
             %formparams,
         }));
-        return unless $keep_form && !$errstr && $filled;
+        return unless $keep_form && !$errstr && $have_cgivalues;
     }
 
     ##
@@ -1146,7 +1174,9 @@ sub cc_validate ($%) {
     # General corrections and checks first.
     #
     $number=~s/\D//g;
-    return 'Number is too short!' if length($number)<13;
+    if(length($number)<13) {
+        return $self->Tx('Number is too short!');
+    }
 
     ##
     # Checksum first
@@ -1156,7 +1186,9 @@ sub cc_validate ($%) {
         my $weight = substr($number, -1 * ($i + 2), 1) * (2 - ($i % 2));
         $sum += (($weight < 10) ? $weight : ($weight - 9));
     }
-    return 'Invalid number!' unless substr($number,-1) == (10-$sum%10)%10;
+    if(substr($number,-1) ne (10-$sum%10)%10) {
+        return $self->Tx('Invalid number!');
+    }
 
     ##
     # Checking card type now
@@ -1176,9 +1208,11 @@ sub cc_validate ($%) {
             $realtype='discover';
         }
         else {
-            return 'Unknown card type!';
+            return $self->Tx('Unknown card type!');
         }
-        return 'Number does not match card type!' unless lc($type) =~ $realtype;
+        if(lc($type) !~ $realtype) {
+            return $self->Tx('Number does not match card type!');
+        }
     }
 
     ${$args->{validated}}=$number if $args->{validated};
@@ -1213,6 +1247,26 @@ sub calculate_year ($$) {
 sub form_phase ($) {
     my $self=shift;
     return $self->{phase} || 1;
+}
+
+###############################################################################
+
+sub Tx ($$;$) {
+    my $self=shift;
+    my $text=shift;
+    my $values=shift || { };
+
+    if($self->can('Tx_translate')) {
+        $text=$self->Tx_translate($text,$values);
+    }
+
+    $text=~s/
+        \{\{(\w+)\}\}
+    /
+        exists $values->{$1} ? $values->{$1} : '<UNDEF>'
+    /xesg;
+
+    return $text;
 }
 
 ###############################################################################
