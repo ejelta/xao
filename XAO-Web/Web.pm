@@ -101,7 +101,7 @@ Methods of XAO::Web objects include:
 
 ###############################################################################
 
-sub analyze ($$;$);
+sub analyze ($$;$$);
 sub clipboard ($);
 sub config ($);
 sub execute ($%);
