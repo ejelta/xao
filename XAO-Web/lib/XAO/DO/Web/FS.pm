@@ -172,7 +172,7 @@ use XAO::Errors qw(XAO::DO::Web::FS);
 use base XAO::Objects->load(objname => 'Web::Action');
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: FS.pm,v 1.10 2002/02/04 18:39:36 alves Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: FS.pm,v 1.11 2002/02/05 18:32:10 alves Exp $ =~ /(\d+\.\d+)/);
 
 ###############################################################################
 
@@ -522,22 +522,32 @@ sub search ($;%) {
     #dprint "*** LIST: $list";
 
     #dprint "*** Go Search...\n\n";
-
     my $ra_query   = $self->_create_query($args, $rh_conf);
     my $ra_all_ids = $list->search(@$ra_query);
-    my $ra_ids     = $ra_all_ids;
-    my $total      = $#{$ra_all_ids}+1;
-    my $items_per_page = $args->{items_per_page} || 0;
+
+    my $last_item_idx  = $#{$ra_all_ids};
+    my $total          = $last_item_idx+1;
+    my $items_per_page = int($args->{items_per_page});
+    $items_per_page    = '' if $items_per_page < 1; # show all items in page
+    my $start_item     = int($args->{start_item});
+    $start_item        = 1 if $start_item < 1;
     my $limit_reached  = $items_per_page && $total>$items_per_page;
-    if ($args->{start_item} || $items_per_page) {
-        my $start_item = int($args->{start_item}) > 1 ? $args->{start_item}-1 : 0;
-        my $stop_item  = $total-1;
-        if (int($items_per_page)) {
-            my $max    = $items_per_page + $start_item;
-            $stop_item = $max unless $max > $stop_item;
-        }
-        $ra_ids = [ @{$ra_all_ids}[$start_item..$stop_item] ];
+
+    my $ra_ids;
+    if ($items_per_page) {
+        my $start_idx = $start_item - 1;
+        my $stop_idx  = $start_idx + $items_per_page - 1;
+        $stop_idx     = $last_item_idx if $last_item_idx < $stop_idx;
+        $ra_ids       = [ @{$ra_all_ids}[$start_idx..$stop_idx] ];
     }
+    else {
+        $ra_ids = $ra_all_ids;
+    }
+
+    #dprint "*** START_ITEM     = $start_item";
+    #dprint "*** ITEMS_PER_PAGE = $items_per_page";
+    #dprint "*** TOTAL_ITEMS    = $total";
+    #dprint "*** LIMIT_REACHED  = $limit_reached";
 
     #############
     #
@@ -563,10 +573,10 @@ sub search ($;%) {
     }
     $page->display(
         $basetype      => $header,
+        START_ITEM     => $start_item,
         ITEMS_PER_PAGE => $items_per_page,
-        LIMIT_REACHED  => $limit_reached,
-        START_ITEM     => $args->{start_item},
         TOTAL_ITEMS    => $total,
+        LIMIT_REACHED  => $limit_reached,
     ) if $header;
 
     #
@@ -591,9 +601,10 @@ sub search ($;%) {
     foreach my $id (@$ra_ids) {
         #dprint "    $count> show $id";
         my %pass = (
-            $basetype => $args->{$basetype},
-            ID        => $id,
-            COUNT     => $count,
+            $basetype   => $args->{$basetype},
+            ID          => $id,
+            COUNT       => $count,
+            MATCH_NUMBER => $count + ($start_item-1),
         );
         if ($args->{fields}) {
             my $item = $list->get($id);
@@ -622,10 +633,10 @@ sub search ($;%) {
     }
     $page->display(
         $basetype      => $footer,
+        START_ITEM     => $start_item,
         ITEMS_PER_PAGE => $items_per_page,
-        LIMIT_REACHED  => $limit_reached,
-        START_ITEM     => $args->{start_item},
         TOTAL_ITEMS    => $total,
+        LIMIT_REACHED  => $limit_reached,
     ) if $footer;
 }   
 ###############################################################################
