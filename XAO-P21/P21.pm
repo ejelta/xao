@@ -587,9 +587,9 @@ sub view_order_details {
 
         my %line;
         if($arr[0] eq 'LINE') {
-            @arr==10 ||
+            @arr==11 ||
                 throw XAO::E::P21 "view_order_details - wrong LINE ($str)";
-            @line{qw(type item_code entry_date
+            @line{qw(line_number type item_code entry_date
                      ord_qty inv_qty canc_qty
                      ut_price ut_size
                      disposition disposition_desc)}=@arr;
@@ -601,9 +601,9 @@ sub view_order_details {
                      total_stax_amt out_freight cust_code)}=@arr;
         }
         elsif($arr[0] eq 'ITEM') {
-            @arr==4 ||
+            @arr==5 ||
                 throw XAO::E::P21 "view_order_details - wrong ITEM ($str)";
-            @line{qw(type ship_number item_code inv_qty)}=@arr;
+            @line{qw(type ship_number item_code inv_qty line_number)}=@arr;
         }
         else {
             throw XAO::E::P21 "view_order_details - unknown type=$arr[0] ($str)";

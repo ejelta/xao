@@ -14,6 +14,7 @@ ASSIGN onum=INTEGER(OS-GETENV("P0")).
 FOR EACH p21.ord_line WHERE ord_line.ord_number = onum NO-LOCK:
     PUT UNFORMATTED
         "LINE"                          d_d
+        ord_line.line_number            d_d
         ord_line.item_code              d_d
         ord_line.entry_date             d_d
         ord_line.ord_qty                d_d
@@ -49,6 +50,7 @@ FOR EACH wbw_line WHERE wbw_line.ord_number = onum NO-LOCK:
         "ITEM"                          d_d
         wbw_line.ship_number            d_d
         wbw_line.item_code              d_d
-        wbw_line.inv_qty                skip
+        wbw_line.inv_qty                d_d
+        wbw_line.line_number            skip
     .
 END.
