@@ -172,7 +172,7 @@ use XAO::Errors qw(XAO::DO::Web::FS);
 use base XAO::Objects->load(objname => 'Web::Action');
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: FS.pm,v 1.11 2002/02/05 18:32:10 alves Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: FS.pm,v 1.12 2002/02/05 18:53:44 alves Exp $ =~ /(\d+\.\d+)/);
 
 ###############################################################################
 
@@ -527,9 +527,9 @@ sub search ($;%) {
 
     my $last_item_idx  = $#{$ra_all_ids};
     my $total          = $last_item_idx+1;
-    my $items_per_page = int($args->{items_per_page});
+    my $items_per_page = int($args->{items_per_page} || -1);
     $items_per_page    = '' if $items_per_page < 1; # show all items in page
-    my $start_item     = int($args->{start_item});
+    my $start_item     = int($args->{start_item} || 1);
     $start_item        = 1 if $start_item < 1;
     my $limit_reached  = $items_per_page && $total>$items_per_page;
 
