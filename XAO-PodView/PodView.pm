@@ -138,52 +138,73 @@ sub display ($%) {
     ##
     # Creating parser
     #
-    my $parser=XAO::Objects->new(objname => 'Web::PodView::Parser',
-                                 dispobj => $self->object(),
-                                 format => $args->{format} || 'html');
+    my $parser=XAO::Objects->new(
+        objname => 'Web::PodView::Parser',
+        dispobj => $self->object,
+        format  => $args->{'format'} || 'html',
+    );
 
     ##
-    # Input handler
+    # Do we have path to a local pod document? Parsing it using XAO::Web
+    # engine first.
     #
     my $ih;
+    if($args->{'path'} || defined($args->{'template'})) {
+        my $text=$self->object->expand($args);
+        $ih=IO::String->new($text);
+    }
 
-  ##
-  # Do we have path to pod document?
-  #
-  if($args->{path} || $args->{template})
-   { my $text=$self->object->expand($args);
-     $ih=IO::String->new($text);
-   }
+    ##
+    # Finding file for the given module
+    #
+    if(!$ih && $args->{'module'}) {
+        my $file=$parser->find_module_file($args->{'module'});
+        if(!$file) {
+            return $self->display_error($args,{
+                ERRSTR      => q(Can't find module file for '$args->{module}'),
+            });
+        }
+        $ih=IO::File->new;
+        if(!$ih->open($file)) {
+            return $self->display_error($args,{
+                ERRSTR      => q(Can't open module file: $!),
+            });
+        }
+    }
 
-  ##
-  # Finding file for the given module
-  #
-  if(!$ih && $args->{module})
-   { my $file=$parser->find_module_file($args->{module});
-     if(!$file)
-      { $self->object->display(path => $args->{error}) if $args->{error};
-        return;
-      }
-     $ih=IO::File->new;
-     if(!$ih->open($file))
-      { $self->object->display(path => $args->{error}) if $args->{error};
-        return;
-      }
-   }
+    ##
+    # No input?? Too bad.
+    #
+    if(!$ih) {
+        return $self->display_error($args,{
+            ERRSTR      => q(Don't have any input to parse),
+        });
+    }
 
-  ##
-  # No input?? Too bad.
-  #
-  if(!$ih)
-   { $self->object->display(path => $args->{error}) if $args->{error};
-     return;
-   }
+    ##
+    # Parsing
+    #
+    my $oh=IO::String->new();
+    $parser->parse_from_filehandle($ih,$oh);
+}
 
-  ##
-  # Parsing
-  #
-  my $oh=IO::String->new();
-  $parser->parse_from_filehandle($ih,$oh);
+###############################################################################
+
+sub display_error ($%) {
+    my $self=shift;
+    my $args=get_args(\@_);
+
+    return unless defined($args->{'error.template'}) ||
+                  $args->{'error.path'} ||
+                  $args->{'error'};     # for compatibility (==error.path)
+
+    $self->object->display({
+        ERRSTR      => '',
+    },
+    $args,{
+        path        => ($args->{'error.path'} || $args->{'error'}),
+        template    => $args->{'error.template'},
+    });
 }
 
 ###############################################################################

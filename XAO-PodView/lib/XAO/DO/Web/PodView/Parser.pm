@@ -37,7 +37,7 @@ use XAO::Utils qw(:args :html :debug);
 use base qw(Pod::Parser);
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: Parser.pm,v 1.6 2002/01/04 03:21:04 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: Parser.pm,v 1.7 2005/01/22 02:51:56 am Exp $ =~ /(\d+\.\d+)/);
 
 ##
 # List of entities from Pod::Checker. I wonder who originally wrote that
@@ -527,10 +527,8 @@ sub interior_sequence ($$$)
 }
 
 ##
-# Looks through the @INC in search of the module file return the full
+# Looks through the @INC in search of the module file returning the full
 # name or undef.
-#
-# Static method, does not get reference to $self!
 #
 my %module_cache;
 sub find_module_file ($$) {
