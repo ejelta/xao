@@ -450,9 +450,8 @@ Returns array of hash references with order line infos.
 
 Another example:
 
-    my $res=$cl->view_open_order_details(customer=>"21CASH",
-                                         order=>1234567,
-                                         callback=>\&print_each_line);
+    my $res=$cl->view_open_order_details(order => 1234567,
+                                         callback => \&print_each_line);
 
 =cut
 

@@ -180,7 +180,7 @@ use XAO::Errors qw(XAO::DO::Web::FS);
 use base XAO::Objects->load(objname => 'Web::Action');
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: FS.pm,v 1.21 2002/03/21 21:43:40 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: FS.pm,v 1.22 2002/04/10 21:22:53 am Exp $ =~ /(\d+\.\d+)/);
 
 ###############################################################################
 
@@ -438,6 +438,11 @@ sub show_list ($%) {
                 ID          => $id,
                 NUMBER      => $number,
             );
+
+            if(defined($args->{current})) {
+                $data{IS_CURRENT}=($args->{current} eq $id) ? 1 : 0;
+            }
+
             if(@fields) {
                 my %t;
                 @t{@fields}=$list->get($id)->get(@fields);
