@@ -76,7 +76,7 @@ use vars qw(@ISA @EXPORT_OK @EXPORT $VERSION
 ##
 # XAO::BaseConfig package version
 #
-$xao_base_version='$version';
+$xao_base_version='<%VERSION%>';
 $VERSION='<%VERSION%>';
 
 ##

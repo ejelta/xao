@@ -46,7 +46,7 @@ use vars qw(@ISA @EXPORT_OK @EXPORT $VERSION);
              );
 @EXPORT=();
 
-($VERSION)=(q$Id: TestUtils.pm,v 1.7 2005/01/12 05:27:26 am Exp $ =~ /(\d+\.\d+)/);
+$VERSION=(0+sprintf('%u.%03u',(q$Id: TestUtils.pm,v 2.1 2005/01/13 22:34:34 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
 
 ###############################################################################
 

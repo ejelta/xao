@@ -33,7 +33,7 @@ use XAO::Utils;
 use XAO::Errors;
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: Atom.pm,v 1.5 2003/02/18 22:08:58 am Exp $ =~ /(\d+\.\d+)/);
+$VERSION=(0+sprintf('%u.%03u',(q$Id: Atom.pm,v 2.1 2005/01/13 22:34:34 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
 
 ###############################################################################
 

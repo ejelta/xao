@@ -34,7 +34,7 @@ use strict;
 use Error;
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: Errors.pm,v 1.7 2002/03/11 23:45:28 am Exp $ =~ /(\d+\.\d+)/);
+$VERSION=(0+sprintf('%u.%03u',(q$Id: Errors.pm,v 2.1 2005/01/13 22:34:34 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
 
 use vars qw(%errors_cache);
 

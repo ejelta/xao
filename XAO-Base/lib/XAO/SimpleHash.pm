@@ -412,7 +412,7 @@ sub embeddable_methods () {
 # That's it
 #
 use vars qw($VERSION);
-($VERSION)=('$Id: SimpleHash.pm,v 1.4 2001/11/27 05:34:30 am Exp $' =~ /(\d+\.\d+)/);
+$VERSION=(0+sprintf('%u.%03u',(q$Id: SimpleHash.pm,v 2.1 2005/01/13 22:34:34 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
 1;
 __END__
 

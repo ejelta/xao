@@ -79,7 +79,7 @@ use vars qw(@ISA @EXPORT_OK %EXPORT_TAGS);
 # Package version for checks and reference
 #
 use vars qw($VERSION);
-($VERSION)=(q$Id: Projects.pm,v 1.4 2001/12/05 03:55:40 am Exp $ =~ /(\d+\.\d+)/);
+$VERSION=(0+sprintf('%u.%03u',(q$Id: Projects.pm,v 2.1 2005/01/13 22:34:34 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
 
 ##
 # Cache with all active project contexts and variable with current

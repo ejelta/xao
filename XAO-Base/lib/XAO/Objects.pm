@@ -89,7 +89,7 @@ use XAO::Errors qw(XAO::Objects);
 use XAO::Projects;
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: Objects.pm,v 1.12 2004/06/07 17:55:01 am Exp $ =~ /(\d+\.\d+)/);
+$VERSION=(0+sprintf('%u.%03u',(q$Id: Objects.pm,v 2.1 2005/01/13 22:34:34 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
 
 ##
 # Prototypes
