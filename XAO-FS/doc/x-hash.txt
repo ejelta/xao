@@ -117,9 +117,11 @@ DESCRIPTION
 
             <$AUTOINC$>
                 This is an auto-incrementing unsigned at least 32-bit
-                integer value. It is not guaranteed to be monotonous, but
-                new value is always greater then any previously assigned and
-                greater then zero.
+                integer value. It is not guaranteed to be continuously
+                incrementing, but new value is always greater then any
+                previously assigned and greater then zero. There is no
+                definition of what would happen if all integer values are
+                used up.
 
                 Can optionally have number of digits specified -
                 <$AUTOINC/10$> to generate 10 digits integers. Default is to

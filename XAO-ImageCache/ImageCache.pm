@@ -57,7 +57,7 @@ use File::Copy;
 # Package version
 #
 
-($VERSION)=(q$Id: ImageCache.pm,v 1.5 2002/11/07 21:32:15 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: ImageCache.pm,v 1.6 2002/11/08 23:46:51 am Exp $ =~ /(\d+\.\d+)/);
 
 sub DESTROY {
     my $self = shift;
@@ -97,30 +97,31 @@ The constructor returns a new C<XAO::ImageCache> object.
 You can use it to make new images cache or check images 
 of already existent cache.
 
-    my $image_cache = XAO::ImageCache->new(
-        cache_path     => "cache",         # set cache  directory to './cache/'
-        source_path    => "cache/source",  # set source directory to './cache/source/'
-        cache_url      => "images/",       # set cached images (relative) path to 'images/'
-        list           => $odb->fetch("/Products"),
-        source_url_key => 'source_image_url',
-        dest_url_key   => 'dest_image_url',
-        filename_key   => 'product_id',
-        size           => {
-            width  => 320,
-            height => 200,
-            save_aspect_ratio => 1,
-        thumbnails     => {
-            path     => '/var/httpd/shop/product/images/tbn',
-            url      => '/products/images/tbn/'
-            geometry => "25%",
-            url_key  => 'thumbnail_url',
-        },
-        autocreate     => 1,
-        useragent      => {
-            agent   => 'My Lovely Browser/v13.01',
-            timeout => 30,
-        },  
-    ) || die "Image cache creation failure!";
+ my $image_cache = XAO::ImageCache->new(
+     cache_path     => "cache",        # set cache directory to './cache/'
+     source_path    => "cache/source", # set source directory to './cache/source/'
+     local_path     => "images/copy",  # (optional) try to resolve local urls
+     cache_url      => "images/",      # set cached images (relative) path to 'images/'
+     list           => $odb->fetch("/Products"),
+     source_url_key => 'source_image_url',
+     dest_url_key   => 'dest_image_url',
+     filename_key   => 'product_id',
+     size           => {
+         width  => 320,
+         height => 200,
+         save_aspect_ratio => 1,
+     thumbnails     => {
+         path     => '/var/httpd/shop/product/images/tbn',
+         url      => '/products/images/tbn/'
+         geometry => "25%",
+         url_key  => 'thumbnail_url',
+     },
+     autocreate     => 1,
+     useragent      => {
+         agent   => 'My Lovely Browser/v13.01',
+         timeout => 30,
+     },  
+ ) || die "Image cache creation failure!";
 
 Number of configuration parameters should be passed to 
 XAO::ImageCache to tune functionality. 
@@ -180,7 +181,7 @@ If any of required parameter is not present error will returned.
 #          height =>
 # }
 # autocreate =>
-#
+
 sub new ($%) {
 
     my $class = shift;
@@ -343,11 +344,12 @@ sub check($) {
 
     my $checked = 0;
     my $list    = $self->{list};
-    my @key     = $list->keys;
+    my @key     = @{$list->search('source_ref','eq','brady')}; # $list->keys;
 
+    my $count=0;
     foreach my $item_id (@key) {
 
-        dprint "Checking ID='$item_id'";
+        dprint "Checking ID='$item_id', count=".$count++;
 
         my $item        = $list->get($item_id);
         my $img_src_url = $item->get($img_src_url_key);
@@ -366,6 +368,7 @@ sub check($) {
                                                     $img_src_url,
                                                     $thm_src_url,
                                                 );
+        dprint "img=$img_cache_file thm=$thm_cache_file";
         if ($img_cache_file) {
             $item->put($img_dest_url_key, $img_cache_url.$img_cache_file);
         }
@@ -414,6 +417,7 @@ sub download ($$) {
     my $user_agent     = $self->{ua};
     my $source_path    = $self->{source_path};
     my $img_cache_path = $self->{cache_path};
+    my $local_path     = $self->{local_path};
     my $thm_cache_path = $self->{thumbnails}->{cache_path} || '';
 
     my $img_src_file   = $source_path.$img_src_fnm;
@@ -439,19 +443,30 @@ sub download ($$) {
         my $mtime_src = (stat($thm_src_file))[9];
         my $period = $time_now - $mtime_src;
         if ($period > $self->{min_period}) {
-            my $response = $user_agent->head($thm_src_url);
-            if ($response->is_success) {
-                my $mtime_web = convert_time($response->header('Last-Modified'));
-                if ((!-r $thm_src_file) || ($mtime_src < $mtime_web) || $self->{reload}) {
-                    if(!$self->download_file($thm_src_url, $thm_src_file)) {
-                        $self->cache_log("ERROR - can't get thumbnail image '$thm_src_url'");
-                        $thm_src_file='';
-                    }
+            if($thm_src_url =~ /^\//) {
+                if($local_path && -r "$local_path$thm_src_url") {
+                    copy("$local_path$thm_src_url",$thm_src_file);
+                }
+                else {
+                    $self->cache_log("ERROR - seems to be a local URL and no local file ($thm_src_url)");
+                    $thm_src_file="";
                 }
             }
             else {
-                $self->cache_log("ERROR - can't get thumbnail header '$thm_src_url' ".$response->as_string);
-                $thm_src_file = '';
+                my $response = $user_agent->head($thm_src_url);
+                if ($response->is_success) {
+                    my $mtime_web = convert_time($response->header('Last-Modified'));
+                    if ((!-r $thm_src_file) || ($mtime_src < $mtime_web) || $self->{reload}) {
+                        if(!$self->download_file($thm_src_url, $thm_src_file)) {
+                            $self->cache_log("ERROR - can't get thumbnail image '$thm_src_url'");
+                            $thm_src_file='';
+                        }
+                    }
+                }
+                else {
+                    $self->cache_log("ERROR - can't get thumbnail header '$thm_src_url' ".$response->as_string);
+                    $thm_src_file = '';
+                }
             }
         }
         else {
@@ -477,22 +492,33 @@ sub download ($$) {
         my $mtime_src = (stat($img_src_file))[9];
         my $period = $time_now - $mtime_src;
         if ($period > $self->{min_period}) {
-            my $response = $user_agent->head($img_src_url);
-            if ($response->is_success) {
-                my $mtime_web = convert_time($response->header('Last-Modified'));
-                if ((!-r $img_src_file) || ($mtime_src < $mtime_web) || $self->{reload}) {
-                    if(! $self->download_file($img_src_url, $img_src_file)) {
-                        $self->cache_log("ERROR - download failure: $img_src_url -> $img_src_file");
-                        $img_src_file='';
-                    }
+            if($img_src_url =~ /^\//) {
+                if($local_path && -r "$local_path$img_src_url") {
+                    copy("$local_path$img_src_url",$img_src_file);
                 }
                 else {
-                    $self->cache_log("IMAGE SOURCE FILE CURRENT: $img_src_url");
+                    $self->cache_log("ERROR - seems to be a local URL and no local file ($img_src_url)");
+                    $img_src_file="";
                 }
             }
             else {
-                $self->cache_log("ERROR - can't get header for: $img_src_url");
-                $img_src_file='';
+                my $response = $user_agent->head($img_src_url);
+                if ($response->is_success) {
+                    my $mtime_web = convert_time($response->header('Last-Modified'));
+                    if ((!-r $img_src_file) || ($mtime_src < $mtime_web) || $self->{reload}) {
+                        if(! $self->download_file($img_src_url, $img_src_file)) {
+                            $self->cache_log("ERROR - download failure: $img_src_url -> $img_src_file");
+                            $img_src_file='';
+                        }
+                    }
+                    else {
+                        $self->cache_log("IMAGE SOURCE FILE CURRENT: $img_src_url");
+                    }
+                }
+                else {
+                    $self->cache_log("ERROR - can't get header for: $img_src_url");
+                    $img_src_file='';
+                }
             }
         }
 
@@ -512,11 +538,13 @@ sub download ($$) {
 
             # Create thumbnail from the image source file if necessary
             #
-            if($thm_cache_file && !$thm_src_url) {
+            if($thm_cache_file && (!$thm_src_url || !$thm_src_file)) {
                 $mtime_cache=(stat($thm_cache_file))[9];
                 if($mtime_cache < $mtime_src) {
+                    dprint "Making thumbnail out of big image";
                     $self->thumbnail($img_src_file, $thm_cache_file);
                 }
+                $thm_src_file=1;    # Just to mark that we have it
             }
         }
     }
