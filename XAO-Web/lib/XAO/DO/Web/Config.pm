@@ -30,7 +30,6 @@ use XAO::Errors qw(XAO::DO::Web::Config);
 # Prototypes
 #
 sub add_cookie ($@);
-sub cache ($%);
 sub cgi ($$);
 sub cleanup ($);
 sub clipboard ($);
@@ -46,7 +45,7 @@ sub new ($@);
 # Package version for checks and reference
 #
 use vars qw($VERSION);
-($VERSION)=(q$Id: Config.pm,v 1.7 2003/06/26 03:13:53 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: Config.pm,v 1.8 2003/08/09 02:36:42 am Exp $ =~ /(\d+\.\d+)/);
 
 ###############################################################################
 
@@ -108,52 +107,6 @@ sub add_cookie ($@) {
 
 ###############################################################################
 
-=item cache (%)
-
-Creates or retrieves a cache for use in various XAO::Web objects.
-Arguments are directly passed to XAO::Cache's new() method (see
-L<XAO::Cache>) except for 'name' argument which is used to identify the
-requested cache.
-
-If a cache with that name was already initialized before it is not
-re-created, but previously created version is returned instead.
-
-Example:
-
- my $cache=$self->cache(
-     name        => 'fubar',
-     retrieve    => \&real_retrieve,
-     coords      => ['foo','bar'],
-     expire      => 60
- );
-
-Caches are kept between executions in mod_perl environment.
-
-=cut
-
-sub cache ($%) {
-    my $self=shift;
-    my $args=get_args(\@_);
-
-    my $name=$args->{name} ||
-        throw XAO::E::DO::Web::Config "cache - no 'name' argument";
-
-    my $cache_list=$self->{cache_list};
-    if(! $cache_list) {
-        $cache_list=$self->{cache_list}={};
-    }
-
-    my $cache=$cache_list->{$name};
-    if(! $cache) {
-        $cache=XAO::Cache->new($args);
-        $cache_list->{$name}=$cache;
-    }
-
-    return $cache;
-}
-
-###############################################################################
-
 =item cgi (;$)
 
 Returns or sets standard CGI object (see L<CGI>). In future versions this
@@ -183,7 +136,7 @@ sub cgi ($$) {
         return $newcgi;
     }
     throw XAO::E::DO::Web::Config
-          "cgi - storing new CGI requires allow_special_access()";
+          "cgi - storing new CGI requires enable_special_access()";
 }
 
 ###############################################################################
@@ -268,7 +221,7 @@ header(), header_args().
 =cut
 
 sub embeddable_methods ($) {
-    qw(add_cookie cache cgi clipboard cookies header header_args);
+    qw(add_cookie cgi clipboard cookies header header_args);
 }
 
 ###############################################################################
