@@ -137,20 +137,32 @@ sub analyze ($@) {
     if($table) {
         for(my $i=@path; $i>=0; $i--) {
             my $dir=$i ? join('/',@path[0..$i-1]) : '';
-            my $od=$table->{$dir} || $table->{'/'.$dir} || $table->{$dir.'/'} || $table->{'/'.$dir.'/'};
-            next unless $od;
+
+            my $od=$table->{$dir} ||
+                   $table->{'/'.$dir} ||
+                   $table->{$dir.'/'} ||
+                   $table->{'/'.$dir.'/'};
+            next unless defined $od;
+
+            ##
+            # If $od is an empty string or an ampty array reference --
+            # that means that we need to fall back to default handler
+            # for that path.
+            #
             my $objname;
             my %args;
             if(ref($od)) {
+                last unless @$od;
                 $objname=$od->[0];
                 if(scalar(@{$od})%2 == 1) {
                     %args=@{$od}[1..$#{$od}];
                 }
                 else {
-                    eprint "Odd number of arguments in mapping table, dir=$dir, objname=$objname";
+                    throw XAO::E::Web "analyze - odd number of arguments in mapping table, dir=$dir, objname=$objname";
                 }
             }
             else {
+                last unless length($od);
                 $objname=$od;
             }
             return {
@@ -164,13 +176,12 @@ sub analyze ($@) {
     }
 
     ##
-    # Now looking for exactly matching template. If it matches and
-    # we have some object defined for '/' - then this is our default
-    # object. Otherwise - Page is.
+    # Now looking for exactly matching template and returning Page
+    # object if found.
     #
     if(XAO::Templates::check(path => $path)) {
         return {
-            objname => ($table && $table->{'/'}) ? $table->{'/'} : 'Page',
+            objname => 'Page',
             path => $path,
             fullpath => $path,
             prefix => join('/',@path[0..($#path-1)])
@@ -181,7 +192,7 @@ sub analyze ($@) {
     # Nothing was found, returning Default object
     #
     return {
-        objname => ($table && $table->{'/'}) ? $table->{'/'} : 'Default',
+        objname => 'Default',
         path => $path,
         fullpath => $path,
         prefix => ''
@@ -314,6 +325,7 @@ sub expand ($%) {
             $url=$cgi->url(-base => 1);
             my $pinfo=$ENV{PATH_INFO};
             my $uri=$ENV{REQUEST_URI};
+            $uri=~s/^(.*?)\?.*$/$1/;
             if($pinfo =~ /^\/$sitename(\/.+)?$uri/) {
                 # mod_rewrite
             }
