@@ -62,7 +62,7 @@ use XAO::Errors qw(XAO::DO::Web::FilloutForm);
 use base XAO::Objects->load(objname => 'Web::Page');
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: FilloutForm.pm,v 1.3 2002/01/17 19:29:03 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: FilloutForm.pm,v 1.4 2002/01/28 00:55:15 am Exp $ =~ /(\d+\.\d+)/);
 
 sub setup ($%);
 sub field_desc ($$);
@@ -577,9 +577,11 @@ sub display ($;%) {
         my $eh;
         my $et;
         if($errstr && $filled) {
-            $eh=$obj->expand(path => '/bits/fillout-form/errstr',
-                             ERRSTR => $errstr,
-                            );
+            $eh=$obj->expand(
+                path => '/bits/fillout-form/errstr',
+                ERRSTR => $errstr,
+                'ERRSTR.CHECK_FORM' => $formparams{"ERRSTR.CHECK_FORM"},
+            );
             $et=$errstr;
 
         }
