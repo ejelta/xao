@@ -21,6 +21,14 @@ DESCRIPTION
     delete ($)
         Makes no sense for Collection, will throw an error.
 
+    describe () {
+        Describes itself, returns a hash reference with at least the
+        following elements:
+
+         type       => 'collection'
+         class      => class name
+         key        => key name
+
     detach ()
         Not implemented, but safe to use.
 

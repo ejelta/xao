@@ -31,7 +31,7 @@ use XAO::Objects;
 use base XAO::Objects->load(objname => 'FS::Glue');
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: Collection.pm,v 1.3 2002/12/19 01:00:42 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: Collection.pm,v 1.4 2003/01/10 03:07:10 am Exp $ =~ /(\d+\.\d+)/);
 
 ###############################################################################
 
@@ -57,6 +57,28 @@ Makes no sense for Collection, will throw an error.
 sub delete () {
     my $self=shift;
     $self->throw("delete() - makes no sense on Collection object");
+}
+
+###############################################################################
+
+=item describe () {
+
+Describes itself, returns a hash reference with at least the following
+elements:
+
+ type       => 'collection'
+ class      => class name
+ key        => key name
+
+=cut
+
+sub describe ($;$) {
+    my $self=shift;
+    return {
+        type    => @_ ? 'hash' : 'collection',
+        class   => $$self->{class_name},
+        key     => $$self->{key_name},
+    };
 }
 
 ###############################################################################
@@ -108,7 +130,7 @@ sub get ($$) {
         $_ ||
             throw $self "get - no object ID given";
         ref($_) &&
-            throw $self "get - should be a scalar, not a ".ref($_);
+            throw $self "get - should be a scalar, not a ".ref($_)." reference";
         XAO::Objects->new(objname => $$self->{class_name},
                           glue => $self->_glue,
                           unique_id => $_,

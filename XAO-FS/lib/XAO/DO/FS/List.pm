@@ -33,7 +33,7 @@ use XAO::Objects;
 use base XAO::Objects->load(objname => 'FS::Glue');
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: List.pm,v 1.10 2002/12/12 17:55:44 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: List.pm,v 1.11 2003/01/10 03:07:10 am Exp $ =~ /(\d+\.\d+)/);
 
 ###############################################################################
 
@@ -141,12 +141,23 @@ sub delete ($$) {
 
 ###############################################################################
 
-sub describe {
+=item describe ()
+
+Describes itself, returns a hash reference with at least the following
+elements:
+
+ type       => 'list'
+ class      => class name of Hashes stored inside
+ key        => key name
+
+=cut
+
+sub describe ($;$) {
     my $self=shift;
     return {
-        type => 'list',
-        class => $$self->{class_name},
-        key => $$self->{key_name},
+        type    => @_ ? 'hash' : 'list',
+        class   => $$self->{class_name},
+        key     => $$self->{key_name},
     };
 }
 

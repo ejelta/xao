@@ -67,7 +67,7 @@ use XAO::Objects;
 use base XAO::Objects->load(objname => 'FS::Glue');
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: Hash.pm,v 1.10 2002/12/12 17:55:44 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: Hash.pm,v 1.11 2003/01/10 03:07:10 am Exp $ =~ /(\d+\.\d+)/);
 
 ###############################################################################
 
@@ -360,7 +360,7 @@ sub build_structure ($%) {
 If current object is not on top level returns key that refers to the
 current object in the container object that contains current object.
 
-Would return undef if current object was created with "new" and had
+Will return undef if current object was created with "new" and had
 never been stored anywhere.
 
 =cut

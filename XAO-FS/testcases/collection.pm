@@ -29,11 +29,39 @@ sub test_bild_20021217 {
         $pass=0;
     }
     otherwise {
+        my $e=shift;
+        ## dprint "Expected error: $e";
         $pass=1;
     };
     $self->assert($pass,
                   "Managed to get an object by passing array reference to get()");
 }
+
+###############################################################################
+
+sub test_describe {
+    my $self=shift;
+    
+    my $odb = $self->{odb};
+    
+    my $list=$odb->collection(class => 'Data::Customer');
+    $self->assert($list, "Can't create Data::Customer collection");
+    
+    $self->assert(defined($list->can('describe')),
+                  "Can't call function 'describe()' on the Collection object");
+
+    my $desc=$list->describe;
+    $self->assert(ref($desc) eq 'HASH',
+                  "Collection description is not a hash reference");
+    $self->assert($desc->{type} eq 'collection',
+                  "Type is not 'collection'");
+    $self->assert($desc->{class} eq 'Data::Customer',
+                  "Class is not 'Data::Customer'");
+    $self->assert($desc->{key} => 'customer_id',
+                  "Key is not 'customer_id'");
+}
+
+###############################################################################
 
 sub test_everything {
     my $self=shift;

@@ -237,7 +237,7 @@ sub test_list_describe {
     $self->assert($list, "Can't fetch List object");
     
     $self->assert(defined($list->can('describe')),
-                  "Can't call function 'describe()' on Data::System::List object!");
+                  "Can't call function 'describe()' on the List object");
 
     my $desc=$list->describe();
     $self->assert(ref($desc) eq 'HASH',

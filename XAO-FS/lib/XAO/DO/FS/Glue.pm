@@ -50,7 +50,7 @@ use XAO::Objects;
 use base XAO::Objects->load(objname => 'Atom');
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: Glue.pm,v 1.22 2002/10/29 09:23:58 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: Glue.pm,v 1.23 2003/01/10 03:07:10 am Exp $ =~ /(\d+\.\d+)/);
 
 ###############################################################################
 
@@ -297,34 +297,76 @@ object (formerly /Global):
 
  my $global=$odb->fetch('/');
 
+B<Experimental extension>: The following full forms can also be used:
+
+ xaofs://uri/Pages/P123/Hits/H234/name
+ xaofs://collection/class/Data::Page/5678/Hits/H234/name
+
+Both should yield the same result providing that 5678 is a Collection
+(see L<XAO::DS::FS::Collection>) code for P123.
+
 =cut
 
 sub fetch ($$) {
     my $self=shift;
     my $path=shift;
 
-    ##
-    # Normalizing and checking path
-    #
-    $path=$self->normalize_path($path);
-    substr($path,0,1) eq '/' || throw $self "fetch - bad path ($path)";
-
-    ##
-    # Going through the path and retrieving every element. Could be a
-    # little bit more optimal, but not much..
-    #
-    my $node=XAO::Objects->new(objname => 'FS::Global',
-                               glue => $self,
-                               uri => '/');
-    foreach my $nodename (split(/\/+/,$path)) {
-        next unless length($nodename);
-        if(ref($node)) {
-            $node=$node->get($nodename);
-        } else {
-            return undef;
-        }
+    $path =~ /^(xaofs:\/\/(.*?))?(\/.*)$/;
+    my $type;
+    my $full_path;
+    if($1) {
+        $type=$2;
+        $full_path=$path;
+        $path=$3;
     }
-    $node;
+
+    if(!defined $type || $type eq 'uri') {
+
+        ##
+        # Normalizing and checking path
+        #
+        $path=$self->normalize_path($path);
+        substr($path,0,1) eq '/' || throw $self "fetch - bad path ($path)";
+
+        ##
+        # Going through the path and retrieving every element. Could be a
+        # little bit more optimal, but not much..
+        #
+        my $node=XAO::Objects->new(objname => 'FS::Global',
+                                   glue => $self,
+                                   uri => '/');
+        foreach my $nodename (split(/\/+/,$path)) {
+            next unless length($nodename);
+            if(ref($node)) {
+                $node=$node->get($nodename);
+            } else {
+                return undef;
+            }
+        }
+
+        return $node;
+    }
+    elsif($type eq 'collection') {
+        $path =~ qr|^/class/(\w+(::\w+)*)(/.*)?$| ||
+            throw $self "fetch - wrong collection uri ($full_path)";
+
+        my $class=$1;
+        $path=$3;
+
+        my $node=$self->collection(class => $class);
+        if($path && $path ne '/') {
+            foreach my $nodename (split(/\/+/,$path)) {
+                next unless length($nodename);
+                if(ref($node)) {
+                    $node=$node->get($nodename);
+                } else {
+                    return undef;
+                }
+            }
+        }
+
+        return $node;
+    }
 }
 
 ###############################################################################

@@ -1,4 +1,7 @@
 1.05 -
+    * fetch() can now fetch collections using
+      xaofs://collection/class/Data::Product/ syntax
+    * describe() method implemented for collections
     * minor bug in Collection fixed
     * name restrictions are now enforced in List according to
       documentation

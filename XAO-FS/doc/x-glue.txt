@@ -111,6 +111,14 @@ PUBLIC METHODS
 
          my $global=$odb->fetch('/');
 
+        Experimental extension: The following full forms can also be used:
+
+         xaofs://uri/Pages/P123/Hits/H234/name
+         xaofs://collection/class/Data::Page/5678/Hits/H234/name
+
+        Both should yield the same result providing that 5678 is a
+        Collection (see the XAO::DS::FS::Collection manpage) code for P123.
+
     objname ()
         Returns relative object name that XAO::Objects would accept.
 

@@ -43,6 +43,14 @@ DESCRIPTION
         Deletes object from the list - first call destroy on the object to
         recursively delete its content and then drops it from the list.
 
+    describe ()
+        Describes itself, returns a hash reference with at least the
+        following elements:
+
+         type       => 'list'
+         class      => class name of Hashes stored inside
+         key        => key name
+
     detach ()
         Detaches current object from the database. Not implemented, but safe
         to use in read-only situations.

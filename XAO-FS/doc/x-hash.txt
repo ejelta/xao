@@ -250,7 +250,7 @@ DESCRIPTION
         If current object is not on top level returns key that refers to the
         current object in the container object that contains current object.
 
-        Would return undef if current object was created with "new" and had
+        Will return undef if current object was created with "new" and had
         never been stored anywhere.
 
     container_object ()
