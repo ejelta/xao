@@ -143,7 +143,7 @@ sub test_search {
                     }
                     else {
                         $self->assert(!defined($got),
-                                      "Expected '$w' not to be ignored, but it is (count=$got)");
+                                      "Expected '$w' not to be ignored, but it is (count=".($got||'').")");
                     }
                 }
             }
