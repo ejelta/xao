@@ -1,5 +1,12 @@
 Revision history for Perl extension XAO::P21.
 
+0.11  Thu Mar 28 20:49:46 MSK 2002
+        - in server:
+                view_open_order_details is changed; order line disposition
+                info is returned.
+        - in client:
+                view_open_order_details is changed according to server.        
+
 0.09  Mon Feb 11 20:23:47 MSK 2002
         - minor fixations
 

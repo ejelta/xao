@@ -18,7 +18,7 @@ require Exporter;
                 order
                 price
 );
-$VERSION = '0.11';
+$VERSION = '0.10';
 
 
 =head1 NAME
@@ -81,10 +81,10 @@ sub call {
             $result = $callback->($constr->($_));
         }
         delete $self->{Socket};
-        throw XAO::E::P21 "unexpected eof reading from socket";
+        throw XAO::E::P21 "call - unexpected eof reading from socket";
     }
     delete $self->{Socket};
-    throw XAO::E::P21 "SIGPIPE writing to socket";
+    throw XAO::E::P21 "call - SIGPIPE writing to socket";
 };
 
 =head1 items
@@ -105,7 +105,7 @@ sub items {
     $self->call( sub {
         my ($item_code, $prod_group, $pkg_size, $sales_unit,
             $sku, $list_price, $alt_ut_name, $alt_ut_size,
-            $desc1, $desc2, $upc, $page) = split /\t/, $_[0];
+            $desc1, $desc2, $upc) = split /\t/, $_[0];
         {
             item_code	=> $item_code,
             prod_group	=> $prod_group,
@@ -118,9 +118,8 @@ sub items {
             desc1   	=> $desc1,
             desc2	    => $desc2,
             upc         => $upc,
-            page        => $page,
         }
-    }, $callback, $table || 'items');
+        }, $callback, $table || 'items');
 }
 
 =head1 avail
@@ -317,24 +316,59 @@ The hash contains following attributes:
 
 =item line_number - the row number for this entry, first row being 1 (one)
 
-=item itemcode - a valid P21 itemcode (not a customer itemcode!)
-
 =item qty - quantity ordered for this item
+
+=item itemcode - a valid P21 itemcode (not a customer itemcode!)
 
 =item price - the unit price, not the total price
 
 =item email - email address for further notification
- 
+     
 =back 
+
+Returns a hash reference with 'result' and 'info' members. Where
+result is zero for success and info contains internally used
+order ID which is the same as provided currenly.
 
 =cut  
 
 sub order {
-    my $self = shift;
-    $self->call( sub {
-                    my ($result, $info) = split /\t/, $_[0];
-                    { result => $result, info => $info }
-                 }, undef, 'order_entry', @_);
+    my $self=shift;
+    my $order_list=shift;
+
+    my $constr=sub {
+        my ($result, $info) = split /\t/, $_[0];
+        return { result => $result, info => $info };
+    };
+
+    my $callback=sub {
+        $_[0];
+    };
+
+    my @order_array=map {
+        $_->{reference_number},
+        $_->{customer},
+        $_->{date},
+        $_->{po},
+        $_->{credit_card},
+        $_->{card_exp_month},
+        $_->{card_exp_year},
+        $_->{name},
+        $_->{address1},
+        $_->{address2},
+        $_->{city},
+        $_->{state},
+        $_->{zip},
+        $_->{inst1},
+        $_->{inst2},
+        $_->{line_number},
+        $_->{itemcode},
+        $_->{qty},
+        $_->{price},
+        $_->{email},
+    } @$order_list;
+
+    $self->call($constr,$callback, 'order_entry', @order_array);
 }
 
 =head1 price
@@ -350,20 +384,27 @@ Returns reference to hash:
 =cut  
 
 sub price {
-    my ($self, %param) = @_;
-    my $pricedata;
-    my $quantity = $param{quantity} || 1;
+    my $self=shift;
+    my $args=get_args(\@_);
+
+    my $quantity = $args->{quantity} || 1;
+    my $customer = $args->{customer};
+    my $itemcode = $args->{itemcode} || $args->{item};
+
     $self->call(sub {
                     my ($price, $mult) = split /\t/, $_[0];
-                    {
+                    return {
                         price   => $price,
                         mult    => $mult,
-                        total   => $price * $mult * $quantity
-                    }
+                        total   => $price * $mult * $quantity,
+                    };
                 },
-                sub { $pricedata=$_[0] },
+                sub {
+                    return $_[0];
+                },
                 'price',
-                $param{customer} || '?', $param{item},
+                $customer,
+                $itemcode,
                 $quantity);
 }
 
@@ -400,7 +441,17 @@ sub list_all_open_orders {
 
 =head1 view_open_order_details
 
-Returns info about given order.
+Returns info about given order of given customer. Example:
+
+    my $res=$cl->view_open_order_details(customer=>"21CASH", order=>1234567);
+
+Returns array of hash references with order line infos.
+
+Another example:
+
+    my $res=$cl->view_open_order_details(customer=>"21CASH",
+                                         order=>1234567,
+                                         callback=>\&print_each_line);
 
 =cut
 
@@ -416,7 +467,9 @@ sub view_open_order_details {
                          $open_qty,
                          $open_value,
                          $exp_date,
-                         $last_shipment
+                         $last_shipment,
+                         $disposition,
+                         $disposition_desc,
                         ) = split /\t/, $_[0];
                      {
                          item	=> $item,
@@ -428,6 +481,8 @@ sub view_open_order_details {
                          open_value	=> $open_value,
                          exp_date	=> $exp_date,
                          last_shipment	=> $last_shipment,
+                         disposition => $disposition,
+                         disposition_desc => $disposition_desc,
                      }
                      }, $param{callback}, 'view_open_order_details',
                     $param{customer} || '?', # XXX

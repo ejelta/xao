@@ -1,4 +1,8 @@
 #!/usr/bin/perl -w
+#
+# !!!! Broken! Client interface was changed.
+# TODO: fix.
+#
 
 use lib qw(../blib/lib);
 use XAO::P21;
@@ -24,6 +28,7 @@ foreach my $prod (@products) {
 }
 
 my $seq=1;
+# XXX FIXME
 my $result=
 $client->order( join("\t", map {
            $_->[0]=$seq++;
