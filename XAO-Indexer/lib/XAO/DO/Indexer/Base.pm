@@ -322,9 +322,7 @@ sub update ($%) {
     #
     my $compression=$index_object->get('compression');
     if($compression) {
-        eval {
-            use Compress::LZO;
-        };
+        eval 'use Compress::LZO';
         if($@) {
             throw $self "update - need Compress::LZO for compression ($compression)";
         }

@@ -9,6 +9,16 @@ sub test_incremental {
     my $self=shift;
     my $odb=$self->{config}->odb;
 
+    ##
+    # Checking if we have 'Compress::LZO'
+    #
+    my $have_compression=1;
+    eval 'use Compress::LZO';
+    if($@) {
+        warn "No Compress::LZO, skipping compression\n";
+        $have_compression=0;
+    }
+
     $self->generate_content();
 
     $odb->fetch('/Foo')->get_new->add_placeholder(
@@ -33,7 +43,7 @@ sub test_incremental {
     while($foo_index->update) {
         ++$iter_count;
         dprint "Iteration $iter_count";
-        if($iter_count>0 && $iter_count<10) {
+        if($have_compression && $iter_count>0 && $iter_count<10) {
             dprint ".changing compression to ".$iter_count;
             $foo_index->put(compression => $iter_count);
         }
