@@ -80,7 +80,9 @@ DO TRANSACTION:
             wbw_head.ship_to_addr3          d_d
             wbw_head.ship_to_city           d_d
             wbw_head.ship_to_state          d_d
-            wbw_head.ship_to_zip            skip
+            wbw_head.ship_to_zip            d_d
+            wbw_head.ar_amt                 d_d
+            wbw_head.cust_po                skip
         .
     END.
 
