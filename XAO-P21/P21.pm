@@ -686,6 +686,59 @@ sub cleanup_spool {
 
 ###############################################################################
 
+=item ord_past
+
+Retrieves data about items shipped for past orders both from real p21
+orders and from web orders. Takes date and returns data for only items
+with ord_line.entry_date past that given date.
+
+Example:
+
+ $client->ord_past(year => 2003, month => 11, day => 21);
+
+Accepts 'callback' argument and will pass all fields to it in a hash
+reference:
+
+ cust_code  => order.cust_code
+ ord_date   => order.ord_date
+ ord_number => ord_line.ord_number = order.ord_number
+ item_code  => ord_line.item_code
+ entry_date => ord_line.entry_date
+
+=cut
+
+sub ord_past ($%) {
+    my $self=shift;
+    my $args=get_args(\@_);
+
+    my $year=$args->{year} ||
+        throw XAO::E::P21 "ord_past - no 'year' given";
+    my $month=$args->{month} ||
+        throw XAO::E::P21 "ord_past - no 'month' given";
+    my $day=$args->{day} ||
+        throw XAO::E::P21 "ord_past - no 'day' given";
+
+    my $build=sub {
+        my $str=shift;
+
+        my @arr=split(/\t/,$str);
+        scalar(@arr)>=5 ||
+            throw XAO::E::P21 "ord_past - expected 5 fields ($str)";
+
+        my %line;
+        @line{qw(cust_code ord_date ord_number item_code entry_date)}=@arr;
+
+        return \%line;
+    };
+
+    $self->call($build,
+                $args->{callback},
+                'ord_past',
+                $year,$month,$day);
+}
+
+###############################################################################
+
 =item ping
 
 Pings remote server.
