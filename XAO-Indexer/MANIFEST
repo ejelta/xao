@@ -1,0 +1,11 @@
+MANIFEST
+Makefile.PL
+MANIFEST.SKIP
+Indexer.pm
+
+lib/XAO/DO/Indexer/Base.pm
+lib/XAO/DO/Data/Index.pm
+lib/XAO/DO/Data/IndexData.pm
+lib/XAO/DO/Data/IndexIgnore.pm
+
+scripts/xao-indexer

@@ -1,3 +1,17 @@
+=head1 NAME
+
+XAO::DO::Indexer::Base -- Dynamic content management for XAO::Web
+
+=head1 SYNOPSIS
+
+ <%Content name="about_us"%>
+
+=head1 DESCRIPTION
+
+For installation and usage instruction see "INSTALLATION AND USAGE"
+chapter below.
+
+Content objec
 package XAO::DO::Indexer::Base;
 use strict;
 use XAO::Utils;
@@ -6,7 +20,12 @@ use XAO::Projects qw(get_current_project);
 use Digest::MD5 qw(md5_base64);
 use base XAO::Objects->load(objname => 'Atom');
 
-use Data::Dumper;
+### use Data::Dumper;
+
+###############################################################################
+
+use vars qw($VERSION);
+$VERSION='1.0';
 
 ###############################################################################
 
