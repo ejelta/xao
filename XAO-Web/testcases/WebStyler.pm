@@ -35,6 +35,26 @@ sub test_all {
             template => '<%Styler dollars="3.5999"%>',
             result => '$3.60',
         },
+        t10 => {
+            template => '<%Styler real="3.5999"%>',
+            result => '3.60',
+        },
+        t11 => {
+            template => '<%Styler real="33333.5999"%>',
+            result => '33,333.60',
+        },
+        t12 => {
+            template => '<%Styler real="3.333333" format="%.4f"%>',
+            result => '3.3333',
+        },
+        t13 => {
+            template => '<%Styler real="3.333333" format="%.1f"%>',
+            result => '3.3',
+        },
+        t14 => {
+            template => '<%Styler real="2222.333333" format="%.4f"%>',
+            result => '2,222.3333',
+        },
     );
 
     my $page=XAO::Objects->new(objname => 'Web::Page');
