@@ -454,7 +454,9 @@ sub test_null {
 
     my $odb=$self->get_odb();
 
-    my $cust=$odb->fetch('/Customers/c1');
+    my $clist=$odb->fetch('/Customers');
+    $self->assert($clist, 'List object fetch failed');
+    my $cust=$clist->get('c1');
     $self->assert($cust, 'Hash object fetch failed');
 
     $cust->add_placeholder(name => 'text',
@@ -472,19 +474,116 @@ sub test_null {
                           );
     $cust->add_placeholder(name => 'real2',
                            type => 'real',
-                           minvalue => 1000,
+                           minvalue => 256,
                           );
 
     my %matrix=(
-        t1  => 'text',
-        t2  => 'integer',
-        t3  => 'int2',
-        t4  => 'real',
-        t5  => 'real2',
+        t1  => {
+            name    => 'text',
+            default => '',
+        },
+        t2  => {
+            name    => 'integer',
+            default => 0
+        },
+        t3  => {
+            name    => 'int2',
+            default => 1000
+        },
+        t4  => {
+            name    => 'real',
+            default => 0,
+        },
+        t5  => {
+            name    => 'real2',
+            default => 256,
+        },
     );
 
     foreach my $test (map { $matrix{$_} } sort keys %matrix) {
-        xx
+        my $name=$test->{name};
+        my $expect=$test->{default};
+
+        my $c=$clist->get('c2');
+
+        my $got=$c->get($name);
+        $self->assert(defined($got),
+                      "Got 'undef' for name=$name (initial)");
+
+        $self->assert($got eq $expect,
+                      "Expect $expect, got $got for name=$name (initial)");
+
+        $c->put($name => 12345);
+
+        $c=$clist->get($name);
+
+        $c->delete($name);
+
+        $got=$c->get($name);
+        $self->assert(defined($got),
+                      "Got 'undef' for name=$name (deleted)");
+
+        $self->assert($got eq $expect,
+                      "Expect $expect, got $got for name=$name (deleted)");
+
+        $c->put($name => undef);
+
+        $c=$clist->get($name);
+
+        $got=$c->get($name);
+        $self->assert(defined($got),
+                      "Got 'undef' for name=$name (put undef)");
+
+        $self->assert($got eq $expect,
+                      "Expect $expect, got $got for name=$name (put undef)");
+
+        $c->put($name => $expect);
+
+        $c=$clist->get($name);
+
+        $got=$c->get($name);
+        $self->assert(defined($got),
+                      "Got 'undef' for name=$name (put default)");
+
+        $self->assert($got eq $expect,
+                      "Expect $expect, got $got for name=$name (put default)");
+
+        ##
+        # Now the same on detached object
+        #
+        $c=$clist->get_new;
+
+        $got=$c->get($name);
+        $self->assert(defined($got),
+                      "Got 'undef' for name=$name (initial, detached)");
+        $self->assert($got eq $expect,
+                      "Expect $expect, got $got for name=$name (initial, detached)");
+
+        $c->put($name => 12345);
+        $c->delete($name);
+
+        $got=$c->get($name);
+        $self->assert(defined($got),
+                      "Got 'undef' for name=$name (deleted, detached)");
+        $self->assert($got eq $expect,
+                      "Expect $expect, got $got for name=$name (deleted, detached)");
+
+        $c->put($name => undef);
+
+        $got=$c->get($name);
+        $self->assert(defined($got),
+                      "Got 'undef' for name=$name (put undef, detached)");
+        $self->assert($got eq $expect,
+                      "Expect $expect, got $got for name=$name (put undef, detached)");
+
+        $c->put($name => $expect);
+
+        $got=$c->get($name);
+        $self->assert(defined($got),
+                      "Got 'undef' for name=$name (put default, detached)");
+        $self->assert($got eq $expect,
+                      "Expect $expect, got $got for name=$name (put default, detached)");
+
     }
 }
 
