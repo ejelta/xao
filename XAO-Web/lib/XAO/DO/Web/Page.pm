@@ -309,7 +309,7 @@ use Error qw(:try);
 use base XAO::Objects->load(objname => 'Atom');
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: Page.pm,v 1.15 2002/06/08 01:07:31 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: Page.pm,v 1.16 2002/06/20 00:20:45 am Exp $ =~ /(\d+\.\d+)/);
 
 ##
 # Prototypes
@@ -409,6 +409,11 @@ sub display ($%) {
         $text=$args->{$item->{objname}} unless defined($text);
 
         ##
+        # Flag to stop after current element
+        #
+        my $stop_after;
+
+        ##
         # Executing object if not.
         #
         my $itemflag=$item->{flag};
@@ -473,6 +478,17 @@ sub display ($%) {
             }
 
             ##
+            # Allowing XAO::Object to recycle this object
+            #
+            XAO::Objects->recycle($obj);
+
+            ##
+            # Indicator that we do not need to parse or display anything
+            # after that point.
+            #
+            $stop_after=$self->clipboard->get('_no_more_output');
+
+            ##
             # Was it something like SetArg object? Merging changes in then.
             #
             if($self->{merge_args}) {
@@ -507,7 +523,7 @@ sub display ($%) {
         ##
         # Checking if this object required to stop processing
         #
-        last if $self->clipboard->get('_no_more_output');
+        last if $stop_after;
     }
 }
 
@@ -570,6 +586,10 @@ Example of getting Page object:
      my $obj=$self->object;
      $obj->display(template => '<%Date%>');
  }
+
+Or even:
+
+ $self->object->display(template => '<%Date%>');
 
 Getting FilloutForm object:
 
@@ -1170,6 +1190,31 @@ sub cache ($%) {
     my $self=shift;
     my $args=get_args(\@_);
     return $self->siteconfig->cache($args);
+}
+
+###############################################################################
+
+=item recycle ()
+
+Cleans up whatever might be messed inside of the current object and
+prepares it for re-using. The object will be returned from XAO::Objects'
+new() function in the state it is left after recycle().
+
+If you do not want your derived object to be recyclable -- return
+'undef' from recycle() method.
+
+=cut
+
+sub recycle ($) {
+    my $self=shift;
+    foreach my $k (keys %$self) {
+        next if $k eq 'objname' ||
+                $k eq 'siteconfig' ||
+                $k eq 'sitename' ||
+                $k eq 'odb';
+        delete $self->{$k};
+    }
+    $self;
 }
 
 ###############################################################################
