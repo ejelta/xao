@@ -81,6 +81,7 @@ my %man3pods;
 foreach my $n (keys %{ExtUtils::Manifest::maniread()}) {
     next unless $n =~ '^(FS).pm$' ||
                 $n =~ '^lib/XAO/(.*)\.(pm|pod)$';
+    next if $n =~/\/testcases\//;
     my $man=$1;
     $man=~s/\/+/::/g;
     $man='XAO::' . $man;
