@@ -309,8 +309,23 @@ sub expand ($%) {
         # http://host.com/cgi-bin/xao-apache.pl/sitename in case of
         # plain CGI usage.
         #
-        my $url=$cgi->url(-full => 1, -path_info => 0);
-        $url=$1 if $url=~/^(.*)($path)$/;
+        my $url;
+        if(defined($CGI::VERSION) && $CGI::VERSION>=2.80) {
+            $url=$cgi->url(-base => 1);
+            my $pinfo=$ENV{PATH_INFO};
+            my $uri=$ENV{REQUEST_URI};
+            if($pinfo =~ /^\/$sitename(\/.+)?$uri/) {
+                # mod_rewrite
+            }
+            elsif($uri =~ /^(.*)$pinfo$/) {
+                # cgi
+                $url.=$1;
+            }
+        }
+        else {
+            $url=$cgi->url(-full => 1, -path_info => 0);
+            $url=$1 if $url=~/^(.*)($path)$/;
+        }
 
         ##
         # Trying to understand if rewrite module was used or not. If not
