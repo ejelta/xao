@@ -381,6 +381,15 @@ sub process ($%) {
     XAO::PageSupport::reset();
 
     ##
+    # Analyzing the path. We have to do that up here because the object
+    # might specify that we should not touch CGI.
+    #
+    my @path=split(/\//,$path);
+    push(@path,"") unless @path;
+    push(@path,"index.html") if $path =~ /\/$/;
+    my $pd=$args->{pagedesc} || $self->analyze(\@path);
+
+    ##
     # Figuring out current active URL. It might be the same as base_url
     # and in most cases it is, but it just as well might be different.
     #
@@ -391,7 +400,10 @@ sub process ($%) {
     #
     my $active_url;
     my $apache=$args->{apache};
-    my $cgi=$args->{cgi} || CGI->new;
+    my $cgi=$args->{cgi};
+    if(!$cgi) {
+        $cgi=$pd->{no_cgi} ? CGI->new('foo=bar') : CGI->new;
+    }
     if($apache) {
         $active_url="http://" . $apache->hostname;
     }
@@ -487,7 +499,10 @@ sub process ($%) {
     $siteconfig->clipboard->put(mod_perl => $mod_perl);
 
     ##
-    # Putting CGI object into site configuration
+    # Putting CGI object into site configuration. The special case is
+    # 'no_cgi' in the path_mapping_table which means that the object is
+    # going to handle CGI arguments itself. It can be useful if it needs
+    # raw query string.
     #
     $siteconfig->embedded('web')->enable_special_access;
     $siteconfig->cgi($cgi);
@@ -497,9 +512,6 @@ sub process ($%) {
     # Checking for directory index url without trailing slash and
     # redirecting with appended slash if this is the case.
     #
-    my @path=split(/\//,$path);
-    push(@path,"") unless @path;
-    push(@path,"index.html") if $path =~ /\/$/;
     if($path[-1] !~ /\.\w+$/) {
         my $pd=$self->analyze([ @path,'index.html' ]);
         #use Data::Dumper; dprint "pd=",Dumper($pd);
@@ -513,11 +525,6 @@ sub process ($%) {
             return "Directory index redirection\n";
         }
     }
-
-    ##
-    # Checking existence of the page.
-    #
-    my $pd=$args->{pagedesc} || $self->analyze(\@path);
 
     ##
     # Separator for the error_log :)
