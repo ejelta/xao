@@ -16,6 +16,8 @@ GetOptions(
     'search'        => \$search,
 );
 
+die "Needs to be fixed, this is just a copy of CWS one";
+
 if(($all && @ARGV) ||
    ($create && @ARGV!=2) ||
    ($search && @ARGV!=3) ||

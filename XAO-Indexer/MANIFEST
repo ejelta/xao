@@ -1,7 +1,9 @@
 MANIFEST
 Makefile.PL
 MANIFEST.SKIP
+README
 Indexer.pm
+test.pl
 
 lib/XAO/DO/Indexer/Base.pm
 lib/XAO/DO/Data/Index.pm
@@ -9,3 +11,11 @@ lib/XAO/DO/Data/IndexData.pm
 lib/XAO/DO/Data/IndexIgnore.pm
 
 scripts/xao-indexer
+
+testcases/base.pm
+testcases/basic.pm
+testcases/search.pm
+testcases/testroot/projects/test/objects/Config.pm
+testcases/testroot/projects/test/objects/Data/Bar.pm
+testcases/testroot/projects/test/objects/Data/Foo.pm
+testcases/testroot/projects/test/objects/Indexer/Foo.pm

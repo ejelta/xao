@@ -15,6 +15,8 @@ wrapper methods for most useful XAO Indexer functions.
 
 =head1 METHODS
 
+=over
+
 =cut
 
 ###############################################################################

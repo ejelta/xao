@@ -1,3 +1,5 @@
 Makefile
 .config
 ta
+blib
+pm_to_blib
