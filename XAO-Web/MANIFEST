@@ -10,6 +10,7 @@ PageSupport/PageSupport.xs
  --------------------------------- XAO::*
 lib/XAO/DO/Web/Action.pm
 lib/XAO/DO/Web/CgiParam.pm
+lib/XAO/DO/Web/Clipboard.pm
 lib/XAO/DO/Web/Cookie.pm
 lib/XAO/DO/Web/Condition.pm
 lib/XAO/DO/Web/Config.pm
@@ -41,6 +42,7 @@ testcases/base.pm
 testcases/FS.pm
 testcases/Page.pm
 testcases/PageSupport.pm
+testcases/WebClipboard.pm
 testcases/WebCondition.pm
 testcases/WebConfig.pm
 testcases/WebSetArg.pm
