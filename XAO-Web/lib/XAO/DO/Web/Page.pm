@@ -1,6 +1,6 @@
 =head1 NAME
 
-XAO::Objects::Page - core object of XAO::Web rendering system
+XAO::DO::Web::Page - core object of XAO::Web rendering system
 
 =head1 SYNOPSIS
 
@@ -8,13 +8,7 @@ Currently is only useful in XAO::Web site context.
 
 =head1 DESCRIPTION
 
-I<Disclaimer:> If you find any technical, stylistic or language problems
-in the following document please send me your suggestions and I will
-gladly make changes. English is a second language for me and
-I am sure the text is not perfect -- don't hesitate a second to tell me
-that I am wrong.
-
-As XAO::Objects::Page object (from now on just Page displayable
+As XAO::DO::Web::Page object (from now on just Page displayable
 object) is the core object for XAO::Web web rendering engine we
 will start with basics of how it works.
 
@@ -23,21 +17,21 @@ that can be understood by browser and displayed to a user. It will
 usually use database tables, templates and various displayable objects
 to achieve that.
 
-Every time a page is requested in someone's web browser symphero.pl
+Every time a page is requested in someone's web browser a XAO::Web handler
 gets executed, prepares site configuration, opens database connection,
 determines what would be start object and/or start path and does a lot
-of other useful things. If you did not read about it yet it suggested to
-do so -- see L<symphero.pl>.
+of other useful things. If you have not read about it yet it is suggested to
+do so -- see L<XAO::Web::Intro> and L<XAO::Web>.
 
-Although symphero.pl can call arbitrary object with arbitrary arguments
+Although XAO::Web handler can call arbitrary object with arbitrary arguments
 to produce an HTML page we will assume the simplest scenario of calling
-Page object with just one argument -- path to HTML file template for
+Page object with just one argument -- path to an HTML file template for
 simplicity (another way to pass some template to a Page object is
 to pass argument named "template" with the template text as the
-value). This is the default behavior of symphero.pl handler if you
+value). This is the default behavior of XAO::Web handler if you
 do not override it in configuration.
 
-Let's say user asked for http://oursite.com/ and symphero.pl translated
+Let's say user asked for http://oursite.com/ and XAO::Web translated
 that into the call to Page's display method with "path" argument set to
 "/index.html". All template paths are treated relative to "templates"
 directory in site directory or to system-wide "templates" directory if
@@ -98,8 +92,8 @@ Then the output produced by the original Page's display would be:
   </BODY></HTML>
 
 For actual site you might opt to use specific objects for header and
-footer (see L<XAO::Objects::Header> and
-L<XAO::Objects::Footer>):
+footer (see L<XAO::DO::Web::Header> and
+L<XAO::DO::Web::Footer>):
 
   <%Header title="My first XAO::Web page"%>
 
@@ -109,7 +103,7 @@ L<XAO::Objects::Footer>):
 
 Page's parser is not limited to only these simple cases, you can embed
 references to variables and objects almost everywhere. In the following
-example Utility object (see L<XAO::Objects::Utility>) is used to
+example Utility object (see L<XAO::DO::Web::Utility>) is used to
 build complete link to a specific page:
 
   <A HREF="<%Utility mode="base-url"%>/somepage.html">blah blah blah</A>
@@ -220,7 +214,7 @@ the template one level up from them.
 
 As a test of how you understood everything above please attempt to
 predict what would be printed by the following example (after reading
-L<XAO::Objects::SetArg> or guessing its meaning). The answer is
+L<XAO::DO::Web::SetArg> or guessing its meaning). The answer is
 about one page down, at the end of description chapter.
 
  <%SetArg name="V1" value="{}"%>
@@ -307,7 +301,7 @@ use XAO::PageSupport;
 # Package version
 #
 use vars qw($VERSION);
-($VERSION)=(q$Id: Page.pm,v 1.5 2001/12/18 02:30:57 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: Page.pm,v 1.6 2002/01/04 03:12:18 am Exp $ =~ /(\d+\.\d+)/);
 
 ##
 # Methods prototypes
@@ -347,7 +341,7 @@ sub new ($%) {
 Displays given template to the current output buffer. The system uses
 buffers to collect all text displayed by various objects in a rather
 optimal way using XAO::PageSupport (see L<XAO::PageSupport>)
-module. In symphero.pl the global buffer is initialized and after all
+module. In XAO::Web handler the global buffer is initialized and after all
 displayable objects have worked their way it retrieves whatever was
 accumulated in that buffer and displays it.
 
@@ -385,7 +379,7 @@ Example:
 For security reasons is also recommended to put all sub-templates into
 /bits/ directory under templates tree or into "bits" subdirectory of
 some tree inside of templates (like /admin/bits/admin-menu). Such
-templates cannot be displayed from symphero.pl by passing their path in
+templates cannot be displayed from XAO::Web handler by passing their path in
 URL.
 
 =cut
@@ -549,7 +543,7 @@ method, not by using XAO::Objects' new() method. Currently most
 of the objects would work fine even if you do not, but this is not
 guaranteed.
 
-Possible arguments are (the same as for XAO::Object's new method):
+Possible arguments are (the same as for XAO::Objects' new method):
 
 =over
 
@@ -1170,12 +1164,14 @@ Nothing.
 
 =head1 AUTHOR
 
-Xao, Inc.: Andrew Maltsev <am@xao.com>.
+Copyright (c) 2000-2001 Xao, Inc.
+
+Andrew Maltsev <am@xao.com>.
 
 =head1 SEE ALSO
 
 Recommended reading:
-L<symphero.pl>,
+L<XAO::Web>,
 L<XAO::Objects>,
 L<XAO::Projects>,
 L<XAO::Templates>.
