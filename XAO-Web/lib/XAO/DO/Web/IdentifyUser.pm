@@ -192,7 +192,7 @@ use XAO::Objects;
 use base XAO::Objects->load(objname => 'Web::Action');
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: IdentifyUser.pm,v 1.11 2002/05/03 01:36:27 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: IdentifyUser.pm,v 1.12 2002/06/09 05:34:01 am Exp $ =~ /(\d+\.\d+)/);
 
 ###############################################################################
 
@@ -306,7 +306,7 @@ sub check {
 
         my $current_time=time;
         if($last_vf && $current_time - $last_vf <= $vf_expire_time) {
-            
+
             ##
             # If optional 'vf_key_prop' and 'vf_key_cookie' parameters
             # are present checking the content of the key cookie and
@@ -465,6 +465,7 @@ sub login ($;%) {
     #
     if($user) {
         my $password=$args->{password};
+
         if(! $password) {
             $errstr="No password given";
         }
@@ -487,6 +488,18 @@ sub login ($;%) {
 
             if($dbpass ne $password) {
                 $errstr='Password mismatch';
+            }
+            else {
+
+                ##
+                # Calling overridable function that can check some
+                # additional condition. Return a string with the
+                # suggested error message or an empty string on success.
+                #
+                $errstr=$self->login_check(name => $username,
+                                           object => $user,
+                                           password => $password,
+                                          );
             }
         }
     }
@@ -544,6 +557,31 @@ sub login ($;%) {
     # Displaying results
     #
     $self->display_results($args,'verified');
+}
+
+##############################################################################
+
+=item login_check ()
+
+A method that can be overriden in a derived object to check addition
+conditions for letting a user in. Get the following arguments as its
+input:
+
+ name       => name of user object
+ password   => password
+ object     => reference to a database object containing user info
+
+This method is called after all standard checks - it is guaranteed that
+user object exists and password matches its database record.
+
+Must return empty string on success or suggested error message on
+failure. That error message will be passed in ERRSTR argument to the
+templates.
+
+=cut
+
+sub login_check ($%) {
+    return '';
 }
 
 ##############################################################################
