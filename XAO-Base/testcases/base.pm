@@ -1,10 +1,17 @@
 package testcases::base;
 use strict;
+use XAO::Base;
 
 use base qw(Test::Unit::TestCase);
 
 sub set_up {
     my $self=shift;
+
+    chomp(my $root=`pwd`);
+    $root.='/testcases/testroot';
+    XAO::Base::set_root($root);
+
+    push @INC,$root;
 }
 
 sub tear_down {

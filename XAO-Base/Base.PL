@@ -55,6 +55,7 @@ __DATA__
 ####################################################################
 package XAO::Base;
 use strict;
+use XAO::Errors qw(XAO::Errors::Base);
 require Exporter;
 
 use vars qw(@ISA @EXPORT_OK @EXPORT $VERSION
@@ -79,6 +80,20 @@ $homedir='<%HOMEDIR%>';
 # Root directory for all projects
 #
 $projectsdir='<%PROJECTSDIR%>';
+
+##
+# Setting root to something else. Useful for tests and not recommended
+# for use in normal lifecycle.
+#
+sub set_root ($) {
+    my $dir=shift || '';
+    $dir=~/^\// || 
+        throw XAO::Errors::Base "set_root - $dir must be an absolute path";
+    -d $dir ||
+        throw XAO::Errors::Base "set_root - directory $dir does not exists";
+    $homedir=$dir;
+    $projectsdir=$homedir . '/projects';
+}
 
 ###############################################################################
 1;

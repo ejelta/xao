@@ -7,8 +7,8 @@
 # to test only "placeholders" and "fields".
 #
 use Test::Unit::ExceptionFailure;
-eval "use Symphero::OS";
-if($@) { die "Can't find Symphero::OS - call as ``perl -Mblib $0''\n" }
+eval "use XAO::Base";
+if($@) { die "Can't find XAO::Base - call as ``perl -Mblib $0''\n" }
 
 ##
 # List of exceptions that are in testcases, but are not test cases.
@@ -60,10 +60,10 @@ EOT
 #### GENERATED AUTOMATICALLY, DO NOT EDIT ####
 use strict;
 use blib;
-use Symphero::Utils;
+use XAO::Utils;
 use Test::Unit::TestRunner;
 
-Symphero::Utils::set_debug(1);
+XAO::Utils::set_debug(1);
 
 my \$r=Test::Unit::TestRunner->new();
 \$r->start('testcases::$test');

@@ -11,7 +11,13 @@ lib/XAO/Projects.pm
 lib/XAO/SimpleHash.pm
 lib/XAO/Utils.pm
  ------------------------------------------- testcases
-testcases/SimpleHash.pm
-testcases/Projects.pm
-testcases/Utils.pm
 testcases/base.pm
+testcases/Objects.pm
+testcases/Projects.pm
+testcases/SimpleHash.pm
+testcases/Utils.pm
+ ------------------------------------------- test installation root
+testcases/testroot/projects/test/objects/Config.pm
+testcases/testroot/projects/test/objects/Test1.pm
+testcases/testroot/XAO/DO/Test1.pm
+testcases/testroot/XAO/DO/Test2.pm

@@ -1,11 +1,11 @@
 ##
 # This is object loader.
 #
-package Symphero::Objects;
+package XAO::Objects;
 use strict;
-use Symphero::Defaults qw($homedir $projectsdir);
-use Symphero::Utils;
-use Symphero::SiteConfig;
+use XAO::Base qw($homedir $projectsdir);
+use XAO::Utils qw(:args :debug);
+use XAO::Projects;
 
 ##
 # Prototypes
@@ -17,18 +17,17 @@ sub new ($%);
 # Module version.
 #
 use vars qw($VERSION);
-($VERSION)=(q$Id: Objects.pm,v 1.1 2001/10/23 00:45:09 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: Objects.pm,v 1.2 2001/10/24 07:16:25 am Exp $ =~ /(\d+\.\d+)/);
 
 ##
 # Loads object into memory.
 #
-# It first looks into site directory for object package, then into
-# Symphero objects directory. If found - loads and creates object,
-# otherwise returns undef.
+# It first looks into site directory for object package, then into XAO
+# objects directory. If found - loads and creates object, otherwise
+# returns undef.
 #
-# It's assumed that standard objects are in Symphero::Objects::
-# namespace and site overriden objects are in sitename::Objects::
-# namespace.
+# It's assumed that standard objects are in XAO::DO:: namespace and site
+# overriden objects are in XAO::DO::sitename:: namespace.
 #
 # On success returns class name of the loaded object.
 #
@@ -40,28 +39,28 @@ use vars qw($VERSION);
 #  baseobj => ignore site specific objects even if they exist (optional).
 #  sitename => should only be used to load Config object.
 #
-my %objref_cache;
+use vars qw(%objref_cache);
 sub load (%) {
-    my $class=(scalar(@_)%2 || ref($_[1]) ? shift(@_) : 'Symphero::Objects');
+    my $class=(scalar(@_)%2 || ref($_[1]) ? shift(@_) : 'XAO::Objects');
     my $args=get_args(\@_);
-    my $objname=$args->{objname};
-    $objname || throw Symphero::Errors::Objects
-                      "${class}::load - no objname given";
-    my $baseobj=$args->{baseobj};
+    my $objname=$args->{objname} ||
+        throw XAO::Errors::Objects "load - no objname given";
 
     ##
     # Config object is a special case. When we load it we do not have
     # site configuration yet and so we have to rely on supplied site
     # name.
+    #
     my $sitename;
-    if($objname eq 'Config') {
-        $sitename=$args->{sitename};
-        $sitename || $baseobj ||
-            throw Symphero::Errors::Objects "load - no sitename given for Config object";
+    if($args->{baseobj}) {
+        # No site name for base object
+    }
+    elsif($objname eq 'Config') {
+        $sitename=$args->{sitename} ||
+            throw XAO::Errors::Objects "load - no sitename given for Config object";
     }
     else {
-        my $siteconfig=get_site_config();
-        $sitename=$siteconfig ? $siteconfig->sitename() : '';
+        $sitename=XAO::Projects::get_current_project_name() || '';
     }
 
     ##
@@ -80,39 +79,39 @@ sub load (%) {
     #
     my $objref;
     my $system;
-    if(!$baseobj && $sitename) {
+    if($sitename) {
         (my $objfile=$objname) =~ s/::/\//sg;
         $objfile="$projectsdir/$sitename/objects/$objfile.pm";
-        if(open(F,$objfile)) {
+        if(-f $objfile && open(F,$objfile)) {
             local $/;
             my $text=<F>;
             close(F);
-            if($text =~ s{(package\s+Symphero::Objects)::($objname\s*;)}
-                         {${1}::${sitename}::$2}) {
-                eval "\n# line 1 \"$objfile\"\n" . $text;
-                throw Symphero::Errors::Objects
-                    "Error loading $objname ($objfile) -- $@" if $@;
-                $objref="Symphero::Objects::${sitename}::${objname}";
-            }
-            else {
-                throw Symphero::Errors::Objects
-                    "Package name is not Symphero::Objects::$objname in $objfile";
-            }
+            $text=~s{^\s*(package\s+(XAO::DO|Symphero::Objects))::($objname\s*;)}
+                    {${1}::${sitename}::${3}}m;
+            $1 || throw XAO::Errors::Objects
+                  "load - package name is not XAO::DO::$objname in $objfile";
+            $2 eq 'XAO::DO' ||
+                eprint "Old style package name in $objfile - change to XAO::DO::$objname";
+            eval "\n# line 1 \"$objfile\"\n" . $text;
+            throw XAO::Errors::Objects
+                  "load - error loading $objname ($objfile) -- $@" if $@;
+            $objref="XAO::DO::${sitename}::${objname}";
         }
         $system=0;
     }
     if(! $objref) {
-        $objref="Symphero::Objects::${objname}";
+        $objref="XAO::DO::${objname}";
         eval "require $objref";
-        throw Symphero::Errors::Objects "Error loading $objname ($objref) -- $@" if $@;
+        throw XAO::Errors::Objects
+              "load - error loading $objname ($objref) -- $@" if $@;
         $system=1;
     }
 
     ##
     # In case no object was found.
     #
-    $objref || throw Symphero::Errors::Objects
-                     "No object file found for sitename='$sitename', objname='$objname'";
+    $objref || throw XAO::Errors::Objects
+                     "load - no object file found for sitename='$sitename', objname='$objname'";
 
     ##
     # Returning class name and storing into cache
@@ -121,44 +120,28 @@ sub load (%) {
 }
 
 ##
-# Creates instance of named object. There is just one required argument
-# - 'objname', everything else is passed into object's constructor
-# unmodified.
+# Creates an instance of named object. There is just one required
+# argument - 'objname', everything else is passed into object's
+# constructor unmodified.
 #
-sub new ($%)
-{ my $class=shift;
-  my $args=get_args(\@_);
+sub new ($%) {
+    my $class=(scalar(@_)%2 || ref($_[1]) ? shift(@_) : 'XAO::Objects');
+    my $args=get_args(\@_);
 
-  ##
-  # Looking up what is real object reference for that objname.
-  #
-  my $objref=$class->load($args);
-  return undef unless $objref;
+    ##
+    # Looking up what is real object reference for that objname.
+    #
+    my $objref=$class->load($args) ||
+        throw XAO::Errors::Objects "new - can't load object ($args->{objname})";
 
-  ##
-  # Creating instance of that object
-  #
-  my $obj=eval $objref.'->new($args)';
-  $obj || throw Symphero::Errors::Objects
-                "Error creating instance of $objref -- $@";
-  $obj;
+    ##
+    # Creating instance of that object
+    #
+    my $obj=eval $objref.'->new($args)' ||
+        throw XAO::Errors::Objects "new - error creating instance of $objref ($@)";
+
+    $obj;
 }
 
-##
-# Error to be thrown from Symphero::Objects
-##
-package Symphero::Errors::Objects;
-use Error;
-use vars qw(@ISA);
-@ISA=qw(Error::Simple);
-
-sub throw ($$) {
-    my $self=shift;
-    my $text=shift;
-    $self->SUPER::throw("Symphero::Objects::" . $text);
-}
-
-##
-# That's it
-#
+###############################################################################
 1;
