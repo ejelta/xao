@@ -38,7 +38,7 @@ sub get_args (@);
 sub merge_refs (@);
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: Utils.pm,v 1.2 2001/10/25 02:51:54 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: Utils.pm,v 1.3 2001/10/26 02:47:33 am Exp $ =~ /(\d+\.\d+)/);
 
 ###############################################################################
 # Export control
@@ -54,7 +54,10 @@ require Exporter;
     keys => [qw(generate_key repair_key)],
     none => [],
 );
-@EXPORT=@{$EXPORT_TAGS{debug}};
+@EXPORT=(
+    @{$EXPORT_TAGS{args}},
+    @{$EXPORT_TAGS{debug}},
+);
 @EXPORT_OK=(
     @{$EXPORT_TAGS{args}},
     @{$EXPORT_TAGS{debug}},

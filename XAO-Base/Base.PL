@@ -55,7 +55,7 @@ __DATA__
 ####################################################################
 package XAO::Base;
 use strict;
-use XAO::Errors qw(XAO::Errors::Base);
+use XAO::Errors qw(XAO::Base);
 require Exporter;
 
 use vars qw(@ISA @EXPORT_OK @EXPORT $VERSION
@@ -88,9 +88,9 @@ $projectsdir='<%PROJECTSDIR%>';
 sub set_root ($) {
     my $dir=shift || '';
     $dir=~/^\// || 
-        throw XAO::Errors::Base "set_root - $dir must be an absolute path";
+        throw XAO::E::Base "set_root - $dir must be an absolute path";
     -d $dir ||
-        throw XAO::Errors::Base "set_root - directory $dir does not exists";
+        throw XAO::E::Base "set_root - directory $dir does not exists";
     $homedir=$dir;
     $projectsdir=$homedir . '/projects';
 }

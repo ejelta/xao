@@ -66,6 +66,7 @@ use vars qw(@ISA @EXPORT_OK %EXPORT_TAGS);
 %EXPORT_TAGS=(
     all => [qw(
         create_project
+        drop_project
         get_current_project
         get_current_project_name
         get_project
@@ -78,7 +79,7 @@ use vars qw(@ISA @EXPORT_OK %EXPORT_TAGS);
 # Package version for checks and reference
 #
 use vars qw($VERSION);
-($VERSION)=(q$Id: Projects.pm,v 1.2 2001/10/25 02:51:54 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: Projects.pm,v 1.3 2001/10/26 02:47:33 am Exp $ =~ /(\d+\.\d+)/);
 
 ##
 # Cache with all active project contexts and variable with current
