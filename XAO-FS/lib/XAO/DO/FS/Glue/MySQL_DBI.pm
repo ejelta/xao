@@ -35,7 +35,7 @@ use DBD::mysql;
 use base XAO::Objects->load(objname => 'Atom');
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: MySQL_DBI.pm,v 1.10 2002/04/04 08:35:45 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: MySQL_DBI.pm,v 1.11 2002/05/10 01:31:36 am Exp $ =~ /(\d+\.\d+)/);
 
 ###############################################################################
 
@@ -74,7 +74,7 @@ sub new ($%) {
             $self->throw("new - can't connect to the database ($dsn,$user,***)");
     $self->{dbh}=$dbh;
     my $v=$dbh->{mysql_serverinfo} || $dbh->{serverinfo};
-    if(!$v || $v !~ /^(\d+)\.(\d+)(\.(\d+))?$/ || $1<3 || $2<23) {
+    if(!$v || $v !~ /^(\d+)\.(\d+)(\.(\d+))?/ || $1<3 || $2<23) {
         $self->{no_null_indexes}=1;
         eprint "Disabling NULL indexes, older MySQL found";
     }
