@@ -44,12 +44,12 @@ sub sql_connect ($%) {
     $dsn=~m/^dbi:mysql:(database=)?(\w+)(;hostname=(.*?)(;|$))?/i ||
         throw $self "sql_connect - wrong DSN format ($dsn)";
     my $dbname=$2 . "\0";
-    my $hostname=$3 ? $4 : "";
+    my $hostname=$3 ? $4 : '';
     $hostname.="\0";
-    my $user=$args->{user};
-    $user.="\0" if $user;
-    my $password=$args->{password};
-    $password.="\0" if $password;
+    my $user=defined($args->{user}) ? $args->{user} : '';
+    $user.="\0";
+    my $password=defined($args->{password}) ? $args->{password} : '';
+    $password.="\0";
 
     ##
     # Perl complains about passing undefs into the sub which is ok and
