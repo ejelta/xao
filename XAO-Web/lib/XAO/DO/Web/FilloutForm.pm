@@ -62,7 +62,7 @@ use XAO::Errors qw(XAO::DO::Web::FilloutForm);
 use base XAO::Objects->load(objname => 'Web::Page');
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: FilloutForm.pm,v 1.5 2002/02/12 20:50:48 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: FilloutForm.pm,v 1.6 2002/05/07 21:32:40 am Exp $ =~ /(\d+\.\d+)/);
 
 sub setup ($%);
 sub field_desc ($$);
@@ -494,7 +494,8 @@ sub display ($;%) {
                            '</SELECT>';
         }
         elsif($style eq 'text' || $style eq 'phone' || $style eq 'usphone' ||
-              $style eq 'ccnum' || $style eq 'email') {
+              $style eq 'ccnum' || $style eq 'email' ||
+              $style eq 'number' || $style eq 'int' || $style eq 'integer') {
             $fdata->{html}=$obj->expand(
                 path => '/bits/fillout-form/html-text',
                 NAME => $name,

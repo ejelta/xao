@@ -180,7 +180,7 @@ use XAO::Errors qw(XAO::DO::Web::FS);
 use base XAO::Objects->load(objname => 'Web::Action');
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: FS.pm,v 1.22 2002/04/10 21:22:53 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: FS.pm,v 1.23 2002/05/07 21:32:40 am Exp $ =~ /(\d+\.\d+)/);
 
 ###############################################################################
 
@@ -418,7 +418,7 @@ sub show_list ($%) {
 
     my $page=$self->object;
 
-    if (!$number && ($args->{'default.path'} || $args->{'default.template'})) {
+    if (!$number && ($args->{'default.path'} || defined($args->{'default.template'}))) {
         $page->display(merge_refs($args,{
             path        => $args->{'default.path'},
             template    => $args->{'default.template'},
@@ -579,12 +579,12 @@ sub search ($;%) {
     my $page     = $self->object(objname => 'Page');
     my $basetype = '';
 
-    if (!$total && ($args->{'default.path'} || $args->{'default.template'})) {
+    if (!$total && ($args->{'default.path'} || defined($args->{'default.template'}))) {
         #
         # Display default if appropriate
         #
         my $default = '';
-        if ($args->{'default.template'}) {
+        if(defined($args->{'default.template'})) {
             $basetype = 'template';
             $default  = $args->{'default.template'};
         }
