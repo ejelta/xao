@@ -608,7 +608,9 @@ sub view_order_details {
                      ut_price ut_size
                      disposition disposition_desc
                      ship_loc
-                     req_date)}=@arr;
+                     req_date
+                     suspend_flag)}=@arr;
+            $line{suspend_flag}=lc($line{suspend_flag} || '') eq 'no' ? 0 : 1;
         }
         elsif($arr[0] eq 'INVOICE') {
             @arr==10 ||

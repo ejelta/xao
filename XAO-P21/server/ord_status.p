@@ -1,6 +1,7 @@
 DEF VAR d_d AS CHAR FORMAT "x(20)" NO-UNDO.
 DEF VAR onum AS INTEGER NO-UNDO.
 DEF VAR rdate AS DATE INIT ? NO-UNDO.
+DEF VAR sflag LIKE p21.order.suspend_flag NO-UNDO.
 DEF VAR c_price LIKE p21.ord_line.ut_price NO-UNDO.
 
 /* Field separator
@@ -15,6 +16,7 @@ ASSIGN onum=INTEGER(OS-GETENV("P0")).
 */
 FOR FIRST p21.order WHERE p21.order.ord_number = onum:
     ASSIGN rdate=p21.order.req_date.
+    ASSIGN sflag=p21.order.suspend_flag.
 END.
 
 /* Starting transaction here to get consistent results about
@@ -46,13 +48,14 @@ DO TRANSACTION:
                                           SHARE-LOCK NO-ERROR.
         IF AVAILABLE(p21.req_exp_date) THEN
             PUT UNFORMATTED
-                p21.req_exp_date.req_date
+                p21.req_exp_date.req_date   d_d
             .
         ELSE
             PUT UNFORMATTED
-                rdate
+                rdate                       d_d
             .
         PUT UNFORMATTED
+            sflag
             skip
         .
     END.
