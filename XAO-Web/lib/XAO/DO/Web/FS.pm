@@ -12,6 +12,7 @@ XAO::DO::Web::FS - XAO::Web front end object for XAO::FS
       fields="*"
       header.path="/bits/foo-list-header"
       path="/bits/foo-list-row"
+      default.path="/bits/foo-list-default"
  %>
 
  <%FS mode="search"
@@ -25,6 +26,7 @@ XAO::DO::Web::FS - XAO::Web front end object for XAO::FS
       header.path="/bits/admin/order/list-header"
       path="/bits/admin/order/list-row"
       footer.path="/bits/admin/order/list-footer"
+      default.path="/bits/foo-list-default"
  %>
 
 =head1 DESCRIPTION
@@ -138,6 +140,11 @@ Example:
       orderby="age|first_name+desc"
       start_item="40"
       items_per_page="20"
+
+      header.path="/bits/admin/order/list-header"
+      path="/bits/admin/order/list-row"
+      footer.path="/bits/admin/order/list-footer"
+      default.template="No matches found."
  %>
 
 =head2 CONFIGURATION VALUES SUPPORTED IN SEARCH MODE
@@ -172,7 +179,7 @@ use XAO::Errors qw(XAO::DO::Web::FS);
 use base XAO::Objects->load(objname => 'Web::Action');
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: FS.pm,v 1.13 2002/02/07 00:01:43 alves Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: FS.pm,v 1.14 2002/02/08 19:51:10 alves Exp $ =~ /(\d+\.\d+)/);
 
 ###############################################################################
 
@@ -384,6 +391,9 @@ described in get_object() method. Additional arguments are:
  header.path        header template path
  path               path that is displayed for each element of the list
  footer.path        footer template path
+ default.path       default template path, shown instead of  header,
+                    path and footer in the case where there are no
+                    items in list
 
 Show_list() supplies 'NUMBER' argument to header and footer containing
 the number of elements in the list.
@@ -401,6 +411,7 @@ sub show_list ($%) {
     $list->objname eq 'FS::List' || throw $self "show_list - not a list";
 
     my @keys=$list->keys;
+    my $number=scalar(@keys);
     my @fields;
     if($args->{fields}) {
         if($args->{fields} eq '*') {
@@ -413,33 +424,43 @@ sub show_list ($%) {
     }
 
     my $page=$self->object;
-    $page->display(merge_refs($args,{
-        path        => $args->{'header.path'},
-        template    => $args->{'header.template'},
-        NUMBER      => scalar(@keys),
-    })) if $args->{'header.path'} || $args->{'header.template'};
 
-    foreach my $id (@keys) {
-        my %data=(
-            path        => $args->{path},
-            ID          => $id,
-            NUMBER      => scalar(@keys),
-        );
-        if(@fields) {
-            my %t;
-            @t{@fields}=$list->get($id)->get(@fields);
-            foreach my $fn (@fields) {
-                $data{uc($fn)}=defined($t{$fn}) ? $t{$fn} : '';
-            }
-        }
-        $page->display(merge_refs($args,\%data));
+    if (!$number && ($args->{'default.path'} || $args->{'default.template'})) {
+        $page->display(merge_refs($args,{
+            path        => $args->{'default.path'},
+            template    => $args->{'default.template'},
+            NUMBER      => $number,
+        }));
     }
+    else {
+        $page->display(merge_refs($args,{
+            path        => $args->{'header.path'},
+            template    => $args->{'header.template'},
+            NUMBER      => $number,
+        })) if $args->{'header.path'} || $args->{'header.template'};
 
-    $page->display(merge_refs($args,{
-        path        => $args->{'footer.path'},
-        template    => $args->{'footer.template'},
-        NUMBER      => scalar(@keys),
-    })) if $args->{'footer.path'} || $args->{'footer.template'};
+        foreach my $id (@keys) {
+            my %data=(
+                path        => $args->{path},
+                ID          => $id,
+                NUMBER      => $number,
+            );
+            if(@fields) {
+                my %t;
+                @t{@fields}=$list->get($id)->get(@fields);
+                foreach my $fn (@fields) {
+                    $data{uc($fn)}=defined($t{$fn}) ? $t{$fn} : '';
+                }
+            }
+            $page->display(merge_refs($args,\%data));
+        }
+
+        $page->display(merge_refs($args,{
+            path        => $args->{'footer.path'},
+            template    => $args->{'footer.template'},
+            NUMBER      => $number,
+        })) if $args->{'footer.path'} || $args->{'footer.template'};
+    }
 }
 
 ###############################################################################
@@ -523,7 +544,7 @@ sub search ($;%) {
     my $ra_all_ids = $list->search(@$ra_query);
 
     my $last_item_idx  = $#{$ra_all_ids};
-    my $total          = $last_item_idx+1;
+    my $total          = scalar(@$ra_all_ids);
     my $items_per_page = int($args->{items_per_page} || -1);
     $items_per_page    = '' if $items_per_page < 1; # show all items in page
     my $start_item     = int($args->{start_item} || 1);
@@ -555,87 +576,107 @@ sub search ($;%) {
     my $page     = $self->object(objname => 'Page');
     my $basetype = '';
 
-    #
-    # Display header
-    #
-
-    my $header = '';
-    if    ($args->{'header.template'}) {
-        $basetype = 'template';
-        $header   = $args->{'header.template'};
-    }
-    elsif ($args->{'header.path'}) {
-        $basetype = 'path';
-        $header   = $args->{'header.path'};
-    }
-    $page->display(
-        $basetype      => $header,
-        START_ITEM     => $start_item,
-        ITEMS_PER_PAGE => $items_per_page,
-        TOTAL_ITEMS    => $total,
-        LIMIT_REACHED  => $limit_reached,
-    ) if $header;
-
-    #
-    # Display items
-    #
-
-    my @fields;
-    if($args->{fields}) {
-        if($args->{fields} eq '*') {
-            @fields=$list->get_new->keys;
+    if (!$total && ($args->{'default.path'} || $args->{'default.template'})) {
+        #
+        # Display default if apropriate
+        #
+        my $default = '';
+        if ($args->{'default.template'}) {
+            $basetype = 'template';
+            $default  = $args->{'default.template'};
         }
-        else {
-            @fields=split(/\W+/,$args->{fields});
-            shift @fields unless length($fields[0]);
+        elsif ($args->{'default.path'}) {
+            $basetype = 'path';
+            $default  = $args->{'default.path'};
         }
-    }
-
-    my $count = 1;
-    $basetype = $args->{template} ? 'template' : 'path';
-    #dprint "\n*** Search Results *" . scalar(@$ra_ids) . " matches*";
-    #dprint "    (use $basetype: $args->{$basetype})" if $basetype eq 'path';
-    foreach my $id (@$ra_ids) {
-        #dprint "    $count> show $id";
-        my %pass = (
-            $basetype   => $args->{$basetype},
-            ID          => $id,
-            COUNT       => $count,
-            MATCH_NUMBER => $count + ($start_item-1),
+        $page->display(
+            $basetype      => $default,
+            START_ITEM     => $start_item,
+            ITEMS_PER_PAGE => $items_per_page,
+            TOTAL_ITEMS    => $total,
+            LIMIT_REACHED  => $limit_reached,
         );
-        if ($args->{fields}) {
-            my $item = $list->get($id);
-            foreach (@fields) {
-                my $uckey = uc($_);
-                $pass{$uckey} = $item->get($_) unless $pass{$uckey};
-                $pass{$uckey} = '' unless defined $pass{$uckey};
+    }
+    else {
+        #
+        # Display header
+        #
+        my $header = '';
+        if    ($args->{'header.template'}) {
+            $basetype = 'template';
+            $header   = $args->{'header.template'};
+        }
+        elsif ($args->{'header.path'}) {
+            $basetype = 'path';
+            $header   = $args->{'header.path'};
+        }
+        $page->display(
+            $basetype      => $header,
+            START_ITEM     => $start_item,
+            ITEMS_PER_PAGE => $items_per_page,
+            TOTAL_ITEMS    => $total,
+            LIMIT_REACHED  => $limit_reached,
+        ) if $header;
+
+        #
+        # Display items
+        #
+        my @fields;
+        if($args->{fields}) {
+            if($args->{fields} eq '*') {
+                @fields=$list->get_new->keys;
+            }
+            else {
+                @fields=split(/\W+/,$args->{fields});
+                shift @fields unless length($fields[0]);
             }
         }
-        $page->display(\%pass);
-        $count++;
-    }
 
-    #
-    # Display footer
-    #
+        my $count = 1;
+        $basetype = $args->{template} ? 'template' : 'path';
+        #dprint "\n*** Search Results *" . scalar(@$ra_ids) . " matches*";
+        #dprint "    (use $basetype: $args->{$basetype})" if $basetype eq 'path';
+        foreach my $id (@$ra_ids) {
+            #dprint "    $count> show $id";
+            my %pass = (
+                $basetype   => $args->{$basetype},
+                ID          => $id,
+                COUNT       => $count,
+                MATCH_NUMBER => $count + ($start_item-1),
+            );
+            if ($args->{fields}) {
+                my $item = $list->get($id);
+                foreach (@fields) {
+                    my $uckey = uc($_);
+                    $pass{$uckey} = $item->get($_) unless $pass{$uckey};
+                    $pass{$uckey} = '' unless defined $pass{$uckey};
+                }
+            }
+            $page->display(\%pass);
+            $count++;
+        }
 
-    my $footer = '';
-    if ($args->{'footer.template'}) {
-        $basetype = 'template';
-        $footer   = $args->{'footer.template'};
-    }
-    elsif ($args->{'footer.path'}) {
-        $basetype = 'path';
-        $footer   = $args->{'footer.path'};
-    }
-    $page->display(
-        $basetype      => $footer,
-        START_ITEM     => $start_item,
-        ITEMS_PER_PAGE => $items_per_page,
-        TOTAL_ITEMS    => $total,
-        LIMIT_REACHED  => $limit_reached,
-    ) if $footer;
-}   
+        #
+        # Display footer
+        #
+        my $footer = '';
+        if ($args->{'footer.template'}) {
+            $basetype = 'template';
+            $footer   = $args->{'footer.template'};
+        }
+        elsif ($args->{'footer.path'}) {
+            $basetype = 'path';
+            $footer   = $args->{'footer.path'};
+        }
+        $page->display(
+            $basetype      => $footer,
+            START_ITEM     => $start_item,
+            ITEMS_PER_PAGE => $items_per_page,
+            TOTAL_ITEMS    => $total,
+            LIMIT_REACHED  => $limit_reached,
+        ) if $footer;
+    }   
+}
 ###############################################################################
 sub _create_query {
 
