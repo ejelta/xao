@@ -2,6 +2,6 @@
 
 <%Styler text="File not found" style="page-title"%>
 
-The file you requested was not found (<%FILEPATH%>).
+The file you requested was not found (<$FILEPATH/h$>).
 
 <%Footer%>
