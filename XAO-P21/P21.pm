@@ -1,25 +1,16 @@
 package XAO::P21;
-
 use strict;
-use vars qw($VERSION @EXPORT_OK @ISA);
-
 use IO::Socket::INET;
-use XAO::Errors qw/XAO::P21/;
+use XAO::Errors qw(XAO::P21);
 use XAO::Utils;
 
-require Exporter;
-
-@ISA = qw(Exporter);
-@EXPORT_OK = qw(
-                items
-                avail
-                catalog
-                custinfo
-                order
-                price
-);
+##
+# Package version
+#
+use vars qw($VERSION);
 $VERSION = '0.10';
 
+###############################################################################
 
 =head1 NAME
 
@@ -33,9 +24,15 @@ XAO::P21 - Perl extension for network interaction with prophet21.
 
 This module is intended for remote interaction with prophet21 system; it is mainly client-side stub for web server.
 
+=head1 METHODS
+
+=over
+
 =cut
 
-=head1 new
+###############################################################################
+
+=item new
 
 The constructor. Usage:
 
@@ -61,33 +58,57 @@ sub connect {
     throw XAO::E::P21 "connect - $!" unless $self->{Socket};
 }
 
+###############################################################################
+
+=item call ($build, $callback, @params)
+
+(Private method)
+
+Sends untranslated list of parameters to the server and receives
+results. Results are given to `build' subroutine and then to
+`callback'. Usually `build' would split individual fields to an array or
+hash, and `callback' would print or somehow use these values.
+
+Default callback is to create an array of all resulting rows and then
+return a reference to this array.
+
+Build does not have a default and must be provided.
+
+=cut
+
 sub call {
-    my ($self, $constr, $callback, @args) = @_ ;
+    my ($self, $build, $callback, @params) = @_ ;
+
     my $list;
-    unless($callback) {
+    if(!$callback) {
         $list=[];
         $callback = sub { push @$list, $_[0]; $list };
     }
+
     $self->connect unless $self->{Socket};
     my $socket=$self->{Socket};
+
     my $flag=0;
     local $SIG{PIPE} = sub { $flag = 1 };
-    print $socket join("\t", @args), "\n";
+    print $socket join("\t", @params), "\n";
     unless ($flag) {
         my $result;
         while(<$socket>) {
             chomp;
             return $result if /^\.$/;
-            $result = $callback->($constr->($_));
+            $result = $callback->($build->($_));
         }
         delete $self->{Socket};
         throw XAO::E::P21 "call - unexpected eof reading from socket";
     }
+
     delete $self->{Socket};
     throw XAO::E::P21 "call - SIGPIPE writing to socket";
-};
+}
 
-=head1 items
+###############################################################################
+
+=item items
 
 Returns full items list from "item" table; each line contains: item code,
 package size, sales unit, sku, list price, alternate unit name or "?",
@@ -123,7 +144,9 @@ sub items {
     }, $callback, $table || 'items');
 }
 
-=head1 avail
+###############################################################################
+
+=item avail
 
 Returns availability info for each of given item code. The info contains
 lines with non-zero quantities only.
@@ -158,8 +181,10 @@ sub avail {
         }, $param{callback}, 'avail', $param{customer} || '?',
         ref($item) eq 'ARRAY' ? @$item : $item);
 }
-        
-=head1 catalog
+
+###############################################################################
+
+=item catalog
 
 Returns full catalog items list. See "items" for data layout and attributes order.
 
@@ -170,75 +195,68 @@ sub catalog {
     $self->items($callback, 'catalog');
 }
 
-=head1 custinfo
+###############################################################################
 
-Returns list with info about customers. Each line contains attributes,
-delimited with "\t":
+=item custinfo
 
-bill_to_name, cust_code, bill_to_addr1, bill_to_addr2, bill_to_addr3,
-bill_to_city, bill_to_state, bill_to_zip, telephone, aux_fax, email_address,
-slm_number (territory/salesman number), first_sale (date of first sale).
+Returns list with info about customers. Each entry in the list is a
+hash:
+
+  cust_code     => 
+  bill_to_name  => 
+  bill_to_addr1 => 
+  bill_to_addr2 => 
+  bill_to_addr3 => 
+  bill_to_city  => 
+  bill_to_state => 
+  bill_to_zip   => 
+  telephone     => 
+  aux_fax       => 
+  email_address => 
+  slm_number    => territory/salesman number
+  first_sale    => date of first sale
+  stax_exemp    => if non-empty then this customer has tax exempt
+                   documents on file
+
+Default is to return complete list of all customers, be careful as it
+can take a lot of time to do so.
 
 Synopsis:
 
-my $rlist=$client->custinfo;
+ my $rlist=$client->custinfo;
 
-$client->custinfo( \&some_callback );
+ $client->custinfo(callback => \&some_callback,
+                   code     => ['21CASH, 'PI10MP']);
 
-$client->custinfo( callback=>\&some_callback, code=>['21CASH, 'PI10MP'] );
-
-my $rlist = $client->custinfo( code => '21CASH' );
+ my $rlist = $client->custinfo(code => '21CASH');
 
 =cut  
 
 sub custinfo {
     my $self=shift;
-    my $callback;
-    my $custinfo;
-    if( @_ == 1 && ref($_[0]) ne 'HASH' ) {
-        $callback = $_[0];
-        $custinfo = [];
-    } else {
-        my $args = get_args(\@_);
-        $callback = $args->{callback};
-        $custinfo = $args->{info};
-        $custinfo = [ $custinfo ] if(ref($custinfo) ne 'ARRAY'); 
-    }
-    $self->call( sub {
-                 my (
-                     $bill_to_name,
-                     $cust_code,
-                     $bill_to_addr1,
-                     $bill_to_addr2,
-                     $bill_to_addr3,
-                     $bill_to_city,
-                     $bill_to_state,
-                     $bill_to_zip,
-                     $telephone,
-                     $aux_fax,
-                     $email_address,
-                     $slm_number,
-                     $first_sale
-                    ) = split '\t', $_[0];
-                 {
-                     bill_to_name       => $bill_to_name,
-                     cust_code  => $cust_code,
-                     bill_to_addr1      => $bill_to_addr1,
-                     bill_to_addr2      => $bill_to_addr2,
-                     bill_to_addr3      => $bill_to_addr3,
-                     bill_to_city       => $bill_to_city,
-                     bill_to_state      => $bill_to_state,
-                     bill_to_zip        => $bill_to_zip,
-                     telephone  => $telephone,
-                     aux_fax    => $aux_fax,
-                     email_address      => $email_address,
-                     slm_number => $slm_number,
-                     first_sale => $first_sale,
-                 }
-                 }, $callback, 'custinfo', @$custinfo);
+    my $args=get_args(\@_);
+
+    my $custinfo=$args->{code} || [];
+    $custinfo=[ $custinfo ] unless ref($custinfo) eq 'ARRAY'; 
+
+    my $callback=$args->{callback};
+
+    my $build=$args->{build} || sub {
+        my %row;
+        @row{qw(bill_to_name cust_code bill_to_addr1 bill_to_addr2
+                bill_to_addr3 bill_to_city bill_to_state bill_to_zip
+                telephone aux_fax email_address slm_number first_sale
+                stax_exemp)}=
+            split('\t',$_[0]);
+        return \%row;
+    };
+
+    $self->call($build,$callback,'custinfo',@$custinfo);
 }
 
-=head1 modcust
+###############################################################################
+
+=item modcust
 
 Modifies customer data, according to custinfo.
 
@@ -277,56 +295,37 @@ sub modcust {
                      $args->{slm_number},
                      $args->{first_sale});
 }
-    
-=head1 order
+
+###############################################################################
+
+=item order
 
 Places order into spool. The only argument is ref to list of ref to hashes.
 The hash contains following attributes:
 
-=over
-
-=item reference_number - a unique string which is used to name the temporary order file in the P21 ecommerce spool folder.
-
-=item customer - the Prophet 21 unique customer code.
-
-=item date - formatted Year Month Day without any delimiters, e.g. 020206
-
-=item po - the customer's purchase order number
-
-=item credit_card - the customer's credit card number if applicable
-
-=item card_exp_month - customer's cc expiry month
-
-=item card_exp_year - customer's cc expiry year
-
-=item name - the customer's dba name
-
-=item address1 - the first ship-to address line
-
-=item address2 - the second ship-to address line
-
-=item city - the customer's ship-to city
-
-=item state - the customer's ship-to state
-
-=item zip - the customer's ship-to zip
-
-=item inst1 - a short instruction field of 30 characters
-
-=item inst2 - the second short instruction field of 30 chars
-
-=item line_number - the row number for this entry, first row being 1 (one)
-
-=item qty - quantity ordered for this item
-
-=item itemcode - a valid P21 itemcode (not a customer itemcode!)
-
-=item price - the unit price, not the total price
-
-=item email - email address for further notification
+ reference_number => a unique string which is used to name the temporary
+                     order file in the P21 ecommerce spool folder.
+ customer         => the Prophet 21 unique customer code.
+ date             => formatted Year Month Day without any delimiters,
+                     e.g. 020206
+ po               => the customer's purchase order number
+ credit_card      => the customer's credit card number if applicable
+ card_exp_month   => customer's cc expiry month
+ card_exp_year    => customer's cc expiry year
+ name             => the customer's dba name
+ address1         => the first ship-to address line
+ address2         => the second ship-to address line
+ city             => the customer's ship-to city
+ state            => the customer's ship-to state
+ zip              => the customer's ship-to zip
+ inst1            => a short instruction field of 30 characters
+ inst2            => the second short instruction field of 30 chars
+ line_number      => the row number for this entry, first row being 1 (one)
+ qty              => quantity ordered for this item
+ itemcode         => a valid P21 itemcode (not a customer itemcode!)
+ price            => the unit price, not the total price
+ email            => email address for further notification
      
-=back 
-
 Returns a hash reference with 'result' and 'info' members. Where
 result is zero for success and info contains internally used
 order ID which is the same as provided currenly.
@@ -372,15 +371,18 @@ sub order {
     $self->call($constr,$callback, 'order_entry', @order_array);
 }
 
-=head1 price
+###############################################################################
+
+=item price
 
 Asks for price. Input data is: customer code ("?" is allowed), item_code,
-quantity.
-Returns reference to hash:
+quantity. Returns reference to a hash:
 
-{ price=>price_per_unit, mult=>multiplier, total=>price * mult * quantity }
+ price      => price per unit
+ mult       => multiplier
+ total      => price * mult * quantity
 
-(Net price) = (price per unit) * multiplier.
+Net price is (price per unit) * multiplier.
 
 =cut  
 
@@ -394,6 +396,7 @@ sub price {
 
     $self->call(sub {
                     my ($price, $mult) = split /\t/, $_[0];
+                    $price=0 if $price eq '?';
                     return {
                         price   => $price,
                         mult    => $mult,
@@ -409,7 +412,10 @@ sub price {
                 $quantity);
 }
 
-=head1 list_all_open_orders
+
+###############################################################################
+
+=item list_all_open_orders
 
 The server returns list of all open orders for given customer.
 Each line contains order number and shipment number.
@@ -440,7 +446,9 @@ sub list_all_open_orders {
                      $param{customer} || '?' ); # XXX
 }
 
-=head1 view_open_order_details
+###############################################################################
+
+=item view_open_order_details
 
 Returns info about given order of given customer. Example:
 
@@ -456,9 +464,10 @@ Another example:
 =cut
 
 sub view_open_order_details {
-    my ($self, %param) = @_ ;
+    my $self=shift;
+    my $args=get_args(\@_);
 
-    my $store_sub=sub {
+    my $build=sub {
         my %line;
         @line{qw(item ord_qty open_qty net_price sales_tax shipping_charge
                  ut_name ut_size last_shipment disposition disposition_code)
@@ -466,13 +475,15 @@ sub view_open_order_details {
         return \%line;
     };
 
-    $self->call($store_sub,
-                $param{callback},
+    $self->call($build,
+                $args->{callback},
                 'view_open_order_details',
-                $param{order});
+                $args->{order});
 }
 
-=head1 list_all_invoices
+###############################################################################
+
+=item list_all_invoices
 
 Lists all invoices for given customer.
 
@@ -487,7 +498,9 @@ sub list_all_invoices {
                      'list_all_invoices', $param{customer} || '?' );
 }
 
-=head1 invoice_recall
+###############################################################################
+
+=item invoice_recall
 
 Returns preformatted invoice text for given pair order-shipment. If callback is
 provided, then it is called for each chomped line, otherwise the method returns
@@ -503,7 +516,9 @@ sub invoice_recall {
                  $param{order}, $param{shipment} );
 }
 
-=head1 list_open_ar
+###############################################################################
+
+=item list_open_ar
 
 list_open_ar (Open Accounts Receivable).
 Required input: customer_code
@@ -540,7 +555,9 @@ sub list_open_ar {
                      'list_open_ar', $param{customer} || '?' );
 }
 
-=head1 match
+###############################################################################
+
+=item match
 
 Finds matches of order numbers for reference numbers.  Returns hash with keys:
 refnum (customer reference number), file (OS filename), order (P21 order
@@ -556,7 +573,9 @@ sub find_match {
                  $args->{callback}, 'find_match', @{$args->{refs}} );
 }
 
-=head1 show_spool
+###############################################################################
+
+=item show_spool
 
 Shows contents of order spool directory, one filename per line.
 
@@ -567,7 +586,9 @@ sub show_spool {
     $self->call(sub { $_[0] }, $callback, 'show_spool');
 }
 
-=head1 cleanup_spool
+###############################################################################
+
+=item cleanup_spool
 
 Removes one or more files from order spool directory.
 
@@ -583,21 +604,22 @@ sub cleanup_spool {
     $self->call(sub { 0 }, undef, 'cleanup_spool', @{$args->{file}} );
 }
 
+###############################################################################
+1;
+__END__
+
+=back
+
 =head1 BUGS
 
-The documentation is too incomplete.
-Remote exceptions are unhandled.
+The documentation is too incomplete. Remote exceptions are unhandled.
 
-=head1 AUTHOR
+=head1 AUTHORS
 
-E.Karpachov, jk@xao.com
+Copyright (c) 2001-2002 XAO Inc.
+
+E.Karpachov <jk@xao.com>, Andrew Maltsev <am@xao.com>
 
 =head1 SEE ALSO
 
 perl(1), P21_Acclaim(3), XAO::Errors(3)
-
-=cut
-
-1;
-
-__END__

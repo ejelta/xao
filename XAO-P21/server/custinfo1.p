@@ -1,37 +1,51 @@
-def var v_custcode like p21.customer.cust_code.
-assign v_custcode=OS-GETENV("P0").
-find first p21.customer
-        where p21.customer.cust_code = v_custcode
-        no-lock no-error.
-if available p21.customer then do:
-    find first p21.cust_aux where p21.cust_aux.cust_code = v_custcode
-        no-lock no-error.
-    if available p21.cust_aux then do:
-  put unformatted
-    p21.customer.bill_to_name "\001"
-    p21.customer.cust_code
-    "\001"
-    p21.customer.bill_to_addr1
-    "\001"
-    p21.customer.bill_to_addr2
-    "\001"
-    p21.customer.bill_to_addr3
-    "\001"
-    p21.customer.bill_to_city
-    "\001"
-    p21.customer.bill_to_state
-    "\001"
-    p21.customer.bill_to_zip
-    "\001"
-    p21.customer.telephone
-    "\001"
-    p21.cust_aux.aux_fax
-    "\001"
-    p21.cust_aux.email_address
-    "\001"
-    p21.customer.slm_number
-    "\001"
-    p21.customer.first_sale.
-  put unformatted "\n".
-  END.
-  end.
+/* Lists all customers registered in P21.
+ * Output format is as supported by XAO::P21 server
+*/
+DEF VAR d_d AS CHAR FORMAT "x(20)" NO-UNDO.
+DEF VAR v_custcode LIKE p21.customer.cust_code.
+
+ASSIGN d_d="\001".
+
+ASSIGN v_custcode=OS-GETENV("P0").
+
+FIND FIRST p21.customer WHERE p21.customer.cust_code = v_custcode
+                        NO-LOCK NO-ERROR.
+
+IF AVAILABLE p21.customer THEN DO:
+
+    FIND FIRST p21.cust_aux WHERE p21.cust_aux.cust_code = v_custcode
+                            NO-LOCK NO-ERROR.
+
+    IF AVAILABLE p21.cust_aux THEN DO:
+        PUT UNFORMATTED
+            p21.customer.bill_to_name
+            d_d
+            p21.customer.cust_code
+            d_d
+            p21.customer.bill_to_addr1
+            d_d
+            p21.customer.bill_to_addr2
+            d_d
+            p21.customer.bill_to_addr3
+            d_d
+            p21.customer.bill_to_city
+            d_d
+            p21.customer.bill_to_state
+            d_d
+            p21.customer.bill_to_zip
+            d_d
+            p21.customer.telephone
+            d_d
+            p21.cust_aux.aux_fax
+            d_d
+            p21.cust_aux.email_address
+            d_d
+            p21.customer.slm_number
+            d_d
+            p21.customer.first_sale
+            d_d
+            p21.customer.stax_exemp
+            "\n"
+        .
+    END.
+END.
