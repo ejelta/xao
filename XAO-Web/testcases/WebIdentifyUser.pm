@@ -1250,6 +1250,7 @@ sub run_matrix {
         }
 
         foreach my $cd (@{$config->cookies}) {
+            next unless defined $cd;
             $cjar->{$cd->name}=$cd->value;
         }
 

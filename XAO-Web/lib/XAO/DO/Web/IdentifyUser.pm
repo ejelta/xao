@@ -297,7 +297,7 @@ use XAO::Objects;
 use base XAO::Objects->load(objname => 'Web::Action');
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: IdentifyUser.pm,v 1.25 2003/12/22 21:29:43 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: IdentifyUser.pm,v 1.26 2004/03/17 00:22:50 am Exp $ =~ /(\d+\.\d+)/);
 
 ###############################################################################
 
@@ -602,6 +602,22 @@ sub check {
                 $verified=0;
             }
         }
+    }
+
+    ##
+    # If we are failed to verify and we have a verification cookie
+    # given to use, we remove that cookie. That helps better track
+    # verification from browser side applications and should not hurt
+    # anything else.
+    #
+    if(!$verified && $self->cgi->cookie($config->{vf_key_cookie})) {
+        $self->siteconfig->add_cookie(
+            -name    => $config->{vf_key_cookie},
+            -value   => 0,
+            -path    => '/',
+            -expires => '+20m',
+            -domain  => $cookie_domain,
+        );
     }
 
     ##
