@@ -22,7 +22,7 @@ The parameters for the MultiPageNav object are defined as follows:
 
 =item start_item - Count of first item of current page
 
-Note: count of first item of first page is 0
+Note: count of first item of first page is 1.
 
 =item items_per_page 
 
@@ -241,7 +241,7 @@ use XAO::Errors qw(XAO::DO::Web::MultiPageNav);
 use base XAO::Objects->load(objname => 'Web::Page');
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: MultiPageNav.pm,v 1.7 2002/02/05 18:32:11 alves Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: MultiPageNav.pm,v 1.8 2003/10/13 17:17:06 am Exp $ =~ /(\d+\.\d+)/);
 
 ###############################################################################
 # Displaying multi page navigation display
@@ -302,7 +302,7 @@ sub expand_nav {
             #dprint "    >> $page: $type; pgstart: $pgstart";
             $params->{$type} .= $obj->expand(
                                     path            => $args->{'numbered_page.path'},
-                                    PAGE_START_ITEM => $pgstart,
+                                    PAGE_START_ITEM => $pgstart==1 ? 0 : $pgstart,
                                     PAGE_NUMBER     => $page,
                                     PAGE_TYPE       => '$type',
                                 );
@@ -320,9 +320,10 @@ sub expand_nav {
     my $path =  $page > 0 ? $args->{'previous_page.path'}
                           : $args->{'noprevious_page.path'};
     #dprint "    >> $page: $type";
+    my $prev_pgstart=int(($page-1) * $args->{items_per_page}) + 1;
     $params->{$type} = $obj->expand(
                            path            => $path,
-                           PAGE_START_ITEM => int(($page-1) * $args->{items_per_page}) + 1,
+                           PAGE_START_ITEM => $prev_pgstart==1 ? 0 : $prev_pgstart,
                            PAGE_NUMBER     => $page,
                            PAGE_TYPE       => $type,
                        ) if $path;
@@ -347,7 +348,7 @@ sub expand_nav {
     $pgstart = int(($page-1) * $args->{items_per_page}) + 1;
     $params->{$type} = $obj->expand(
                            path            => $path,
-                           PAGE_START_ITEM => $pgstart,
+                           PAGE_START_ITEM => $pgstart==1 ? 0 : $pgstart,
                            PAGE_NUMBER     => $page,
                            PAGE_TYPE       => $type,
                        ) if $path;
@@ -365,7 +366,7 @@ sub expand_nav {
             #dprint "     >> $page: $type";
             $params->{$type} .= $obj->expand(
                                     path            => $args->{'numbered_page.path'},
-                                    PAGE_START_ITEM => $pgstart,
+                                    PAGE_START_ITEM => $pgstart==1 ? 0 : $pgstart,
                                     PAGE_NUMBER     => $page,
                                     PAGE_TYPE       => '$type',
                                 );
@@ -392,7 +393,7 @@ sub expand_nav {
             #dprint "     >> $page: $type";
             $params->{$type} .= $obj->expand(
                                     path            => $args->{'numbered_page.path'},
-                                    PAGE_START_ITEM => $pgstart,
+                                    PAGE_START_ITEM => $pgstart==1 ? 0 : $pgstart,
                                     PAGE_NUMBER     => $page,
                                     PAGE_TYPE       => '$type',
                                 );
@@ -415,7 +416,7 @@ sub expand_nav {
             #dprint "     >> $page: $type";
             $params->{$type} .= $obj->expand(
                                     path            => $args->{'numbered_page.path'},
-                                    PAGE_START_ITEM => $pgstart,
+                                    PAGE_START_ITEM => $pgstart==1 ? 0 : $pgstart,
                                     PAGE_NUMBER     => $page,
                                     PAGE_TYPE       => $type,
                                 );
@@ -452,7 +453,7 @@ sub expand_nav {
             $pgstart          = int(($page-1) * $args->{items_per_page}) + 1;
             $params->{$type} .= $obj->expand(
                                     path            => $args->{'numbered_page.path'},
-                                    PAGE_START_ITEM => $pgstart,
+                                    PAGE_START_ITEM => $pgstart==1 ? 0 : $pgstart,
                                     PAGE_NUMBER     => $page,
                                     PAGE_TYPE       => $type,
                                 );
@@ -483,7 +484,7 @@ sub expand_nav {
             $pgstart          = int(($page-1) * $args->{items_per_page}) + 1;
             $params->{$type} .= $obj->expand(
                                     path            => $args->{'numbered_page.path'},
-                                    PAGE_START_ITEM => $pgstart,
+                                    PAGE_START_ITEM => $pgstart==1 ? 0 : $pgstart,
                                     PAGE_NUMBER     => $page,
                                     PAGE_TYPE       => $type,
                                 );
