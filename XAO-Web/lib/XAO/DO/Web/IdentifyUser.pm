@@ -297,7 +297,7 @@ use XAO::Objects;
 use base XAO::Objects->load(objname => 'Web::Action');
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: IdentifyUser.pm,v 1.24 2003/09/29 05:34:12 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: IdentifyUser.pm,v 1.25 2003/12/22 21:29:43 am Exp $ =~ /(\d+\.\d+)/);
 
 ###############################################################################
 
@@ -369,6 +369,8 @@ sub check {
     $config=$config->{$type} ||
         throw $self "check - no 'identify_user' configuration for '$type'";
     my $clipboard=$self->clipboard;
+
+    my $cookie_domain=$config->{domain};
 
     ##
     # These are useful for both verification and identification cookies.
@@ -496,6 +498,7 @@ sub check {
                 -value   => $cookie_value,
                 -path    => '/',
                 -expires => '+' . $id_cookie_expire . 's',
+                -domain  => $cookie_domain,
             );
         }
     }
@@ -557,6 +560,7 @@ sub check {
                             -value   => $web_key,
                             -path    => '/',
                             -expires => '+4y',
+                            -domain  => $cookie_domain,
                         };
                     }
                 }
@@ -751,6 +755,7 @@ sub login ($;%) {
         throw $self "login - no 'type' given";
     $config=$config->{$type} ||
         throw $self "login - no 'identify_user' configuration for '$type'";
+    my $cookie_domain=$config->{domain};
 
     ##
     # Looking for the user in the database
@@ -863,6 +868,7 @@ sub login ($;%) {
                 -value   => $key_id,
                 -path    => '/',
                 -expires => '+10y',
+                -domain  => $cookie_domain,
             );
             $data->{name}=$key_id;
         }
@@ -872,6 +878,7 @@ sub login ($;%) {
                 -value   => $key_id,
                 -path    => '/',
                 -expires => '+10y',
+                -domain  => $cookie_domain,
             );
         }
         else {
@@ -886,6 +893,7 @@ sub login ($;%) {
             -value   => $random_key,
             -path    => '/',
             -expires => '+10y',
+            -domain  => $cookie_domain,
         );
     }
 
@@ -913,6 +921,7 @@ sub login ($;%) {
             -value   => $cookie_value,
             -path    => '/',
             -expires => $expire,
+            -domain  => $cookie_domain,
         );
         $data->{name}=$cookie_value;
     }
@@ -922,6 +931,7 @@ sub login ($;%) {
             -value   => $username,
             -path    => '/',
             -expires => $expire,
+            -domain  => $cookie_domain,
         );
         $data->{name}=$username;
     }
@@ -996,6 +1006,8 @@ sub logout{
     $config=$config->{$type} ||
         throw $self "logout - no 'identify_user' configuration for '$type'";
 
+    my $cookie_domain=$config->{domain};
+
     ##
     # Logging in the user first
     #
@@ -1052,6 +1064,7 @@ sub logout{
             -value   => '0',
             -path    => '/',
             -expires => 'now',
+            -domain  => $cookie_domain,
         );
     }
 
@@ -1072,6 +1085,7 @@ sub logout{
             -value   => '0',
             -path    => '/',
             -expires => 'now',
+            -domain  => $cookie_domain,
         );
 
         return $self->display_results($args,'anonymous');

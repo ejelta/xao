@@ -45,7 +45,7 @@ sub new ($@);
 # Package version for checks and reference
 #
 use vars qw($VERSION);
-($VERSION)=(q$Id: Config.pm,v 1.10 2003/10/21 22:16:52 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: Config.pm,v 1.11 2003/12/22 21:29:43 am Exp $ =~ /(\d+\.\d+)/);
 
 ###############################################################################
 
@@ -79,12 +79,26 @@ Examples:
                      -value => 'xyzzy',
                      -expires=>'+1h');
 
+For convenience, if there is a '-domain' argument and it refers to a
+list of domains the cookie is expanded into a set of cookies for all
+these domains.
+
 =cut
 
 sub add_cookie ($@) {
     my $self=shift;
     my $cookie=(@_==1 ? $_[0] : get_args(\@_));
-  
+
+    if(ref($cookie) && $cookie->{-domain} && ref($cookie->{-domain})) {
+        my $dlist=$cookie->{-domain};
+        foreach my $domain (@$dlist) {
+            $self->add_cookie(merge_refs($cookie,{
+                -domain     => $domain,
+            }));
+        }
+        return;
+    }
+
     ##
     # If new cookie has the same name, domain and path
     # as previously set one - we replace it. Works only for
