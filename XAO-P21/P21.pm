@@ -451,6 +451,7 @@ The hash contains following attributes:
  city             => the customer's ship-to city
  state            => the customer's ship-to state
  zip              => the customer's ship-to zip
+ country          => ship-to country
  inst1            => a short instruction field of 30 characters
  inst2            => the second short instruction field of 30 chars
  line_number      => the row number for this entry, first row being 1 (one)
@@ -521,7 +522,7 @@ sub order {
         '',                                 # 10 | 34
         '',                                 # 11 | 35
         $_->{address3} || '',               # 12 | 36
-        '',                                 #  1 | 37
+        $_->{country} || '',                #  1 | 37
         '',                                 #  2 | 38
         $_->{taker_number} || '',           #  3 | 39
     } @$order_list;
