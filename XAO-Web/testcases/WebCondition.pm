@@ -65,6 +65,44 @@ EOT
         $self->assert($got eq $expect,
                       "Test $test failed - expected '$expect', got '$got'");
     }
+
+    $template=<<'EOT';
+<%Condition
+  v1.length="<%V1%>"
+  v1.template="GOT-V1"
+  default.template="DEFAULT"
+%><%End%>
+EOT
+
+    %matrix=(
+        t1 => {
+            args => {
+                V1 => 0,
+            },
+            result => 'GOT-V1',
+        },
+        t2 => {
+            args => {
+                V1 => '',
+            },
+            result => 'DEFAULT',
+        },
+        t3 => {
+            args => {
+                V1 => 'x',
+            },
+            result => 'GOT-V1',
+        },
+    );
+
+    foreach my $test (keys %matrix) {
+        my $args=$matrix{$test}->{args};
+        $args->{template}=$template;
+        my $got=$page->expand($args);
+        my $expect=$matrix{$test}->{result};
+        $self->assert($got eq $expect,
+                      "Test $test failed - expected '$expect', got '$got'");
+    }
 }
 
 1;

@@ -88,7 +88,7 @@ sub display ($;%)
   #
   my $name;
   foreach my $a (sort keys %args)
-   { next unless $a =~ /^(\w+)\.(number|value|arg|cgiparam|siteconf|siteconfig|cookie)$/;
+   { next unless $a =~ /^(\w+)\.(number|value|arg|cgiparam|length|siteconf|siteconfig|cookie)$/;
      if($2 eq 'cgiparam')
       { my $param=$args{$a};
         my $cname=$1;
@@ -104,6 +104,13 @@ sub display ($;%)
             { $name=$cname;
               last;
             }
+         }
+      }
+     elsif($2 eq 'length')
+      { my $param=$args{$a};
+        if(defined($param) && length($param))
+         { $name=$1;
+           last;
          }
       }
      elsif($2 eq 'arg')
