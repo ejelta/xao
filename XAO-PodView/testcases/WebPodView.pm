@@ -16,7 +16,7 @@ sub test_all {
 <FONT SIZE="+1" FACE="Verdana,Arial,Helvetica">MISC TEST</FONT><P>
 some paragraph
 on <B>multiple</B> lines
-that includes <I>italic text</I> and a link: <A HREF="http://testhost.xao.com/test.html?module=IO::File">the IO::File manpage</A>.
+that includes <I>italic text</I> and a link: <A HREF="http://localhost/test.html?module=IO::File">IO::File</A>.
 
 <P>
 Code sample:<P>

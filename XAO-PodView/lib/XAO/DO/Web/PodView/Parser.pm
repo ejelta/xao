@@ -37,7 +37,7 @@ use XAO::Utils qw(:args :html :debug);
 use base qw(Pod::Parser);
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: Parser.pm,v 1.8 2005/01/22 03:19:09 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: Parser.pm,v 1.9 2005/01/22 03:53:27 am Exp $ =~ /(\d+\.\d+)/);
 
 ##
 # List of entities from Pod::Checker. I wonder who originally wrote that
@@ -534,11 +534,23 @@ my %module_cache;
 sub find_module_file ($$) {
     my $self=shift;
     my $module=shift;
-    my $file=$INC{$module} || $module_cache{$module};
-    return $file if $file;
+
+    $module=~s/\s+//sg;
+    $module=~s/^:+//s;
+    return undef if $module =~ m/[\/\.]/ ||
+                    $module !~ m/^[\w:]+$/;
+
+    if(exists $INC{$module}) {
+        return $INC{$module};
+    }
+    elsif(exists $module_cache{$module}) {
+        return $module_cache{$module};
+    }
+
     my $mp=$module;
     $mp=~s/::/\//g;
-    $mp=~s/\s//g;
+
+    my $file;
     foreach my $dir (@INC) {
         if(-r "$dir/${mp}.pod") {
             $file="$dir/${mp}.pod";
@@ -549,7 +561,10 @@ sub find_module_file ($$) {
             last;
         }
     }
-    $file || undef;
+
+    $module_cache{$module}=$file;
+
+    return $file;
 }
 
 ##
