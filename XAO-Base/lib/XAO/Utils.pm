@@ -38,7 +38,7 @@ sub merge_refs (@);
 sub fround ($$);
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: Utils.pm,v 1.12 2004/03/09 02:38:07 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: Utils.pm,v 1.13 2004/03/12 01:25:53 am Exp $ =~ /(\d+\.\d+)/);
 
 ###############################################################################
 # Export control
@@ -243,7 +243,7 @@ sub logprint (@) {
         &{$logprint_handler}(join('',@_));
     }
     else {
-        print STDERR @_;
+        print STDERR @_,"\n";
     }
 }
 
