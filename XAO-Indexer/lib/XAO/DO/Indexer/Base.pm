@@ -147,6 +147,7 @@ sub search ($%) {
     # Optional hash reference to be filled with statistics
     #
     my $rcdata=$args->{rcdata};
+    $rcdata->{ignored_words}={ } if $rcdata;
 
     dprint "Searching for '$str' (ordering=$ordering, seq=$ordering_seq)";
 
