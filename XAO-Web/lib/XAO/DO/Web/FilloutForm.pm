@@ -62,7 +62,7 @@ use XAO::Errors qw(XAO::DO::Web::FilloutForm);
 use base XAO::Objects->load(objname => 'Web::Page');
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: FilloutForm.pm,v 1.19 2004/07/23 03:30:34 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: FilloutForm.pm,v 1.20 2004/08/03 18:14:25 am Exp $ =~ /(\d+\.\d+)/);
 
 sub setup ($%);
 sub field_desc ($$);
@@ -561,9 +561,13 @@ sub display ($;%) {
                     $sel=' SELECTED';
                     $used_selected=1;
                 }
-                $html.='<OPTION VALUE="' . t2hf($v) . '"' . $sel . '>' .
+                my $vh=t2hf($v);
+                $html.=qq(<OPTION VALUE="$vh"$sel>) .
                        t2ht($t) .
                        '</OPTION>';
+                $formparams{"$param.RV_CURRENT_$vh"}=$sel ? 1 : 0;
+                $formparams{"$param.RV_VALUE_$vh"}=$v;
+                $formparams{"$param.RV_TEXT_$vh"}=$t;
             };
 
             if(ref($opt) eq 'HASH') {
