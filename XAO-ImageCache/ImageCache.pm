@@ -57,7 +57,7 @@ use File::Copy;
 # Package version
 #
 
-($VERSION)=(q$Id: ImageCache.pm,v 1.10 2003/08/19 00:41:24 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: ImageCache.pm,v 1.11 2003/08/19 22:40:48 am Exp $ =~ /(\d+\.\d+)/);
 
 sub DESTROY {
     my $self = shift;
@@ -499,7 +499,7 @@ sub download ($$) {
     # older than source.
     #
     if($img_src_url) {
-        my $mtime_src = (stat($img_src_file))[9];
+        my $mtime_src = (stat($img_src_file))[9] || 0;
         my $period = $time_now - $mtime_src;
         if ($period > $self->{min_period}) {
             if($img_src_url !~ m/^(https?|ftp):\/\//i) {
@@ -545,7 +545,7 @@ sub download ($$) {
             # Now checking if the source file we have is newer then what's in
             # the cache and updating the cache in that case.
             #
-            my $mtime_cache=(stat($img_cache_file))[9];
+            my $mtime_cache=(stat($img_cache_file))[9] || 0;
             if($mtime_cache < $mtime_src) {
                 if($self->{size}) {
                     $self->resize($img_src_file, $img_cache_file);
@@ -558,7 +558,7 @@ sub download ($$) {
             # Create thumbnail from the image source file if necessary
             #
             if($thm_cache_file && (!$thm_src_url || !$thm_src_file)) {
-                $mtime_cache=(stat($thm_cache_file))[9];
+                $mtime_cache=(stat($thm_cache_file))[9] || 0;
                 if($mtime_cache < $mtime_src) {
                     dprint "Making thumbnail out of big image";
                     $self->thumbnail($img_src_file, $thm_cache_file);
