@@ -12,7 +12,7 @@ endif
 
 " Based on HTML
 "
-source <sfile>:p:h/html.vim
+runtime syntax/html.vim
 unlet b:current_syntax
 
 syn cluster htmlPreproc add=xaowebCode,xaowebVariable

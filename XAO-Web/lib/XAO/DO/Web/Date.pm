@@ -22,11 +22,7 @@ use XAO::Objects;
 use base XAO::Objects->load(objname => 'Web::Page');
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: Date.pm,v 1.4 2002/06/20 00:20:45 am Exp $ =~ /(\d+\.\d+)/);
-
-sub BEGIN {
-    dprint "Web::Date::BEGIN";
-}
+($VERSION)=(q$Id: Date.pm,v 1.5 2002/08/09 20:34:48 am Exp $ =~ /(\d+\.\d+)/);
 
 ###############################################################################
 

@@ -50,7 +50,7 @@ use XAO::Objects;
 use base XAO::Objects->load(objname => 'Atom');
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: Glue.pm,v 1.17 2002/07/05 21:12:38 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: Glue.pm,v 1.18 2002/08/09 20:34:48 am Exp $ =~ /(\d+\.\d+)/);
 
 ###############################################################################
 
@@ -1081,6 +1081,8 @@ sub _build_search_query ($%) {
             $sql.=',' unless $i+2 == @orderby;
         }
     }
+
+    ### dprint "SQL: $sql";
 
     ##
     # Returning resulting hash
