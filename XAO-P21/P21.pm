@@ -444,7 +444,7 @@ sub list_all_open_orders {
 
 Returns info about given order of given customer. Example:
 
-    my $res=$cl->view_open_order_details(customer=>"21CASH", order=>1234567);
+    my $res=$cl->view_open_order_details(order => 1234567);
 
 Returns array of hash references with order line infos.
 
@@ -458,36 +458,19 @@ Another example:
 
 sub view_open_order_details {
     my ($self, %param) = @_ ;
-    $self->call( sub {
-                     my (
-                         $item,
-                         $desc,
-                         $ord_qty,
-                         $unit,
-                         $net_price,
-                         $open_qty,
-                         $open_value,
-                         $exp_date,
-                         $last_shipment,
-                         $disposition,
-                         $disposition_desc,
-                        ) = split /\t/, $_[0];
-                     {
-                         item   => $item,
-                         desc   => $desc,
-                         ord_qty        => $ord_qty,
-                         unit   => $unit,
-                         net_price      => $net_price,
-                         open_qty       => $open_qty,
-                         open_value     => $open_value,
-                         exp_date       => $exp_date,
-                         last_shipment  => $last_shipment,
-                         disposition => $disposition,
-                         disposition_desc => $disposition_desc,
-                     }
-                     }, $param{callback}, 'view_open_order_details',
-                    $param{customer} || '?', # XXX
-                    $param{order} );
+
+    my $store_sub=sub {
+        my %line;
+        @line{qw(item ord_qty open_qty net_price sales_tax shipping_charge
+                 ut_name ut_size last_shipment disposition disposition_code)
+             }=split /\t/, $_[0];
+        return \%line;
+    };
+
+    $self->call($store_sub,
+                $param{callback},
+                'view_open_order_details',
+                $param{order});
 }
 
 =head1 list_all_invoices
