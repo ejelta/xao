@@ -172,7 +172,7 @@ use XAO::Errors qw(XAO::DO::Web::FS);
 use base XAO::Objects->load(objname => 'Web::Action');
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: FS.pm,v 1.12 2002/02/05 18:53:44 alves Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: FS.pm,v 1.13 2002/02/07 00:01:43 alves Exp $ =~ /(\d+\.\d+)/);
 
 ###############################################################################
 
@@ -204,14 +204,14 @@ sub get_object ($%) {
 
     $object=$self->clipboard->get($cb_base) if $cb_base;
     !$object || ref($object) ||
-        throw XAO::E::DO::Web::FS "get_object - garbage in clipboard at '$cb_base'";
+        throw $self "get_object - garbage in clipboard at '$cb_base'";
     my $got_from_cb=$object;
     $object=$self->odb->fetch($db_base) if $db_base && !$object;
 
     if($cb_base) {
         $db_base || $object ||
-            throw XAO::E::DO::Web::FS "get_object - no object in clipboard and" .
-                                      " no base.database to retrieve it";
+            throw $self "get_object - no object in clipboard and" .
+                        " no base.database to retrieve it";
 
         ##
         # Caching object in clipboard if we have both base.clipboard and
@@ -228,16 +228,14 @@ sub get_object ($%) {
         ##
         # XXX - This should be done in FS
         #
-        foreach my $name (split(/\/+/,$uri)) {
-            $object=$object->get($name);
-        }
+        foreach my $name (split(/\/+/,$uri)) { $object=$object->get($name); }
     }
     elsif(defined($uri) && length($uri)) {
         $object=$self->odb->fetch($uri);
     }
 
     $cb_base || $db_base || $uri ||
-        throw XAO::E::DO::Web::FS "get_object - at least one location parameter must present";
+        throw $self "get_object - at least one location parameter must present";
 
     $object;
 }
@@ -276,7 +274,7 @@ sub check_mode ($%) {
         $self->show_property($args);
     }
     else {
-        throw XAO::E::DO::Web::FS "check_mode - unknown mode '$mode'";
+        throw $self "check_mode - unknown mode '$mode'";
     }
 }
 
@@ -302,9 +300,9 @@ sub delete_property ($%) {
     my $args=get_args(\@_);
 
     my $name=$args->{name} ||
-        throw XAO::E::DO::Web::FS "delete_property - no 'name'";
+        throw $self "delete_property - no 'name'";
     $self->odb->_check_name($name) ||
-        throw XAO::E::DO::Web::FS "delete_property - bad name '$name'";
+        throw $self "delete_property - bad name '$name'";
 
     my $object=$self->get_object($args);
 
@@ -400,8 +398,7 @@ sub show_list ($%) {
     my $args=get_args(\@_);
 
     my $list=$self->get_object($args);
-    $list->objname eq 'FS::List' ||
-        throw XAO::E::DO::Web::FS "show_list - not a list";
+    $list->objname eq 'FS::List' || throw $self "show_list - not a list";
 
     my @keys=$list->keys;
     my @fields;
@@ -518,7 +515,7 @@ sub search ($;%) {
     #############
 
     my $list = $self->get_object($args);
-    $list->objname eq 'FS::List' || throw XAO::E::DO::Web::FS "show_list - not a list";
+    $list->objname eq 'FS::List' || throw $self "show_list - not a list";
     #dprint "*** LIST: $list";
 
     #dprint "*** Go Search...\n\n";
@@ -652,9 +649,15 @@ sub _create_query {
     my @expr_ra;
     while ($args->{"index_$i"}) {
 
-        my $index      = $args->{"index_$i"};
-        my $value      = $args->{"value_$i"};
-        my $compare_op = $args->{"compare_$i"};
+        my $index      = $args->{"index_$i"} =~ /\S+/
+                       ? $args->{"index_$i"}
+                       : throw $self "_create_query - condition $i missing index";
+        my $value      = exists $args->{"value_$i"}
+                       ? $args->{"value_$i"}
+                       : throw $self "_create_query - condition $i missing value";
+        my $compare_op = exists $args->{"compare_$i"} && $args->{"compare_$i"} =~ /\S+/
+                       ? $args->{"compare_$i"}
+                       : throw $self "_create_query - condition $i missing comparison operator";
 
         #dprint "\n  ** $i **";
         #dprint "  ## index:            $index";
@@ -666,10 +669,10 @@ sub _create_query {
         #
         my @indexes = split(/\|/, $index);
         if ($compare_op eq 'wq' || $compare_op eq 'ws') {
-            if ($value =~ /\|/) {
-                my @value_list = split(/\|/, $value);
-                $value         = \@value_list;
-            }
+            #if ($value =~ /\|/) {
+            #    my @value_list = split(/\|/, $value);
+            #    $value         = \@value_list;
+            #}
             $expr_ra[$i]   = $self->_create_expression(\@indexes, $compare_op, $value);
         }
         elsif ($compare_op =~ /^(g[et])(l[et])$/) {
@@ -695,7 +698,7 @@ sub _create_query {
     #
     #$i+=100;
 
-    my $expression =  lc($args->{expression}) || '';
+    my $expression =  lc($args->{expression} || '');
     if ($expression) {
         $expression =~ s/^\s+//;
         $expression =~ s/\s+$//;
@@ -703,6 +706,17 @@ sub _create_query {
         $expression =~ s/\s+\]/\]/g;
         $expression =~ s/\s+/ /g;
         $expression =~ s/(.+)/[$1]/ unless $expression =~ /^\[.+\]$/;
+    }
+    else {
+        if ($i == 2 && ref($expr_ra[1]) eq 'ARRAY') {
+            $expression = '[1]';
+        }
+        elsif ($i < 2) {
+            throw $self "_create_query - no conditions present";
+        }
+        else {
+            throw $self "_create_query - conditions present without expression";
+        }
     }
     #dprint "\n    ## EXPRESSION: '$expression'";
 
@@ -720,24 +734,24 @@ sub _create_query {
             my $self = shift;
             my ($ra_expr_ra, $r_expr, $r_i, $i1, $i2, $i3, $regex) = @_;
             if ($i2 ne 'and' && $i2 ne 'or') {
-                throw XAO::E::DO::Web::FS "_create_query - syntax error [$i1 $i2 $i3]";
+                throw $self "_create_query - syntax error [$i1 $i2 $i3]";
             }
             elsif (ref($ra_expr_ra->[$i1]) ne 'ARRAY') {
-                throw XAO::E::DO::Web::FS "_create_query - condition '$i1' not specified";
+                throw $self "_create_query - condition '$i1' in expression is not specified";
             }
             elsif (ref($ra_expr_ra->[$i3]) ne 'ARRAY') {
-                throw XAO::E::DO::Web::FS "_create_query - condition '$i3' not specified";
+                throw $self "_create_query - condition '$i3' in expression is not specified";
             }
             $ra_expr_ra->[$$r_i] = [ $ra_expr_ra->[$i1], $i2, $ra_expr_ra->[$i3] ];
             #dprint "    ## $$r_i = '[$i1 $i2 $i3]'";
-            $$r_expr =~ s/\[\s*$i1\s+$i2\s+$i3\s*\]/$$r_i/;
+            $$r_expr =~ s/\[$i1 $i2 $i3\]/$$r_i/; #was: s/\[\s*$i1\s+$i2\s+$i3\s*\]/$$r_i/;
             #dprint "    ## new EXPRESSION: '$$r_expr' ($r_expr)";
             ${$r_i}++;
             $$r_expr = "[$$r_expr]" if $$r_expr =~ /^\d+ [andor]+ \d+$/;
             unless ($$r_expr =~ /\[\d+ and \d+\]/
                  || $$r_expr =~ /\[\d+ or \d+\]/
                  || $$r_expr =~ /^\d+$/) {
-                throw XAO::E::DO::Web::FS "_create_query - syntax error";
+                throw $self "_create_query - syntax error";
             }
             return unless $$r_expr =~ /$regex/;
             $self->_interpret_expression(
@@ -752,17 +766,16 @@ sub _create_query {
     else {
         #dprint "    ## NO REGEX";
         if ($expression =~ /^\[(\d+)\]$/) {
-            $expr_ra[$i] = $expr_ra[1];
             unless (ref($expr_ra[$1]) eq 'ARRAY') {
-                throw XAO::E::DO::Web::FS "_create_query - condition '$1' not specified";
+                throw $self "_create_query - condition '$1' not specified";
             }
             $expr_ra[$i] = $expr_ra[$1];
         }
         elsif (!$expression) {
-            $expr_ra[$i] = $expr_ra[1];
+            $expr_ra[$i] = [];
         }
         else {
-            throw XAO::E::DO::Web::FS "_create_query - syntax error";
+            throw $self "_create_query - syntax error";
         }
     }
 
