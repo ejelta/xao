@@ -67,7 +67,7 @@ use XAO::Objects;
 use base XAO::Objects->load(objname => 'FS::Glue');
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: Hash.pm,v 1.8 2002/10/29 09:23:59 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: Hash.pm,v 1.9 2002/10/29 17:50:29 am Exp $ =~ /(\d+\.\d+)/);
 
 ###############################################################################
 
@@ -153,8 +153,9 @@ details.
 =item <$AUTOINC$>
 
 This is an auto-incrementing unsigned at least 32-bit integer value. It
-is not guaranteed to be monotonous, but new value is always greater then
-any previously assigned and greater then zero.
+is not guaranteed to be continuously incrementing, but new value is
+always greater then any previously assigned and greater then zero. There
+is no definition of what would happen if all integer values are used up.
 
 Can optionally have number of digits specified - <$AUTOINC/10$> to
 generate 10 digits integers. Default is to use minimum possible number

@@ -1,3 +1,6 @@
+* Add description of <$VAR$> into the manual. Re-read and probably make
+  it easier to comprehend in general..
+
 * Generic cache with timeouts, validating method and so on.
 
 * Generic way to get configuration values as an object uses
