@@ -308,7 +308,6 @@ sample/templates/bits/search/product-row
 sample/templates/bits/styler/page-title
 sample/templates/category/index.html
 sample/templates/contact/index.html
-sample/templates/createaccount/index.html
 sample/templates/index.html
 sample/templates/login/bits/login-already
 sample/templates/login/bits/login-redirect

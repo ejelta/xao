@@ -88,7 +88,7 @@ use XAO::Objects;
 use base XAO::Objects->load(objname => 'Web::Page');
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: Header.pm,v 1.5 2002/08/31 00:55:43 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: Header.pm,v 1.6 2002/11/09 02:22:15 am Exp $ =~ /(\d+\.\d+)/);
 
 ###############################################################################
 # Displaying HTML header.
@@ -99,6 +99,13 @@ sub display ($;%) {
 
     if($args->{type}) {
         $self->siteconfig->header_args(-type => $args->{type});
+        return;
+    }
+
+    if($args->{'http.name'}) {
+        $self->siteconfig->header_args(
+            $args->{'http.name'}    => $args->{'http.value'} || ''
+        );
         return;
     }
 

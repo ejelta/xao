@@ -1,4 +1,6 @@
       <TR>
-        <TD COLSPAN="2"><STRONG>Merchant Comment:</STRONG>
-        <%MERCHANT_COMMENT%></TD>
+       <TD COLSPAN="2">
+        <STRONG>Merchant Comment:</STRONG>
+        <%MERCHANT_COMMENT/h%>
+       </TD>
       </TR>

@@ -6,10 +6,10 @@ WriteMakefile(
     'NAME'           => 'XAO::Commerce',
     'VERSION_FROM'   => 'Commerce.pm',
     'PREREQ_PM'      => {
-        'XAO::Base'         => '1.03',
-        'XAO::FS'           => '1.03',
-        'XAO::DO::Catalogs' => '1.0',
-        'XAO::Web'          => '1.03',
+        'XAO::Base'         => '1.04',
+        'XAO::FS'           => '1.04',
+        'XAO::DO::Catalogs' => '1.01',
+        'XAO::Web'          => '1.04',
         'Test::Unit'        => '0.14',
     }
 );

@@ -6,12 +6,15 @@ use XAO::Errors qw(XAO::DO::Web::Account);
 use base XAO::Objects->load(objname => 'Web::FS');
 
 ###############################################################################
+
 sub check_mode ($%) {
     my $self=shift;
     my $args=get_args(\@_);
     $self->SUPER::check_mode($args);
 }
+
 ###############################################################################
+
 sub form_fields {
     my $self=shift;
     return [
@@ -53,6 +56,7 @@ sub form_fields {
             param       => 'PASSWORD',
             text        => 'Password',
             pair        => 'password2',
+            encrypt     => 'plaintext',
         },
         {
             name        => 'password2',
@@ -66,5 +70,6 @@ sub form_fields {
         },
     ];
 }
+
 ###############################################################################
 1;

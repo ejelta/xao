@@ -1,4 +1,4 @@
-1.04 - 9-Aug-2002
+1.04 - 7-Nov-2002
     * XAO::Page - new 5 times faster C parser is used
     * XAO::PageSupport - new parser that supports '' and {''}
     * XAO::Page - caching of parsed templates re-enabled

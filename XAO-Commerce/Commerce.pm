@@ -4,7 +4,7 @@ XAO::Commerce - eCommerce Suite
 
 =head1 SYNOPSIS
 
-<%Commerce module="XAO::Web"%>
+See sample site templates, images and usage examples.
 
 =head1 DESCRIPTION
 

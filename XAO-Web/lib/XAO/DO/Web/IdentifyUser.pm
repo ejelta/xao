@@ -114,6 +114,13 @@ Name attribute of a user object. If there is no 'user_prop' parameter in
 the configuration it is assumed that user ID is the key for the given
 list.
 
+An interesting capability is to specify name as a URI style path, for
+instance if a member has many alternative names that all can be used to
+log-in and these names are stored in a list called Nicknames on each
+member object, then the following might be used:
+
+ user_prop => 'Nicknames/nickname'
+
 =item pass_prop
 
 Password attribute of user object.
@@ -212,7 +219,7 @@ use XAO::Objects;
 use base XAO::Objects->load(objname => 'Web::Action');
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: IdentifyUser.pm,v 1.15 2002/06/22 00:03:01 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: IdentifyUser.pm,v 1.16 2002/11/09 02:22:15 am Exp $ =~ /(\d+\.\d+)/);
 
 ###############################################################################
 
@@ -409,6 +416,8 @@ sub display_results ($$$;$) {
             CB_URI      => $cb_uri || '',
             ERRSTR      => $errstr || '',
             TYPE        => $type,
+            NAME        => $self->clipboard->get("$cb_uri/name") || '',
+            VERIFIED    => $self->clipboard->get("$cb_uri/verified") || '',
         );
 
         $self->finaltextout('') if $args->{stop};

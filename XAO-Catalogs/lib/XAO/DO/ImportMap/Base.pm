@@ -312,6 +312,7 @@ sub store_categories_hash ($$$) {
     # translate to the same common categories.
     #
     my %reverse_map;
+    dprint "Building reverse lookup cache";
     foreach my $cobj ($storage->values) {
         my $path=$cobj->get('name');
         my $parent_id=$cobj->get('parent_id');
@@ -337,6 +338,7 @@ sub store_categories_hash ($$$) {
     my $inc;
     my %catmap;
     my %catcache;
+    dprint "Mapping and storing";
     foreach my $cat (values %{$cats}) {
         my $path=$cat->{name};
         my $tc=$cat;
@@ -355,6 +357,7 @@ sub store_categories_hash ($$$) {
         my @cpids;
 
         my $cset=$self->map_category(\%catcache,$path,$map);
+        dprint $path;
 
         foreach my $path (@$cset) {
             my @path=split(/::/,$path);
