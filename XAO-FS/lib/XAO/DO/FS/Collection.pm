@@ -31,7 +31,7 @@ use XAO::Objects;
 use base XAO::Objects->load(objname => 'FS::Glue');
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: Collection.pm,v 1.5 2003/03/14 02:50:20 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: Collection.pm,v 1.6 2003/10/29 00:55:39 am Exp $ =~ /(\d+\.\d+)/);
 
 ###############################################################################
 
@@ -140,6 +140,20 @@ sub get ($$) {
     } @_;
 
     @_==1 ? $results[0] : @results;
+}
+
+###############################################################################
+
+=item get_new ()
+
+Convenience method that returns new empty detached object of the type
+that collection operates on.
+
+=cut
+
+sub get_new ($) {
+    my $self=shift;
+    $self->glue->new(objname => $$self->{class_name});
 }
 
 ###############################################################################
