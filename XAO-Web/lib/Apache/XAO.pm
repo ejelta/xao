@@ -217,7 +217,7 @@ EOT
     my $ptype=$pagedesc->{type} || 'xaoweb';
     if($ptype eq 'external') {
         ### $r->server->log_error("EXTERNAL: uri=$uri");
-        return MP2 ? Apache::OK : Apache::Constants::OK;
+        return MP2 ? Apache::DECLINED : Apache::Constants::DECLINED;
     }
     elsif($ptype eq 'maptodir') {
         my $dir=$pagedesc->{directory} || '';
@@ -255,6 +255,7 @@ EOT
     # to map that URI to anything else, we know how to produce results
     # for it.
     #
+    $r->filename($r->document_root . '/index.html');
     my $htype=lc($r->dir_config('HandlerType') || 'auto');
     if($htype eq 'auto') {
         $r->push_handlers(PerlHandler => \&handler_content);

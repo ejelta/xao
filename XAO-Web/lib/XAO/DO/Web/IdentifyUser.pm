@@ -297,7 +297,7 @@ use XAO::Objects;
 use base XAO::Objects->load(objname => 'Web::Action');
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: IdentifyUser.pm,v 1.30 2004/10/27 02:36:56 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: IdentifyUser.pm,v 1.31 2004/11/06 00:04:29 am Exp $ =~ /(\d+\.\d+)/);
 
 ###############################################################################
 
@@ -495,7 +495,7 @@ sub check {
         }
         else {
             $last_vf=$user->get($vf_time_prop) unless defined $last_vf;
-            my $quant=int($id_cookie_expire/20);
+            my $quant=int($id_cookie_expire/60);
             $set_cookie_flag=($current_time-$last_vf > $quant);
         }
         if($set_cookie_flag) {
@@ -548,7 +548,7 @@ sub check {
         #
         my $vf_expire_time=$config->{vf_expire_time} ||
             throw $self "No 'vf_expire_time' in the configuration";
-        my $quant=int($vf_expire_time/20);
+        my $quant=int($vf_expire_time/60);
 
         if($key_list_uri) {
             if($key_object) {
