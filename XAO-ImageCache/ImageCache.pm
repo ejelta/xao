@@ -57,7 +57,7 @@ use File::Copy;
 # Package version
 #
 
-($VERSION)=(q$Id: ImageCache.pm,v 1.6 2002/11/08 23:46:51 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: ImageCache.pm,v 1.7 2002/11/14 20:41:20 am Exp $ =~ /(\d+\.\d+)/);
 
 sub DESTROY {
     my $self = shift;
@@ -344,7 +344,7 @@ sub check($) {
 
     my $checked = 0;
     my $list    = $self->{list};
-    my @key     = @{$list->search('source_ref','eq','brady')}; # $list->keys;
+    my @key     = $list->keys;
 
     my $count=0;
     foreach my $item_id (@key) {
@@ -368,7 +368,7 @@ sub check($) {
                                                     $img_src_url,
                                                     $thm_src_url,
                                                 );
-        dprint "img=$img_cache_file thm=$thm_cache_file";
+        # dprint "img=$img_cache_file thm=$thm_cache_file";
         if ($img_cache_file) {
             $item->put($img_dest_url_key, $img_cache_url.$img_cache_file);
         }
@@ -520,6 +520,7 @@ sub download ($$) {
                     $img_src_file='';
                 }
             }
+            $mtime_src=(stat($img_src_file))[9] if $img_src_file;
         }
 
         if($img_src_file) {
