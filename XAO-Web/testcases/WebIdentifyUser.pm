@@ -253,6 +253,43 @@ sub test_no_vf_key {
                 },
             },
         },
+        #
+        # Checking case translation
+        #
+        t21     => {
+            args => {
+                mode        => 'login',
+                type        => 'member',
+                username    => 'M001',
+                password    => '12345',
+            },
+            results => {
+                cookies     => {
+                    member_id   => 'm001',
+                },
+                clipboard   => {
+                    '/IdentifyUser/member/object'   => { },
+                    '/IdentifyUser/member/name'     => 'm001',
+                },
+                text        => 'V',
+            },
+        },
+        t22     => {
+            args => {
+                mode        => 'check',
+                type        => 'member',
+            },
+            results => {
+                cookies     => {
+                    member_id   => 'm001',
+                },
+                clipboard   => {
+                    '/IdentifyUser/member/object'   => { },
+                    '/IdentifyUser/member/name'     => 'm001',
+                },
+                text        => 'V',
+            },
+        },
     );
 
     $self->run_matrix(\%matrix,\%cjar);
@@ -601,6 +638,43 @@ sub test_user_prop_list {
             results => {
                 cookies     => {
                     member_id   => 'm001/id2',
+                },
+                text        => 'V',
+            },
+        },
+        t05     => {
+            sub_pre => sub {
+                $config->put('/identify_user/member/id_cookie_type' => 'name');
+            },
+            args => {
+                mode        => 'login',
+                type        => 'member',
+                username    => 'N3',
+                password    => '12345',
+            },
+            results => {
+                cookies     => {
+                    member_id   => 'n3',
+                },
+                clipboard   => {
+                    '/IdentifyUser/member/id'   => 'm001',
+                    '/IdentifyUser/member/name' => 'n3',
+                },
+                text        => 'V',
+            },
+        },
+        t06     => {
+            args => {
+                mode        => 'check',
+                type        => 'member',
+            },
+            results => {
+                cookies     => {
+                    member_id   => 'n3',
+                },
+                clipboard   => {
+                    '/IdentifyUser/member/id'   => 'm001',
+                    '/IdentifyUser/member/name' => 'n3',
                 },
                 text        => 'V',
             },

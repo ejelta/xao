@@ -297,7 +297,7 @@ use XAO::Objects;
 use base XAO::Objects->load(objname => 'Web::Action');
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: IdentifyUser.pm,v 1.29 2004/05/19 00:04:48 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: IdentifyUser.pm,v 1.30 2004/10/27 02:36:56 am Exp $ =~ /(\d+\.\d+)/);
 
 ###############################################################################
 
@@ -741,7 +741,7 @@ sub find_user ($$$) {
         try {
             my $obj;
             my $dref=\%d;
-            for(my $i=0; $i!=@names; $i++) {
+            for(my $i=0; $i!=@names; ++$i) {
                 my $searchprop=join('/',@names[$i..$#names]);
                 my $sr=$list->search($searchprop,'eq',$username);
                 return undef unless @$sr == 1;
@@ -758,32 +758,74 @@ sub find_user ($$$) {
                     $dref->{list_prop}=$name;
                     $dref=$dref->{$name}={};
                 }
+                else {
+                    # Real username can be different even though we used
+                    # 'eq' to get to it, MySQL ignores case by default.
+                    #
+                    my $real_username=$obj->get($searchprop);
+                    if($config->{id_case_sensitive}) {
+                        if($real_username ne $username) {
+                            eprint "Case difference between '$real_username' and '$username'";
+                            return undef;
+                        }
+                    }
+                    else {
+                        $username=$real_username;
+                    }
+                }
             }
         }
         otherwise {
             my $e=shift;
+            dprint "IGNORED(OK): $e";
         };
 
         return undef unless $d{object};
 
         $d{name}=$username;
+        $d{username}=$username;
 
         return \%d;
     }
     else {
         return undef unless $list->check_name($username);
+
         my $obj;
         try {
             $obj=$list->get($username);
         }
         otherwise {
             my $e=shift;
+            dprint "IGNORED(OK): $e";
         };
         return undef unless $obj;
 
+        ##
+        # Real username can be different even though we used
+        # 'eq' to get to it, MySQL ignores case by default.
+        #
+        my $real_key_name;
+        foreach my $key ($obj->keys) {
+            if($obj->describe($key)->{type} eq 'key') {
+                $real_key_name=$key;
+                last;
+            }
+        }
+        my $real_username=$obj->get($real_key_name);
+        if($config->{id_case_sensitive}) {
+            if($real_username ne $username) {
+                eprint "Case difference between '$real_username' and '$username'";
+                return undef;
+            }
+        }
+        else {
+            $username=$real_username;
+        }
+
         return {
-            object  => $obj,
-            name    => $username,
+            object      => $obj,
+            name        => $username,
+            username    => $username,
         };
     }
 }
@@ -822,13 +864,22 @@ sub login ($;%) {
     my $username=$args->{username} ||
         throw $self "login - no 'username' given";
     my $data=$self->find_user($config,$username);
+
+    ##
+    # Since MySQL is not case sensitive by default on text fields, there
+    # was a glitch allowing people to log in with names like 'JOHN'
+    # where the database entry would be keyed 'john'. Later on, if site
+    # code compares user name to the database literally it does not
+    # match leading to strange problems and inconsistencies.
+    #
     my $errstr;
     my $user;
     if($data) {
         $user=$data->{object};
+        $username=$data->{name};
     }
     else {
-        $errstr="No information found about '$username'" unless $data;
+        $errstr="No information found about '$username'";
     }
 
     ##
@@ -1236,9 +1287,10 @@ Nothing
 
 =head1 AUTHOR
 
-Copyright (c) 2001 XAO, Inc.
+Copyright (c) 2004 Ejelta LLC, http://ejelta.com/
+Copyright (c) 2001-2004 XAO, Inc.
 
-Andrew Maltsev <am@xao.com>,
+Andrew Maltsev <am@ejelta.com>,
 Marcos Alves <alves@xao.com>,
 Ilya Lityuga <ilya@boksoft.com>.
 
