@@ -30,6 +30,7 @@ use XAO::Errors qw(XAO::DO::Web::Config);
 #
 sub add_cookie ($@);
 sub cgi ($$);
+sub cleanup ($);
 sub clipboard ($);
 sub cookies ($);
 sub disable_special_access ($);
@@ -43,7 +44,7 @@ sub new ($@);
 # Package version for checks and reference
 #
 use vars qw($VERSION);
-($VERSION)=(q$Id: Config.pm,v 1.1 2001/11/13 01:46:47 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: Config.pm,v 1.2 2001/12/05 03:51:41 am Exp $ =~ /(\d+\.\d+)/);
 
 ###############################################################################
 
@@ -135,6 +136,22 @@ sub cgi ($$) {
     }
     throw XAO::E::DO::Web::Config
           "cgi - storing new CGI requires allow_special_access()";
+}
+
+###############################################################################
+
+=item cleanup ()
+
+Removes CGI object, cleans up clipboard. No need to call manually,
+usually is called as part of XAO::DO::Config cleanup().
+
+=cut
+
+sub cleanup ($) {
+    my $self=shift;
+    delete $self->{clipboard};
+    delete $self->{cgi};
+    delete $self->{special_access};
 }
 
 ###############################################################################

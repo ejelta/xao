@@ -36,7 +36,7 @@ use vars qw(@ISA @EXPORT_OK @EXPORT $VERSION);
 @EXPORT_OK=qw(install_templates);
 @EXPORT=();
 
-sub install_templates ($$) {
+sub install_templates ($;$) {
     my $manifest=shift || 'MANIFEST';
     my $force=shift || 0;
 

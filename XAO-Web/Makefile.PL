@@ -123,11 +123,14 @@ WriteMakefile(
     'MAN3PODS'      => \%man3pods,
 );
 
-#sub MY::postamble
-#{ <<EOT;
-#
-#install::
-	#[ -d $homedir ] || mkdir $homedir && chmod 755 $homedir
-#
-#EOT
-#}
+sub MY::postamble
+{ <<EOT;
+
+install::
+	[ -d $homedir ] || mkdir $homedir && chmod 755 $homedir
+	\@\$(PERL) -Mblib \\
+	           -MXAO::PluginUtils=install_templates \\
+	           -e'install_templates("MANIFEST")'
+
+EOT
+}

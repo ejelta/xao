@@ -9,18 +9,28 @@ PageSupport/PageSupport.pm
 PageSupport/PageSupport.xs
  --------------------------------- XAO::*
 lib/XAO/DO/Web/Config.pm
+lib/XAO/DO/Web/Date.pm
+lib/XAO/DO/Web/Default.pm
+lib/XAO/DO/Web/Footer.pm
+lib/XAO/DO/Web/Header.pm
+lib/XAO/DO/Web/Styler.pm
 lib/XAO/DO/Web/Page.pm
 lib/XAO/PluginUtils.pm
 lib/XAO/Templates.pm
  --------------------------------- Handlers
 handlers/xao-apache.pl
  --------------------------------- Standard Templates
+templates/bits/errors/file-not-found
+templates/bits/page-footer
+templates/bits/page-header
+templates/bits/styler/page-title
 templates/index.html
  --------------------------------- Test Cases
 testcases/base.pm
 testcases/FS.pm
 testcases/Page.pm
 testcases/PageSupport.pm
+testcases/WebConfig.pm
  --------------------------------- Test installation tree
 testcases/testroot/projects/test/objects/Config.pm
 testcases/testroot/projects/test/templates/bits/local-test
