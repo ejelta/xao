@@ -19,6 +19,9 @@ package XAO::DO::ImportMap::Base;
 use strict;
 use XAO::Utils;
 use XAO::Errors qw(XAO::DO::ImportMap::Base);
+use XAO::Objects;
+
+use base XAO::Objects->load(objname => 'Atom');
 
 ###############################################################################
 
@@ -157,7 +160,7 @@ sub map_category ($$$$) {
     my $category_map=shift;
 
     ref($category_cache) eq 'HASH' ||
-        throw Error::Simple ref($self)."::map_category - first argument must be a hash reference";
+        throw $self "map_category - first argument must be a hash reference";
 
     if(!keys %{$category_cache}) {
         foreach my $obj ($category_map->values) {
@@ -220,7 +223,7 @@ map_xml_products() method.
 sub map_xml_categories ($$$) {
     my $self=shift;
 
-    throw Error::Simple ref($self)."::map_xml_categories - pure virtual method called";
+    throw $self "map_xml_categories - pure virtual method called";
 }
 
 ###############################################################################
@@ -242,7 +245,7 @@ You must override that method in derived classes.
 sub map_xml_products ($$$$) {
     my $self=shift;
 
-    throw Error::Simple ref($self)."::map_xml_products - pure virtual method called";
+    throw $self "map_xml_products - pure virtual method called";
 }
 
 ###############################################################################
@@ -287,9 +290,8 @@ sub product_id ($$$) {
     my $product=shift;
 
     if(@_) {
-        throw XAO::E::DO::ImportMap::Base
-              "product_id - you're using old syntax, please change" .
-              " your ImportMap accordingly";
+        throw $self "product_id - you're using old syntax, please change" .
+                    " your ImportMap accordingly";
     }
 
     undef;

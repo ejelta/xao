@@ -17,7 +17,7 @@ sub test_update_field {
     $self->assert(ref($global), "Failure getting / reference");
 
     ##
-    # Spaces at the end of string are choped off at least by
+    # Spaces at the end of string are chopped off at least by
     # MySQL. Documented bug.
     #
     foreach my $text (q('"~!@#$%^&*_+=[]{}),
@@ -443,6 +443,49 @@ sub test_get_multi {
                   "test_get_multi: Got wrong name");
     $self->assert($xxx eq 'zzz',
                   "test_get_multi: Got wrong xxx");
+}
+
+##
+# Checks how translation from undef to default values work. Undefs are
+# not supported by XAO::FS and therefore are never returned.
+#
+sub test_null {
+    my $self=shift;
+
+    my $odb=$self->get_odb();
+
+    my $cust=$odb->fetch('/Customers/c1');
+    $self->assert($cust, 'Hash object fetch failed');
+
+    $cust->add_placeholder(name => 'text',
+                           type => 'text',
+                          );
+    $cust->add_placeholder(name => 'integer',
+                           type => 'integer',
+                          );
+    $cust->add_placeholder(name => 'real',
+                           type => 'real',
+                          );
+    $cust->add_placeholder(name => 'int2',
+                           type => 'integer',
+                           minvalue => 1000,
+                          );
+    $cust->add_placeholder(name => 'real2',
+                           type => 'real',
+                           minvalue => 1000,
+                          );
+
+    my %matrix=(
+        t1  => 'text',
+        t2  => 'integer',
+        t3  => 'int2',
+        t4  => 'real',
+        t5  => 'real2',
+    );
+
+    foreach my $test (map { $matrix{$_} } sort keys %matrix) {
+        xx
+    }
 }
 
 1;
