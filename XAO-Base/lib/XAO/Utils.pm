@@ -38,7 +38,7 @@ sub merge_refs (@);
 sub fround ($$);
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: Utils.pm,v 1.9 2003/02/27 02:45:21 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: Utils.pm,v 1.10 2003/05/03 00:55:23 am Exp $ =~ /(\d+\.\d+)/);
 
 ###############################################################################
 # Export control
@@ -462,7 +462,7 @@ Here is the list of functions available:
 =item fround ($$)
 
 Rounds a floating point number according to the given
-precision. Works correctly only with positive numbers.
+precision.
 
 Precision is given as X in 1/X, for instance to round to two digits
 after decimal point use precision 100.
@@ -477,7 +477,12 @@ Examples:
 sub fround ($$) {
     my ($num,$prec)=@_;
     $prec>0 || throw XAO::E::Utils "fround - no precision given";
-    return (int(($num+1/$prec/2)*$prec))/$prec;
+    if($num<0) {
+        return -(int((-$num+1/$prec/2)*$prec))/$prec;
+    }
+    else {
+        return (int(($num+1/$prec/2)*$prec))/$prec;
+    }
 }
 
 ###############################################################################
