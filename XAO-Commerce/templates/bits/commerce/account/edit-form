@@ -11,7 +11,7 @@
 </TR>
 
 <TR>
-  <TD><STRONG><%MIDDLE_NAME.TEXT/h%>:</STRONG></TD>
+  <TD><%MIDDLE_NAME.TEXT/h%>:</TD>
   <TD><%MIDDLE_NAME.HTML%></TD>
 </TR>
 

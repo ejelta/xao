@@ -509,6 +509,10 @@ sub build_structure ($) {
                     maxlength   => 100,
                 },
                 # Address info:
+                shipto_id => {
+                    type        => 'text',
+                    maxlength   => 30,
+                },
                 shipto_ref_name => {
                     type        => 'text',
                     maxlength   => 100,
@@ -546,6 +550,10 @@ sub build_structure ($) {
                     maxlength   => 100,
                 },
                 # PayMethod info:
+                pay_id => {
+                    type        => 'text',
+                    maxlength   => 30,
+                },
                 pay_ref_name => {
                     type        => 'text',
                     maxlength   => 100,

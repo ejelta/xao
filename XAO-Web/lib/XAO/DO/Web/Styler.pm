@@ -24,7 +24,7 @@ use XAO::Objects;
 use base XAO::Objects->load(objname => 'Web::Page');
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: Styler.pm,v 1.3 2002/04/23 21:09:20 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: Styler.pm,v 1.4 2002/08/31 00:55:43 am Exp $ =~ /(\d+\.\d+)/);
 
 sub display ($;%)
 { my $self=shift;
@@ -50,7 +50,7 @@ sub display ($;%)
   ##
   # real => 1'234.78
   #
-  $template="<%REAL%>" if defined($args->{real});
+  $template='<$REAL$>' if defined($args->{real});
   my $real=sprintf("%.2f",$args->{real} || 0);
   1 while $real=~s/(\d)(\d{3}($|,|\.))/$1,$2/;
 
@@ -59,7 +59,7 @@ sub display ($;%)
     #
     my $percent=0;
     if(defined($args->{percent})) {
-        $template="<%PERCENT%>";
+        $template='<$PERCENT$>';
         if(defined($args->{total})) {
             $percent=$args->{total} ? $args->{percent}/$args->{total} : 0;
         }

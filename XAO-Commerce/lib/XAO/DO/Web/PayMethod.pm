@@ -45,7 +45,7 @@ sub edit_object ($%) {
                           my $ref_name=$form->field_desc('ref_name')->{value};
                           my $sr=$list->search('ref_name', 'eq', $ref_name);
                           if(($id && @$sr>1) || (!$id && @$sr)) {
-                              return 'Payment method with this reference name already exists';
+                              return ('Payment method with this reference name already exists','ref_name');
                           }
 
                           ##
@@ -59,9 +59,7 @@ sub edit_object ($%) {
                                                     type   => $method,
                                                 );
                               if($errstr) {
-                                  return $form->field_desc('number')->{text} .
-                                         ' ' .
-                                         $errstr;
+                                  return ($errstr,'number');
                               }
                           }
                           return '';

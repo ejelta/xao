@@ -1,6 +1,5 @@
+<STRONG><%REF_NAME/h%></STRONG><BR>
 <TABLE>
-  <TD COLSPAN="2" ALIGN="center"><STRONG><%REF_NAME/h%></STRONG></TD>
-</TR>
 <TR>
   <TD>Payment Type:</TD>
   <TD><%METHOD/h%></TD>

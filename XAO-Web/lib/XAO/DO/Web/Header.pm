@@ -9,7 +9,7 @@ Currently is only useful in XAO::Web site context.
 =head1 DESCRIPTION
 
 Simple HTML header object. Accepts the following arguments, modifies
-them as appropriate and displays "/bits/page-header" template passig the
+them as appropriate and displays "/bits/page-header" template passing the
 rest of arguments unmodified.
 
 =over
@@ -88,7 +88,7 @@ use XAO::Objects;
 use base XAO::Objects->load(objname => 'Web::Page');
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: Header.pm,v 1.4 2002/05/17 05:19:03 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: Header.pm,v 1.5 2002/08/31 00:55:43 am Exp $ =~ /(\d+\.\d+)/);
 
 ###############################################################################
 # Displaying HTML header.
