@@ -90,11 +90,26 @@ apache child thus saving memory and child startup time:
 package Apache::XAO;
 use strict;
 use warnings;
-use Apache::Constants qw(:common);
-use Socket;
 use XAO::Utils;
 use XAO::Web;
-use XAO::Templates;
+
+###############################################################################
+
+use mod_perl;
+use Apache::Server;
+use Apache::ServerUtil;
+use Apache::Log;
+
+BEGIN {
+    if($mod_perl::VERSION && $mod_perl::VERSION >= 1.99) {
+        require Apache::Const;
+        Apache::Const->import(qw(:common));
+    }
+    else {
+        require Apache::Constants;
+        Apache::Constants->import(qw(:common));
+    }
+}
 
 ###############################################################################
 
@@ -111,7 +126,6 @@ sub handler {
     # Request URI
     #
     my $uri=$r->uri;
-    #dprint "uri=$uri";
 
     ##
     # Checking if we were called as a PerlHandler and complaining
@@ -127,7 +141,7 @@ EOT
     # By convention we disallow access to /bits/ for security reasons.
     #
     if(index($uri,'/bits/')>=0) {
-        eprint "Attempt of direct access to /bits/ ($uri)";
+        $r->server->log_error("Attempt of direct access to /bits/ ($uri)");
         return NOT_FOUND;
     }
 
@@ -185,14 +199,12 @@ EOT
     }
     my $ptype=$pagedesc->{type} || 'xaoweb';
     if($ptype eq 'external') {
-        dprint "External URI ($uri), not processing at all";
-        return DECLINED;
+        return Apache::DECLINED;
     }
     elsif($ptype eq 'maptodir') {
         my $dir=$pagedesc->{directory} || '';
         if(!length($dir) || substr($dir,0,1) ne '/') {
             my $phdir=$XAO::Base::projectsdir . "/" . $sitename;
-            #dprint "phdir=$phdir";
             if(length($dir)) {
                 $dir=$phdir . '/' . $dir;
             }
@@ -202,9 +214,8 @@ EOT
         }
         $dir.='/' . $uri;
         $dir=~s/\/{2,}/\//g;
-        #dprint "Translated $uri to $dir";
         $r->filename($dir);
-        return OK;
+        return Apache::OK;
     }
 
     ##
@@ -213,7 +224,7 @@ EOT
     # install a handler and then it gets called on the main request, not
     # a sub-request.
     #
-    return DECLINED unless $r->is_main;
+    return Apache::DECLINED if $r->main;
 
     ##
     # Default is to install a content handler to produce actual
@@ -224,7 +235,7 @@ EOT
     $r->pnotes(xaoweb    => $web);
     $r->pnotes(pagedesc  => $pagedesc);
     $r->push_handlers(PerlHandler => \&handler_content);
-    return OK;
+    return Apache::OK;
 }
 
 ###############################################################################
@@ -244,7 +255,7 @@ sub handler_content ($) {
     # It happens on some sub-requests went wrong. Noticed on
     # Apache::Status for instance.
     #
-    return DECLINED unless $web;
+    return Apache::DECLINED unless $web;
 
     ##
     # Executing
@@ -255,7 +266,7 @@ sub handler_content ($) {
         pagedesc    => $pagedesc,
     );
 
-    return OK;
+    return Apache::OK;
 }
 
 ###############################################################################
@@ -270,7 +281,7 @@ sub parse_ip_port ($) {
 sub server_error ($$$) {
     my ($r,$name,$desc)=@_;
 
-    eprint "Apache::XAO - $name";
+    $r->server->log_error("*ERROR: Apache::XAO - $name");
     $r->custom_response(SERVER_ERROR,"<H2>XAO::Web System Error: $name</H2>\n$desc");
     return SERVER_ERROR;
 }

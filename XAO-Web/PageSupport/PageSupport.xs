@@ -16,14 +16,16 @@
 #include <string.h>
 #include <ctype.h>
 
-/* If that version of perl does not have pTHX_ macros then defining them here
+/* Workaround for older versions of perl that do not define these macros
 */
-#ifndef	pTHX_
-#define	pTHX_
+#ifndef pTHX_
+#define pTHX_
 #endif
-#ifndef	aTHX_
-#define	aTHX_
+#ifndef aTHX_
+#define aTHX_
 #endif
+
+/************************************************************************/
 
 #define	MAX_STACK	200
 #define	CHUNK_SIZE	1000
@@ -33,15 +35,6 @@ static unsigned long bufsize=0;
 static unsigned long bufpos=0;
 static unsigned long pstack[MAX_STACK];
 static unsigned stacktop=0;
-
-/* Workaround for older versions of perl that do not define these macros
-*/
-#ifndef pTHX_
-#define pTHX_
-#endif
-#ifndef aTHX_
-#define aTHX_
-#endif
 
 /************************************************************************/
 

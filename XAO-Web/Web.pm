@@ -324,9 +324,20 @@ sub expand ($%) {
     my $args=get_args(\@_);
 
     ##
-    # Processing the page and getting its text
+    # Processing the page and getting its text. Setting dprint and
+    # eprint to use Apache logging if there is a reference to Apache
+    # request given to us.
     #
+    my $old_logprint_handler;
+    if($args->{apache}) {
+        $old_logprint_handler=XAO::Utils::set_logprint_handler(sub {
+            $args->{apache}->server->warn($_[0]);
+        });
+    }
     my $pagetext=$self->process($args);
+    if($args->{apache}) {
+        XAO::Utils::set_logprint_handler($old_logprint_handler);
+    }
 
     ##
     # In scalar context (normal cases) we return only the resulting page
