@@ -194,7 +194,7 @@ use base XAO::Objects->load(objname => 'Web::Action');
 ##
 # Version
 use vars qw($VERSION);
-($VERSION)=(q$Id: IdentifyUser.pm,v 1.5 2001/12/13 04:58:18 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: IdentifyUser.pm,v 1.6 2001/12/19 02:22:45 am Exp $ =~ /(\d+\.\d+)/);
 
 ###############################################################################
 
@@ -255,11 +255,11 @@ sub check {
     my $args=get_args(\@_);
 
     my $config=$self->siteconfig->get('identify_user') ||
-        throw XAO::E::DO::Web "check - no 'identify_user' configuration";
+        throw XAO::E::DO::Web::IdentifyUser "check - no 'identify_user' configuration";
     my $type=$args->{type} ||
-        throw XAO::E::DO::Web "check - no 'type' given";
+        throw XAO::E::DO::Web::IdentifyUser "check - no 'type' given";
     $config=$config->{$type} ||
-        throw XAO::E::DO::Web "check - no 'identify_user' configuration for '$type'";
+        throw XAO::E::DO::Web::IdentifyUser "check - no 'identify_user' configuration for '$type'";
     my $clipboard=$self->clipboard;
 
     ##
@@ -354,12 +354,14 @@ sub display_results ($$$;$) {
     if($args->{"$status.template"} || $args->{"$status.path"}) {
 
         my $config=$self->siteconfig->get('identify_user') ||
-            throw XAO::E::DO::Web "check - no 'identify_user' configuration";
+            throw XAO::E::DO::Web::IdentifyUser
+                  "check - no 'identify_user' configuration";
         my $type=$args->{type} ||
-            throw XAO::E::DO::Web "check - no 'type' given";
+            throw XAO::E::DO::Web::IdentifyUser
+                  "check - no 'type' given";
         $config=$config->{$type} ||
-            throw XAO::E::DO::Web "check - no 'identify_user' configuration" .
-                                  " for '$type'";
+            throw XAO::E::DO::Web::IdentifyUser
+                  "check - no 'identify_user' configuration for '$type'";
         my $cb_uri=$config->{cb_uri} || "/IdentifyUser/$type";
 
         my $page=$self->object;
@@ -422,11 +424,14 @@ sub login ($;%) {
     my $args=get_args(\@_);
 
     my $config=$self->siteconfig->get('identify_user') ||
-        throw XAO::E::DO::Web "login - no 'identify_user' configuration";
+        throw XAO::E::DO::Web::IdentifyUser
+              "login - no 'identify_user' configuration";
     my $type=$args->{type} ||
-        throw XAO::E::DO::Web "login - no 'type' given";
+        throw XAO::E::DO::Web::IdentifyUser
+              "login - no 'type' given";
     $config=$config->{$type} ||
-        throw XAO::E::DO::Web "login - no 'identify_user' configuration for '$type'";
+        throw XAO::E::DO::Web::IdentifyUser
+              "login - no 'identify_user' configuration for '$type'";
 
     ##
     # Looking for the user in the database
@@ -538,11 +543,14 @@ sub logout{
     my $args=get_args(\@_);
 
     my $config=$self->siteconfig->get('identify_user') ||
-        throw XAO::E::DO::Web "logout - no 'identify_user' configuration";
+        throw XAO::E::DO::Web::IdentifyUser
+              "logout - no 'identify_user' configuration";
     my $type=$args->{type} ||
-        throw XAO::E::DO::Web "logout - no 'type' given";
+        throw XAO::E::DO::Web::IdentifyUser
+              "logout - no 'type' given";
     $config=$config->{$type} ||
-        throw XAO::E::DO::Web "logout - no 'identify_user' configuration for '$type'";
+        throw XAO::E::DO::Web::IdentifyUser
+              "logout - no 'identify_user' configuration for '$type'";
 
     ##
     # Checking if we're currently logged in at all.

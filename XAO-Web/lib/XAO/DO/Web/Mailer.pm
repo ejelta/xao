@@ -1,6 +1,6 @@
 =head1 NAME
 
-XAO::DO::Web::Mailer - executes given template and send results via e-mail
+XAO::DO::Web::Mailer - executes given template and sends results via e-mail
 
 =head1 SYNOPSIS
 
@@ -21,98 +21,166 @@ Arguments are:
 
  to          => e-mail address of the recepient; default is taken from
                 userdata->email if defined.
- cc          => optional e-mail address of the seconday recepient
+ cc          => optional e-mail addresses of secondary recepients
  from        => optional 'from' e-mail address, default is taken from
-                'default_from_address' site configuration parameter.
+                'from' site configuration parameter.
  subject     => message subject;
- server      => is not recommended, put server name into site configuration
-                'smtp_server' parameter instead. Localhost is default.
  [text.]path => text-only template path (required);
  html.path   => html template path;
  ARG         => VALUE - passed to Page when executing templates;
 
-If 'to', 'from' or 'subject' are not specified then get_to, get_from
-or get_subject methods are called first. Derived class may
-override them. 'To' may be comma-separated addresses list.
+If 'to', 'from' or 'subject' are not specified then get_to(), get_from()
+or get_subject() methods are called first. Derived class may override
+them. 'To' and 'cc' may be comma-separated addresses lists.
+
+THe configuration for Web::Mailer is kept in a hash stored in the site
+configuration under 'mailer' name. Normally it is not required, the
+default is to use sendmail for delivery. The parameters are:
+
+ method     => either 'local' or 'smtp'
+ agent      => server name for `smtp' or binary path for `local'
+ from       => either a hash reference or a scalar with the default
+               `from' address.
+
+If `from' is a hash reference then the content of `from' argument to the
+object is looked in keys and the value is used as actual `from'
+address. This can be used to set up rudimentary aliases:
+
+ <%Mailer
+   ...
+   from="customer_support"
+   ...
+ %>
+
+ mailer => {
+    from => {
+        customer_support => 'support@foo.com',
+        technical_support => 'tech@foo.com',
+    },
+    ...
+ }
+
+In that case actual from address will be `support@foo.com'. By default
+if `from' in the configuration is a hash and there is no `from'
+parameter for the object, `default' is used as the key.
 
 =cut
 
 ###############################################################################
 package XAO::DO::Web::Mailer;
 use strict;
-use Mail::Sender 0.7;
+use MIME::Lite 2.117;
 use XAO::Utils;
 use XAO::Errors qw(XAO::DO::Web::Mailer);
-use XAO::Objects;
 use base XAO::Objects->load(objname => 'Web::Page');
 
 sub display ($;%) {
+    my $self=shift;
+    my $args=get_args(\@_);
 
-    my $self = shift;
-    my $args = get_args(\@_);
-    my $to   = $args->{to};
+    my $config=$self->siteconfig->get('/mailer') || {};
 
-    unless ($to) {
-        my $ud = $self->{siteconfig}->get('userdata');
-        $to    = $ud ? $ud->get('email') : $self->get_to;
+    my $to=$args->{to} ||
+           $self->get_to ||
+           throw $self "display - no 'to' given";
+
+    my $from=$args->{from};
+    if(!$from) {
+        $from=$config->{from};
+        $from=$from->{default} if ref($from);
     }
-    $to || throw XAO::E::DO::Web::Mailer "display - no 'to' given";
-    my $from    = $args->{from} || $self->{siteconfig}->get('default_from_address');
-    $from || throw XAO::E::DO::Web::Mailer "display - no 'from' given";
-    my $subject = $args->{subject} || $self->{siteconfig}->get('sitedesc')    || 'No subject';
-    my $server  = $args->{server}  || $self->{siteconfig}->get('smtp_server') || '127.0.0.1';
-    
+    else {
+        $from=$config->{from}->{$from} if ref($config->{from}) &&
+                                          $config->{from}->{$from};
+    }
+    $from || throw $self "display - no 'from' given";
+
+    my $subject=$args->{subject} || $self->get_subject() || 'No subject';
+
     ##
     # Parsing text template
     #
-    my $textpath   = $args->{'text.path'} || $args->{path};
-    $textpath || throw XAO::E::DO::Web::Mailer "display - no text path given";
-    my $obj        = $self->object;
-    my %objargs    = %$args;
-    delete $objargs{template};
-    $objargs{path} = $textpath;
-    my $text       = $obj->expand(\%objargs);
-    $text || throw XAO::E::DO::Web::Mailer "display - template $textpath produced no text";
+    my $page=$self->object;
+    my $text;
+    if($args->{'text.path'} || $args->{path}) {
+        my $textpath=$args->{'text.path'} ||
+                     $args->{path};
+        my $objargs=merge_refs($args, { path => $textpath });
+        delete $objargs->{template};
+        $text=$page->expand($objargs);
+    }
     
     ##
     # Parsing HTML template
     #
     my $html;
     if($args->{'html.path'}) {
-        %objargs       = %$args;
-        delete $objargs{template};
-        $objargs{path} = $args->{'html.path'};
-        $html          = $obj->expand(\%objargs);
+        my $objargs=merge_refs($args,{ path => $args->{'html.path'} });
+        delete $objargs->{template};
+        $html=$page->expand($objargs);
     }
-    
+
     ##
-    # Preparing mailer
+    # Preparing mailer and storing content in
     #
-    my $mailer = Mail::Sender->new({ smtp => $server });
-    if($html) {
-        $mailer->OpenMultipart({
-            from      => $from,
-            to        => $to,
-            cc        => $args->{cc},
-            subject   => $subject,
-            multipart => 'Alternative',
-        });
-        $mailer->Body;
-        $mailer->Send($text);
-        $mailer->Part({ ctype => 'text/html'});
-        $mailer->Send($html);
-        $mailer->Close;
+    my $mailer;
+    if($html && !$text) {
+        $mailer=MIME::Lite->new(
+            From        => $from,
+            To          => $to,
+            Cc          => $args->{cc},
+            Subject     => $subject,
+            Data        => $html,
+            Type        => 'text/html',
+        );
+    }
+    elsif($text && !$html) {
+        $mailer=MIME::Lite->new(
+            From        => $from,
+            To          => $to,
+            Cc          => $args->{cc},
+            Subject     => $subject,
+            Data        => $text,
+        );
+    }
+    elsif($text && $html) {
+        $mailer=MIME::Lite->new(
+            From        => $from,
+            To          => $to,
+            Cc          => $args->{cc},
+            Subject     => $subject,
+            Type        => 'multipart/alternative',
+        );
+        $mailer->attach(
+            Type        => 'text/html',
+            Data        => $html,
+        );
+        $mailer->attach(
+            Type        => 'text/plain',
+            Data        => $text,
+        );
     }
     else {
-        $mailer->Open({
-            from    => $from,
-            to      => $to,
-            cc      => $args->{cc},
-            subject => $subject,
-        });
-        $mailer->Send($text);
-        $mailer->Close;
-     }
+        throw $self "display - no text for either html or text part";
+    }
+
+    ##
+    # Sending
+    #
+    ### dprint $mailer->as_string;
+    my $method=$config->{method} || 'local';
+    my $agent=$config->{agent};
+    if(lc($method) eq 'local') {
+        if($agent) {
+            $mailer->send('sendmail',$agent);
+        }
+        else {
+            $mailer->send('sendmail');
+        }
+    }
+    else {
+        $mailer->send('smtp',$agent || 'localhost');
+    }
 }
 
 ###############################################################################
