@@ -50,6 +50,13 @@ use XAO::Utils;
 use XAO::Errors qw(XAO::DO::Config);
 
 ###############################################################################
+# Prototypes
+#
+sub embed ($%);
+sub embedded ($$);
+sub new ($);
+
+###############################################################################
 
 =item embed (%)
 
@@ -83,19 +90,21 @@ used.
 
 =cut
 
+use vars qw(%global_methods);
+
 sub embed ($%) {
     my $self=shift;
     my $args=get_args(\@_);
 
     foreach my $name (keys %$args) {
 
-        throw XAO::E::DO::Config "embed - object with that name was already embedded before"
+        throw XAO::E::DO::Config "embed - object with that name ($name) was already embedded before"
             if $self->{$name};
 
         my $obj=$args->{$name};
         $obj->can('embeddable_methods') ||
             throw XAO::E::DO::Config
-                  "embed - object ($name) does not have embeddable_methods() method";
+                  "embed - object (".ref($obj).") does not have embeddable_methods() method";
 
         ##
         # Building perl code for proxy methods definitions
@@ -105,31 +114,58 @@ sub embed ($%) {
         foreach my $mn (@list) {
             $obj->can($mn) ||
                 throw XAO::E::DO::Config
-                      "embed - object ($name) doesn't have embeddable method $mn()";
+                      "embed - object (".ref($obj).") doesn't have embeddable method $mn()";
 
-            $self->{_methods}->{$mn} &&
+            $self->{methods}->{$mn} &&
                 throw XAO::E::DO::Config
-                      "embed - method with such name ($mn) already exists, can't be embedded from $name";
+                      "embed - method with such name ($mn) already exists, can't be embedded from ".ref($obj);
 
-            $self->{_methods}->{$mn}=$obj;
+            $self->{methods}->{$mn}=$obj;
 
-            $code.="sub $mn { shift->{_methods}->{$mn}->$mn(\@_); }\n"
+            ##
+            # We only add code if it is required, if that subroutine was
+            # not defined before in another instance of Config object.
+            #
+            if(! $global_methods{$mn}) {
+                $code.="sub $mn { shift->{methods}->{$mn}->$mn(\@_); }\n";
+                $global_methods{$mn}=1;
+            }
         }
 
         ##
         # Now a bit of black magic, evaluating the code in the current
         # package context to add appropriate proxy methods.
         #
-        eval $code;
-        throw XAO::E::DO::Config "embed - internal error" if $@;
+        if($code) {
+            eval $code;
+            $@ && throw XAO::E::DO::Config
+                        "embed - internal error; name=$name, obj=".ref($obj);
+        }
 
         ##
-        # This is not required, but we're keeping that information just
-        # in case.
+        # To operate with sub-configs by name later on.
         #
-        $self->{$name}->{obj}=$obj;
-        $self->{$name}->{methods}=\@list;
+        $self->{names}->{$name}->{obj}=$obj;
+        $self->{names}->{$name}->{methods}=\@list;
     }
+}
+
+###############################################################################
+
+=item embedded ($)
+
+Returns a reference to a previously embedded object by name. Can be used
+to call non-embedded method on that object.
+
+=cut
+
+sub embedded ($$) {
+    my $self=shift;
+    my $name=shift;
+
+    my $desc=$self->{names}->{$name} ||
+        throw XAO::E::DO::Config "embedded - no configuration with such name ($name)";
+    $desc->{obj};
 }
 
 ###############################################################################
@@ -144,15 +180,25 @@ after creating configuration and making it current.
 
 ###############################################################################
 
-=item new (%)
+=item new ()
 
 Creates new instance of abstract Config.
 
 =cut
 
-sub new ($%) {
+sub new ($) {
     my $proto=shift;
-    bless {},ref($proto) || $proto;
+    bless {
+        methods => {
+            embed => 1,
+            embedded => 1,
+            new => 1,
+            BEGIN => 1,
+            END => 1,
+            DESTROY => 1,
+            AUTOLOAD => 1,
+        },
+    },ref($proto) || $proto;
 }
 
 ###############################################################################

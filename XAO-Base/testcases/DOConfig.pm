@@ -1,5 +1,6 @@
 package testcases::DOConfig;
 use strict;
+use XAO::Utils;
 use XAO::SimpleHash;
 use XAO::Projects;
 use XAO::Objects;
@@ -31,6 +32,9 @@ sub test_base {
     $got=join(',',sort $config->keys);
     $self->assert($got eq 'foo,test',
                   "Got wrong keys from config -- '$got' ne 'foo,test'");
+
+    $self->assert(ref($config->embedded('hash')) eq 'XAO::SimpleHash',
+                  "Can't use embedded() to get an object");
 }
 
 sub test_project {
@@ -51,6 +55,20 @@ sub test_project {
     my $got=$config->fubar('123');
     $self->assert($got eq 'X123X',
                   "Execution chain does not work for siteobj ($got ne X123X)");
+}
+
+sub test_double {
+    my $self=shift;
+
+    my $c1=XAO::Objects->new(objname => 'Config', baseobj => 1);
+    $self->assert(ref($c1),
+                  "Can't get c1");
+    $c1->embed('hash' => XAO::SimpleHash->new);
+
+    my $c2=XAO::Objects->new(objname => 'Config', baseobj => 1);
+    $self->assert(ref($c2),
+                  "Can't get c2");
+    $c2->embed('hash' => XAO::SimpleHash->new);
 }
 
 1;

@@ -28,14 +28,14 @@ use XAO::Projects;
 ##
 # Prototypes
 #
-sub load (%);
+sub load (@);
 sub new ($%);
 
 ##
 # Module version.
 #
 use vars qw($VERSION);
-($VERSION)=(q$Id: Objects.pm,v 1.4 2001/11/10 00:30:30 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: Objects.pm,v 1.5 2001/11/13 01:42:37 am Exp $ =~ /(\d+\.\d+)/);
 
 ##
 # Loads object into memory.
@@ -58,7 +58,7 @@ use vars qw($VERSION);
 #  sitename => should only be used to load Config object.
 #
 use vars qw(%objref_cache);
-sub load (%) {
+sub load (@) {
     my $class=(scalar(@_)%2 || ref($_[1]) ? shift(@_) : 'XAO::Objects');
     my $args=get_args(\@_);
     my $objname=$args->{objname} ||
@@ -89,7 +89,8 @@ sub load (%) {
            exists($objref_cache{$sitename}) &&
            exists($objref_cache{$sitename}->{$objname});
     return $objref_cache{'/'}->{$objname}
-        if exists($objref_cache{'/'}) &&
+        if !$sitename &&
+           exists($objref_cache{'/'}) &&
            exists($objref_cache{'/'}->{$objname});
 
     ##
