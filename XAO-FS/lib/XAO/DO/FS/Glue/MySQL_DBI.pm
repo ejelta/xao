@@ -35,7 +35,7 @@ use DBD::mysql;
 use base XAO::Objects->load(objname => 'Atom');
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: MySQL_DBI.pm,v 1.9 2002/03/19 03:37:08 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: MySQL_DBI.pm,v 1.10 2002/04/04 08:35:45 am Exp $ =~ /(\d+\.\d+)/);
 
 ###############################################################################
 
@@ -944,6 +944,8 @@ Example:
 sub update_row ($$$$) {
     my $self=shift;
     my ($table,$uid,$row)=@_;
+
+    return unless keys %$row;
 
     my $sql="UPDATE $table SET ";
     $sql.=join(',',map { "${_}_=?" } keys %{$row});

@@ -1,4 +1,5 @@
 1.03 - 18-Mar-2002
+    * Fixed storing of an empty object
     * MAJOR: Now NULL and 'undef' are outlawed and never returned
     * MAJOR: 'default' parameter added to placeholder creation
     * MAJOR: Fixed major bug with 'unique' treatment on inner objects
