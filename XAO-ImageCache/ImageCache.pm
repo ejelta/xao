@@ -57,7 +57,7 @@ use File::Copy;
 # Package version
 #
 
-($VERSION)=(q$Id: ImageCache.pm,v 1.2 2002/04/13 03:20:09 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: ImageCache.pm,v 1.3 2002/04/23 16:37:17 am Exp $ =~ /(\d+\.\d+)/);
 
 sub DESTROY {
     my $self = shift;
@@ -568,6 +568,7 @@ sub resize($$) {
 
     if ($src_height < 1) {
         $self->cache_log("RESIZE ERROR - source Height less than 1");
+        $image->Set(quality => 80);
         $image->Write($outfile);
         return;
     }
@@ -579,6 +580,7 @@ sub resize($$) {
             ($self->{size}->{height} eq $src_height)
         )
     ) {
+        $image->Set(quality => 80);
         $image->Write($outfile);
         return;
     }
@@ -611,6 +613,7 @@ sub resize($$) {
 
         # Do nothing if size already correct
         if (($width eq $src_width) && ($height eq $src_height)) {
+            $image->Set(quality => 80);
             $image->Write($outfile);
             return;
         }
@@ -623,6 +626,7 @@ sub resize($$) {
                     ($self->{size}->{height} || $src_height).'!';
     }
     $image->Scale(geometry => $geometry);
+    $image->Set(quality => 80);
     $image->Write($outfile);
     $self->cache_log("RESIZED from $src_width"."x$src_height to $geometry");
 }
@@ -655,6 +659,7 @@ sub thumbnail($$$) {
     }
     my $geometry = $self->{thumbnails}->{geometry} || "50%";
     $image->Scale(geometry => $geometry);
+    $image->Set(quality => 80);
     $image->Write($thumbnail_file);
 }
 
