@@ -108,6 +108,10 @@ separated by | (pipe character) and are listed in order of priority.
 This eliminates duplicate matches on a given field, just like
 SQL distinct.
 
+=item limit => 10
+
+Allows to limit the number of matches to a specified number.
+
 =item start_item => 40
 
 Number indicating the first query match to fetch.
@@ -180,7 +184,7 @@ use XAO::Errors qw(XAO::DO::Web::FS);
 use base XAO::Objects->load(objname => 'Web::Action');
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: FS.pm,v 1.29 2002/08/01 23:13:54 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: FS.pm,v 1.30 2002/08/15 00:47:03 am Exp $ =~ /(\d+\.\d+)/);
 
 ###############################################################################
 
@@ -501,6 +505,7 @@ sub show_property ($%) {
 }
 
 ###############################################################################
+
 sub search ($;%) {
 
     my $self=shift;
@@ -831,7 +836,7 @@ sub _create_query {
     #
     # Add any extra search options
     #
-    if ($args->{orderby} || $args->{distict}) {
+    if ($args->{orderby} || $args->{distinct} || $args->{limit}) {
         my $rh_options = {};
 
         #
@@ -851,6 +856,11 @@ sub _create_query {
         # Distinct searching
         #
         $rh_options->{distinct} = $args->{distinct} if $args->{distinct};
+
+        #
+        # Limit on total amount of results
+        #
+        $rh_options->{limit} = $args->{limit} if $args->{limit};
 
         push @{$expr_ra[$i]}, $rh_options;
     }
