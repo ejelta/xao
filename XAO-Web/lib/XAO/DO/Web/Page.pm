@@ -68,7 +68,7 @@ First it checks if there is an argument given to original Page's
 display() method named 'Page' (case sensitive). In our case there is no
 such argument present.
 
-Then, as nor such static argument is found, it attempts to load an
+Then, as no such static argument is found, it attempts to load an
 object named 'Page' and pass whatever arguments given to that object's
 display method.
 
@@ -98,9 +98,8 @@ Then the output produced by the original Page's display would be:
 
   </BODY></HTML>
 
-For actual site you might opt to use specific objects for header and
-footer (see L<XAO::DO::Web::Header> and
-L<XAO::DO::Web::Footer>):
+For the actual site you might opt to use specific objects for header and
+footer (see L<XAO::DO::Web::Header> and L<XAO::DO::Web::Footer>):
 
   <%Header title="My first XAO::Web page"%>
 
@@ -120,8 +119,8 @@ this template would be translated into:
 
   <A HREF="http://demosite.com/somepage.html">blah blah blah</A>
 
-Even more interesting is that you can use embedding to construct
-arguments for embedded objects:
+Even more interesting is that you can use embedding to create arguments
+for embedded objects:
 
   <%Date gmtime={<%CgiParam param="shippingtime" default="0"%>}%>
 
@@ -172,6 +171,36 @@ But it is not recommended to use that method and it is not guaranteed
 that this will remain legal in future versions. Kept mostly for
 compatibility with already deployed code.
 
+=item 4
+
+To pass a string literally without performing any substitutions you can
+use single quotes. For instance:
+
+ <%FS
+   uri="/Members/<%MEMBER_ID/f%>"
+   mode="show-hash"
+   fields="*"
+   template='<%MEMBER_AGE/f%> -- <%MEMBER_STATUS/f%>'
+ %>
+
+If double quotes were used in this example then the parser would try to
+expand <%MEMBER_AGE%> and <%MEMBER_STATUS%> variables using the current
+object arguments which is not what is intended. Using single quotes it
+is possible to let FS object do the expansion and therefore insert
+database values in this case.
+
+=item 5
+
+To pass multiple nested arguments literally or to include a single quote
+into the string matching pairs of {' and '} can be used:
+
+ <%FS
+   uri="/Members/<%MEMBER_ID/f%>"
+   mode="show-hash"
+   fields="*"
+   template={'Member's age is <%MEMBER_AGE/f%>'}
+ %>
+
 =back
 
 Sometimes it is necessary to include various special symbols into
@@ -182,13 +211,13 @@ special symbols into HTML tags arguments:
 
 =item *
 
-By using &tag; construct, where tag could be "quot", "lt", "gt" and
+By using &tag; construction, where tag could be "quot", "lt", "gt" and
 "amp" for double quote, left angle bracket, right angle bracket and
 ampersand respectfully.
 
 =item *
 
-By using &#NNN; construct where NNN is the decimal code for the
+By using &#NNN; construction where NNN is the decimal code for the
 corresponding symbol. For example left curly bracket could be encoded as
 &#123; and right curly bracket as &#125;. The above example should be
 re-written as follows to make it legal:
@@ -222,7 +251,7 @@ the template one level up from them.
 As a test of how you understood everything above please attempt to
 predict what would be printed by the following example (after reading
 L<XAO::DO::Web::SetArg> or guessing its meaning). The answer is
-about one page down, at the end of description chapter.
+about one page down, at the end of this chapter.
 
  <%SetArg name="V1" value="{}"%>
  <%SetArg name="V2" value={""}%>
@@ -255,7 +284,7 @@ file. Here is an example:
  <%Footer%>
 
 One exception is JavaScript code which is usually put into comments. The
-parser would NOT remove comments if open comment is <!--//. Here is an
+parser will NOT remove comments if open comment is <!--//. Here is an
 example of JavaScript code:
 
  <SCRIPT LANGUAGE="JAVASCRIPT"><!--//
@@ -310,7 +339,7 @@ use Error qw(:try);
 use base XAO::Objects->load(objname => 'Atom');
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: Page.pm,v 1.20 2002/06/27 17:32:24 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: Page.pm,v 1.21 2002/06/27 22:16:05 am Exp $ =~ /(\d+\.\d+)/);
 
 ##
 # Prototypes
