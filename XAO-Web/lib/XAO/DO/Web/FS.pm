@@ -184,7 +184,7 @@ use XAO::Errors qw(XAO::DO::Web::FS);
 use base XAO::Objects->load(objname => 'Web::Action');
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: FS.pm,v 1.43 2003/11/13 06:15:15 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: FS.pm,v 1.44 2004/09/29 16:37:11 am Exp $ =~ /(\d+\.\d+)/);
 
 ###############################################################################
 
@@ -303,12 +303,19 @@ sub delete_property ($%) {
     my $self=shift;
     my $args=get_args(\@_);
 
+    my $object=$self->get_object($args);
+
     my $name=$args->{name} ||
         throw $self "delete_property - no 'name'";
-    $self->odb->_check_name($name) ||
-        throw $self "delete_property - bad name '$name'";
 
-    my $object=$self->get_object($args);
+    if($object->objtype eq 'List') {
+        $object->check_name($name) ||
+            throw $self "delete_property - bad name '$name'";
+    }
+    else {
+        $self->odb->check_name($name) ||
+            throw $self "delete_property - bad name '$name'";
+    }
 
     $object->delete($name);
 }
