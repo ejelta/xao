@@ -192,7 +192,7 @@ use XAO::Objects;
 use base XAO::Objects->load(objname => 'Web::Action');
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: IdentifyUser.pm,v 1.10 2002/01/04 02:13:23 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: IdentifyUser.pm,v 1.11 2002/05/03 01:36:27 am Exp $ =~ /(\d+\.\d+)/);
 
 ###############################################################################
 
@@ -313,9 +313,9 @@ sub check {
             # appropriate field in the user profile
             #
             if ($config->{vf_key_prop} && $config->{vf_key_cookie}) {
-                my $web_key=$self->cgi->cookie($config->{vf_key_cookie});
-                my $db_key=$user->get($config->{vf_key_prop});
-                if($db_key eq $web_key) {
+                my $web_key=$self->cgi->cookie($config->{vf_key_cookie}) || '';
+                my $db_key=$user->get($config->{vf_key_prop}) || '';
+                if($web_key && $db_key eq $web_key) {
                     $clipboard->put("$cb_uri/verified" => 1);
 
                     ##

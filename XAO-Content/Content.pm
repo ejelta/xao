@@ -465,7 +465,23 @@ sub content_data ($%) {
         }
     }
     else {
-        $text=$self->cache->get($self,$args);
+        if($args->{'default.path'} || defined($args->{'default.template'})) {
+            use XAO::Errors qw(XAO::E::DO::FS::List);
+
+            try {
+                $text=$self->cache->get($self,$args);
+            }
+            catch XAO::E::DO::FS::List with {
+                $text=$self->object->expand(
+                    path        => $args->{'default.path'},
+                    template    => $args->{'default.template'},
+                    unparsed    => 1,
+                );
+            };
+        }
+        else {
+            $text=$self->cache->get($self,$args);
+        }
     }
 
     if($args->{parse}) {
