@@ -47,8 +47,8 @@ use base XAO::Objects->load(objname => 'FS::Hash');
 1;
 __END__
 
-=back
-
 =head1 AUTHORS
 
-XAO Inc., Andrew Maltsev <am@xao.com>
+Copyright (c) 2001-2002 XAO Inc.
+
+Andrew Maltsev <am@xao.com>

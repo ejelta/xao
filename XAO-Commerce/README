@@ -23,7 +23,7 @@ DESCRIPTION
     *   XAO::DO::Web::PayMethod: a child of Web::FS, keeps customer payment
         method information.
 
-    *   XAO::DO::Web::PayMethod: a child of Web::FS, keeps product
+    *   XAO::DO::Web::Product: a child of Web::FS, keeps product
         information.
 
     *   XAO::DO::Web::Order: a child of Web::FS, keeps customer order

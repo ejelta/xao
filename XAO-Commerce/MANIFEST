@@ -1,22 +1,28 @@
 Makefile.PL
-
 CHANGES
 LICENSE
 MANIFEST
 MANIFEST.SKIP
 README
 TODO
- -------------------------------------------------------------
-
+Commerce.pm
 test.pl
+ -------------------------------------------------------------
 testcases/Commerce.pm
 testcases/base.pm
-Commerce.pm
+ -------------------------------------------------------------
+lib/XAO/DO/Data/Admin.pm
+lib/XAO/DO/Data/Category.pm
+lib/XAO/DO/Data/CustomerAddress.pm
+lib/XAO/DO/Data/OrderedProduct.pm
+lib/XAO/DO/Data/PayMethod.pm
+lib/XAO/DO/Data/ProductCategory.pm
 lib/XAO/DO/Web/Account.pm
 lib/XAO/DO/Web/Address.pm
 lib/XAO/DO/Web/Order.pm
 lib/XAO/DO/Web/PayMethod.pm
 lib/XAO/DO/Web/Product.pm
+ -------------------------------------------------------------
 templates/bits/account/customer_id
 templates/bits/account/show
 templates/bits/address/show
@@ -106,9 +112,7 @@ templates/bits/product/product-template
 templates/bits/product/spec-footer
 templates/bits/product/spec-header
 templates/bits/product/spec-row
-
  -------------------------------------------------------------
-
 sample/bin/add-admin.proto
 sample/bin/build-structure.proto
 sample/bin/ifilter-flatfile.proto
@@ -214,16 +218,6 @@ sample/images/search.gif
 sample/images/tagline.gif
 sample/images/top_left.gif
 sample/objects/Config.pm.proto
-sample/objects/Data/Admin.pm
-sample/objects/Data/CatalogCategoryMap.pm
-sample/objects/Data/CatalogData.pm
-sample/objects/Data/Catalog.pm
-sample/objects/Data/Category.pm
-sample/objects/Data/CustomerAddress.pm
-sample/objects/Data/OrderedProduct.pm
-sample/objects/Data/Order.pm
-sample/objects/Data/PayMethod.pm
-sample/objects/Data/ProductCategory.pm
 sample/objects/ImportMap/FlatFile.pm
 sample/objects/Web/AutoCatalog.pm
 sample/objects/Web/AutoProduct.pm

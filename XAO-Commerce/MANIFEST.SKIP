@@ -27,3 +27,5 @@ sample/templates/test-search.html
 sample/templates/search-cat.html
 sample/templates/search-prod.html
 sample/templates/search.html
+
+.*\.cvsignore
