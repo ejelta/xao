@@ -1,3 +1,7 @@
+Polymorphism. See letter from Jean-Michel Hiver for details and ideas.
+
+===============
+
 Optimization for keys() and values() called in scalar context to issue
 count(*) instead of returning actual array. Probably a special method
 like count(search_args) too for more complex conditions.

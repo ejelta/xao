@@ -16,10 +16,6 @@ a root node in objects tree. It is not recommended to override it for
 specific site unless you're positive there is no way to avoid that and
 you know enough about object server internalities.
 
-Here is the list of methods that are different from FS::Hash:
-
-=over
-
 =cut
 
 ###############################################################################
@@ -31,7 +27,7 @@ use XAO::Objects;
 use base XAO::Objects->load(objname => 'FS::Hash');
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: Global.pm,v 1.2 2002/01/04 01:47:37 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: Global.pm,v 1.3 2002/11/09 02:04:11 am Exp $ =~ /(\d+\.\d+)/);
 
 sub new ($%) {
     my $class=shift;
@@ -45,4 +41,13 @@ sub new ($%) {
 1;
 __END__
 
-=back
+=head1 AUTHORS
+
+XAO, Inc. (c) 2001
+
+=head1 SEE ALSO
+
+Further reading:
+L<XAO::FS>,
+L<XAO::DO::FS::Hash> (aka FS::Hash),
+L<XAO::DO::FS::List> (aka FS::List).
