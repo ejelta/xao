@@ -204,10 +204,10 @@ EOT
     #
     my $pagedesc;
     if(substr($uri,-1,1) eq '/') {
-        $pagedesc=$web->analyze($uri . 'index.html',$sitename);
+        $pagedesc=$web->analyze($uri . 'index.html',$sitename,1);
     }
     else {
-        $pagedesc=$web->analyze($uri,$sitename);
+        $pagedesc=$web->analyze($uri,$sitename,1);
     }
     my $ptype=$pagedesc->{type} || 'xaoweb';
     if($ptype eq 'external') {

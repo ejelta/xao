@@ -111,7 +111,7 @@ sub sitename ($);
 
 ###############################################################################
 
-=item analyze ($)
+=item analyze ($;$$)
 
 Checks how to display the given path (scalar or split up array
 reference). Always returns valid results or throws an error if that
@@ -125,10 +125,16 @@ Returns hash reference:
  objname  => object name that will serve this path
  objargs  => object args hash (may be empty)
 
+Optional second argument can be used to enforce a specific site name.
+
+Optional third argument must be used to allow returning records of types
+other than 'xaoweb'. This is used by Apache::XAO to get 'maptodir' and
+'external' mappings. Default is to look for xaoweb only records.
+
 =cut
  
-sub analyze ($$;$) {
-    my ($self,$patharr,$sitename)=@_;
+sub analyze ($$;$$) {
+    my ($self,$patharr,$sitename,$allow_other_types)=@_;
 
     $patharr=[ split(/\/+/,$patharr) ] unless ref $patharr;
 
@@ -153,15 +159,30 @@ sub analyze ($$;$) {
 
             ##
             # If $od is an empty string or an empty array reference --
-            # that means that we need to fall back to default handler
+            # this means that we need to fall back to default handler
             # for that path.
             #
             # The same happens for 'default' type in a hash reference.
             #
             my $rhash;
             if(ref($od) eq 'HASH') {
-                last if $od->{type} && $od->{type} eq 'default';
-                $rhash=merge_refs($od);
+                my $type=$od->{'type'} || 'xaoweb';
+                if($type eq 'default') {
+                    last;
+                }
+                elsif($type eq 'xaoweb') {
+                    throw XAO::E::Web "analyze - no objname/objargs for '$dir'";
+                    $rhash=merge_refs($od);
+                }
+                elsif($allow_other_types) {
+                    $rhash=merge_refs($od);
+                }
+                elsif($od->{'xaoweb'} && ref($od->{'xaoweb'}) eq 'HASH') {
+                    $rhash=merge_refs($od->{'xaoweb'});
+                }
+                else {
+                    next;
+                }
             }
             elsif(ref($od) eq 'ARRAY') {
                 last unless @$od;
@@ -187,10 +208,10 @@ sub analyze ($$;$) {
                 };
             }
 
-            $rhash->{path}=join('/',@{$patharr}[$i..$#$patharr]);
-            $rhash->{patharr}=$patharr;
-            $rhash->{prefix}=$dir;
-            $rhash->{fullpath}=$path;
+            $rhash->{'path'}=join('/',@{$patharr}[$i..$#$patharr]);
+            $rhash->{'patharr'}=$patharr;
+            $rhash->{'prefix'}=$dir;
+            $rhash->{'fullpath'}=$path;
 
             return $rhash;
         }
@@ -204,6 +225,7 @@ sub analyze ($$;$) {
     if($filename) {
         return {
             type        => 'xaoweb',
+            subtype     => 'file',
             objname     => 'Page',
             objargs     => { },
             path        => $path,
@@ -218,7 +240,8 @@ sub analyze ($$;$) {
     # Nothing was found, returning Default object
     #
     return {
-        type        => 'notfound',
+        type        => 'xaoweb',
+        subtype     => 'notfound',
         objname     => 'Default',
         path        => $path,
         patharr     => $patharr,
@@ -285,7 +308,7 @@ sub execute ($%) {
         my $e=shift;
         my $path="/internal-error/index.html";
         my $pd=$self->analyze($path);
-        if($pd && $pd->{objname} ne 'Default') {
+        if($pd && $pd->{'type'} eq 'xaoweb' && $pd->{'objname'} ne 'Default') {
             eprint "$e";
             $self->clipboard->put("internal_error" => {
                 error       => $e,
@@ -435,7 +458,7 @@ sub process ($%) {
     # Analyzing the path. We have to do that up here because the object
     # might specify that we should not touch CGI.
     #
-    my $pd=$args->{pagedesc};
+    my $pd=$args->{'pagedesc'};
     if(!$pd) {
         my @path=split(/\//,$path);
         push(@path,"") unless @path;
