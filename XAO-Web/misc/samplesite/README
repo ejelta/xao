@@ -1,0 +1,17 @@
+This is a sample XAO::Web web site project
+
+Try:
+
+    make
+
+    make dist
+
+    make test
+
+Check content of the files, most of them have useful comments.
+
+If you're willing to contribute better documentation -- you are more
+than welcome.
+
+-- 
+Andrew Maltsev <am@ejelta.com>
