@@ -601,7 +601,7 @@ sub view_order_details {
 
         my %line;
         if($arr[0] eq 'LINE') {
-            @arr==13 ||
+            @arr==14 ||
                 throw XAO::E::P21 "view_order_details - wrong LINE ($str)";
             @line{qw(type line_number item_code entry_date
                      ord_qty inv_qty canc_qty
