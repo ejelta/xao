@@ -29,7 +29,7 @@ use base XAO::Objects->load(objname => 'FS::Glue::MySQL_DBI'),
          'DynaLoader';
 
 use vars qw($VERSION);
-$VERSION='0.01';
+$VERSION='1.0';
 
 bootstrap XAO::DO::FS::Glue::MySQL $VERSION;
 
@@ -100,11 +100,6 @@ sub sql_execute ($$;@) {
     return $r;
 }
 
-###############################################################################
-1;
-__END__
-
-=head1 AUTHORS
 ###############################################################################
 1;
 __END__

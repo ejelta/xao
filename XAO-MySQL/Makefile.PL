@@ -84,6 +84,7 @@ WriteMakefile(
     'AUTHOR'        => 'XAO Inc. http://xao.com/',
     'ABSTRACT'      => 'Fast MySQL driver for the XAO::FS',
     'NAME'          => 'XAO::DO::FS::Glue::MySQL',
+    'DISTNAME'      => 'XAO-MySQL',
     'VERSION_FROM'	=> 'MySQL.pm',
     'PREREQ_PM'     => { 
         'Error'         => '0.14',
