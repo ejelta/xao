@@ -6,6 +6,13 @@
 
 #include <mysql/mysql.h>
 
+/* #define SQL_TIMING */
+
+#ifdef SQL_TIMING
+#include <time.h>
+#include <stdio.h>
+#endif
+
 #define CHUNK_SIZE 10
 
 static MYSQL*
@@ -179,6 +186,10 @@ sql_real_execute(self,qtemplate,values)
         MYSQL *mysql=get_mysql_handler(aTHX_ self);
         STRLEN query_len;
         char *query=build_query(aTHX_ mysql,qtemplate,values,&query_len);
+#ifdef SQL_TIMING
+        time_t t1,t2;
+        t1=time(NULL);
+#endif
         if(mysql_real_query(mysql,query,query_len)) {
             RETVAL=&PL_sv_undef;
         }
@@ -186,6 +197,22 @@ sql_real_execute(self,qtemplate,values)
             MYSQL_RES* mres=mysql_store_result(mysql);
             RETVAL=newSViv((IV)mres);
         }
+#ifdef SQL_TIMING
+        t2=time(NULL);
+        if(t2-t1) {
+            STRLEN qt_len;
+            char const *qt;
+            if(SvROK(qtemplate)) {
+                SV* sv=SvRV(qtemplate);
+                qt=SvPV(sv,qt_len);
+            }
+            else {
+                qt=SvPV(qtemplate,qt_len);
+            }
+            fprintf(stderr,"SQL TIMING: TIME=%u TEMPLATE='%s'\n",t2-t1,qt);
+            fprintf(stderr,"SQL QUERY: %*s\n",query_len,query);
+        }
+#endif
     OUTPUT:
         RETVAL
 
