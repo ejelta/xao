@@ -24,7 +24,7 @@ use XAO::Objects;
 use base XAO::Objects->load(objname => 'Web::Page');
 
 use vars qw($VERSION);
-($VERSION)=(q$Id: Styler.pm,v 1.4 2002/08/31 00:55:43 am Exp $ =~ /(\d+\.\d+)/);
+($VERSION)=(q$Id: Styler.pm,v 1.5 2003/02/01 00:41:10 am Exp $ =~ /(\d+\.\d+)/);
 
 sub display ($;%)
 { my $self=shift;
@@ -43,7 +43,7 @@ sub display ($;%)
   # dollars => $1'234.78
   #
   $template="<%DOLLARS%>" if defined($args->{dollars}) || defined($args->{dollar});
-  my $dollars=sprintf("%.2f",$args->{dollars} || $args->{dollar} || 0);
+  my $dollars=sprintf(($args->{format} || '%.2f'),$args->{dollars} || $args->{dollar} || 0);
   1 while $dollars=~s/(\d)(\d{3}($|,|\.))/$1,$2/;
   $dollars='$'.$dollars;
 
