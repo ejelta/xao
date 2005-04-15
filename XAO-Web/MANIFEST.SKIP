@@ -1,8 +1,10 @@
 ^.cvsignore$
 ^.config$
-Makefile$
+^Makefile$
+^PageSupport/Makefile$
 .*\.old$
 blib/
+blibdirs
 pm_to_blib
 ^CVS/
 /CVS/

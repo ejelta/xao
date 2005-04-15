@@ -3,7 +3,9 @@ NAME
 
 DESCRIPTION
     XAO::Web is a part of XAO open source web services suite. It allows to
-    build dynamic web content using data, templates and external input.
+    build dynamic web content using data, templates and external input (for
+    an overview of the templating system please refer to XAO::DO::Web::Page
+    description).
 
     The distinguishing feature of XAO::Web is in its modular design where
     almost every aspect of functionality can be altered and alterations can

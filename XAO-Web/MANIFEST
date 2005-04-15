@@ -108,6 +108,7 @@ misc/samplesite/.cvsignore
 misc/samplesite/bin/.cvsignore
 misc/samplesite/bin/build-structure.proto
 misc/samplesite/configure.pl
+misc/samplesite/Makefile
 misc/samplesite/MANIFEST
 misc/samplesite/MANIFEST.MODES
 misc/samplesite/MANIFEST.SKIP
