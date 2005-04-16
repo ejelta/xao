@@ -23,9 +23,14 @@ samples/show_spool.pl
 samples/submit.pl
  ------------------------------------
 server/catalog.p
+server/cust_item.p
 server/custinfo.p
 server/custinfo1.p
 server/items.p
 server/modcust.p
+server/ord_past.p
+server/ord_status.p
 server/price.p
-server/xaotst.pl
+server/sell_schd.p
+server/www.p
+server/xao-server
