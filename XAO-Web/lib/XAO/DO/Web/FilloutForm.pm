@@ -62,7 +62,7 @@ use XAO::Errors qw(XAO::DO::Web::FilloutForm);
 use base XAO::Objects->load(objname => 'Web::Page');
 
 use vars qw($VERSION);
-$VERSION=(0+sprintf('%u.%03u',(q$Id: FilloutForm.pm,v 2.3 2005/03/23 11:03:25 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
+$VERSION=(0+sprintf('%u.%03u',(q$Id: FilloutForm.pm,v 2.4 2005/04/28 22:06:53 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
 
 sub setup ($%);
 sub field_desc ($$);
@@ -343,25 +343,25 @@ sub display ($;%) {
         }
         elsif($style eq 'real') {
             if(length($value)) {
-                if($value =~ /^[\d,'\.]+$/) {
+                if($value =~ /^-?[\d,'\.]+$/) {
                     $value=~s/[,']+//g;
-                    if(defined($fdata->{minvalue}) && $value<$fdata->{minvalue}) {
+                    if(defined($fdata->{'minvalue'}) && $value<$fdata->{'minvalue'}) {
                         $newerr=$self->Tx("Value is less than {{min}}",
                                             { min => $fdata->{minvalue} });
                     }
-                    if(defined($fdata->{maxvalue}) && $value>$fdata->{maxvalue}) {
+                    if(defined($fdata->{'maxvalue'}) && $value>$fdata->{'maxvalue'}) {
                         $newerr=$self->Tx("Value is greater than {{max}}",
-                                            { max => $fdata->{maxvalue} });
+                                            { max => $fdata->{'maxvalue'} });
                     }
                 }
                 else {
-                    $newerr=$self->Tx("Is not an number!");
+                    $newerr=$self->Tx("Is not a number!");
                 }
             }
         }
         elsif($style eq 'password') {
-            if(length($value) && $fdata->{pair} &&
-               $value ne $cgi->param($fdata->{pair})) {
+            if(length($value) && $fdata->{'pair'} &&
+               $value ne $cgi->param($fdata->{'pair'})) {
                 $newerr=$self->Tx("Does not match the copy!");
             }
         }

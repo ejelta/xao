@@ -82,7 +82,8 @@ DO TRANSACTION:
             wbw_head.ship_to_state          d_d
             wbw_head.ship_to_zip            d_d
             wbw_head.ar_amt                 d_d
-            wbw_head.cust_po                skip
+            wbw_head.cust_po                d_d
+            wbw_head.sales_loc              skip
         .
     END.
 
