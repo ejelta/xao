@@ -349,6 +349,7 @@ hash:
   first_sale    => date of first sale
   stax_exemp    => if non-empty then this customer has tax exempt
                    documents on file
+  default_loc   => default warehouse for the customer
 
 Default is to return complete list of all customers, be careful as it
 can take a lot of time to do so.
@@ -368,17 +369,17 @@ sub custinfo {
     my $self=shift;
     my $args=get_args(\@_);
 
-    my $custinfo=$args->{code} || [];
+    my $custinfo=$args->{'code'} || [];
     $custinfo=[ $custinfo ] unless ref($custinfo) eq 'ARRAY'; 
 
-    my $callback=$args->{callback};
+    my $callback=$args->{'callback'};
 
-    my $build=$args->{build} || sub {
+    my $build=$args->{'build'} || sub {
         my %row;
         @row{qw(bill_to_name cust_code bill_to_addr1 bill_to_addr2
                 bill_to_addr3 bill_to_city bill_to_state bill_to_zip
                 telephone aux_fax email_address slm_number first_sale
-                stax_exemp)}=
+                stax_exemp default_loc)}=
             split('\t',$_[0]);
         return \%row;
     };

@@ -45,6 +45,8 @@ FOR EACH p21.customer:
         p21.customer.first_sale
         d_d
         p21.customer.stax_exemp
+        d_d
+        p21.customer.default_loc
         "\n"
     .
 END.
