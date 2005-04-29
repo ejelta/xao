@@ -62,7 +62,7 @@ use XAO::Errors qw(XAO::DO::Web::FilloutForm);
 use base XAO::Objects->load(objname => 'Web::Page');
 
 use vars qw($VERSION);
-$VERSION=(0+sprintf('%u.%03u',(q$Id: FilloutForm.pm,v 2.4 2005/04/28 22:06:53 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
+$VERSION=(0+sprintf('%u.%03u',(q$Id: FilloutForm.pm,v 2.5 2005/04/29 01:48:22 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
 
 sub setup ($%);
 sub field_desc ($$);
@@ -235,18 +235,18 @@ sub display ($;%) {
         my $name=$fdata->{name};
         my $cgivalue=$cgi->param($name);
         $have_cgivalues++ if defined($cgivalue) &&
-                             (!defined($fdata->{phase}) ||
-                              $fdata->{phase} eq $phase);
+                             (!defined($fdata->{'phase'}) ||
+                              $fdata->{'phase'} eq $phase);
 
         ##
         # Checking form phase for multi-phased forms if required.
         #
         next if defined($fdata->{phase}) && $phase<$fdata->{phase};
 
-        my $value=$fdata->{newvalue};
+        my $value=$fdata->{'newvalue'};
         $value=$cgivalue unless defined($value);
-        $value=$fdata->{value} unless defined($value);
-        $value=$fdata->{default} unless defined($value);
+        $value=$fdata->{'value'} unless defined($value);
+        $value=$fdata->{'default'} unless defined($value);
 
         ##
         # Empty data is the same as undefined. Spaces are trimmed from the
@@ -450,12 +450,13 @@ sub display ($;%) {
                 $value=$cgivalue ? 1 : 0;
             }
             else {
-                $value=(defined($fdata->{value}) ? $fdata->{value} : $fdata->{default}) ? 1 : 0;
+                $value=(defined($fdata->{'value'}) ? $fdata->{'value'} : $fdata->{'default'}) ? 1 : 0;
             }
+            ### eprint "CBOX: value='$value' fdata.value='$fdata->{value}' fd.default='$fdata->{default}'";
         }
         elsif($style eq 'selection') {
             if(length($value)) {
-                my $opt=$fdata->{options};
+                my $opt=$fdata->{'options'};
                 if(ref($opt) eq 'HASH') {
                     if(!defined $opt->{$value}) {
                         $newerr=$self->Tx('Bad option value!');
