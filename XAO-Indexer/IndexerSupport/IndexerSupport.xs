@@ -462,10 +462,12 @@ sorted_intersection_pos_go(U8 list_num, U8 *wnums, U32 **lists, U32 *sizes) {
                         break;
                     }
 
-                    // We end up here only if we found a match in this list
+                    // We end up here only if we found a match in this list.
+                    // The if(0) is here to silence gcc complaining
+                    // about the label being in the end of a block.
                     //
                     FOUND:
-                    //printf("..found: j=%u, k=%lu, list[k]=%lu\n",j,k,list[k]);
+                    if(0) printf("..found: j=%u, k=%lu, list[k]=%lu\n",j,k,list[k]);
                 }
 
                 ////
