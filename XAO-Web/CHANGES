@@ -3,6 +3,7 @@
     * Web::FilloutForm -- cc_validate is callable from outside now
     * misc/samplesite/Makefile was missing in the CPAN distribution
     * Minor adjustments to the documentation
+    * Web::MultiPageNav -- grayed defaults for nonext/noprevious
 
 1.07 - 31-Jan-2005
     * Fixed a problem with Web.pm for mod_perl usage, introduced last
