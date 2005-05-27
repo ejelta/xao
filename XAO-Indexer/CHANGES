@@ -1,4 +1,5 @@
 1.02
+    * 5/10/2005 - gcc warning silenced (report & fix by Andrey Alakozov)
     * 3/21/2005 - added /indexer/index_id/commit_interval variable to control
       forced periodic commit during index updates (to ease up load on
       database mirroring in MySQL).

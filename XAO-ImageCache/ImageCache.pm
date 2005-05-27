@@ -485,6 +485,7 @@ sub download ($$) {
         #
         if($thm_src_file) {
             my $mtime_cache=(stat($thm_cache_file))[9];
+            $mtime_src=(stat($thm_src_file))[9];
             if($mtime_cache<=$mtime_src) {
                 $self->thumbnail($thm_src_file, $thm_cache_file);
             }
@@ -674,11 +675,11 @@ sub resize($$) {
     }
     else {
         # Use given width & height as is (or image size if not set)
-        $geometry = ($self->{size}->{width}  || $src_width) .'x'.
-                    ($self->{size}->{height} || $src_height).'!';
+        $geometry = ($self->{'size'}->{'width'}  || $src_width) .'x'.
+                    ($self->{'size'}->{'height'} || $src_height).'!';
     }
     $image->Scale(geometry => $geometry);
-    $image->Set(quality => 80);
+    $image->Set(quality => 88);
     $image->Write($outfile);
     $self->cache_log("RESIZED from $src_width"."x$src_height to $geometry");
 }
@@ -709,10 +710,12 @@ sub thumbnail($$$) {
         $self->cache_log("THUMBNAIL ERROR - $err");
         dprint($err);
     }
-    my $geometry = $self->{thumbnails}->{geometry} || "50%";
+    my ($src_width, $src_height) = $image->Get('columns','rows');
+    my $geometry = $self->{'thumbnails'}->{'geometry'} || "50%";
     $image->Scale(geometry => $geometry);
-    $image->Set(quality => 80);
+    $image->Set(quality => 88);
     $image->Write($thumbnail_file);
+    $self->cache_log("RESIZED from $src_width"."x$src_height to $geometry");
 }
 
 ###############################################################################

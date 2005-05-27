@@ -90,7 +90,7 @@ use XAO::Objects;
 use base XAO::Objects->load(objname => 'Web::Page');
 
 use vars qw($VERSION);
-$VERSION=(0+sprintf('%u.%03u',(q$Id: Header.pm,v 2.1 2005/01/14 01:39:57 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
+$VERSION=(0+sprintf('%u.%03u',(q$Id: Header.pm,v 2.2 2005/05/27 02:41:43 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
 
 ###############################################################################
 # Displaying HTML header.
@@ -99,7 +99,7 @@ sub display ($;%) {
     my $self=shift;
     my $args=get_args(\@_);
 
-    if($args->{type}) {
+    if($args->{'type'}) {
         $self->siteconfig->header_args(-type => $args->{type});
         return;
     }
@@ -115,10 +115,14 @@ sub display ($;%) {
     $meta.=qq(<META NAME="Keywords" CONTENT="$args->{keywords}">\n) if $args->{keywords};
     $meta.=qq(<META NAME="Description" CONTENT="$args->{description}">\n) if $args->{description};
 
+    my $title=$args->{'title'} ||
+              $self->siteconfig->get('default_title') ||
+              "XAO::Web -- No Title";
+
     $self->SUPER::display(merge_refs($args, {
-                            path        => $args->{path} || "/bits/page-header",
-                            TITLE       => $args->{title} || "XAO::Web -- No Title",
-                            GIVEN_TITLE => $args->{title} || '',
+                            path        => $args->{'path'} || "/bits/page-header",
+                            TITLE       => $title,
+                            GIVEN_TITLE => $args->{'title'} || '',
                             META        => $meta,
                          }));
 }

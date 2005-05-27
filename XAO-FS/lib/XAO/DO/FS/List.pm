@@ -33,7 +33,7 @@ use XAO::Objects;
 use base XAO::Objects->load(objname => 'FS::Glue');
 
 use vars qw($VERSION);
-$VERSION=(0+sprintf('%u.%03u',(q$Id: List.pm,v 2.1 2005/01/14 00:23:54 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
+$VERSION=(0+sprintf('%u.%03u',(q$Id: List.pm,v 2.2 2005/05/27 02:42:39 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
 
 ###############################################################################
 
@@ -537,17 +537,11 @@ True if property contains the given word completely. For example
 ['name', 'wq', 'ann'] would match 'Ann Peters' and 'Marie Ann', but
 would not match 'Annette'.
 
-For best performance please make this kind of search only on fields of
-type 'words' -- in that case the search is performed by dictionary and
-is very fast.
-
 =item ws
 
 True if property contains a word that starts with the given
 text. For example ['name', 'ws', 'an'] would match 'Andrew'
 and 'Marie Ann', but 'Joann' would not match.
-
-Works best on fields of type 'words'.
 
 =back
 
