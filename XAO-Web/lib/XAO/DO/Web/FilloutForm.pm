@@ -45,8 +45,9 @@ results. Alternatively reference to subroutine can be given through
 overriding it.
 
 Displays form with PARAM.VALUE set to value, PARAM.NAME - to name,
-PARAM.TEXT - to text and PARAM.HTML - to piece of HTML code if
-applicable (Country selection for example).
+PARAM.TEXT - to text, PARAM.REQUIRED to the 0/1 required flag, and
+PARAM.HTML - to piece of HTML code if applicable (Country selection for
+example).
 
 =head1 METHODS
 
@@ -62,7 +63,7 @@ use XAO::Errors qw(XAO::DO::Web::FilloutForm);
 use base XAO::Objects->load(objname => 'Web::Page');
 
 use vars qw($VERSION);
-$VERSION=(0+sprintf('%u.%03u',(q$Id: FilloutForm.pm,v 2.5 2005/04/29 01:48:22 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
+$VERSION=(0+sprintf('%u.%03u',(q$Id: FilloutForm.pm,v 2.6 2005/06/29 03:08:56 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
 
 sub setup ($%);
 sub field_desc ($$);
@@ -640,13 +641,14 @@ sub display ($;%) {
         # Filling formparams hash
         #
         $formparams{"$param.VALUE"}=defined($value) ? $value : "";
-        $formparams{"$param.TEXT"}=$fdata->{text} || $name;
+        $formparams{"$param.TEXT"}=$fdata->{'text'} || $name;
         $formparams{"$param.NAME"}=$name;
-        $formparams{"$param.HTML"}=$fdata->{html} || "";
-        $formparams{"$param.SIZE"}=$fdata->{size} || 30;
-        $formparams{"$param.MAXLENGTH"}=$fdata->{maxlength} || 0;
-        $formparams{"$param.MINLENGTH"}=$fdata->{minlength} || 0;
-        $formparams{"$param.ERRSTR"}=$fdata->{errstr} || '';
+        $formparams{"$param.HTML"}=$fdata->{'html'} || "";
+        $formparams{"$param.REQUIRED"}=$fdata->{'required'} ? 1 : 0;
+        $formparams{"$param.SIZE"}=$fdata->{'size'} || 30;
+        $formparams{"$param.MAXLENGTH"}=$fdata->{'maxlength'} || 0;
+        $formparams{"$param.MINLENGTH"}=$fdata->{'minlength'} || 0;
+        $formparams{"$param.ERRSTR"}=$fdata->{'errstr'} || '';
     }
 
     # Special parameter named 'submit_name' contains submit button name
