@@ -63,7 +63,7 @@ use XAO::Errors qw(XAO::DO::Web::FilloutForm);
 use base XAO::Objects->load(objname => 'Web::Page');
 
 use vars qw($VERSION);
-$VERSION=(0+sprintf('%u.%03u',(q$Id: FilloutForm.pm,v 2.7 2005/07/08 03:19:58 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
+$VERSION=(0+sprintf('%u.%03u',(q$Id: FilloutForm.pm,v 2.8 2005/07/08 03:39:06 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
 
 sub setup ($%);
 sub field_desc ($$);
@@ -233,7 +233,7 @@ sub display ($;%) {
     my %formparams;
     my $have_cgivalues=0;
     foreach my $fdata (@{$fields}) {
-        my $name=$fdata->{name};
+        my $name=$fdata->{'name'};
         my $cgivalue=$cgi->param($name);
         $have_cgivalues++ if defined($cgivalue) &&
                              (!defined($fdata->{'phase'}) ||
@@ -260,7 +260,8 @@ sub display ($;%) {
         # Various checks depending on field style.
         #
         my $newerr;
-        my $style=$fdata->{style};
+        my $style=$fdata->{'style'} || $fdata->{'type'} ||
+            throw $self "display - no style or type in field '$name'";
         if(!length($value) && $fdata->{required}) {
             $newerr=$self->Tx('Required field!');
         }
