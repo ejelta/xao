@@ -63,7 +63,7 @@ use XAO::Errors qw(XAO::DO::Web::FilloutForm);
 use base XAO::Objects->load(objname => 'Web::Page');
 
 use vars qw($VERSION);
-$VERSION=(0+sprintf('%u.%03u',(q$Id: FilloutForm.pm,v 2.6 2005/06/29 03:08:56 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
+$VERSION=(0+sprintf('%u.%03u',(q$Id: FilloutForm.pm,v 2.7 2005/07/08 03:19:58 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
 
 sub setup ($%);
 sub field_desc ($$);
@@ -242,7 +242,7 @@ sub display ($;%) {
         ##
         # Checking form phase for multi-phased forms if required.
         #
-        next if defined($fdata->{phase}) && $phase<$fdata->{phase};
+        next if defined($fdata->{'phase'}) && $phase<$fdata->{'phase'};
 
         my $value=$fdata->{'newvalue'};
         $value=$cgivalue unless defined($value);
@@ -727,23 +727,29 @@ sub display ($;%) {
 Returns field description by name. This is the correct way to get to the
 value of a field from check_form() or form_ok() methods.
 
+If the optional second parameter set to true then on failure to find the
+field the method will return undef instead of throwing an error.
+
 =cut
 
-sub field_desc ($$) {
-    my $self=shift;
-    my $name=shift;
+sub field_desc ($$;$) {
+    my ($self,$name,$soft_failure)=@_;
+
     my $fields=$self->{fields};
-    $fields || throw XAO::E::DO::Web::FilloutForm
-                     "field_desc - has not set fields for FilloutForm";
+    $fields || throw $self "field_desc - has not set fields for FilloutForm";
+
     if(ref($fields) eq 'ARRAY') {
         foreach my $fdata (@{$fields}) {
-            return $fdata if $fdata->{name} eq $name;
+            return $fdata if $fdata->{'name'} eq $name;
         }
     }
     else {
         return $fields->{$name} if $fields->{$name};
     }
-    throw XAO::E::DO::Web::FilloutForm "field_desc - unknown field '$name' referred";
+
+    return undef if $soft_failure;
+
+    throw $self "field_desc - unknown field '$name' referred";
 }
 
 ##

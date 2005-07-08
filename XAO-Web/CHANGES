@@ -1,4 +1,5 @@
 1.08
+    * Web::FilloutForm -- safe_failure parameter to field_desc() method
     * Web::FilloutForm -- negative values are legal for 'real' fields
     * Web::FilloutForm -- cc_validate is callable from outside now
     * misc/samplesite/Makefile was missing in the CPAN distribution
