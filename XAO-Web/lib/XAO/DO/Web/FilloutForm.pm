@@ -63,7 +63,7 @@ use XAO::Errors qw(XAO::DO::Web::FilloutForm);
 use base XAO::Objects->load(objname => 'Web::Page');
 
 use vars qw($VERSION);
-$VERSION=(0+sprintf('%u.%03u',(q$Id: FilloutForm.pm,v 2.9 2005/07/08 23:00:31 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
+$VERSION=(0+sprintf('%u.%03u',(q$Id: FilloutForm.pm,v 2.10 2005/07/11 04:40:10 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
 
 sub setup ($%);
 sub field_desc ($$;$);
@@ -541,18 +541,19 @@ sub display ($;%) {
                 $html.=sprintf("<OPTION VALUE=\"%04u\"$sel>%04u</OPTION>\n",$i,$i);
             }
             $html=qq(<SELECT NAME="$name"><OPTION VALUE="">Select Year</OPTION>$html</SELECT>);
-            $fdata->{html}=$html;
+            $fdata->{'html'}=$html;
         }
         elsif($style eq 'checkbox') {
-            $fdata->{html}=$obj->expand(
+            $fdata->{'html'}=$obj->expand(
                 path    => '/bits/fillout-form/html-checkbox',
                 NAME    => $name,
-                VALUE   => $fdata->{value} || '',
-                CHECKED => $value,
+                VALUE   => $fdata->{'value'} || '',
+                CHECKED => $value ? ' CHECKED' : '',
+                HTMLID  => $fdata->{'htmlid'} || $name,
             );
         }
         elsif($style eq 'selection') {
-            my $opt=$fdata->{options} ||
+            my $opt=$fdata->{'options'} ||
                 $self->throw("display - no 'options' for '$name' selection");
 
             my $has_empty;
