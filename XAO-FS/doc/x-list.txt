@@ -172,7 +172,7 @@ DESCRIPTION
                                  'and',
                                  [ '../gross_premium', 'lt', 1000 ]);
 
-        Sometimes it might be necessary to check is a pair of objects inside
+        Sometimes it might be necessary to check if a pair of objects inside
         of some container have specific properties. This can be achieved
         with instance specificators:
 
@@ -252,15 +252,9 @@ DESCRIPTION
             ['name', 'wq', 'ann'] would match 'Ann Peters' and 'Marie Ann',
             but would not match 'Annette'.
 
-            For best performance please make this kind of search only on
-            fields of type 'words' -- in that case the search is performed
-            by dictionary and is very fast.
-
         ws  True if property contains a word that starts with the given
             text. For example ['name', 'ws', 'an'] would match 'Andrew' and
             'Marie Ann', but 'Joann' would not match.
-
-            Works best on fields of type 'words'.
 
         Logical operators:
 

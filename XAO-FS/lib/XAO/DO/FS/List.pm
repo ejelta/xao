@@ -33,7 +33,7 @@ use XAO::Objects;
 use base XAO::Objects->load(objname => 'FS::Glue');
 
 use vars qw($VERSION);
-$VERSION=(0+sprintf('%u.%03u',(q$Id: List.pm,v 2.2 2005/05/27 02:42:39 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
+$VERSION=(0+sprintf('%u.%03u',(q$Id: List.pm,v 2.3 2005/07/18 07:08:47 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
 
 ###############################################################################
 
@@ -439,7 +439,7 @@ Example:
                          'and',
                          [ '../gross_premium', 'lt', 1000 ]);
 
-Sometimes it might be necessary to check is a pair of objects inside of
+Sometimes it might be necessary to check if a pair of objects inside of
 some container have specific properties. This can be achieved with
 instance specificators:
 

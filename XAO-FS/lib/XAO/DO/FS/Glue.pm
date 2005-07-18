@@ -50,7 +50,7 @@ use XAO::Objects;
 use base XAO::Objects->load(objname => 'Atom');
 
 use vars qw($VERSION);
-$VERSION=(0+sprintf('%u.%03u',(q$Id: Glue.pm,v 2.1 2005/01/14 00:23:54 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
+$VERSION=(0+sprintf('%u.%03u',(q$Id: Glue.pm,v 2.2 2005/07/18 07:08:47 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
 
 ###############################################################################
 
@@ -1971,8 +1971,8 @@ sub _add_list_placeholder ($%) {
 
     my $driver=$self->_driver;
     my $glue=$self->_glue;
-    if($$glue->{classes}->{$class}) {
-        throw $self "_add_list_placeholder - multiple lists for the same class are not allowed";
+    if($$glue->{'classes'}->{$class}) {
+        throw $self "_add_list_placeholder - multiple lists for the same class ($class) are not allowed";
     }
     else {
         foreach my $c (keys %{$$self->{classes}}) {
