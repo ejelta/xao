@@ -1,4 +1,6 @@
 1.08
+    * Web::FilloutForm -- 'checkbox' html has ID from 'htmlid' or 'name',
+      useful for labels
     * Web::FilloutForm -- field descriptions can use 'type' instead of 'style'
     * Web::FilloutForm -- safe_failure parameter to field_desc() method
     * Web::FilloutForm -- negative values are legal for 'real' fields

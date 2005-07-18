@@ -297,7 +297,7 @@ use XAO::Objects;
 use base XAO::Objects->load(objname => 'Web::Action');
 
 use vars qw($VERSION);
-$VERSION=(0+sprintf('%u.%03u',(q$Id: IdentifyUser.pm,v 2.1 2005/01/14 01:39:57 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
+$VERSION=(0+sprintf('%u.%03u',(q$Id: IdentifyUser.pm,v 2.2 2005/07/18 07:15:56 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
 
 ###############################################################################
 
@@ -1029,22 +1029,23 @@ sub login ($;%) {
         ##
         # Auto expiring some keys
         #
-        my $key_expire_mode=$config->{key_expire_mode} || 'auto';
+        my $key_expire_mode=$config->{'key_expire_mode'} || 'auto';
         if($key_expire_mode eq 'auto') {
             my $cutoff=time - 10*$vf_expire_time;
-            $self->odb->transact_begin;
+            my $tr_active=$self->odb->transact_active;
+            $self->odb->transact_begin unless $tr_active;
             my $sr=$key_list->search($key_expire_prop,'lt',$cutoff,{ limit => 5 });
             foreach my $key_id (@$sr) {
                 $key_list->delete($key_id);
             }
-            $self->odb->transact_commit;
+            $self->odb->transact_commit unless $tr_active;
         }
     }
-    elsif($config->{vf_key_prop} && $config->{vf_key_cookie}) {
+    elsif($config->{'vf_key_prop'} && $config->{'vf_key_cookie'}) {
         my $random_key=XAO::Utils::generate_key();
-        $user->put($config->{vf_key_prop} => $random_key);
+        $user->put($config->{'vf_key_prop'} => $random_key);
         $self->siteconfig->add_cookie(
-            -name    => $config->{vf_key_cookie},
+            -name    => $config->{'vf_key_cookie'},
             -value   => $random_key,
             -path    => '/',
             -expires => '+10y',
@@ -1062,13 +1063,13 @@ sub login ($;%) {
     ##
     # Setting user name cookie depending on id_cookie_type parameter.
     #
-    my $expire=$config->{id_cookie_expire} ? "+$config->{id_cookie_expire}s"
+    my $expire=$config->{'id_cookie_expire'} ? "+$config->{id_cookie_expire}s"
                                            : '+10y';
     if($id_cookie_type eq 'id') {
-        my $cookie_value=$data->{id};
+        my $cookie_value=$data->{'id'};
         my $r=$data;
-        while($r->{list_prop}) {
-            $r=$r->{$r->{list_prop}};
+        while($r->{'list_prop'}) {
+            $r=$r->{$r->{'list_prop'}};
             $cookie_value.="/$r->{id}";
         };
         $self->siteconfig->add_cookie(

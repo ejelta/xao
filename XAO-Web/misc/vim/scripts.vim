@@ -1,9 +1,9 @@
 " Vim support for detecting XAO::Web file type
 
 " Only do this when the FileType autocommand has not been triggered yet
-if did_filetype()
-  finish
-endif
+"if did_filetype()
+"  finish
+"endif
 
 " Line continuation is used here, remove 'C' from 'cpoptions'
 let s:cpo_save = &cpo
@@ -18,7 +18,7 @@ if getline(1) =~ '<[%$][A-Z]' ||
  \ getline(6) =~ '<[%$][A-Z]' ||
  \ getline(7) =~ '<[%$][A-Z]' ||
  \ getline(8) =~ '<[%$][A-Z]'
-  set ft=xaoweb
+  setf xaoweb
 
 endif
 
