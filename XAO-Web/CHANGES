@@ -1,4 +1,6 @@
 1.08
+    * Web::FilloutForm -- user check_form() function can now return a
+      list of erroneous fields, not just one field
     * Web::FilloutForm -- 'checkbox' html has ID from 'htmlid' or 'name',
       useful for labels
     * Web::FilloutForm -- field descriptions can use 'type' instead of 'style'

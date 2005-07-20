@@ -63,7 +63,7 @@ use XAO::Errors qw(XAO::DO::Web::FilloutForm);
 use base XAO::Objects->load(objname => 'Web::Page');
 
 use vars qw($VERSION);
-$VERSION=(0+sprintf('%u.%03u',(q$Id: FilloutForm.pm,v 2.10 2005/07/11 04:40:10 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
+$VERSION=(0+sprintf('%u.%03u',(q$Id: FilloutForm.pm,v 2.11 2005/07/20 03:54:01 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
 
 sub setup ($%);
 sub field_desc ($$;$);
@@ -632,11 +632,11 @@ sub display ($;%) {
         # error. Storing value otherwise.
         #
         if($newerr) {
-            $errstr.=($fdata->{text} || $name) .  ": " . $newerr . "<BR>\n";
-            $fdata->{errstr}=$newerr;
+            $errstr.=($fdata->{'text'} || $name) .  ": " . $newerr . "<BR>\n";
+            $fdata->{'errstr'}=$newerr;
         }
         else {
-            $fdata->{value}=$value;
+            $fdata->{'value'}=$value;
         }
 
         ##
@@ -658,22 +658,35 @@ sub display ($;%) {
     # valid data and we need some way to know when the form was really
     # checked and corrected by user.
     #
-    if($self->{submit_name}) {
-        $have_cgivalues=$cgi->param($self->{submit_name}) ? 1 : 0;
+    if($self->{'submit_name'}) {
+        $have_cgivalues=($cgi->param($self->{'submit_name'}) ||
+                         $cgi->param($self->{'submit_name'}.'.x') ||
+                         $cgi->param($self->{'submit_name'}.'.y')
+                        ) ? 1 : 0;
     }
 
     # Checking content for general compatibility by overriden
     # method. Called only if data are basicly good.
     #
     if($have_cgivalues && !$errstr) {
-        ($errstr,my $fname)=$self->check_form(merge_refs($args,\%formparams));
-        if($fname) {
-            my $fdata=$self->field_desc($fname);
-            my $param=$fdata->{param} || uc($fdata->{name});
-            $fdata->{errstr}=$formparams{"$param.ERRSTR"}=$errstr || '';
+        my @rc=$self->check_form(merge_refs($args,\%formparams));
+        if(@rc<2) {
+            $formparams{"ERRSTR.CHECK_FORM"}=$errstr=($rc[0] || '');
+        }
+        elsif(scalar(@rc)%2 == 0) {
+            for(my $i=0; $i<@rc; $i+=2) {
+                my $fname=$rc[$i+1];
+                my $fdata=$self->field_desc($fname);
+                my $param=$fdata->{'param'} || uc($fdata->{'name'});
+                my $e=($rc[$i] || '');
+                $fdata->{'errstr'}=$formparams{"$param.ERRSTR"}=$e;
+                if($e) {
+                    $errstr.="\n<BR>$e";
+                }
+            }
         }
         else {
-            $formparams{"ERRSTR.CHECK_FORM"}=$errstr;
+            throw $self "display - wrong number of results (".join('|',@rc).")";
         }
     }
     $formparams{"ERRSTR.CHECK_FORM"}||='';
