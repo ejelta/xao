@@ -22,6 +22,7 @@ wrapper methods for most useful XAO Indexer functions.
 ###############################################################################
 package XAO::DO::Data::Index;
 use strict;
+use Error qw(:try);
 use XAO::Utils;
 use XAO::Objects;
 use XAO::Projects;
@@ -195,9 +196,10 @@ sub get_collection_object ($) {
         );
     }
     else {
+        dprint "No get_collection_object() method, resorting to slower get_collection()";
         return $self->indexer->get_collection(
             index_object    => $self,
-        )->{collection};
+        )->{'collection'};
     }
 }
 
@@ -287,6 +289,41 @@ sub search_by_string ($$$;$) {
         ordering        => $ordering,
         rcdata          => $rcdata,
     );
+}
+
+###############################################################################
+
+=item search_by_string_oid ($)
+
+The same as search_by_string() method, but translates results from
+collection IDs to object IDs. Use it with care, on large result sets it
+may take significant time!
+
+=cut
+
+sub search_by_string_oid ($$$;$) {
+    my ($self,$ordering,$str,$rcdata)=@_;
+
+    my $cids=$self->indexer->search(
+        index_object    => $self,
+        search_string   => $str,
+        ordering        => $ordering,
+        rcdata          => $rcdata,
+    );
+
+    my $coll_obj=$self->get_collection_object;
+    my @oids;
+    foreach my $cid (@$cids) {
+        try {
+            push(@oids,$coll_obj->get($cid)->container_key);
+        }
+        otherwise {
+            my $e=shift;
+            dprint "Stale cid=$cid while search for '$str': $e";
+        };
+    }
+
+    return \@oids;
 }
 
 ###############################################################################

@@ -34,22 +34,30 @@ sub analyze_object ($%) {
 
 ###############################################################################
 
+sub get_collection_object ($%) {
+    my $self=shift;
+    my $args=get_args(\@_);
+
+    my $index_object=$args->{'index_object'} ||
+        throw $self "get_collection_object - no 'index_object'";
+
+    my $odb=$index_object->glue;
+    return  $odb->collection(class => 'Data::Foo');
+}
+
+###############################################################################
+
 sub get_collection ($%) {
     my $self=shift;
     my $args=get_args(\@_);
 
-    wantarray ||
-        throw $self "get_collection - called in scalar context";
-
-    my $index_object=$args->{index_object} ||
-        throw $self "update - no 'index_object'";
-
-    my $odb=$index_object->glue;
-    my $collection=$odb->collection(class => 'Data::Foo');
-
+    my $collection=$self->get_collection_object($args);
     my @ids=$collection->keys;
 
-    return ($collection,\@ids);
+    return {
+        collection  => $collection,
+        ids         => \@ids,
+    };
 }
 
 ###############################################################################

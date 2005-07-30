@@ -38,7 +38,7 @@ sub get_collection ($%) {
     my $self=shift;
     my $args=get_args(\@_);
 
-    my $index_object=$args->{index_object} ||
+    my $index_object=$args->{'index_object'} ||
         throw $self "update - no 'index_object'";
 
     my $odb=$index_object->glue;

@@ -95,6 +95,11 @@ sub test_search {
             query       => 'believe rocket space watch alien mice',
             text        => '',
         },
+        t16 => {
+            query       => 'believe rocket space watch',
+            text        => 'foo_32,foo_147,foo_91',
+            use_oid     => 1,
+        },
     );
     foreach my $test_id (keys %matrix) {
         my $test=$matrix{$test_id};
@@ -102,10 +107,12 @@ sub test_search {
         foreach my $oname (sort keys %$test) {
             next if $oname eq 'query';
             next if $oname eq 'ignored';
+            next if $oname eq 'use_oid';
             my %rcdata;
             my $sr;
-            if($test->{ignored}) {
-                $sr=$foo_index->search_by_string($oname,$query,\%rcdata);
+            if($test->{'ignored'}) {
+                $sr=$test->{'use_oid'} ? $foo_index->search_by_string_oid($oname,$query,\%rcdata)
+                                       : $foo_index->search_by_string($oname,$query,\%rcdata);
                 foreach my $w (keys %{$test->{ignored}}) {
                     my $expect=$test->{ignored}->{$w};
                     my $got=$rcdata{ignored_words}->{$w};
@@ -122,7 +129,8 @@ sub test_search {
                 }
             }
             else {
-                $sr=$foo_index->search_by_string($oname,$query);
+                $sr=$test->{'use_oid'} ? $foo_index->search_by_string_oid($oname,$query)
+                                       : $foo_index->search_by_string($oname,$query);
             }
             my $got=join(',',@$sr);
             my $expect=$test->{$oname};
