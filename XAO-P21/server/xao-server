@@ -8,7 +8,7 @@ use File::Copy;
 
 use vars qw($VERSION $REVISION);
 $VERSION='0.05';
-$REVISION='$Id: xao-server,v 1.5 2004/03/25 23:32:43 am Exp $';
+$REVISION='$Id: xao-server,v 1.6 2005/09/07 23:53:15 am Exp $';
 
 sub chld_handler ();
 sub dprint (@);
@@ -26,11 +26,11 @@ my $debug;
 my $tcpport=9010;
 
 GetOptions(
-    'debug'             => \$debug,
-    'log-file=s'        => \$log_file,
-    'no-daemon'         => \$no_daemon,
-    'pid-file=s'        => \$pid_file,
-    'port=i'            => \$tcpport,
+    'debug'		=> \$debug,
+    'log-file=s'	=> \$log_file,
+    'no-daemon'		=> \$no_daemon,
+    'pid-file=s'	=> \$pid_file,
+    'port=i'		=> \$tcpport,
 );
 
 if(@ARGV<1) {
@@ -70,7 +70,7 @@ if(!$no_daemon) {
     my $pid=fork;
     die "Can't fork: $!" unless defined $pid;
     if($pid) {
-        print STDERR "XAO P21 Server Started (unit=$systemunit, port=$tcpport)\n" if $debug;
+	print STDERR "XAO P21 Server Started (unit=$systemunit, port=$tcpport)\n" if $debug;
         sleep 3;
         exit 0;
     }
@@ -81,6 +81,12 @@ if(!$no_daemon) {
     open(STDOUT,">/dev/null");
     close(STDERR);
     open(STDERR,">/dev/null");
+}
+else {
+    # Apparently we still need this, otherwise we get SIGTTOU from
+    # the system when we execute p21 scripts (custinfo for instance).
+    #
+    setsid();
 }
 dprint "XAO P21 Server Started (unit=$systemunit, port=$tcpport)";
 
@@ -114,11 +120,11 @@ $SIG{INT}=\&term_handler;
 $ENV{TERM}='ansi' unless $ENV{TERM}; # P21 scripts apparently need it
 
 my $server=IO::Socket::INET->new(
-    Proto       => 'tcp',
-    Listen      => 10,
-    LocalPort   => $tcpport,
-    Reuse       => 1,
-    LocalAddr   => '127.0.0.1',
+    Proto	=> 'tcp',
+    Listen	=> 10,
+    LocalPort	=> $tcpport,
+    Reuse	=> 1,
+    LocalAddr	=> '127.0.0.1',
 );
 if(!$server) {
     dprint "*** Can't create server at $tcpport: $!";
@@ -178,7 +184,7 @@ while(1) {
         my $now=time;
         dprint "Got cmd='$opcode' args='",join('|',@args),"' now=$now";
 
-        if($pid_file && $now-(stat($pid_file))[9] > 60) {
+	if($pid_file && $now-(stat($pid_file))[9] > 60) {
             utime $now,$now,$pid_file;
         }
 
@@ -216,6 +222,23 @@ Returns availability info for each of given item code. The info contains lines w
                     s/\t/ /g; s/\001/\t/g;
                     my ($location, $stock, @rest) = split /\t/;
                     printsock "$code\t$_" if ($stock);
+                }
+            }
+        }
+
+=head1 blanket
+
+Returns a description of the given blanket order.
+
+=cut
+
+        elsif ($opcode eq "blanket") {
+            foreach my $order_id (@args) {
+                $ENV{"P0"} = $order_id;
+                my $in = open_stream 'blanket';
+                while(<$in>) {
+                    s/\t/ /g; s/\001/\t/g;
+                    printsock $_;
                 }
             }
         }
@@ -298,18 +321,46 @@ Placing order into spool. Input data is:
         elsif ($opcode eq "order_entry") {
             my $basename = $args[0];
             my $fname = "$spooldir/$basename.proc";
+            my $rname = "$spooldir/$basename.release";
             eval {
+                (scalar(@args)%41)==0 || die "Wrong number of arguments";
+
+                my @rdata;
+
                 open(PROC_OUT,">$fname~") or die "$!";
-                while( @args > 0 ) {
-                    my (@line, @rest);
-                    ( @line[0..38], @rest ) = @args ;
-                    foreach(@line) {
-                        $_='' unless defined $_;
+                while(@args) {
+                    my @line=map { defined $_ ? $_ : '' } splice(@args,0,41);
+
+                    my $stext=$line[40];
+                    if($stext) {
+                        $line[40]='Y';
+
+                        my $lnum=$line[15] || die "No line number";
+
+                        foreach my $d (split(/\|/,$stext)) {
+                            push(@rdata,[ $lnum, split(/:/,$d) ]);
+                        }
                     }
+                    else {
+                        $line[40]='N';
+                    }
+
+                    foreach(@line) {
+                        s/"/'/sg;
+                    }
+
                     print PROC_OUT '"', join('","', @line), qq(",\n) ;
-                    @args = @rest;
                 }
                 close(PROC_OUT) or die "$!";
+
+                if(@rdata) {
+                    open(REL_OUT,">$rname") || die "Can't write $rname: $!";
+                    foreach my $d (@rdata) {
+                        print REL_OUT '"',join('","',@$d),qq("\n);
+                    }
+                    close(REL_OUT);
+                }
+
                 rename("$fname~", $fname) or die "$!";
             };
             if($@) {
@@ -324,7 +375,7 @@ Placing order into spool. Input data is:
 
 =cut
 
-        elsif ($opcode eq "view_order_details") {
+	elsif ($opcode eq "view_order_details") {
             $answer_local->('ord_status', @args);
         }
 
@@ -383,8 +434,8 @@ Output: price for one unit, multiplier.
 
         elsif ($opcode eq 'cleanup_spool') {
             foreach my $file (@args) {
-                next unless $file =~ /^\w+[\w\.-]*$/;
-                move("$spooldir/$file","$spooldir/archive/$file");
+            	next unless $file =~ /^\w+[\w\.-]*$/;
+            	move("$spooldir/$file","$spooldir/archive/$file");
             }
         }
 
@@ -475,7 +526,7 @@ sub printsock (@) {
 sub dprint (@) {
     return unless $debug;
     my $text=join('',map { defined($_) ? $_ : '<UNDEF>' } @_);
-    print STDERR "DEBUG: $text";
+    print STDERR "SERVER($$): $text";
     print STDERR "\n" unless $text=~/\n$/s;
 }
 
@@ -523,8 +574,8 @@ sub reopen_log () {
         print STDERR "===========================" .
                      " pid=$$ unit=$systemunit port=$tcpport" .
                      " time=".scalar(localtime)."\n";
-        select STDERR;
-        $|=1;
+    	select STDERR;
+    	$|=1;
     }
 }
 

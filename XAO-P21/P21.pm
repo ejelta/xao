@@ -433,8 +433,8 @@ sub modcust {
 
 =item order
 
-Places order into spool. The only argument is ref to list of ref to hashes.
-The hash contains following attributes:
+Places order into spool. The only argument is ref to list of hash-refs.
+Each hash contains following attributes:
 
  reference_number => a unique string which is used to name the temporary
                      order file in the P21 ecommerce spool folder.
@@ -466,6 +466,9 @@ The hash contains following attributes:
  suspended_order  => boolean for the initial state of the order
                      once injected into p21
  taker_number     => taker number
+ schedule         => delivery schedule (list reference)
+    quantity          => quantity to ship
+    ship_date         => mm/dd/yy of when to ship
 
 Returns a hash reference with 'result' and 'info' members. Where
 result is zero for success and info contains internally used
@@ -486,47 +489,76 @@ sub order {
         $_[0];
     };
 
-    my @order_array=map {
-        substr(uc($_->{'reference_number'}),0,30),  #  1 |  1
-        substr(uc($_->{'customer'}),0,6),           #  2 |  2
-        substr(uc($_->{'date'}),0,6),               #  3 |  3
-        substr(uc($_->{'po'}),0,18),                #  4 |  4
-        substr(uc($_->{'credit_card'}),0,16),       #  5 |  5
-        substr(uc($_->{'card_exp_month'}),0,2),     #  6 |  6
-        substr(uc($_->{'card_exp_year'}),0,4),      #  7 |  7
-        substr(uc($_->{'name'}),0,30),              #  8 |  8
-        substr(uc($_->{'address1'}),0,26),          #  9 |  9
-        substr(uc($_->{'address2'}),0,26),          # 10 | 10
-        substr(uc($_->{'city'}),0,14),              # 11 | 11
-        substr(uc($_->{'state'}),0,2),              # 12 | 12
-        substr(uc($_->{'zip'}),0,10),               #  1 | 13
-        substr(uc($_->{'inst1'}),0,30),             #  2 | 14
-        substr(uc($_->{'inst2'}),0,30),             #  3 | 15
-        uc($_->{'line_number'}),                    #  4 | 16
-        $_->{'itemcode'},                           #  5 | 17
-        uc($_->{'qty'}),                            #  6 | 18
-        uc($_->{'price'}),                          #  7 | 19
-        uc($_->{'email'}),                          #  8 | 20
-        '',                                         #  9 | 21
-        '',                                         # 10 | 22
-        '',                                         # 11 | 23
-        '',                                         # 12 | 24
-        '',                                         #  1 | 25
-        '',                                         #  2 | 26
-        '',                                         #  3 | 27
-        '',                                         #  4 | 28
-        $_->{'stax_exemp'} ? 'N' : 'Y',             #  5 | 29
-        $_->{'suspended_order'} ? 'Y' : 'N',        #  6 | 30
-        uc($_->{'unit_name'} || ''),                #  7 | 31
-        $_->{'unit_size'} || 1,                     #  8 | 32
-        substr(uc($_->{'account_number'} || ''),0,14), #  9 | 33
-        '',                                         # 10 | 34
-        '',                                         # 11 | 35
-        substr(uc($_->{'address3'} || ''),0,26),    # 12 | 36
-        uc($_->{'country'} || ''),                  #  1 | 37
-        '',                                         #  2 | 38
-        uc($_->{'taker_number'} || ''),             #  3 | 39
-    } @$order_list;
+    ##
+    # Building a single array that contains all of the data. Not the
+    # best way to handle it, admittedly.
+    #
+    my @order_array;
+    foreach my $l (@$order_list) {
+
+        ##
+        # Preparing a schedule line if needed. The line gets parsed on the
+        # receiving end and then stored into the corresponding .release
+        # file.
+        # NOTE: The receiving counterpart has to split it up into
+        # exactly the same number of fields.
+        #
+        my $schedule='';
+        my $sdata=$l->{'schedule'};
+        if($sdata && @$sdata) {
+            for(my $i=0; $i<18 && $i<@$sdata; ++$i) {
+                my $qty=$sdata->[$i]->{'quantity'};
+                my $ship_date=$sdata->[$i]->{'ship_date'};
+                next unless $qty && $ship_date =~ /^\d+\/\d+\/\d+$/;
+                $schedule.="|" if $schedule;
+                $schedule.="$qty:$ship_date:$ship_date:$ship_date";
+            }
+        }
+
+        push(@order_array,(
+            substr(uc($l->{'reference_number'}),0,30),  #  1 |  1
+            substr(uc($l->{'customer'}),0,6),           #  2 |  2
+            substr(uc($l->{'date'}),0,6),               #  3 |  3
+            substr(uc($l->{'po'}),0,18),                #  4 |  4
+            substr(uc($l->{'credit_card'}),0,16),       #  5 |  5
+            substr(uc($l->{'card_exp_month'}),0,2),     #  6 |  6
+            substr(uc($l->{'card_exp_year'}),0,4),      #  7 |  7
+            substr(uc($l->{'name'}),0,30),              #  8 |  8
+            substr(uc($l->{'address1'}),0,26),          #  9 |  9
+            substr(uc($l->{'address2'}),0,26),          # 10 | 10
+            substr(uc($l->{'city'}),0,14),              # 11 | 11
+            substr(uc($l->{'state'}),0,2),              # 12 | 12
+            substr(uc($l->{'zip'}),0,10),               #  1 | 13
+            substr(uc($l->{'inst1'}),0,30),             #  2 | 14
+            substr(uc($l->{'inst2'}),0,30),             #  3 | 15
+            uc($l->{'line_number'}),                    #  4 | 16
+            $l->{'itemcode'},                           #  5 | 17
+            uc($l->{'qty'}),                            #  6 | 18
+            uc($l->{'price'}),                          #  7 | 19
+            uc($l->{'email'}),                          #  8 | 20
+            '',                                         #  9 | 21
+            '',                                         # 10 | 22
+            '',                                         # 11 | 23
+            '',                                         # 12 | 24
+            '',                                         #  1 | 25
+            '',                                         #  2 | 26
+            '',                                         #  3 | 27
+            '',                                         #  4 | 28
+            $l->{'stax_exemp'} ? 'N' : 'Y',             #  5 | 29
+            $l->{'suspended_order'} ? 'Y' : 'N',        #  6 | 30
+            uc($l->{'unit_name'} || ''),                #  7 | 31
+            $l->{'unit_size'} || 1,                     #  8 | 32
+            substr(uc($l->{'account_number'} || ''),0,14), #  9 | 33
+            '',                                         # 10 | 34
+            '',                                         # 11 | 35
+            substr(uc($l->{'address3'} || ''),0,26),    # 12 | 36
+            uc($l->{'country'} || ''),                  #  1 | 37
+            '',                                         #  2 | 38
+            uc($l->{'taker_number'} || ''),             #  3 | 39 (SALES)
+            '',                                         #  4 | 40
+            $schedule,                                  #  5 | 41 (BLANKET)
+        ));
+    }
 
     $self->call($constr,$callback, 'order_entry', @order_array);
 }
