@@ -556,7 +556,7 @@ sub order {
             '',                                         #  2 | 38
             uc($l->{'taker_number'} || ''),             #  3 | 39 (SALES)
             '',                                         #  4 | 40
-            $schedule,                                  #  5 | 41 (BLANKET)
+            $schedule || 'N',                           #  5 | 41 (BLANKET)
         ));
     }
 
