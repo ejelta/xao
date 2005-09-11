@@ -1,5 +1,6 @@
 DEF VAR d_d AS CHAR FORMAT "x(20)" NO-UNDO.
 DEF VAR onum AS INTEGER NO-UNDO.
+DEF VAR i AS INTEGER NO-UNDO.
 DEF VAR rdate AS DATE INIT ? NO-UNDO.
 DEF VAR sflag LIKE p21.order.suspend_flag NO-UNDO.
 DEF VAR c_price LIKE p21.ord_line.ut_price NO-UNDO.
@@ -97,6 +98,27 @@ DO TRANSACTION:
             wbw_line.inv_qty                d_d
             wbw_line.line_number            skip
         .
+    END.
+
+    FOR EACH p21.blanket WHERE blanket.ord_number EQ onum NO-LOCK:
+        i=1.
+        DO WHILE i LE 18:
+            PUT UNFORMATTED
+                "BLANKET"			d_d
+                blanket.line_number	        d_d
+                blanket.item_code	        d_d
+                i				d_d
+                blanket.release_exp_date[i]	d_d
+                blanket.release_inv_date[i]	d_d
+                blanket.release_rel_qty[i]	d_d
+                blanket.release_inv_qty[i]	d_d
+                blanket.release_allo_qty[i]	d_d
+                blanket.release_canc_qty[i]	d_d
+                blanket.release_comp_flag[i]	d_d
+                blanket.release_disp[i]		skip
+            .
+            i=(i + 1).
+        END.
     END.
 
 /* End transaction

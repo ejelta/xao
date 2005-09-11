@@ -662,11 +662,12 @@ sub view_order_details {
             @line{qw(type ship_number item_code inv_qty line_number)}=@arr;
         }
         elsif($arr[0] eq 'BLANKET') {
-            @arr==11 ||
+            @arr==12 ||
                 throw XAO::E::P21 "view_order_details - wrong BLANKET ($str)";
             @line{qw(type line_number item_code
                      date_number
-                     release_exp_date release_inv_date release_inv_qty
+                     release_exp_date release_inv_date
+                     release_rel_qty release_inv_qty
                      release_allo_qty release_canc_qty
                      release_comp_flag release_disp
                     )}=@arr;
