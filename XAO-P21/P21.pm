@@ -661,6 +661,16 @@ sub view_order_details {
                 throw XAO::E::P21 "view_order_details - wrong ITEM ($str)";
             @line{qw(type ship_number item_code inv_qty line_number)}=@arr;
         }
+        elsif($arr[0] eq 'BLANKET') {
+            @arr==11 ||
+                throw XAO::E::P21 "view_order_details - wrong BLANKET ($str)";
+            @line{qw(type line_number item_code
+                     date_number
+                     release_exp_date release_inv_date release_inv_qty
+                     release_allo_qty release_canc_qty
+                     release_comp_flag release_disp
+                    )}=@arr;
+        }
         else {
             throw XAO::E::P21 "view_order_details - unknown type=$arr[0] ($str)";
         }
