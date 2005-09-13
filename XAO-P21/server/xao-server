@@ -8,7 +8,7 @@ use File::Copy;
 
 use vars qw($VERSION $REVISION);
 $VERSION='0.05';
-$REVISION='$Id: xao-server,v 1.6 2005/09/07 23:53:15 am Exp $';
+$REVISION='$Id: xao-server,v 1.7 2005/09/13 19:25:21 am Exp $';
 
 sub chld_handler ();
 sub dprint (@);
@@ -342,7 +342,7 @@ Placing order into spool. Input data is:
                         }
                     }
                     else {
-                        $line[40]='N';
+                        $line[40]='';
                     }
 
                     foreach(@line) {
