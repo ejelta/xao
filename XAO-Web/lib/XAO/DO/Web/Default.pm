@@ -29,7 +29,7 @@ use XAO::Objects;
 use base XAO::Objects->load(objname => 'Web::Page');
 
 use vars qw($VERSION);
-$VERSION=(0+sprintf('%u.%03u',(q$Id: Default.pm,v 2.1 2005/01/14 01:39:57 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
+$VERSION=(0+sprintf('%u.%03u',(q$Id: Default.pm,v 2.2 2005/09/14 00:42:17 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
 
 ###############################################################################
 
@@ -46,8 +46,10 @@ sub display ($%) {
     my $args=get_args(\@_);
     my $config=$self->siteconfig;
     $config->header_args(-Status => '404 File not found');
-    $self->SUPER::display(path => '/bits/errors/file-not-found',
-                          FILEPATH => $args->{path} || '');
+    $self->object->display(
+        path        => '/bits/errors/file-not-found',
+        FILEPATH    => $args->{path} || '',
+    );
 }
 
 ###############################################################################
