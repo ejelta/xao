@@ -90,7 +90,7 @@ use XAO::Objects;
 use base XAO::Objects->load(objname => 'Web::Page');
 
 use vars qw($VERSION);
-$VERSION=(0+sprintf('%u.%03u',(q$Id: Header.pm,v 2.2 2005/05/27 02:41:43 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
+$VERSION=(0+sprintf('%u.%03u',(q$Id: Header.pm,v 2.3 2005/09/14 22:05:43 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
 
 ###############################################################################
 # Displaying HTML header.
@@ -119,12 +119,12 @@ sub display ($;%) {
               $self->siteconfig->get('default_title') ||
               "XAO::Web -- No Title";
 
-    $self->SUPER::display(merge_refs($args, {
-                            path        => $args->{'path'} || "/bits/page-header",
-                            TITLE       => $title,
-                            GIVEN_TITLE => $args->{'title'} || '',
-                            META        => $meta,
-                         }));
+    $self->object->display($args,{
+        path        => $args->{'path'} || "/bits/page-header",
+        TITLE       => $title,
+        GIVEN_TITLE => $args->{'title'} || '',
+        META        => $meta,
+    });
 }
 
 ###############################################################################

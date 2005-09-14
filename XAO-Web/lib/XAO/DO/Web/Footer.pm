@@ -69,7 +69,7 @@ use XAO::Objects;
 use base XAO::Objects->load(objname => 'Web::Page');
 
 use vars qw($VERSION);
-$VERSION=(0+sprintf('%u.%03u',(q$Id: Footer.pm,v 2.1 2005/01/14 01:39:57 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
+$VERSION=(0+sprintf('%u.%03u',(q$Id: Footer.pm,v 2.2 2005/09/14 22:05:43 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
 
 sub display ($;%) {
     my $self=shift;
@@ -78,9 +78,9 @@ sub display ($;%) {
     my %a=(
         path            => '/bits/page-footer',
         VERSION         => $XAO::Web::VERSION,
-        COPYRIGHT       => 'Copyright (C) 2000-2002 XAO, Inc.',
-        'COPYRIGHT.HTML'=> 'Copyright &copy; 2000-2002 XAO, Inc.',
-        TITLE           => $args->{title} || '',
+        COPYRIGHT       => 'Copyright (C) 2000-2002 XAO, Inc.; (C) 2003-2005 Ejelta LLC',
+        'COPYRIGHT.HTML'=> 'Copyright &copy; 2000-2002 XAO, Inc.; &copy; 2003-2005 Ejelta LLC',
+        TITLE           => $args->{'title'} || '',
     );
 
     $self->SUPER::display(merge_refs(\%a,$args));

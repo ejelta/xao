@@ -26,7 +26,7 @@ use base XAO::Objects->load(objname => 'Web::Page');
 ###############################################################################
 
 use vars qw($VERSION);
-$VERSION=(0+sprintf('%u.%03u',(q$Id: Styler.pm,v 2.1 2005/01/14 01:39:57 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
+$VERSION=(0+sprintf('%u.%03u',(q$Id: Styler.pm,v 2.2 2005/09/14 22:05:43 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
 
 sub separate_thousands ($);
 
@@ -90,17 +90,15 @@ sub display ($;%) {
    { $template=$text unless $template;
      $path=undef;
    }
-  delete $args->{path};
-  delete $args->{template};
-  $self->SUPER::display( path => $path
-                       , template => $template
-                       , TEXT => $text
-                       , NUMBER => $number
-                       , DOLLARS => $dollars
-                       , REAL => $real
-                       , PERCENT => sprintf($args->{format} || '%.2f%%',
-                                            $percent*100)
-                       , %{$args});
+  $self->object->display($args,{
+    path => $path,
+    template => $template,
+    TEXT => $text,
+    NUMBER => $number,
+    DOLLARS => $dollars,
+    REAL => $real,
+    PERCENT => sprintf($args->{format} || '%.2f%%', $percent*100),
+  });
 }
 
 ############################## PRIVATE ########################################

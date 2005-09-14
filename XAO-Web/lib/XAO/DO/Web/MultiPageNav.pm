@@ -245,7 +245,7 @@ use XAO::Errors qw(XAO::DO::Web::MultiPageNav);
 use base XAO::Objects->load(objname => 'Web::Page');
 
 use vars qw($VERSION);
-$VERSION=(0+sprintf('%u.%03u',(q$Id: MultiPageNav.pm,v 2.1 2005/01/14 01:39:57 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
+$VERSION=(0+sprintf('%u.%03u',(q$Id: MultiPageNav.pm,v 2.2 2005/09/14 22:05:43 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
 
 ###############################################################################
 # Displaying multi page navigation display
@@ -258,7 +258,7 @@ sub display ($;%) {
     my $args = $self->process_args(@_);
     my $params      = $self->expand_nav($args);
     $params->{path} = $args->{path};
-    $self->SUPER::display($params);
+    $self->object->display($params);
     #dprint "***\n***\n"
     #     . "*** XAO::DO::Web::Order::check_mode() STOP\n"
     #     . "***\n***";
