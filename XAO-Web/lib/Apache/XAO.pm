@@ -96,33 +96,39 @@ use XAO::Web;
 ###############################################################################
 
 use vars qw($VERSION);
-$VERSION=(0+sprintf('%u.%03u',(q$Id: XAO.pm,v 2.1 2005/01/14 01:39:56 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
+$VERSION=(0+sprintf('%u.%03u',(q$Id: XAO.pm,v 2.2 2005/09/23 03:18:54 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
 
 use mod_perl;
 use constant MP2 => ($mod_perl::VERSION && $mod_perl::VERSION >= 1.99);
 
 BEGIN {
     if(MP2) {
-        require Apache::Const;
-        Apache::Const->import(-compile => qw(OK DECLINED SERVER_ERROR NOT_FOUND));
-
-        ##
-        # Required to bring in methods used below
-        #
-        require Apache::Server;
-        Apache::Server->import();
-        require Apache::ServerUtil;
-        Apache::ServerUtil->import();
-        require Apache::Log;
-        Apache::Log->import();
-        require Apache::RequestRec;
-        Apache::RequestRec->import();
-        require Apache::RequestIO;
-        Apache::RequestIO->import();
+    	eval {
+            use Apache2::Const qw(:common);
+            use Apache2::ServerRec;
+            use Apache2::ServerUtil;
+            use Apache2::Log;
+            use Apache2::RequestRec;
+            use Apache2::RequestIO;
+	};
+	if($@) {
+            eval {
+                use Apache::Const qw(:common);
+                use Apache::ServerRec;
+                use Apache::ServerUtil;
+                use Apache::Log;
+                use Apache::RequestRec;
+                use Apache::RequestIO;
+	    };
+	}
     }
     else {
-        require Apache::Constants;
-        Apache::Constants->import(qw(:common));
+        eval {
+            use Apache::Constants qw(:common);
+        };
+    }
+    if($@) {
+        die "Error setting up Apache::XAO: $@";
     }
 }
 
@@ -157,7 +163,7 @@ EOT
     #
     if(index($uri,'/bits/')>=0) {
         ### $r->server->log_error("Attempt of direct access to /bits/ ($uri)");
-        return MP2 ? Apache::NOT_FOUND : Apache::Constants::NOT_FOUND;
+        return NOT_FOUND;
     }
 
     ##
@@ -215,7 +221,7 @@ EOT
     my $ptype=$pagedesc->{type} || 'xaoweb';
     if($ptype eq 'external') {
         ### $r->server->log_error("EXTERNAL: uri=$uri");
-        return MP2 ? Apache::DECLINED : Apache::Constants::DECLINED;
+        return DECLINED;
     }
     elsif($ptype eq 'maptodir') {
         my $dir=$pagedesc->{directory} || '';
@@ -232,7 +238,7 @@ EOT
         $dir=~s/\/{2,}/\//g;
         $r->filename($dir);
         ### $r->server->log_error("MAPTODIR: => $dir");
-        return MP2 ? Apache::OK : Apache::Constants::OK;
+        return OK;
     }
 
     ##
@@ -265,16 +271,16 @@ EOT
         if(MP2) {
             $r->push_handlers(PerlMapToStorageHandler => \&handler_map_to_storage);
             $r->push_handlers(PerlResponseHandler => \&handler_content);
-            return Apache::OK();
+            return OK;
         }
         else {
             $r->push_handlers(PerlHandler => \&handler_content);
-            return Apache::Constants::OK();
+            return OK;
         }
     }
     elsif($htype eq 'static') {
         ### $r->server->log_error("TRANS: static (uri=$uri)");
-        return MP2 ? Apache::OK : Apache::Constants::OK;
+        return OK;
     }
     else {
         return server_error($r,"Unknown HandlerType '$htype'");
@@ -291,7 +297,7 @@ sub handler_content ($) {
     # executed or has declined, so we do not need to do anything.
     #
     my $web=$r->pnotes('xaoweb') ||
-        return MP2 ? Apache::DECLINED : Apache::Constants::DECLINED;
+        return DECLINED;
     my $pagedesc=$r->pnotes('pagedesc');
 
     ##
@@ -309,7 +315,7 @@ sub handler_content ($) {
         pagedesc    => $pagedesc,
     );
 
-    return MP2 ? Apache::OK : Apache::Constants::OK;
+    return OK;
 }
 
 ###############################################################################
@@ -317,7 +323,7 @@ sub handler_content ($) {
 sub handler_map_to_storage {
     my $r=shift;
     ### $r->server->log_error("MAPTOSTORAGE: uri=".$r->uri);
-    return Apache::OK();
+    return OK;
 }
 
 ###############################################################################
@@ -329,10 +335,10 @@ sub server_error ($$;$) {
 
     $r->server->log_error("*ERROR: Apache::XAO - $name");
     $r->custom_response(
-        (MP2 ? Apache::SERVER_ERROR : Apache::Constants::SERVER_ERROR),
+        SERVER_ERROR,
         "<H2>XAO::Web System Error: $name</H2>\n$desc"
     );
-    return MP2 ? Apache::SERVER_ERROR : Apache::Constants::SERVER_ERROR;
+    return SERVER_ERROR;
 }
 
 ###############################################################################
