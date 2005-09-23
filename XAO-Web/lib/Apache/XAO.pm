@@ -96,7 +96,7 @@ use XAO::Web;
 ###############################################################################
 
 use vars qw($VERSION);
-$VERSION=(0+sprintf('%u.%03u',(q$Id: XAO.pm,v 2.2 2005/09/23 03:18:54 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
+$VERSION=(0+sprintf('%u.%03u',(q$Id: XAO.pm,v 2.3 2005/09/23 03:30:04 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
 
 use mod_perl;
 use constant MP2 => ($mod_perl::VERSION && $mod_perl::VERSION >= 1.99);
@@ -104,27 +104,30 @@ use constant MP2 => ($mod_perl::VERSION && $mod_perl::VERSION >= 1.99);
 BEGIN {
     if(MP2) {
     	eval {
-            use Apache2::Const qw(:common);
-            use Apache2::ServerRec;
-            use Apache2::ServerUtil;
-            use Apache2::Log;
-            use Apache2::RequestRec;
-            use Apache2::RequestIO;
+            require Apache2::Const;
+            Apache2::Const->import(qw(:common));
+            require Apache2::ServerRec;
+            require Apache2::ServerUtil;
+            require Apache2::Log;
+            require Apache2::RequestRec;
+            require Apache2::RequestIO;
 	};
 	if($@) {
             eval {
-                use Apache::Const qw(:common);
-                use Apache::ServerRec;
-                use Apache::ServerUtil;
-                use Apache::Log;
-                use Apache::RequestRec;
-                use Apache::RequestIO;
+                require Apache::Const;
+		Apache::Const->import(qw(:common));
+                require Apache::Server;
+                require Apache::ServerUtil;
+                require Apache::Log;
+                require Apache::RequestRec;
+                require Apache::RequestIO;
 	    };
 	}
     }
     else {
         eval {
-            use Apache::Constants qw(:common);
+            require Apache::Constants;
+            Apache::Constants->import(qw(:common));
         };
     }
     if($@) {
