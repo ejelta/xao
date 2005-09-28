@@ -8,7 +8,7 @@ use File::Copy;
 
 use vars qw($VERSION $REVISION);
 $VERSION='0.05';
-$REVISION='$Id: xao-server,v 1.7 2005/09/13 19:25:21 am Exp $';
+$REVISION='$Id: xao-server,v 1.8 2005/09/28 02:01:56 am Exp $';
 
 sub chld_handler ();
 sub dprint (@);
@@ -165,6 +165,7 @@ while(1) {
             s/\t/ /g; s/\001/\t/g;
             printsock $_;
         }
+        close($in);
     };
     
     my $answer_local = sub {
@@ -174,6 +175,7 @@ while(1) {
             s/\t/ /g; s/\001/\t/g;
             printsock $_;
         }
+        close($in);
     };
     
     while(<$socket>) {
@@ -205,14 +207,14 @@ with "\t".
             while(<$in>) {
                 printsock $_;
             }
+            close($in);
+        }
 
 =head1 avail
 
 Returns availability info for each of given item code. The info contains lines with non-zero quantities only.  
 
 =cut  
-
-        }
 
         elsif ($opcode eq "avail") {
             foreach my $code (@args) {
@@ -223,6 +225,7 @@ Returns availability info for each of given item code. The info contains lines w
                     my ($location, $stock, @rest) = split /\t/;
                     printsock "$code\t$_" if ($stock);
                 }
+                close($in);
             }
         }
 
@@ -240,6 +243,7 @@ Returns a description of the given blanket order.
                     s/\t/ /g; s/\001/\t/g;
                     printsock $_;
                 }
+                close($in);
             }
         }
 
@@ -255,6 +259,7 @@ attributes order.
             while(<$in>) {
                 printsock $_;
             }
+            close($in);
         }
 
 =head1 sell_schd
@@ -268,6 +273,7 @@ Returns a dump of sell_schd table containing price breaks data.
             while(<$in>) {
                 printsock $_;
             }
+            close($in);
         }
 
 =head1 cust_item
@@ -282,6 +288,7 @@ customer specific prices.
             while(<$in>) {
                 printsock $_;
             }
+            close($in);
         }
 
 =head1 custinfo
@@ -300,6 +307,7 @@ first argument then all customers list is returned.
                         s/\t/ /g; s/\001/\t/g;
                         printsock "$_";
                     }
+                    close($in);
                 }
             }
             else {
@@ -309,6 +317,7 @@ first argument then all customers list is returned.
                     s/\t/ /g; s/\001/\t/g;
                     printsock "$_";
                 }
+                close($in);
             }
         }
 
@@ -332,7 +341,7 @@ Placing order into spool. Input data is:
                     my @line=map { defined $_ ? $_ : '' } splice(@args,0,41);
 
                     my $stext=$line[40];
-                    if($stext) {
+                    if($stext && $stext ne 'N') {
                         $line[40]='Y';
 
                         my $lnum=$line[15] || die "No line number";
@@ -395,6 +404,7 @@ Output: price for one unit, multiplier.
             my $in = open_stream "price";
             my $line = <$in>;
             printsock $line;
+            close($in);
         }
 
 =head1 find_match
@@ -473,6 +483,7 @@ Date is given as year, month date -- three integers.
                     s/\t/ /g; s/\001/\t/g;
                     printsock "$_";
                 }
+                close($in);
             }
         }
 
@@ -495,6 +506,31 @@ Finish current session and disconnect.
         elsif($opcode eq 'quit') {
             printsock "Good bye\n";
             last;
+        }
+
+=head1 puser
+
+Reads user permissions and passwords.
+
+=cut
+
+	elsif($opcode eq 'puser') {
+            my $in = open_stream 'puser';
+            while(<$in>) {
+                s/\t/ /g;
+                chop while /[\r\n]$/;
+		my @a=split(/\001/,$_);
+		if(@a!=4) {
+                    printsock "Wrong data\n";
+                    last;
+                }
+                elsif($a[0]) {
+                    my @pwdata=getpwnam(lc($a[0]));
+                    my $password=@pwdata && $pwdata[0] && $pwdata[1] ? $pwdata[1] : '**';
+                    printsock join("\t",@a,$password)."\n";
+                }
+            }
+            close($in);
         }
 
 =head1 undefined command
@@ -551,7 +587,7 @@ sub open_query (@) {
     $ENV{ORIGIN}='P21';
     open IN, qq(/usr/lpp/p21pro/bin/p21pro -S $systemunit -P p21/www/query/www.p -p -b|) ||
         die $!;
-    *IN;  
+    return *IN;  
 }
 
 sub open_local_query (@) {
@@ -564,7 +600,7 @@ sub open_local_query (@) {
              qq( -S $systemunit) .
              qq( -d /usr/lpp/p21pro/src:/usr/lpp/p21pro/src/include) .
              qq( -p "-p $p21dir/$script.p -b"|) || die $!;
-    *IN;  
+    return *IN;  
 }
 
 sub reopen_log () {

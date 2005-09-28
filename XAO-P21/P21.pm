@@ -606,6 +606,36 @@ sub price {
 
 ###############################################################################
 
+=item puser
+
+Returns a list of all users, their authorization levels, branches and
+encrypted passwords.
+
+  user_id   => 
+  branch    => 
+  security  => 
+  name      => 
+  password  => 
+
+=cut  
+
+sub puser {
+    my $self=shift;
+    my $args=get_args(\@_);
+
+    my $callback=$args->{'callback'};
+
+    my $build=$args->{'build'} || sub {
+        my %row;
+        @row{qw(user_id branch security name password)}=split('\t',$_[0]);
+        return \%row;
+    };
+
+    $self->call($build,$callback,'puser');
+}
+
+###############################################################################
+
 =item view_order_details
 
 Returns full information about the given order. Example:
