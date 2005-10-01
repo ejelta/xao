@@ -1,6 +1,7 @@
 #!/usr/bin/perl -w
 use strict;
 use IO::Socket::INET;
+use IO::File;
 use Errno qw/EINTR EAGAIN/;
 use POSIX qw(setsid);
 use Getopt::Long;
@@ -8,7 +9,7 @@ use File::Copy;
 
 use vars qw($VERSION $REVISION);
 $VERSION='0.05';
-$REVISION='$Id: xao-server,v 1.8 2005/09/28 02:01:56 am Exp $';
+$REVISION='$Id: xao-server,v 1.9 2005/10/01 02:12:34 am Exp $';
 
 sub chld_handler ();
 sub dprint (@);
@@ -515,22 +516,64 @@ Reads user permissions and passwords.
 =cut
 
 	elsif($opcode eq 'puser') {
-            my $in = open_stream 'puser';
-            while(<$in>) {
-                s/\t/ /g;
-                chop while /[\r\n]$/;
-		my @a=split(/\001/,$_);
-		if(@a!=4) {
-                    printsock "Wrong data\n";
-                    last;
-                }
-                elsif($a[0]) {
-                    my @pwdata=getpwnam(lc($a[0]));
-                    my $password=@pwdata && $pwdata[0] && $pwdata[1] ? $pwdata[1] : '**';
-                    printsock join("\t",@a,$password)."\n";
-                }
+            ##
+            # First reading users config to understand who belongs to what system and
+            # what ID maps to what unix logname
+            #
+            my $fd=IO::File->new('/usr/lpp/p21/config/users','r');
+            if(!$fd) {
+                printsock "Error reading users config\n";
             }
-            close($in);
+            else {
+                my $buf;
+                $fd->read($buf,32);
+                my @users;
+                while($fd->read($buf,260)==260) {
+                    my ($foo1,$logname,$foo2,$syst_def,$syst_mask,$foo3,$p21_id)=
+                        unpack('a4Z16a21CCa89Z16',$buf);
+                    push(@users,{
+                        logname     => $logname,
+                        syst_default=> $syst_def,
+                        syst_mask   => $syst_mask,
+                        p21_id      => $p21_id,
+                    });
+                }
+                $fd->close();
+
+                ##
+                # Now reading P21 data, skipping users defaulting to unit1. If the user has no P21 id
+                # set up we still let them flow, otherwise pretty much everybody gets excluded.
+                # Also, if system mask is not set at all - we allow such users.
+                # (this all is according to conversation with Greg, might need adjustment if
+                # p21 is updated)
+                #
+                my $in = open_stream 'puser';
+                while(<$in>) {
+                    s/\t/ /g;
+                    chop while /[\r\n]$/;
+		    my @a=split(/\001/,$_);
+		    if(@a!=4) {
+                        printsock "Wrong data\n";
+                        last;
+                    }
+                    elsif($a[0]) {
+                        my $p21_id=$a[0];
+                        my @ud=grep { $_->{'p21_id'} eq $p21_id || lc($_->{'logname'}) eq lc($p21_id) } @users;
+                        if(@ud && $ud[0]->{'syst_default'}==0 && (!$ud[0]->{'syst_mask'} || ($ud[0]->{'syst_mask'}&0x01))) {
+                            my @pwdata=getpwnam($ud[0]->{'logname'});
+                            my $password=@pwdata && $pwdata[0] && $pwdata[1] ? $pwdata[1] : '**';
+                            printsock join("\t",@a,$password)."\n";
+                        }
+			else {
+                            dprint "skipping $p21_id";
+                            if(@ud) {
+                                dprint ".$ud[0]->{syst_default}..$ud[0]->{syst_mask}..$ud[0]->{logname}";
+                            }
+                        }
+                    }
+                }
+                close($in);
+            }
         }
 
 =head1 undefined command
@@ -554,7 +597,7 @@ exit 0;
 ###############################################################################
 
 sub printsock (@) {
-    dprint "PRINTSOCK: ",@_;
+    ### dprint "PRINTSOCK: ",@_;
     print $socket @_;
     die $! if $pipe_flag;
 }
