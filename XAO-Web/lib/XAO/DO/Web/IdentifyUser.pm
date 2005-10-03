@@ -297,7 +297,7 @@ use XAO::Objects;
 use base XAO::Objects->load(objname => 'Web::Action');
 
 use vars qw($VERSION);
-$VERSION=(0+sprintf('%u.%03u',(q$Id: IdentifyUser.pm,v 2.2 2005/07/18 07:15:56 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
+$VERSION=(0+sprintf('%u.%03u',(q$Id: IdentifyUser.pm,v 2.3 2005/10/03 23:59:44 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
 
 ###############################################################################
 
@@ -875,8 +875,8 @@ sub login ($;%) {
     my $errstr;
     my $user;
     if($data) {
-        $user=$data->{object};
-        $username=$data->{name};
+        $user=$data->{'object'};
+        $username=$data->{'name'};
     }
     else {
         $errstr="No information found about '$username'";
@@ -885,12 +885,12 @@ sub login ($;%) {
     ##
     # Checking password
     #
-    my $password=$args->{password};
+    my $password=$args->{'password'};
     if($user) {
-        $data->{id}=$user->container_key;
+        $data->{'id'}=$user->container_key;
 
         if(!defined($password)) {
-            if($args->{force}) {
+            if($args->{'force'}) {
                 # success!
             }
             else {
@@ -898,20 +898,23 @@ sub login ($;%) {
             }
         }
         else {
-            my $pass_encrypt=lc($config->{pass_encrypt} || 'plaintext');
+            my $pass_prop=$config->{'pass_prop'} || 
+                throw $self "login - no 'pass_prop' in the configuration";
+            my $dbpass=$user->get($pass_prop);
+
+            my $pass_encrypt=lc($config->{'pass_encrypt'} || 'plaintext');
             if($pass_encrypt eq 'plaintext') {
                 # Nothing
             }
             elsif($pass_encrypt eq 'md5') {
                 $password=md5_base64($password);
             }
+            elsif($pass_encrypt eq 'crypt') {
+                $password=crypt($password,$dbpass);
+            }
             else {
                 throw $self "login - unknown encryption mode '$pass_encrypt'";
             }
-
-            my $pass_prop=$config->{pass_prop} || 
-                throw $self "login - no 'pass_prop' in the configuration";
-            my $dbpass=$user->get($pass_prop);
 
             if($dbpass ne $password) {
                 $errstr='Password mismatch';
@@ -943,22 +946,22 @@ sub login ($;%) {
     # If we have key_list_uri we store verification key there and ignore
     # vf_key_prop even if it exists.
     #
-    my $vf_time_prop=$config->{vf_time_prop} ||
+    my $vf_time_prop=$config->{'vf_time_prop'} ||
         throw $self "login - no 'vf_time_prop' in the configuration";
-    my $id_cookie=$config->{id_cookie} ||
+    my $id_cookie=$config->{'id_cookie'} ||
         throw $self "login - no 'id_cookie' in the configuration";
-    my $id_cookie_type=$config->{id_cookie_type} || 'name';
-    my $key_list_uri=$config->{key_list_uri};
+    my $id_cookie_type=$config->{'id_cookie_type'} || 'name';
+    my $key_list_uri=$config->{'key_list_uri'};
     if($key_list_uri) {
-        my $key_ref_prop=$config->{key_ref_prop} ||
+        my $key_ref_prop=$config->{'key_ref_prop'} ||
             throw $self "login - key_ref_prop required";
-        my $key_expire_prop=$config->{key_expire_prop} ||
+        my $key_expire_prop=$config->{'key_expire_prop'} ||
             throw $self "login - key_expire_prop required";
-        my $vf_expire_time=$config->{vf_expire_time} ||
+        my $vf_expire_time=$config->{'vf_expire_time'} ||
             throw $self "login - no vf_expire_time in the configuration";
 
         my $key_id;
-        my $vf_key_cookie=$config->{vf_key_cookie};
+        my $vf_key_cookie=$config->{'vf_key_cookie'};
         if($id_cookie_type eq 'key') {
             $key_id=$self->cgi->cookie($id_cookie);
         }
