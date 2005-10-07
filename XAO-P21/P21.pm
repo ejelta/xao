@@ -627,7 +627,7 @@ sub puser {
 
     my $build=$args->{'build'} || sub {
         my %row;
-        @row{qw(user_id branch security name password)}=split('\t',$_[0]);
+        @row{qw(user_id branch name security_2 password)}=split('\t',$_[0]);
         return \%row;
     };
 

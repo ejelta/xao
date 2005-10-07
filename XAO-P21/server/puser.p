@@ -12,11 +12,11 @@ FOR EACH p21.puser WHERE puser.user_id NE "" NO-LOCK:
     FIND FIRST p21.secure WHERE secure.frecno = puser.frecno AND secure.security[2] GT 0 NO-LOCK NO-ERROR.
     IF AVAILABLE p21.secure THEN DO:
         PUT UNFORMATTED
-	    puser.user_id		d_d
-	    puser.branch		d_d
-            p21.secure.security[2]	d_d
-	    puser.name
-            skip
+	    puser.user_id           d_d
+	    puser.branch            d_d
+	    puser.name              d_d
+        p21.secure.security[2]
+        skip
         .
     END.
 END.        
