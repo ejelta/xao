@@ -297,7 +297,7 @@ use XAO::Objects;
 use base XAO::Objects->load(objname => 'Web::Action');
 
 use vars qw($VERSION);
-$VERSION=(0+sprintf('%u.%03u',(q$Id: IdentifyUser.pm,v 2.4 2005/10/08 01:45:34 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
+$VERSION=(0+sprintf('%u.%03u',(q$Id: IdentifyUser.pm,v 2.5 2005/10/08 01:58:15 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
 
 ###############################################################################
 
@@ -943,7 +943,7 @@ sub login ($;%) {
                 throw $self "login - unknown encryption mode '$pass_encrypt'";
             }
 
-            if($dbpass ne $password) {
+            if(!$dbpass || $dbpass ne $password) {
                 $errstr='Password mismatch';
             }
         }
