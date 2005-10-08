@@ -297,7 +297,7 @@ use XAO::Objects;
 use base XAO::Objects->load(objname => 'Web::Action');
 
 use vars qw($VERSION);
-$VERSION=(0+sprintf('%u.%03u',(q$Id: IdentifyUser.pm,v 2.3 2005/10/03 23:59:44 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
+$VERSION=(0+sprintf('%u.%03u',(q$Id: IdentifyUser.pm,v 2.4 2005/10/08 01:45:34 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
 
 ###############################################################################
 
@@ -672,6 +672,28 @@ sub check {
 
 ##############################################################################
 
+=item before_display (%)
+
+Overridable method that gets called just before displaying results after
+all checks are done. Parameters it gets are:
+
+ status     - one of 'anonymous', 'identified', or 'verified'
+ type       - user type
+ cbdata     - reference to clipboard data for the user
+ config     - reference to the config for the user
+ errstr     - error string, only available when called as part of login
+
+Typically the method is used to add some other useful data to the
+clipboard on successful checks and logins. By default does nothing.
+
+=cut
+
+sub before_display ($@) {
+    return;
+}
+
+##############################################################################
+
 =item display_results ($$;$)
 
 Displays template according to the given status. Third optinal parameter
@@ -680,33 +702,38 @@ may include the content of 'ERRSTR'.
 =cut
 
 sub display_results ($$$;$) {
-    my $self=shift;
-    my $args=shift;
-    my $status=shift;
-    my $errstr=shift;
+    my ($self,$args,$status,$errstr)=@_;
+
+    my $config=$self->siteconfig->get('identify_user') ||
+        throw $self "check - no 'identify_user' configuration";
+    my $type=$args->{'type'} ||
+        throw $self "check - no 'type' given";
+    $config=$config->{$type} ||
+        throw $self "check - no 'identify_user' configuration for '$type'";
+    my $cb_uri=$config->{'cb_uri'} || "/IdentifyUser/$type";
+    my $clipboard=$self->clipboard;
+
+    $self->before_display(
+        type        => $type,
+        config      => $config,
+        cbdata      => $clipboard->get($cb_uri) || { },
+        status      => $status,
+        errstr      => $errstr,
+    );
 
     if($args->{"$status.template"} || $args->{"$status.path"}) {
-
-        my $config=$self->siteconfig->get('identify_user') ||
-            throw $self "check - no 'identify_user' configuration";
-        my $type=$args->{type} ||
-            throw $self "check - no 'type' given";
-        $config=$config->{$type} ||
-            throw $self "check - no 'identify_user' configuration for '$type'";
-        my $cb_uri=$config->{cb_uri} || "/IdentifyUser/$type";
-
         my $page=$self->object;
-        $page->display(merge_refs($args,{
+        $page->display($args,{
             path        => $args->{"$status.path"},
             template    => $args->{"$status.template"},
             CB_URI      => $cb_uri || '',
             ERRSTR      => $errstr || '',
             TYPE        => $type,
-            NAME        => $self->clipboard->get("$cb_uri/name") || '',
-            VERIFIED    => $self->clipboard->get("$cb_uri/verified") || '',
-        }));
+            NAME        => $clipboard->get("$cb_uri/name") || '',
+            VERIFIED    => $clipboard->get("$cb_uri/verified") || '',
+        });
 
-        $self->finaltextout('') if $args->{stop};
+        $self->finaltextout('') if $args->{'stop'};
     }
 }
 
@@ -933,6 +960,7 @@ sub login ($;%) {
             object      => $user,
             password    => $password,
             type        => $type,
+            cbdata      => $data,
         );
     }
 
@@ -1127,6 +1155,8 @@ input:
  password   => password
  object     => reference to a database object containing user info
  type       => user type
+ cbdata     => reference to a hash that will be stored in clipboard on
+               successful login
 
 This method is called after all standard checks - it is guaranteed that
 user object exists and password matches its database record.

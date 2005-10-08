@@ -1,4 +1,5 @@
 1.08
+    * Web::IdentifyUser -- new overridable method before_display()
     * Web::IdentifyUser -- 'crypt' supported as another 'pass_encrypt' method
     * Web::FilloutForm -- user check_form() function can now return a
       list of erroneous fields, not just one field
