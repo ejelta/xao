@@ -63,7 +63,7 @@ use XAO::Errors qw(XAO::DO::Web::FilloutForm);
 use base XAO::Objects->load(objname => 'Web::Page');
 
 use vars qw($VERSION);
-$VERSION=(0+sprintf('%u.%03u',(q$Id: FilloutForm.pm,v 2.11 2005/07/20 03:54:01 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
+$VERSION=(0+sprintf('%u.%03u',(q$Id: FilloutForm.pm,v 2.12 2005/10/18 02:20:10 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
 
 sub setup ($%);
 sub field_desc ($$;$);
@@ -675,13 +675,21 @@ sub display ($;%) {
         }
         elsif(scalar(@rc)%2 == 0) {
             for(my $i=0; $i<@rc; $i+=2) {
-                my $fname=$rc[$i+1];
-                my $fdata=$self->field_desc($fname);
-                my $param=$fdata->{'param'} || uc($fdata->{'name'});
                 my $e=($rc[$i] || '');
-                $fdata->{'errstr'}=$formparams{"$param.ERRSTR"}=$e;
-                if($e) {
-                    $errstr.="\n<BR>$e";
+                next unless $e;
+                my $fname=$rc[$i+1];
+                if($fname) {
+                    my $fdata=$self->field_desc($fname);
+                    my $param=$fdata->{'param'} || uc($fdata->{'name'});
+                    $fdata->{'errstr'}=$formparams{"$param.ERRSTR"}=$e;
+                    $errstr.="\n<BR>" if $errstr;
+                    $errstr.=$e;
+                }
+                else {
+                    $errstr.="\n<BR>" if $errstr;
+                    $formparams{'ERRSTR.CHECK_FORM'}.="\n<BR>" if $errstr;
+                    $errstr.=$e;
+                    $formparams{'ERRSTR.CHECK_FORM'}.=$e;
                 }
             }
         }
