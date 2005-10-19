@@ -63,7 +63,7 @@ use XAO::Errors qw(XAO::DO::Web::FilloutForm);
 use base XAO::Objects->load(objname => 'Web::Page');
 
 use vars qw($VERSION);
-$VERSION=(0+sprintf('%u.%03u',(q$Id: FilloutForm.pm,v 2.12 2005/10/18 02:20:10 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
+$VERSION=(0+sprintf('%u.%03u',(q$Id: FilloutForm.pm,v 2.13 2005/10/19 23:42:40 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
 
 sub setup ($%);
 sub field_desc ($$;$);
@@ -276,7 +276,7 @@ sub display ($;%) {
             # No checks for text
         }
         elsif($style eq 'email') {
-            if(length($value) && $value !~ /^.*\@([a-z0-9-]+\.)+[a-z]+$/i) {
+            if(length($value) && $value !~ /^[\w\.-]+\@([a-z0-9-]+\.)+[a-z]+$/i) {
                 $newerr=$self->Tx("Value is not in the form of user\@host.domain!");
             }
         }
