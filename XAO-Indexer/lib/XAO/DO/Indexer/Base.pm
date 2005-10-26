@@ -130,7 +130,7 @@ sub init ($%) {
     my $self=shift;
     my $args=get_args(\@_);
 
-    my $index_object=$args->{index_object} ||
+    my $index_object=$args->{'index_object'} ||
         throw $self "init - no 'index_object'";
 
     dprint ref($self)."::init - XXX, nothing's in here yet....";
@@ -142,13 +142,13 @@ sub search ($%) {
     my $self=shift;
     my $args=get_args(\@_);
 
-    my $index_object=$args->{index_object} ||
+    my $index_object=$args->{'index_object'} ||
         throw $self "search - no 'index_object'";
 
     eval 'use Compress::LZO';
     dprint "No Compress::LZO, comression won't work" if $@;
 
-    my $str=$args->{search_string};
+    my $str=$args->{'search_string'};
     $str='' unless defined $str;
     $str=~s/^\s*(.*?)\s*$/$1/sg;
     if(!length($str)) {
@@ -156,18 +156,36 @@ sub search ($%) {
         return [ ];
     }
 
-    my $ordering=$args->{ordering} ||
+    my $ordering=$args->{'ordering'} ||
         throw $self "search - no 'ordering'";
-    my $ordering_seq=$self->get_orderings->{$ordering}->{seq} ||
+    my $ordering_seq=$self->get_orderings->{$ordering}->{'seq'} ||
         throw $self "search - no sequence in '$ordering' ordering";
 
     ##
     # Optional hash reference to be filled with statistics
     #
-    my $rcdata=$args->{rcdata};
-    $rcdata->{ignored_words}={ } if $rcdata;
+    my $rcdata=$args->{'rcdata'};
+    $rcdata->{'ignored_words'}={ } if $rcdata;
 
     dprint "Searching for '$str' (ordering=$ordering, seq=$ordering_seq)";
+
+    ##
+    # Preparing spellchecker if needed
+    #
+    my $spellconfig=$self->config_param('spellchecker');
+    my $spellchecker;
+    dprint "spellconfig=$spellconfig";
+    if($spellconfig && $rcdata) {
+        $spellchecker=$spellconfig->{'cached_spellchecker'};
+        if(!$spellchecker) {
+            my $objname=$spellconfig->{'objname'} || 'Indexer::SpellChecker::Embedded';
+            $spellchecker=XAO::Objects->new($spellconfig,{
+                objname => $objname,
+            });
+            $spellconfig->{'cached_spellchecker'}=$spellchecker;
+        }
+        $rcdata->{'spellchecker_words'}={ } if $rcdata;
+    }
 
     ##
     # We cache ignored words. Cache returns a hash reference with
@@ -176,7 +194,7 @@ sub search ($%) {
     my $i_cache=get_current_project()->cache(
         name        => 'indexer_ignored',
         coords      => [ 'index_id' ],
-        expire      => 3,
+        expire      => 60,
         retrieve    => sub {
             my $index_list=shift;
             my $args=get_args(\@_);
@@ -211,9 +229,12 @@ sub search ($%) {
         }
         else {
             my @t=map {
+                if($spellchecker) {
+                    $rcdata->{'spellchecker_words'}->{$_}=$self->spellcheck_word($spellchecker,$_);
+                }
                 if(exists $ignored->{$_}) {
                     if($rcdata) {
-                        $rcdata->{ignored_words}->{$_}=$ignored->{$_};
+                        $rcdata->{'ignored_words'}->{$_}=$ignored->{$_};
                     }
                     undef;
                 }
@@ -237,9 +258,12 @@ sub search ($%) {
     # Simple words
     #
     push(@simple,map {
+        if($spellchecker) {
+            $rcdata->{'spellchecker_words'}->{$_}=$self->spellcheck_word($spellchecker,$_);
+        }
         if(exists $ignored->{$_}) {
             if($rcdata) {
-                $rcdata->{ignored_words}->{$_}=$ignored->{$_};
+                $rcdata->{'ignored_words'}->{$_}=$ignored->{$_};
             }
             ();
         }
@@ -344,6 +368,16 @@ sub search_simple ($$$$) {
         $result=[ ];
     };
     return $result;
+}
+
+###############################################################################
+
+sub spellcheck_word ($$$) {
+    my ($self,$checker,$word)=@_;
+    dprint "Spellchecking '$word' using $checker";
+    return {
+        $word => 'BOOM!',
+    };
 }
 
 ###############################################################################
