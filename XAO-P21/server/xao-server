@@ -9,7 +9,7 @@ use File::Copy;
 
 use vars qw($VERSION $REVISION);
 $VERSION='0.05';
-$REVISION='$Id: xao-server,v 1.10 2005/11/07 21:20:56 am Exp $';
+$REVISION='$Id: xao-server,v 1.11 2005/11/07 21:22:37 am Exp $';
 
 sub chld_handler ();
 sub pipe_handler ();
@@ -176,10 +176,10 @@ while(1) {
         next unless $opcode;
 
         my $now=time;
-        dprint "Got cmd='$opcode' args='",join('|',@args),"' now=$now";
+        dprint "Got cmd='$opcode' args='",join('|',@args),"' now=".localtime($now);
 
         ++$job_count;
-        $0 = "$ServerName [slave, ct=$job_count, tm=".(time-$job_start)."s, cmd=$opcode]";
+        $0 = "$ServerName [slave, ct=$job_count, tm=".($now-$job_start)."s, cmd=$opcode]";
 
 	if($pid_file && $now-(stat($pid_file))[9] > 60) {
             utime $now,$now,$pid_file;

@@ -211,6 +211,7 @@ is provided it will return a reference to an array of hash references:
  desc2          => description line 2
  upc            => UPC
  cat_page       => product flags
+ purc_group     => purc_group == 8000 indicates contract pricing
  list_price     => list price
  std_cost       => cost
  col1_price     => column 1 price
@@ -227,7 +228,7 @@ sub catalog {
     $self->call( sub {
         my ($item_code, $prod_group, $sales_group, $vend_number,
             $pkg_size, $sales_unit,
-            $sku, $desc1, $desc2, $upc, $cat_page,
+            $sku, $desc1, $desc2, $upc, $cat_page, $purc_group,
             $list_price, $std_cost,
             $col1_price, $col2_price, $col3_price, $catg_list,
             @alt_units) = split /\t/, $_[0];
@@ -243,6 +244,7 @@ sub catalog {
             desc2       => $desc2,
             upc         => $upc,
             cat_page    => $cat_page,
+            purc_group  => $purc_group,
             list_price  => $list_price,
             std_cost    => $std_cost,
             col1_price  => $col1_price,
@@ -384,7 +386,7 @@ sub custinfo {
         return \%row;
     };
 
-    $self->call($build,$callback,'custinfo',@$custinfo);
+    $self->call($build,$callback,'custinfo',map { uc } @$custinfo);
 }
 
 ###############################################################################

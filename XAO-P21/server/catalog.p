@@ -15,6 +15,7 @@ FOR EACH catalog NO-LOCK:
         catalog.desc2                   d_d
         catalog.upc_code                d_d
         catalog.cat_page                d_d
+        catalog.purc_group              d_d
         catalog.prices_list_price       d_d
         catalog.prices_std_cost         d_d
         catalog.prices_col1_price       d_d
