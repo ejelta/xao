@@ -41,7 +41,7 @@ use Data::Dumper;
 ###############################################################################
 
 use vars qw($VERSION);
-$VERSION=(0+sprintf('%u.%03u',(q$Id: Base.pm,v 1.25 2005/11/10 10:32:34 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
+$VERSION=(0+sprintf('%u.%03u',(q$Id: Base.pm,v 1.26 2005/11/10 10:57:51 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
 
 ###############################################################################
 
@@ -403,7 +403,8 @@ sub suggest_alternative ($%) {
     return '' unless $spwords;
 
     ##
-    # Building a list of potential substitutions
+    # Building a list of potential substitutions. Not removing words
+    # themselves as alternatives.
     #
     my %pairs;
     my $data_list=$index_object->get('Data');
@@ -412,7 +413,6 @@ sub suggest_alternative ($%) {
         for(my $i=0; $i<10 && $i<@$alist; ++$i) {
             my $altword=$alist->[$i];
             ### dprint "Trying word '$word' -> '$altword'";
-            next if $altword eq $word;
 
             my @aw=$self->analyze_text_split(0,$altword);
             my $count=0;
@@ -447,7 +447,7 @@ sub suggest_alternative ($%) {
         my @wlist=sort { $pairs{$b}->[0]->[1] <=> $pairs{$a}->[0]->[1] } keys %pairs;
         foreach my $word (sort { $pairs{$b}->[0]->[1] <=> $pairs{$a}->[0]->[1] } keys %pairs) {
             my $altword=$pairs{$word}->[0]->[0];
-            $newq=~s/\b$word\b/$altword/ig;
+            $newq=~s/\b$word\b/$altword/ig unless $word eq $altword;
         }
 
         dprint "Trying query '$newq' instead of '$query'";
