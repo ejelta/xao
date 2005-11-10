@@ -36,12 +36,11 @@ sub test_spellchecker {
     #
     my $config=$self->{'config'};
     $config->put('/indexer/default/spellchecker' => {
-        objname     => 'Indexer::SpellChecker::Embedded',
         options     => {
             lang        => 'en_US',
         },
     });
-    dprint Dumper($config->get('indexer'));
+    ### dprint Dumper($config->get('indexer'));
  
     ##
     # Creating a new index
@@ -59,10 +58,48 @@ sub test_spellchecker {
     #
     my %matrix=(
         t01 => {
-            query       => 'insewerants understant',
-            name        => 147,
+            query       => 'sshould wolk vith alien',
+            name        => '',
             speller     => {
+                sshould         => 'should',
+                wolk            => 'work',
+                vith            => 'with',
+                alien           => 'alien',
             },
+            speller_query => 'should work with alien',
+        },
+        t02 => {
+            query       => '"glassy hypothesis" "A display calls"',
+            name        => 147,
+        },
+        t03 => {
+            query       => '"gglassy hipotesis" "A idsplay calls"',
+            name        => '',
+            speller     => {
+                gglassy         => 'glassy',
+                hipotesis       => 'hypothesis',
+                idsplay         => 'display',
+                calls           => 'calls',
+            },
+            speller_query => '"glassy hypothesis" "A display calls"',
+        },
+        t04 => {
+            query       => 'kinddriving',
+            text        => '',
+            speller     => {
+                kinddriving      => 'kind driving',
+            },
+            speller_query => 'driving',
+        },
+        t05 => {
+            query       => 'eblive roket spacewatch',
+            text        => '',
+            speller     => {
+                eblive      => 'believe',
+                roket       => 'rocket',
+                spacewatch  => 'space watch',
+            },
+            speller_query => 'believe rocket space watch',
         },
     );
     foreach my $test_id (keys %matrix) {
@@ -73,16 +110,32 @@ sub test_spellchecker {
             next if $oname eq 'ignored';
             next if $oname eq 'use_oid';
             next if $oname eq 'speller';
+            next if $oname eq 'speller_query';
             my %rcdata;
             my $sr;
-            if($test->{'ignored'} || $test->{'speller'}) {
+            if($test->{'ignored'} || $test->{'speller'} || $test->{'speller_query'}) {
                 $sr=$test->{'use_oid'} ? $foo_index->search_by_string_oid($oname,$query,\%rcdata)
                                        : $foo_index->search_by_string($oname,$query,\%rcdata);
+
                 if($test->{'speller'}) {
                     my $got=$rcdata{'spellchecker_words'};
-                    dprint Dumper($got);
-                    die "Kaboom!";
+                    $self->assert(defined($got) && ref($got) eq 'HASH',
+                                  "Expected a spellchecked list");
+                    foreach my $word (keys %{$test->{'speller'}}) {
+                        $self->assert(exists($got->{$word}),
+                                      "Expected a spell-suggestion for $word");
+                        my $expect=$test->{'speller'}->{$word};
+                        $self->assert(scalar(grep { $_ eq  $expect } @{$got->{$word}}),
+                                      "Expected spell-suggestion '".$test->{'speller'}->{$word}."' for '$word'");
+                    }
                 }
+
+                if($test->{'speller_query'}) {
+                    my $got=$foo_index->suggest_alternative($oname,$query,\%rcdata);
+                    $self->assert($got eq $test->{'speller_query'},
+                                  "Expected alternative query '$test->{'speller_query'}', got '$got'");
+                }
+
                 if($test->{'ignored'}) {
                     foreach my $w (keys %{$test->{'ignored'}}) {
                         my $expect=$test->{'ignored'}->{$w};

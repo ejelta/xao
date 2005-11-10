@@ -328,6 +328,28 @@ sub search_by_string_oid ($$$;$) {
 
 ###############################################################################
 
+=item suggest_alternative ($$$)
+
+Returns an alternative search string by trying words found during
+search_by_string and stored in the returned data array.
+
+EXPERIMENTAL UNSTABLE API.
+
+=cut
+
+sub suggest_alternative ($$$$) {
+    my ($self,$ordering,$str,$rcdata)=@_;
+
+    return $self->indexer->suggest_alternative(
+        index_object    => $self,
+        search_string   => $str,
+        ordering        => $ordering,
+        rcdata          => $rcdata,
+    );
+}
+
+###############################################################################
+
 =item update ($)
 
 Updates the index with the current data. Exactly what data it is based

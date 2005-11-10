@@ -10,6 +10,7 @@ Indexer.pm
 test.pl
  --------------------------------------
 lib/XAO/DO/Indexer/Base.pm
+lib/XAO/DO/SpellChecker/Aspell.pm
 lib/XAO/DO/Data/Index.pm
 lib/XAO/DO/Data/IndexData.pm
 lib/XAO/DO/Data/IndexIgnore.pm
@@ -22,6 +23,7 @@ IndexerSupport/Makefile.PL
 scripts/xao-indexer
  --------------------------------------
 testcases/base.pm
+testcases/spellchecker.pm
 testcases/basic.pm
 testcases/incremental.pm
 testcases/isupport.pm

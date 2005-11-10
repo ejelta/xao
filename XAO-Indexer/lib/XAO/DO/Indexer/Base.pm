@@ -36,12 +36,12 @@ use XAO::IndexerSupport;
 use Digest::MD5 qw(md5_base64);
 use base XAO::Objects->load(objname => 'Atom');
 
-### use Data::Dumper;
+use Data::Dumper;
 
 ###############################################################################
 
 use vars qw($VERSION);
-$VERSION='1.01';
+$VERSION=(0+sprintf('%u.%03u',(q$Id: Base.pm,v 1.25 2005/11/10 10:32:34 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
 
 ###############################################################################
 
@@ -174,11 +174,10 @@ sub search ($%) {
     #
     my $spellconfig=$self->config_param('spellchecker');
     my $spellchecker;
-    dprint "spellconfig=$spellconfig";
     if($spellconfig && $rcdata) {
         $spellchecker=$spellconfig->{'cached_spellchecker'};
         if(!$spellchecker) {
-            my $objname=$spellconfig->{'objname'} || 'Indexer::SpellChecker::Embedded';
+            my $objname=$spellconfig->{'objname'} || 'SpellChecker::Aspell';
             $spellchecker=XAO::Objects->new($spellconfig,{
                 objname => $objname,
             });
@@ -230,7 +229,7 @@ sub search ($%) {
         else {
             my @t=map {
                 if($spellchecker) {
-                    $rcdata->{'spellchecker_words'}->{$_}=$self->spellcheck_word($spellchecker,$_);
+                    $rcdata->{'spellchecker_words'}->{$_}=$spellchecker->suggest_words($_);
                 }
                 if(exists $ignored->{$_}) {
                     if($rcdata) {
@@ -259,7 +258,7 @@ sub search ($%) {
     #
     push(@simple,map {
         if($spellchecker) {
-            $rcdata->{'spellchecker_words'}->{$_}=$self->spellcheck_word($spellchecker,$_);
+            $rcdata->{'spellchecker_words'}->{$_}=$spellchecker->suggest_words($_);
         }
         if(exists $ignored->{$_}) {
             if($rcdata) {
@@ -272,6 +271,14 @@ sub search ($%) {
         }
     } @{$self->analyze_text_split(0,$str)});
 
+    ##
+    # If we are asked to provide data, storing splitted words.
+    #
+    if($rcdata) {
+        $rcdata->{'words_single'}=\@simple;
+        $rcdata->{'words_multi'}=\@multi;
+        $rcdata->{'results_count'}=0;
+    }
     ### dprint Dumper(\@multi),Dumper(\@simple);
 
     ##
@@ -304,7 +311,14 @@ sub search ($%) {
     ##
     # Joining all results together
     #
-    return XAO::IndexerSupport::sorted_intersection(@results);
+    if($rcdata) {
+        my $sr=XAO::IndexerSupport::sorted_intersection(@results);
+        $rcdata->{'results_count'}=scalar(@$sr);
+        return $sr;
+    }
+    else {
+        return XAO::IndexerSupport::sorted_intersection(@results);
+    }
 }
 
 ###############################################################################
@@ -372,12 +386,103 @@ sub search_simple ($$$$) {
 
 ###############################################################################
 
-sub spellcheck_word ($$$) {
-    my ($self,$checker,$word)=@_;
-    dprint "Spellchecking '$word' using $checker";
-    return {
-        $word => 'BOOM!',
-    };
+sub suggest_alternative ($%) {
+    my $self=shift;
+    my $args=get_args(\@_);
+    
+    my $index_object=$args->{'index_object'} ||
+        throw $self "search - no 'index_object'";
+
+    my $rcdata=$args->{'rcdata'} ||
+        throw $self "suggest_alternatives - need rcdata";
+
+    my $query=$args->{'search_string'} ||
+        throw $self "suggest_alternatives - need search_string";
+
+    my $spwords=$rcdata->{'spellchecker_words'};
+    return '' unless $spwords;
+
+    ##
+    # Building a list of potential substitutions
+    #
+    my %pairs;
+    my $data_list=$index_object->get('Data');
+    foreach my $word (keys %$spwords) {
+        my $alist=$spwords->{$word};
+        for(my $i=0; $i<10 && $i<@$alist; ++$i) {
+            my $altword=$alist->[$i];
+            ### dprint "Trying word '$word' -> '$altword'";
+            next if $altword eq $word;
+
+            my @aw=$self->analyze_text_split(0,$altword);
+            my $count=0;
+            my $found=0;
+            foreach my $aw (@aw) {
+                my $sr=$data_list->search('keyword','eq',$aw);
+                next unless @$sr;
+                $count+=scalar(@$sr);
+                ++$found;
+            }
+            next unless $found && $found==scalar(@aw);
+
+            push(@{$pairs{$word}},[
+                $altword,
+                int($count/$found)
+            ]);
+        }
+    }
+
+    ##
+    # Now trying most likely matches
+    #
+    #foreach my $word (keys %pairs) {
+    #    $pairs{$word}=[ sort { $b->[1] <=> $a->[1] } @{$pairs{$word}} ];
+    #}
+    my %alts;
+    my $bestq='';
+    my $bestc=0;
+    my $results_count=$rcdata->{'results_count'} || 0;
+    for(my $i=0; $i<10 && %pairs; ++$i) {
+        my $newq=$query;
+        my @wlist=sort { $pairs{$b}->[0]->[1] <=> $pairs{$a}->[0]->[1] } keys %pairs;
+        foreach my $word (sort { $pairs{$b}->[0]->[1] <=> $pairs{$a}->[0]->[1] } keys %pairs) {
+            my $altword=$pairs{$word}->[0]->[0];
+            $newq=~s/\b$word\b/$altword/ig;
+        }
+
+        dprint "Trying query '$newq' instead of '$query'";
+        my $sr=$self->search(
+            index_object    => $index_object,
+            search_string   => $newq,
+            ordering        => $args->{'ordering'},
+        );
+        my $newcount=@$sr;
+        if($newcount && $newcount>=$results_count) {
+            dprint "Got a match on '$newq' ($newcount)";
+            $alts{$newq}=$sr;
+            if($newcount > $bestc) {
+                $bestc=$newcount;
+                $bestq=$newq;
+            }
+        }
+
+        ##
+        # Shifting up the least common word, trying again
+        #
+        my $word=$wlist[$#wlist];
+        if(@{$pairs{$word}}>1) {
+            shift(@{$pairs{$word}});
+        }
+        else {
+            delete $pairs{$word};
+        }
+    }
+
+    ##
+    # Storing all variants and returning most the one with most matches.
+    #
+    $rcdata->{'spellchecker_alternatives'}=\%alts;
+    return $bestq;
 }
 
 ###############################################################################

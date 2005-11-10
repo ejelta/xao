@@ -6,3 +6,4 @@ CVS/
 pm_to_blib
 .*\.(c|o|bs)$
 ^ta/
+blibdirs
