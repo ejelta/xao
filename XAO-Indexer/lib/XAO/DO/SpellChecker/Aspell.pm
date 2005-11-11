@@ -32,7 +32,7 @@ use Data::Dumper;
 ###############################################################################
 
 use vars qw($VERSION);
-$VERSION=(0+sprintf('%u.%03u',(q$Id: Aspell.pm,v 1.2 2005/11/11 21:14:36 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
+$VERSION=(0+sprintf('%u.%03u',(q$Id: Aspell.pm,v 1.3 2005/11/11 21:52:58 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
 
 ###############################################################################
 
@@ -82,14 +82,17 @@ sub dictionary_create ($) {
 
     my $filename=$self->master_filename;
     dprint ".using filename='$filename'";
+    my $tmpname="$filename.tmp";
 
     my $lang=$self->master_language;
-    my $cmd="aspell --lang $lang create master $filename";
+    my $cmd="aspell --lang $lang create master $tmpname";
     my $file=IO::File->new("|$cmd") ||
         die "Can't open pipe to '$cmd': $!";
 
     return {
         file        => $file,
+        filename    => $filename,
+        tmpname     => $tmpname,
         count       => 0,
     };
 }
@@ -115,9 +118,11 @@ sub dictionary_close ($$) {
 
     $wh->{'file'}->close;
     if($?) {
-        throw $self "Error building dictionary";
+        throw $self "dictionary_close - error building dictionary";
     }
     else {
+        rename($wh->{'tmpname'},$wh->{'filename'}) ||
+            throw $self "dictionary_close - error renaming the dictionary";
         dprint "Done building dictionary, words count $wh->{'count'}";
     }
 }
