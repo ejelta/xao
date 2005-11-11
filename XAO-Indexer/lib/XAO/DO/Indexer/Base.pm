@@ -41,7 +41,7 @@ use Data::Dumper;
 ###############################################################################
 
 use vars qw($VERSION);
-$VERSION=(0+sprintf('%u.%03u',(q$Id: Base.pm,v 1.28 2005/11/11 21:49:01 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
+$VERSION=(0+sprintf('%u.%03u',(q$Id: Base.pm,v 1.29 2005/11/11 21:57:37 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
 
 ###############################################################################
 
@@ -961,7 +961,7 @@ sub build_dictionary ($%) {
     foreach my $data_id (@data_keys) {
         my ($keyword,$count)=$data_list->get($data_id)->get('keyword','count');
         my $wcount=$spellchecker->dictionary_add($wlist,$keyword,$count);
-        dprint ".$datacount/$datatotal, word count $wcount" if (++$datacount%1000)==0;
+        dprint ".$datacount/$datatotal, word count $wcount" if (++$datacount%5000)==0;
     }
 
     $data_list=$index_object->get('Ignore');
@@ -971,7 +971,7 @@ sub build_dictionary ($%) {
     foreach my $data_id (@data_keys) {
         my ($keyword,$count)=$data_list->get($data_id)->get('keyword','count');
         my $wcount=$spellchecker->dictionary_add($wlist,$keyword,$count);
-        dprint ".$datacount/$datatotal, word count $wcount" if (++$datacount%1000)==0;
+        dprint ".$datacount/$datatotal, word count $wcount" if (++$datacount%5000)==0;
     }
 
     $spellchecker->dictionary_close($wlist);
