@@ -41,7 +41,7 @@ use Data::Dumper;
 ###############################################################################
 
 use vars qw($VERSION);
-$VERSION=(0+sprintf('%u.%03u',(q$Id: Base.pm,v 1.29 2005/11/11 21:57:37 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
+$VERSION=(0+sprintf('%u.%03u',(q$Id: Base.pm,v 1.30 2005/11/11 22:15:14 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
 
 ###############################################################################
 
@@ -411,7 +411,8 @@ sub suggest_alternative ($%) {
     my $data_list=$index_object->get('Data');
     foreach my $word (keys %$spwords) {
         my $alist=$spwords->{$word};
-        for(my $i=0; $i<10 && $i<@$alist; ++$i) {
+	my $max_alt_words=$self->config_param('spellchecker/max_alt_words') || 10;
+        for(my $i=0; $i<$max_alt_words && $i<@$alist; ++$i) {
             my $altword=$alist->[$i];
             ### dprint "Trying word '$word' -> '$altword'";
 
@@ -440,7 +441,8 @@ sub suggest_alternative ($%) {
     #
     my $results_count=$rcdata->{'results_count'} || 0;
     my @alts;
-    for(my $i=0; $i<10 && %pairs; ++$i) {
+    my $max_alt_searches=$self->config_param('spellchecker/max_alt_searches') || 10;
+    for(my $i=0; $i<$max_alt_searches && %pairs; ++$i) {
         my $newq=$query;
         my @wlist=sort { $pairs{$b}->[0]->[1] <=> $pairs{$a}->[0]->[1] } keys %pairs;
         foreach my $word (sort { $pairs{$b}->[0]->[1] <=> $pairs{$a}->[0]->[1] } keys %pairs) {
