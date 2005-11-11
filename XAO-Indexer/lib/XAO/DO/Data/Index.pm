@@ -369,6 +369,24 @@ sub update ($) {
 }
 
 ###############################################################################
+
+=item build_dictionary (%)
+
+Updates the dictionary of words stored in this index. Actual
+implementation depends on the specific spellchecker, as configured for
+the project.
+
+=cut
+
+sub build_dictionary ($) {
+    my $self=shift;
+
+    return $self->indexer->build_dictionary(
+        index_object    => $self,
+    );
+}
+
+###############################################################################
 1;
 __END__
 

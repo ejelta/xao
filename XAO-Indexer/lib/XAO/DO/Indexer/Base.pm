@@ -41,7 +41,7 @@ use Data::Dumper;
 ###############################################################################
 
 use vars qw($VERSION);
-$VERSION=(0+sprintf('%u.%03u',(q$Id: Base.pm,v 1.26 2005/11/10 10:57:51 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
+$VERSION=(0+sprintf('%u.%03u',(q$Id: Base.pm,v 1.27 2005/11/11 21:14:36 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
 
 ###############################################################################
 
@@ -179,7 +179,8 @@ sub search ($%) {
         if(!$spellchecker) {
             my $objname=$spellconfig->{'objname'} || 'SpellChecker::Aspell';
             $spellchecker=XAO::Objects->new($spellconfig,{
-                objname => $objname,
+                objname     => $objname,
+                index_id    => $index_object->container_key,
             });
             $spellconfig->{'cached_spellchecker'}=$spellchecker;
         }
@@ -197,7 +198,7 @@ sub search ($%) {
         retrieve    => sub {
             my $index_list=shift;
             my $args=get_args(\@_);
-            my $index_id=$args->{index_id};
+            my $index_id=$args->{'index_id'};
             dprint "CACHE: retrieving ignored words for index $index_id";
             my $ign_list=$index_list->get($index_id)->get('Ignore');
             my %ignored=map {
@@ -410,7 +411,7 @@ sub suggest_alternative ($%) {
     my $data_list=$index_object->get('Data');
     foreach my $word (keys %$spwords) {
         my $alist=$spwords->{$word};
-        for(my $i=0; $i<10 && $i<@$alist; ++$i) {
+        for(my $i=0; $i<15 && $i<@$alist; ++$i) {
             my $altword=$alist->[$i];
             ### dprint "Trying word '$word' -> '$altword'";
 
@@ -433,11 +434,10 @@ sub suggest_alternative ($%) {
     }
 
     ##
-    # Now trying most likely matches
+    # Now other alternative strings and returning the one with most results.
+    # Not re-ordering suggested words by most matches first -- it can
+    # lead to less likely words jumping to the front.
     #
-    #foreach my $word (keys %pairs) {
-    #    $pairs{$word}=[ sort { $b->[1] <=> $a->[1] } @{$pairs{$word}} ];
-    #}
     my %alts;
     my $bestq='';
     my $bestc=0;
@@ -921,16 +921,63 @@ sub get_collection ($%) {
 sub finish_collection ($%) {
     my $self=shift;
     my $args=get_args(\@_);
-    my $cinfo=$args->{collection_info} ||
+    my $cinfo=$args->{'collection_info'} ||
         throw $self "finish_collection - no 'collection_info' given";
 
     ##
     # If it's partial and we're called -- we throw an exception to
     # indicate that this method must be overriden.
     #
-    if($cinfo->{partial}) {
+    if($cinfo->{'partial'}) {
         throw $self "finish_collection - implementation required for partial collections";
     }
+}
+
+###############################################################################
+
+sub build_dictionary ($%) {
+    my $self=shift;
+    my $args=get_args(\@_);
+
+    my $index_object=$args->{'index_object'} ||
+        throw $self "build_dictionary - no 'index_object'";
+
+    my $spellconfig=$self->config_param('spellchecker');
+    if(!$spellconfig) {
+        dprint "No spellchecker config found";
+        return;
+    }
+    my $objname=$spellconfig->{'objname'} || 'SpellChecker::Aspell';
+    my $spellchecker=XAO::Objects->new($spellconfig,{
+        objname         => $objname,
+        no_dictionary   => 1,
+        index_id        => $self->{'index_id'},
+    });
+
+    my $wlist=$spellchecker->dictionary_create;
+    return unless $wlist;
+
+    my $data_list=$index_object->get('Data');
+    my @data_keys=$data_list->keys;
+    my $datacount=0;
+    my $datatotal=scalar(@data_keys);
+    foreach my $data_id (@data_keys) {
+        my ($keyword,$count)=$data_list->get($data_id)->get('keyword','count');
+        my $wcount=$spellchecker->dictionary_add($wlist,$keyword,$count);
+        dprint ".$datacount/$datatotal, word count $wcount" if (++$datacount%1000)==0;
+    }
+
+    $data_list=$index_object->get('Ignore');
+    @data_keys=$data_list->keys;
+    $datacount=0;
+    $datatotal=scalar(@data_keys);
+    foreach my $data_id (@data_keys) {
+        my ($keyword,$count)=$data_list->get($data_id)->get('keyword','count');
+        my $wcount=$spellchecker->dictionary_add($wlist,$keyword,$count);
+        dprint ".$datacount/$datatotal, word count $wcount" if (++$datacount%1000)==0;
+    }
+
+    $spellchecker->dictionary_close($wlist);
 }
 
 ###############################################################################

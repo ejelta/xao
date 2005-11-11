@@ -3,7 +3,6 @@ use strict;
 use XAO::Utils;
 use XAO::Web;
 use Getopt::Long;
-
 use Data::Dumper;
 
 my $all;
@@ -14,6 +13,7 @@ my $search;
 my $update;
 my $complete;
 my $compression=0;
+my $dictionary;
 GetOptions(
     'all'           => \$all,
     'create'        => \$create,
@@ -24,6 +24,7 @@ GetOptions(
     'update'        => \$update,
     'complete'      => \$complete,
     'compression=i' => \$compression,
+    'dictionary'    => \$dictionary,
 );
 
 if(!$project ||
@@ -33,14 +34,17 @@ if(!$project ||
    ($search && @ARGV!=3) ||
    ($update && !$all && !@ARGV)) {
     print <<EOT;
-Usage: $0 [--debug] [--complete] --project PROJ --update index1 index2 ...
-
-Updates given indexes in the database.
-
-
-Usage: $0 [--debug] [--complete] --project PROJ --update --all
-
-Updates all existing indexes.
+Usage: $0 [--debug] \\
+    --project PROJ \\
+    [--complete] \\
+    [--dictionary] \\
+    --update [ --all | index1 index2 ... ]
+   
+Updates given indexes in the database. Adding a --dictionary option
+makes it rebuild the spellchecker dictionary if spellchecker is
+configured for the index. Using --all makes it update all available
+indexes. Using --complete makes incrementally updated indexes do a
+complete update by cycling as many times as needed.
 
 
 Usage: $0 [--debug] \\
@@ -84,7 +88,9 @@ my $index_list=$odb->fetch('/Indexes');
 if($search) {
     my ($i_name,$ordering,$str)=@ARGV;
     my $index=$index_list->get($i_name);
-    my $sr=$index->search_by_string($ordering,$str);
+    my %rcdata;
+    my $sr=$index->search_by_string($ordering,$str,\%rcdata);
+    dprint Dumper(\%rcdata);
     print join("\n",@$sr),"\n";
     exit 0;
 }
@@ -92,7 +98,7 @@ if($search) {
 ##
 # Creating new index structure
 #
-if($create) {
+elsif($create) {
     my ($i_name,$i_class)=@ARGV;
 
     my $i_obj=XAO::Objects->new(objname => $i_class);
@@ -123,7 +129,7 @@ if($create) {
 ##
 # Drops an index
 #
-if($drop) {
+elsif($drop) {
     my $i_name=$ARGV[0];
     dprint "Dropping index '$i_name'";
     $odb->transact_begin;
@@ -135,20 +141,45 @@ if($drop) {
 ##
 # Updating existing indexes
 #
-if($update) {
+elsif($update) {
     dprint "Updating indexes";
     foreach my $index_id ($all ? $index_list->keys : @ARGV) {
         dprint "Updating index '$index_id'";
         my ($ucount,$is_partial);
+        my $index_obj=$index_list->get($index_id);
         do {
-            ($ucount,$is_partial)=$index_list->get($index_id)->update;
+            ($ucount,$is_partial)=$index_obj->update;
             dprint ".updated $ucount IDs";
         } while($complete && $ucount && $is_partial);
+
+        if($dictionary) {
+            dprint "Updating spelling dictionary for '$index_id'";
+            $index_obj->build_dictionary;
+        }
     }
     exit 0;
 }
 
-die "Unknown mode of operation, run without arguments to see usage info\n";
+##
+# Building dictionaries without updating indexes.
+#
+elsif($dictionary) {
+    foreach my $index_id ($all ? $index_list->keys : @ARGV) {
+        dprint "Updating spelling dictionary for '$index_id'";
+        my $index_obj=$index_list->get($index_id);
+        $index_obj->build_dictionary;
+    }
+    exit 0;
+}
+
+##
+# Unknown
+#
+else {
+    die "Unknown mode of operation, run without arguments to see usage info\n";
+}
+
+exit 0;
 
 ###############################################################################
 
