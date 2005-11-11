@@ -89,7 +89,7 @@ sub test_spellchecker {
             speller     => {
                 kinddriving      => 'kind driving',
             },
-            speller_query => 'driving',
+            speller_query => 'kind driving',
         },
         t05 => {
             query       => 'eblive roket spacewatch',

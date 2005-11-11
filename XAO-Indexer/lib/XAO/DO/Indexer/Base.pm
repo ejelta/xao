@@ -41,7 +41,7 @@ use Data::Dumper;
 ###############################################################################
 
 use vars qw($VERSION);
-$VERSION=(0+sprintf('%u.%03u',(q$Id: Base.pm,v 1.27 2005/11/11 21:14:36 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
+$VERSION=(0+sprintf('%u.%03u',(q$Id: Base.pm,v 1.28 2005/11/11 21:49:01 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
 
 ###############################################################################
 
@@ -411,7 +411,7 @@ sub suggest_alternative ($%) {
     my $data_list=$index_object->get('Data');
     foreach my $word (keys %$spwords) {
         my $alist=$spwords->{$word};
-        for(my $i=0; $i<15 && $i<@$alist; ++$i) {
+        for(my $i=0; $i<10 && $i<@$alist; ++$i) {
             my $altword=$alist->[$i];
             ### dprint "Trying word '$word' -> '$altword'";
 
@@ -438,10 +438,8 @@ sub suggest_alternative ($%) {
     # Not re-ordering suggested words by most matches first -- it can
     # lead to less likely words jumping to the front.
     #
-    my %alts;
-    my $bestq='';
-    my $bestc=0;
     my $results_count=$rcdata->{'results_count'} || 0;
+    my @alts;
     for(my $i=0; $i<10 && %pairs; ++$i) {
         my $newq=$query;
         my @wlist=sort { $pairs{$b}->[0]->[1] <=> $pairs{$a}->[0]->[1] } keys %pairs;
@@ -459,11 +457,10 @@ sub suggest_alternative ($%) {
         my $newcount=@$sr;
         if($newcount && $newcount>=$results_count) {
             dprint "Got a match on '$newq' ($newcount)";
-            $alts{$newq}=$sr;
-            if($newcount > $bestc) {
-                $bestc=$newcount;
-                $bestq=$newq;
-            }
+            push(@alts,{
+                query       => $newq,
+                results     => $sr,
+            });
         }
 
         ##
@@ -479,10 +476,10 @@ sub suggest_alternative ($%) {
     }
 
     ##
-    # Storing all variants and returning most the one with most matches.
+    # Storing all variants and returning the first one.
     #
-    $rcdata->{'spellchecker_alternatives'}=\%alts;
-    return $bestq;
+    $rcdata->{'spellchecker_alternatives'}=\@alts;
+    return @alts ? $alts[0]->{'query'} : undef;
 }
 
 ###############################################################################
