@@ -36,12 +36,14 @@ use XAO::IndexerSupport;
 use Digest::MD5 qw(md5_base64);
 use base XAO::Objects->load(objname => 'Atom');
 
-use Data::Dumper;
+### use Data::Dumper;
+
+sub sequential_helper ($$;$$$);
 
 ###############################################################################
 
 use vars qw($VERSION);
-$VERSION=(0+sprintf('%u.%03u',(q$Id: Base.pm,v 1.30 2005/11/11 22:15:14 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
+$VERSION=(0+sprintf('%u.%03u',(q$Id: Base.pm,v 1.31 2005/11/12 00:42:39 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
 
 ###############################################################################
 
@@ -405,15 +407,16 @@ sub suggest_alternative ($%) {
 
     ##
     # Building a list of potential substitutions. Not removing words
-    # themselves as alternatives.
+    # themselves as alternatives. Keeping only words that have at least
+    # one match.
     #
-    my %pairs;
+    my %words;
     my $data_list=$index_object->get('Data');
+    my $max_alt_words=$self->config_param('spellchecker/max_alt_words') || 10;
     foreach my $word (keys %$spwords) {
         my $alist=$spwords->{$word};
-	my $max_alt_words=$self->config_param('spellchecker/max_alt_words') || 10;
         for(my $i=0; $i<$max_alt_words && $i<@$alist; ++$i) {
-            my $altword=$alist->[$i];
+            my $altword=lc($alist->[$i]);
             ### dprint "Trying word '$word' -> '$altword'";
 
             my @aw=$self->analyze_text_split(0,$altword);
@@ -427,26 +430,89 @@ sub suggest_alternative ($%) {
             }
             next unless $found && $found==scalar(@aw);
 
-            push(@{$pairs{$word}},[
+            push(@{$words{$word}},[
                 $altword,
-                int($count/$found)
+                int($count/$found),
             ]);
         }
     }
 
     ##
-    # Now other alternative strings and returning the one with most results.
-    # Not re-ordering suggested words by most matches first -- it can
-    # lead to less likely words jumping to the front.
+    # Ordering the list of substitutions to try on the original query.
+    # Fuzzy area, there could be multiple algorithms to do that.
+    #
+    my $algorithm=$self->config_param('spellchecker/algorithm') || 'sequential';
+    my $max_alt_searches=$self->config_param('spellchecker/max_alt_searches') || 10;
+    ### dprint ".algorithm=$algorithm max_alt_words=$max_alt_words max_alt_searches=$max_alt_searches";
+
+    ##
+    # In 'sequential' we scan through all words from most likely to
+    # least likely, with all possible variations. If we have these variants:
+    # A->(B,C)  K->(L,M)  X->(Y)
+    # then the following will be tried
+    # (A-B) (K-L) (X-Y) (A-B,K-L) (A-B,X-Y) (K-L,X-Y) (A-B,K-L,X-Y) (A-B,K-M)
+    # (A-C,K-L) (A-C,X-Y) (K-M,X-Y) (A-C,K-M) (A-C,K-L,X-Y), etc..
+    #
+    # The idea is that we assign weight proportional to the distance
+    # from the top of the list, make lists and then sort on the weight.
+    #
+    my @jobs;
+    if($algorithm eq 'sequential') {
+        my @list;
+        sequential_helper(\%words,\@list);
+
+        foreach my $elt (@list) {
+            my $distance=0;
+            foreach my $pair (@{$elt->{'job'}}) {
+                $distance+=$pair->[2];
+            }
+            $elt->{'distance'}=$distance;
+        }
+
+        @jobs=map {
+            [ map { $_->[0],$_->[1] } @{$_->{'job'}} ]
+        } sort {
+            $a->{'distance'} <=> $b->{'distance'}
+        } @list;
+    }
+
+    ##
+    # In 'bycount' we keep completely dropping least likely words.
+    #
+    elsif($algorithm eq 'bycount') {
+        for(my $i=0; %words && $i<$max_alt_searches; ++$i) {
+            my @wlist=sort { $words{$b}->[0]->[1] <=> $words{$a}->[0]->[1] } keys %words;
+            my @pairs;
+            my $have_difference;
+            foreach my $word (@wlist) {
+                my $altword=$words{$word}->[0]->[0];
+                $have_difference=1 if $altword ne $word;
+                push(@pairs,$word => $altword);
+            }
+            push(@jobs,\@pairs) if $have_difference;
+            my $word=$wlist[$#wlist];
+            if(@{$words{$word}}>1) {
+                shift(@{$words{$word}});
+            }
+            else {
+                delete $words{$word};
+            }
+        }
+    }
+
+    ##
+    # Now building other alternative strings and returning the one with
+    # most results.  Not re-ordering suggested words by most matches
+    # first -- it can lead to less likely words jumping to the front.
     #
     my $results_count=$rcdata->{'results_count'} || 0;
     my @alts;
-    my $max_alt_searches=$self->config_param('spellchecker/max_alt_searches') || 10;
-    for(my $i=0; $i<$max_alt_searches && %pairs; ++$i) {
+    for(my $i=0; $i<@jobs; ++$i) {
+        my $pairs=$jobs[$i];
         my $newq=$query;
-        my @wlist=sort { $pairs{$b}->[0]->[1] <=> $pairs{$a}->[0]->[1] } keys %pairs;
-        foreach my $word (sort { $pairs{$b}->[0]->[1] <=> $pairs{$a}->[0]->[1] } keys %pairs) {
-            my $altword=$pairs{$word}->[0]->[0];
+        for(my $j=0; $j<@$pairs; $j+=2) {
+            my $word=$pairs->[$j];
+            my $altword=$pairs->[$j+1];
             $newq=~s/\b$word\b/$altword/ig unless $word eq $altword;
         }
 
@@ -462,18 +528,8 @@ sub suggest_alternative ($%) {
             push(@alts,{
                 query       => $newq,
                 results     => $sr,
+                count       => $newcount,
             });
-        }
-
-        ##
-        # Shifting up the least common word, trying again
-        #
-        my $word=$wlist[$#wlist];
-        if(@{$pairs{$word}}>1) {
-            shift(@{$pairs{$word}});
-        }
-        else {
-            delete $pairs{$word};
         }
     }
 
@@ -977,6 +1033,39 @@ sub build_dictionary ($%) {
     }
 
     $spellchecker->dictionary_close($wlist);
+}
+
+###############################################################################
+
+sub sequential_helper ($$;$$$) {
+    my ($words,$list,$base,$level,$ixhash)=@_;
+
+    $base||=[ ];
+    $level||=0;
+    $ixhash||={ };
+
+    for(my $i=0; $i<5; ++$i) {
+        my $newlevel=$level+$i;
+        foreach my $word (keys %$words) {
+            next if grep { $_->[0] eq $word } @$base;
+            my $altlist=$words->{$word};
+            next if $newlevel>=@$altlist;
+            my $altword=$altlist->[$newlevel]->[0];
+            next if $altword eq $word;
+
+            my @newbase=(@$base, [ $word, $altword, $newlevel ]);
+
+            my $ix=join('|',sort map { $_->[0].'-'.$_->[1] } @newbase);
+            next if exists $ixhash->{$ix};
+            $ixhash->{$ix}=1;
+
+            push(@$list,{
+                job         => \@newbase,
+            });
+
+            sequential_helper($words,$list,\@newbase,$newlevel,$ixhash);
+        }
+    }
 }
 
 ###############################################################################

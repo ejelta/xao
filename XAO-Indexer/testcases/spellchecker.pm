@@ -36,12 +36,14 @@ sub test_spellchecker {
     #
     my $config=$self->{'config'};
     $config->put('/indexer/default/spellchecker' => {
-        options     => {
-            lang        => 'en_US',
+        options             => {
+            lang => 'en_US',
         },
+        max_alt_words       => 10,
+        max_alt_searches    => 5,
     });
     ### dprint Dumper($config->get('indexer'));
- 
+
     ##
     # Creating a new index
     #
@@ -52,7 +54,28 @@ sub test_spellchecker {
     my $foo_index=$index_list->get('foo');
     dprint "Updating foo index";
     $foo_index->update;
+
+    ##
+    # Doing tests
+    #
+    dprint "Checking 'sequential' algorithm";
+    $config->put('/indexer/default/spellchecker/algorithm' => 'sequential');
+    $self->do_test;
+
+    dprint "Checking 'bycount' algorithm";
+    $config->put('/indexer/default/spellchecker/algorithm' => 'bycount');
+    $self->do_test;
+}
+
+###############################################################################
+
+sub do_test {
+    my $self=shift;
+    my $config=$self->{'config'};
  
+    my $index_list=$config->odb->fetch('/Indexes');
+    my $foo_index=$index_list->get('foo');
+
     ##
     # Searching and checking if results we get are correct
     #
