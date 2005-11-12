@@ -43,7 +43,7 @@ sub sequential_helper ($$;$$$);
 ###############################################################################
 
 use vars qw($VERSION);
-$VERSION=(0+sprintf('%u.%03u',(q$Id: Base.pm,v 1.31 2005/11/12 00:42:39 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
+$VERSION=(0+sprintf('%u.%03u',(q$Id: Base.pm,v 1.32 2005/11/12 00:44:29 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
 
 ###############################################################################
 
@@ -474,6 +474,10 @@ sub suggest_alternative ($%) {
         } sort {
             $a->{'distance'} <=> $b->{'distance'}
         } @list;
+
+        if(@jobs>$max_alt_searches) {
+            splice(@jobs,$max_alt_searches);
+        }
     }
 
     ##
