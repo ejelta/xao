@@ -43,7 +43,7 @@ sub sequential_helper ($$;$$$);
 ###############################################################################
 
 use vars qw($VERSION);
-$VERSION=(0+sprintf('%u.%03u',(q$Id: Base.pm,v 1.32 2005/11/12 00:44:29 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
+$VERSION=(0+sprintf('%u.%03u',(q$Id: Base.pm,v 1.33 2005/11/22 19:58:59 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
 
 ###############################################################################
 
@@ -512,12 +512,16 @@ sub suggest_alternative ($%) {
     my $results_count=$rcdata->{'results_count'} || 0;
     my @alts;
     for(my $i=0; $i<@jobs; ++$i) {
-        my $pairs=$jobs[$i];
         my $newq=$query;
+        my $pairs=$jobs[$i];
+        my @finalpairs;
         for(my $j=0; $j<@$pairs; $j+=2) {
             my $word=$pairs->[$j];
             my $altword=$pairs->[$j+1];
-            $newq=~s/\b$word\b/$altword/ig unless $word eq $altword;
+            if($word ne $altword) {
+                $newq=~s/\b$word\b/$altword/ig;
+                push(@finalpairs,[ $word, $altword ]);
+            }
         }
 
         dprint "Trying query '$newq' instead of '$query'";
@@ -531,6 +535,7 @@ sub suggest_alternative ($%) {
             dprint "Got a match on '$newq' ($newcount)";
             push(@alts,{
                 query       => $newq,
+                pairs       => \@finalpairs,
                 results     => $sr,
                 count       => $newcount,
             });

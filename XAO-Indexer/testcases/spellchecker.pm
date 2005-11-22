@@ -157,6 +157,16 @@ sub do_test {
                     my $got=$foo_index->suggest_alternative($oname,$query,\%rcdata);
                     $self->assert($got eq $test->{'speller_query'},
                                   "Expected alternative query '$test->{'speller_query'}', got '$got'");
+
+                    if($test->{'speller'}) {
+                        foreach my $word (keys %{$test->{'speller'}}) {
+                            my $altword=$test->{'speller'}->{$word};
+                            next if $altword eq $word;
+                            my $pairs=$rcdata{'spellchecker_alternatives'}->[0]->{'pairs'};
+                            $self->assert(scalar(grep { $_->[0] eq $word && $_->[1] eq $altword } @$pairs),
+                                          "Expected to have a replacement pair ($word->$altword) for $query");
+                        }
+                    }
                 }
 
                 if($test->{'ignored'}) {
