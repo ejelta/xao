@@ -43,7 +43,7 @@ sub sequential_helper ($$;$$$);
 ###############################################################################
 
 use vars qw($VERSION);
-$VERSION=(0+sprintf('%u.%03u',(q$Id: Base.pm,v 1.35 2005/11/23 05:12:36 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
+$VERSION=(0+sprintf('%u.%03u',(q$Id: Base.pm,v 1.36 2005/11/23 05:42:50 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
 
 ###############################################################################
 
@@ -1030,38 +1030,37 @@ sub build_dictionary ($%) {
     my $dict_req_count=$self->config_param('spellchecker/dictionary_req_count') || 3;
     my $dict_req_length=$self->config_param('spellchecker/dictionary_req_length') || 1;
 
-    dprint ".words from search index";
     my $data_list=$index_object->get('Data');
     my @data_keys=$data_list->keys;
     my $datacount=0;
     my $datatotal=scalar(@data_keys);
+    my $wcount=0;
+    dprint ".words from search index ($datatotal)";
     foreach my $data_id (@data_keys) {
-        ++$datacount;
+        dprint "..$datacount/$datatotal, word count $wcount" if (++$datacount%5000)==0;
 
         my ($keyword,$count)=$data_list->get($data_id)->get('keyword','count');
 
         next unless $count>=$dict_req_count &&
                     length($keyword)>=$dict_req_length;
 
-        my $wcount=$spellchecker->dictionary_add($wlist,$keyword,$count);
-        dprint "..$datacount/$datatotal, word count $wcount" if ($datacount%5000)==0;
+        $wcount=$spellchecker->dictionary_add($wlist,$keyword,$count);
     }
 
-    dprint ".words from ignore list";
     $data_list=$index_object->get('Ignore');
     @data_keys=$data_list->keys;
     $datacount=0;
     $datatotal=scalar(@data_keys);
+    dprint ".words from ignore list ($datatotal)";
     foreach my $data_id (@data_keys) {
-        ++$datacount;
+        dprint "..$datacount/$datatotal, word count $wcount" if (++$datacount%5000)==0;
 
         my ($keyword,$count)=$data_list->get($data_id)->get('keyword','count');
 
         next unless $count>=$dict_req_count &&
                     length($keyword)>=$dict_req_length;
 
-        my $wcount=$spellchecker->dictionary_add($wlist,$keyword,$count);
-        dprint "..$datacount/$datatotal, word count $wcount" if ($datacount%5000)==0;
+        $wcount=$spellchecker->dictionary_add($wlist,$keyword,$count);
     }
 
     $spellchecker->dictionary_close($wlist);
