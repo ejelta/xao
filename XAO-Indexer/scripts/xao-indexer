@@ -14,7 +14,7 @@ my $update;
 my $complete;
 my $compression=0;
 my $dictionary;
-GetOptions(
+my $gorc=GetOptions(
     'all'           => \$all,
     'create'        => \$create,
     'debug'         => sub { XAO::Utils::set_debug(1) },
@@ -27,7 +27,8 @@ GetOptions(
     'dictionary'    => \$dictionary,
 );
 
-if(!$project ||
+if(!$gorc ||
+   !$project ||
    ($all && @ARGV) ||
    ($create && @ARGV!=2) ||
    ($drop && @ARGV!=1) ||

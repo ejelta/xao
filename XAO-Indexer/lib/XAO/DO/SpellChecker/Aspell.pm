@@ -32,7 +32,7 @@ use Data::Dumper;
 ###############################################################################
 
 use vars qw($VERSION);
-$VERSION=(0+sprintf('%u.%03u',(q$Id: Aspell.pm,v 1.3 2005/11/11 21:52:58 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
+$VERSION=(0+sprintf('%u.%03u',(q$Id: Aspell.pm,v 1.4 2005/11/23 03:22:08 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
 
 ###############################################################################
 
@@ -102,7 +102,7 @@ sub dictionary_create ($) {
 sub dictionary_add ($$$$) {
     my ($self,$wh,$word,$count)=@_;
 
-    return $wh->{'count'} unless $word=~/^[a-z]+$/i && $count>3;
+    return $wh->{'count'} unless $word=~/^[a-z]+$/i;
 
     $wh->{'file'}->print($word."\n");
     $wh->{'file'}->error &&

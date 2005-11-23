@@ -43,7 +43,7 @@ sub sequential_helper ($$;$$$);
 ###############################################################################
 
 use vars qw($VERSION);
-$VERSION=(0+sprintf('%u.%03u',(q$Id: Base.pm,v 1.33 2005/11/22 19:58:59 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
+$VERSION=(0+sprintf('%u.%03u',(q$Id: Base.pm,v 1.34 2005/11/23 03:22:08 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
 
 ###############################################################################
 
@@ -177,16 +177,23 @@ sub search ($%) {
     my $spellconfig=$self->config_param('spellchecker');
     my $spellchecker;
     if($spellconfig && $rcdata) {
-        $spellchecker=$spellconfig->{'cached_spellchecker'};
-        if(!$spellchecker) {
-            my $objname=$spellconfig->{'objname'} || 'SpellChecker::Aspell';
-            $spellchecker=XAO::Objects->new($spellconfig,{
-                objname     => $objname,
-                index_id    => $index_object->container_key,
-            });
-            $spellconfig->{'cached_spellchecker'}=$spellchecker;
-        }
-        $rcdata->{'spellchecker_words'}={ } if $rcdata;
+        my $spcache=get_current_project()->cache(
+            name        => 'indexer_spellchecker',
+            coords      => [ 'index_id' ],
+            retrieve    => sub {
+                my $s=shift;
+                my $a=get_args(\@_);
+                return XAO::Objects->new($a,{
+                    objname     => $a->{'objname'} || 'SpellChecker::Aspell',
+                });
+            },
+        );
+
+        $spellchecker=$spcache->get($self,merge_refs($spellconfig,{
+            index_id        => $index_object->container_key,
+        }));
+
+        $rcdata->{'spellchecker_words'}={ };
     }
 
     ##
@@ -201,7 +208,6 @@ sub search ($%) {
             my $index_list=shift;
             my $args=get_args(\@_);
             my $index_id=$args->{'index_id'};
-            dprint "CACHE: retrieving ignored words for index $index_id";
             my $ign_list=$index_list->get($index_id)->get('Ignore');
             my %ignored=map {
                 $ign_list->get($_)->get('keyword','count');
@@ -1021,12 +1027,15 @@ sub build_dictionary ($%) {
     my $wlist=$spellchecker->dictionary_create;
     return unless $wlist;
 
+    my $dict_req_count=$self->config_param('spellchecker/dictionary_req_count') || 3;
+
     my $data_list=$index_object->get('Data');
     my @data_keys=$data_list->keys;
     my $datacount=0;
     my $datatotal=scalar(@data_keys);
     foreach my $data_id (@data_keys) {
         my ($keyword,$count)=$data_list->get($data_id)->get('keyword','count');
+        next unless $count>=$dict_req_count;
         my $wcount=$spellchecker->dictionary_add($wlist,$keyword,$count);
         dprint ".$datacount/$datatotal, word count $wcount" if (++$datacount%5000)==0;
     }
