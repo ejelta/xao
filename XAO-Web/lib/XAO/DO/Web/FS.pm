@@ -185,7 +185,7 @@ use XAO::Objects;
 use base XAO::Objects->load(objname => 'Web::Action');
 
 use vars qw($VERSION);
-$VERSION=(0+sprintf('%u.%03u',(q$Id: FS.pm,v 2.2 2005/01/14 01:47:35 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
+$VERSION=(0+sprintf('%u.%03u',(q$Id: FS.pm,v 2.3 2005/11/28 07:26:53 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
 
 ###############################################################################
 
@@ -644,11 +644,32 @@ sub search ($;%) {
 
         my $have_sep=($args->{'separator.path'} || $args->{'separator.template'});
 
+        my $group_have_header=($args->{'group.header.path'} || $args->{'group.header.template'});
+        my $group_have_footer=($args->{'group.footer.path'} || $args->{'group.footer.template'});
+        my $group_items=$args->{'group.items_count'} || 0;
+        $group_items=0 unless $group_have_header || $group_have_footer;
+
         my $count=1;
         my $pass=merge_refs($args);
         foreach my $id (@$ra_ids) {
             @{$pass}{qw(ID COUNT MATCH_NUMBER)}=
                 ($id,$count,$count+($start_item-1));
+
+            ##
+            # Displaying group-header if needed
+            #
+            if($group_items && $group_have_header) {
+                if((($count-1) % $group_items)==0) {
+                    my $group_count=int(($count-1)/$group_items);
+                    $page->display($args,{
+                        path        => $args->{'group.header.path'},
+                        template    => $args->{'group.header.template'},
+                        GROUP_COUNT => $group_count,
+                        IS_FIRST    => $group_count ? 0 : 1,
+                        IS_LAST     => int((scalar(@$ra_ids)-1)/$group_items)<=$group_count ? 1 : 0,
+                    });
+                 }
+            }
 
             if(@fields) {
                 my $item=$list->get($id);
@@ -659,6 +680,7 @@ sub search ($;%) {
             ##
             # Displaying separator if given.
             #
+            my $last_item=($count>=scalar(@$ra_ids) ? 1 : 0);
             if($have_sep && $count < scalar(@$ra_ids)) {
                 $page->display(merge_refs($pass,{
                     path        => $args->{'separator.path'},
@@ -666,8 +688,21 @@ sub search ($;%) {
                 }));
             }
 
-            #dprint "count=$count time=".time unless $count%100;
-            #last if $count>10000;
+            ##
+            # Displaying group-footer if needed
+            #
+            if($group_items && $group_have_footer) {
+                if($last_item || ($count % $group_items)==0) {
+                    my $group_count=int(($count-1)/$group_items);
+                    $page->display($args,{
+                        path        => $args->{'group.footer.path'},
+                        template    => $args->{'group.footer.template'},
+                        GROUP_COUNT => $group_count,
+                        IS_FIRST    => $group_count ? 0 : 1,
+                        IS_LAST     => $last_item,
+                    });
+                 }
+            }
         }
         continue {
             $count++;
