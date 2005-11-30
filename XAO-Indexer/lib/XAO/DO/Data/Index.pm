@@ -337,14 +337,15 @@ EXPERIMENTAL UNSTABLE API.
 
 =cut
 
-sub suggest_alternative ($$$$) {
-    my ($self,$ordering,$str,$rcdata)=@_;
+sub suggest_alternative ($$$$;$) {
+    my ($self,$ordering,$str,$rcdata,$need_results)=@_;
 
     return $self->indexer->suggest_alternative(
         index_object    => $self,
         search_string   => $str,
         ordering        => $ordering,
         rcdata          => $rcdata,
+        need_results    => $need_results,
     );
 }
 

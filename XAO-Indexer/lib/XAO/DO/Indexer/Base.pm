@@ -43,7 +43,7 @@ sub sequential_helper ($$;$$$);
 ###############################################################################
 
 use vars qw($VERSION);
-$VERSION=(0+sprintf('%u.%03u',(q$Id: Base.pm,v 1.37 2005/11/30 01:53:12 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
+$VERSION=(0+sprintf('%u.%03u',(q$Id: Base.pm,v 1.38 2005/11/30 22:46:33 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
 
 ###############################################################################
 
@@ -530,7 +530,7 @@ sub suggest_alternative ($%) {
             push(@alts,{
                 query       => $newq,
                 pairs       => \@finalpairs,
-                results     => $sr,
+                results     => $args->{'need_results'} ? $sr : undef,
                 count       => $newcount,
             });
         }
