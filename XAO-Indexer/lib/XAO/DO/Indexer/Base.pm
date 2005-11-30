@@ -43,7 +43,7 @@ sub sequential_helper ($$;$$$);
 ###############################################################################
 
 use vars qw($VERSION);
-$VERSION=(0+sprintf('%u.%03u',(q$Id: Base.pm,v 1.38 2005/11/30 22:46:33 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
+$VERSION=(0+sprintf('%u.%03u',(q$Id: Base.pm,v 1.39 2005/11/30 23:25:20 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
 
 ###############################################################################
 
@@ -437,6 +437,7 @@ sub suggest_alternative ($%) {
     #
     my $algorithm=$self->config_param('spellchecker/algorithm') || 'sequential';
     my $max_alt_searches=$self->config_param('spellchecker/max_alt_searches') || 10;
+    my $max_alt_results=$self->config_param('spellchecker/max_alt_results') || 2;
     ### dprint ".algorithm=$algorithm max_alt_words=$max_alt_words max_alt_searches=$max_alt_searches";
 
     ##
@@ -533,6 +534,8 @@ sub suggest_alternative ($%) {
                 results     => $args->{'need_results'} ? $sr : undef,
                 count       => $newcount,
             });
+
+            last if scalar(@alts)>=$max_alt_results;
         }
     }
 

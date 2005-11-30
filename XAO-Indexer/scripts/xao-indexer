@@ -15,6 +15,7 @@ my $complete;
 my $compression=0;
 my $dictionary;
 my $spelling_server;
+my $alternatives;
 my $gorc=GetOptions(
     'all'           => \$all,
     'create'        => \$create,
@@ -27,6 +28,7 @@ my $gorc=GetOptions(
     'compression=i' => \$compression,
     'dictionary'    => \$dictionary,
     'spelling-server' => \$spelling_server,
+    'alternatives'  => \$alternatives,
 );
 
 if(!$gorc ||
@@ -66,7 +68,8 @@ Drops the given existing index.
 Usage: $0 [--debug] --project PROJ --search index ordering 'search string'
 
 Performes a search on the given index and returns found unique IDs one
-per line on standard output. Mostly useful for testing.
+per line on standard output. Mostly useful for testing. Provide
+--alternatives to see spell-corrected variants.
 
 
 Usage: $0 [--debug] --project PROJ --spelling-server
@@ -97,10 +100,17 @@ my $index_list=$odb->fetch('/Indexes');
 if($search) {
     my ($i_name,$ordering,$str)=@ARGV;
     my $index=$index_list->get($i_name);
+
     my %rcdata;
     my $sr=$index->search_by_string($ordering,$str,\%rcdata);
+
+    if($alternatives) {
+        $index->suggest_alternative($ordering,$str,\%rcdata);
+    }
+
     dprint Dumper(\%rcdata);
     print join("\n",@$sr),"\n";
+
     exit 0;
 }
 
