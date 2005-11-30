@@ -50,7 +50,7 @@ use base XAO::Objects->load(objname => 'Atom');
 ###############################################################################
 
 use vars qw($VERSION);
-$VERSION=(0+sprintf('%u.%03u',(q$Id: Base.pm,v 1.1 2005/11/30 01:53:12 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
+$VERSION=(0+sprintf('%u.%03u',(q$Id: Base.pm,v 1.2 2005/11/30 20:57:30 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
 
 ###############################################################################
 
@@ -206,6 +206,7 @@ sub server_run ($) {
         my $wrdy=$ready[1];
         foreach my $fh (@$wrdy) {
             my $fno=$fh->fileno;
+            defined $fno || next;
             ### dprint "Writing to $fno";
 
             use bytes;
