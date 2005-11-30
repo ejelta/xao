@@ -43,7 +43,7 @@ sub sequential_helper ($$;$$$);
 ###############################################################################
 
 use vars qw($VERSION);
-$VERSION=(0+sprintf('%u.%03u',(q$Id: Base.pm,v 1.36 2005/11/23 05:42:50 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
+$VERSION=(0+sprintf('%u.%03u',(q$Id: Base.pm,v 1.37 2005/11/30 01:53:12 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
 
 ###############################################################################
 
@@ -174,25 +174,11 @@ sub search ($%) {
     ##
     # Preparing spellchecker if needed
     #
-    my $spellconfig=$self->config_param('spellchecker');
+    my $use_spellchecker=$rcdata && $self->config_param('use_spellchecker');
     my $spellchecker;
-    if($spellconfig && $rcdata) {
-        my $spcache=get_current_project()->cache(
-            name        => 'indexer_spellchecker',
-            coords      => [ 'index_id' ],
-            retrieve    => sub {
-                my $s=shift;
-                my $a=get_args(\@_);
-                return XAO::Objects->new($a,{
-                    objname     => $a->{'objname'} || 'SpellChecker::Aspell',
-                });
-            },
-        );
-
-        $spellchecker=$spcache->get($self,merge_refs($spellconfig,{
-            index_id        => $index_object->container_key,
-        }));
-
+    if($use_spellchecker) {
+        $spellchecker=$self->get_spellchecker;
+        $spellchecker->switch_index($index_object->container_key);
         $rcdata->{'spellchecker_words'}={ };
     }
 
@@ -236,10 +222,11 @@ sub search ($%) {
             push(@simple,$s->[0]);
         }
         else {
+            if($spellchecker) {
+                my $pairs=$spellchecker->suggest_replacements(join(' ',@$s));
+                @{$rcdata->{'spellchecker_words'}}{keys %$pairs}=values %$pairs;
+            }
             my @t=map {
-                if($spellchecker) {
-                    $rcdata->{'spellchecker_words'}->{$_}=$spellchecker->suggest_words($_);
-                }
                 if(exists $ignored->{$_}) {
                     if($rcdata) {
                         $rcdata->{'ignored_words'}->{$_}=$ignored->{$_};
@@ -265,10 +252,11 @@ sub search ($%) {
     ##
     # Simple words
     #
+    if($spellchecker) {
+        my $pairs=$spellchecker->suggest_replacements($str);
+        @{$rcdata->{'spellchecker_words'}}{keys %$pairs}=values %$pairs;
+    }
     push(@simple,map {
-        if($spellchecker) {
-            $rcdata->{'spellchecker_words'}->{$_}=$spellchecker->suggest_words($_);
-        }
         if(exists $ignored->{$_}) {
             if($rcdata) {
                 $rcdata->{'ignored_words'}->{$_}=$ignored->{$_};
@@ -1012,17 +1000,9 @@ sub build_dictionary ($%) {
     my $index_object=$args->{'index_object'} ||
         throw $self "build_dictionary - no 'index_object'";
 
-    my $spellconfig=$self->config_param('spellchecker');
-    if(!$spellconfig) {
-        dprint "No spellchecker config found";
-        return;
-    }
-    my $objname=$spellconfig->{'objname'} || 'SpellChecker::Aspell';
-    my $spellchecker=XAO::Objects->new($spellconfig,{
-        objname         => $objname,
-        no_dictionary   => 1,
-        index_id        => $self->{'index_id'},
-    });
+    my $spellchecker=$self->get_spellchecker;
+
+    $spellchecker->switch_index($self->{'index_id'});
 
     my $wlist=$spellchecker->dictionary_create;
     return unless $wlist;
@@ -1097,6 +1077,16 @@ sub sequential_helper ($$;$$$) {
             sequential_helper($words,$list,\@newbase,$newlevel,$ixhash);
         }
     }
+}
+
+###############################################################################
+
+sub get_spellchecker ($) {
+    my $self=shift;
+
+    return XAO::Objects->new(
+        objname     => $self->config_param('spellchecker/objname') || 'SpellChecker::Aspell',
+    );
 }
 
 ###############################################################################

@@ -14,6 +14,7 @@ my $update;
 my $complete;
 my $compression=0;
 my $dictionary;
+my $spelling_server;
 my $gorc=GetOptions(
     'all'           => \$all,
     'create'        => \$create,
@@ -25,6 +26,7 @@ my $gorc=GetOptions(
     'complete'      => \$complete,
     'compression=i' => \$compression,
     'dictionary'    => \$dictionary,
+    'spelling-server' => \$spelling_server,
 );
 
 if(!$gorc ||
@@ -65,6 +67,12 @@ Usage: $0 [--debug] --project PROJ --search index ordering 'search string'
 
 Performes a search on the given index and returns found unique IDs one
 per line on standard output. Mostly useful for testing.
+
+
+Usage: $0 [--debug] --project PROJ --spelling-server
+
+Runs the project's spelling server, accepting queries from clients.
+Does not go into background and does not return.
 
 EOT
     exit 1;
@@ -171,6 +179,22 @@ elsif($dictionary) {
         $index_obj->build_dictionary;
     }
     exit 0;
+}
+
+##
+# Starting a spelling server
+#
+elsif($spelling_server) {
+    my $objname=$config->get('/indexer/default/spellchecker/objname') ||
+                'SpellChecker::Aspell';
+
+    my $server=XAO::Objects->new(
+        objname         => $objname,
+    );
+
+    $server->server_run;
+
+    die "Spelling server finished. It should not have.\n";
 }
 
 ##

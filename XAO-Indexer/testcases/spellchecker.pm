@@ -1,7 +1,6 @@
 package testcases::spellchecker;
 use strict;
 use XAO::Utils;
-use Data::Dumper;
 
 use base qw(testcases::base);
 
@@ -35,14 +34,16 @@ sub test_spellchecker {
     # Changing config to activate the spellchecker
     #
     my $config=$self->{'config'};
+    $config->put('/indexer/default/use_spellchecker' => 1);
     $config->put('/indexer/default/spellchecker' => {
-        options             => {
-            lang => 'en_US',
-        },
         max_alt_words       => 10,
         max_alt_searches    => 5,
     });
-    ### dprint Dumper($config->get('indexer'));
+    $config->put('/spellchecker' => {
+        options             => {
+            lang => 'en_US',
+        },
+    });
 
     ##
     # Creating a new index

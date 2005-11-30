@@ -11,6 +11,7 @@ test.pl
  --------------------------------------
 lib/XAO/DO/Indexer/Base.pm
 lib/XAO/DO/SpellChecker/Aspell.pm
+lib/XAO/DO/SpellChecker/Base.pm
 lib/XAO/DO/Data/Index.pm
 lib/XAO/DO/Data/IndexData.pm
 lib/XAO/DO/Data/IndexIgnore.pm

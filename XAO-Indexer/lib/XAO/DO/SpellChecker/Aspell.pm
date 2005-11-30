@@ -4,12 +4,9 @@ XAO::DO::SpellChecker::Aspell -- Text::Aspell based spellchecker
 
 =head1 SYNOPSIS
 
-
-
 =head1 DESCRIPTION
 
-Provides indexer functionality that can (and for some methods MUST) be
-overriden by objects derived from it.
+Provides a Text::Aspell specific methods for the spellchecker.
 
 Methods are:
 
@@ -25,54 +22,60 @@ use Text::Aspell;
 use XAO::Utils;
 use XAO::Objects;
 use XAO::Projects qw(get_current_project);
-use base XAO::Objects->load(objname => 'Atom');
-
-use Data::Dumper;
+use base XAO::Objects->load(objname => 'SpellChecker::Base');
 
 ###############################################################################
 
 use vars qw($VERSION);
-$VERSION=(0+sprintf('%u.%03u',(q$Id: Aspell.pm,v 1.4 2005/11/23 03:22:08 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
+$VERSION=(0+sprintf('%u.%03u',(q$Id: Aspell.pm,v 1.5 2005/11/30 01:53:12 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
 
 ###############################################################################
 
-sub new ($%) {
-    my $proto=shift;
-    my $args=get_args(\@_);
+sub local_spellchecker ($) {
+    my $self=shift;
 
-    my $checker=Text::Aspell->new;
-    my $options=$args->{'options'} || { };
+    my $index=$self->{'current_index'} || '_default_';
+    my $checker=$self->{'checkers_cache'}->{$index};
 
-    my $self=$proto->SUPER::new(
-        spellchecker    => $checker,
-        options         => $options,
-        index_id        => $args->{'index_id'},
-        no_dictionary   => $args->{'no_dictionary'},
-    );
+    return $checker if $checker;
 
-    if(!$args->{'no_dictionary'}) {
-        foreach my $k (keys %$options) {
-            if($k eq 'master') {
-                $checker->set_option(lang => $self->master_language);
-                $checker->set_option($k => $self->master_filename);
-            }
-            elsif($k eq 'lang' && $options->{'master'}) {
-                # nothing, set together with master
-            }
-            else {
-                $checker->set_option($k => $options->{$k});
-            }
+    $checker=Text::Aspell->new;
+
+    my $options=$self->{'config'}->{'options'} || { };
+    foreach my $k (keys %$options) {
+        if($k eq 'master') {
+            $checker->set_option(lang => $self->master_language);
+            $checker->set_option($k => $self->master_filename);
+        }
+        elsif($k eq 'lang' && $options->{'master'}) {
+            # Nothing, set with master
+        }
+        else {
+            $checker->set_option($k => $options->{$k});
         }
     }
 
-    return $self;
+    return $checker;
 }
 
 ###############################################################################
 
-sub suggest_words ($$) {
-    my ($self,$word)=@_;
-    return [ map { lc } $self->{'spellchecker'}->suggest($word) ];
+sub local_suggest_replacements ($$) {
+    my ($self,$phrase)=@_;
+
+    my $speller=$self->local_spellchecker;
+
+    ##
+    # Some day, when spellchecker learns to concatenate mistakenly
+    # separated words, we should change this.
+    #
+    my %pairs;
+    foreach my $word (split(/[\s[:punct:]]+/,$phrase)) {
+        next unless $word =~ /^\w+$/;
+        $pairs{lc($word)}=[ map { lc } $speller->suggest($word) ];
+    }
+
+    return \%pairs;
 }
 
 ###############################################################################
@@ -132,14 +135,14 @@ sub dictionary_close ($$) {
 sub master_filename ($) {
     my $self=shift;
 
-    my $filename=$self->{'options'}->{'master'} || return undef;
+    my $filename=$self->{'config'}->{'options'}->{'master'} || return undef;
 
     my $lang=$self->master_language;
     $filename=~s/%L/$lang/g;
 
     if($filename=~/%I/) {
-        my $index_id=$self->{'index_id'} ||
-            throw $self "master_filename - need an index_id for filename '$filename'";
+        my $index_id=$self->{'current_index'} ||
+            throw $self "master_filename - need an 'index' for filename '$filename'";
         $filename=~s/%I/$index_id/g;
     }
 
@@ -150,7 +153,7 @@ sub master_filename ($) {
 
 sub master_language ($) {
     my $self=shift;
-    return $self->{'options'}->{'lang'} || 'en';
+    return $self->{'config'}->{'options'}->{'lang'} || 'en';
 }
 
 ###############################################################################
