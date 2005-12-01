@@ -37,7 +37,7 @@ sub test_spellchecker {
     $config->put('/indexer/default/use_spellchecker' => 1);
     $config->put('/indexer/default/spellchecker' => {
         max_alt_words       => 10,
-        max_alt_searches    => 5,
+        max_alt_searches    => 10,
     });
     $config->put('/spellchecker' => {
         options             => {
@@ -63,9 +63,9 @@ sub test_spellchecker {
     $config->put('/indexer/default/spellchecker/algorithm' => 'sequential');
     $self->do_test;
 
-    dprint "Checking 'bycount' algorithm";
-    $config->put('/indexer/default/spellchecker/algorithm' => 'bycount');
-    $self->do_test;
+    ### dprint "Checking 'bycount' algorithm";
+    ### $config->put('/indexer/default/spellchecker/algorithm' => 'bycount');
+    ### $self->do_test;
 }
 
 ###############################################################################

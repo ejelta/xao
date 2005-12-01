@@ -43,7 +43,7 @@ sub sequential_helper ($$;$$$);
 ###############################################################################
 
 use vars qw($VERSION);
-$VERSION=(0+sprintf('%u.%03u',(q$Id: Base.pm,v 1.40 2005/12/01 01:54:58 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
+$VERSION=(0+sprintf('%u.%03u',(q$Id: Base.pm,v 1.41 2005/12/01 02:57:20 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
 
 ###############################################################################
 
@@ -169,7 +169,7 @@ sub search ($%) {
     my $rcdata=$args->{'rcdata'};
     $rcdata->{'ignored_words'}={ } if $rcdata;
 
-    dprint "Searching for '$str' (ordering=$ordering, seq=$ordering_seq)";
+    ### dprint "Searching for '$str' (ordering=$ordering, seq=$ordering_seq)";
 
     ##
     # Preparing spellchecker if needed
@@ -400,34 +400,37 @@ sub suggest_alternative ($%) {
     return '' unless $spwords;
 
     ##
-    # Building a list of potential substitutions. Not removing words
-    # themselves as alternatives. Keeping only words that have at least
-    # one match.
+    # This can be used to improve results when using a generic
+    # dictionary on a small dataset, not a dictionary based on the
+    # actual index content (which guarantees that we already get only
+    # valid substitutes).
     #
-    my %words;
-    my $data_list=$index_object->get('Data');
-    my $max_alt_words=$self->config_param('spellchecker/max_alt_words') || 10;
-    foreach my $word (keys %$spwords) {
-        my $alist=$spwords->{$word};
-        for(my $i=0; $i<$max_alt_words && $i<@$alist; ++$i) {
-            my $altword=lc($alist->[$i]);
-            ### dprint "Trying word '$word' -> '$altword'";
+    my %wcounts;
+    my $max_alt_words=$self->config_param('spellchecker/max_alt_words') || 0;
+    if($max_alt_words) {
+        dprint "Using 'max_alt_words' slows down suggestion, consider building a custom dictionary";
+        my $data_list=$index_object->get('Data');
+        foreach my $word (keys %$spwords) {
+            my $alist=$spwords->{$word};
+            my @newlist;
+            for(my $i=0; $i<$max_alt_words && $i<@$alist; ++$i) {
+                my $altword=lc($alist->[$i]);
+                ### dprint "Trying word '$word' -> '$altword'";
 
-            my @aw=$self->analyze_text_split(0,$altword);
-            my $count=0;
-            my $found=0;
-            foreach my $aw (@aw) {
-                my $sr=$data_list->search('keyword','eq',$aw);
-                next unless @$sr;
-                $count+=scalar(@$sr);
-                ++$found;
+                my @aw=$self->analyze_text_split(0,$altword);
+                my $found=0;
+                foreach my $aw (@aw) {
+                    my $sr=$data_list->search('keyword','eq',$aw);
+                    next unless @$sr;
+                    ++$found;
+                    $wcounts{$aw}=scalar(@$sr);
+                }
+
+                if($found && $found==scalar(@aw)) {
+                    push(@newlist,$altword);
+                }
             }
-            next unless $found && $found==scalar(@aw);
-
-            push(@{$words{$word}},[
-                $altword,
-                int($count/$found),
-            ]);
+            $spwords->{$word}=\@newlist;
         }
     }
 
@@ -436,9 +439,9 @@ sub suggest_alternative ($%) {
     # Fuzzy area, there could be multiple algorithms to do that.
     #
     my $algorithm=$self->config_param('spellchecker/algorithm') || 'sequential';
-    my $max_alt_searches=$self->config_param('spellchecker/max_alt_searches') || 10;
+    my $max_alt_searches=$self->config_param('spellchecker/max_alt_searches') || 15;
     my $max_alt_results=$self->config_param('spellchecker/max_alt_results') || 2;
-    ### dprint ".algorithm=$algorithm max_alt_words=$max_alt_words max_alt_searches=$max_alt_searches";
+    ### dprint ".algorithm=$algorithm max_alt_results=$max_alt_results max_alt_searches=$max_alt_searches";
 
     ##
     # In 'sequential' we scan through all words from most likely to
@@ -453,8 +456,24 @@ sub suggest_alternative ($%) {
     #
     my @jobs;
     if($algorithm eq 'sequential') {
+
+        if($self->config_param('spellchecker/try_word_removals')) {
+            foreach my $word (keys %$spwords) {
+                my $n=scalar(@{$spwords->{$word}});
+                if($n>2) {
+                    splice(@{$spwords->{$word}},2,0,'');
+                }
+                elsif($n) {
+                    push(@{$spwords->{$word}},'');
+                }
+            }
+        }
+
         my @list;
-        sequential_helper(\%words,\@list);
+        sequential_helper($spwords,\@list);
+
+        ### use Data::Dumper;
+        ### dprint Dumper(\@list);
 
         foreach my $elt (@list) {
             my $distance=0;
@@ -470,8 +489,12 @@ sub suggest_alternative ($%) {
                 distance    => $_->{'distance'},
             }
         } sort {
-            $a->{'distance'} <=> $b->{'distance'}
+            $a->{'distance'} <=> $b->{'distance'} ||
+            scalar(@{$b->{'job'}}) <=> scalar(@{$a->{'job'}})
         } @list;
+
+        ### use Data::Dumper;
+        ### dprint Dumper(\@jobs);
 
         if(@jobs>$max_alt_searches) {
             splice(@jobs,$max_alt_searches);
@@ -479,36 +502,38 @@ sub suggest_alternative ($%) {
     }
 
     ##
-    # In 'bycount' we keep completely dropping least likely words.
+    # In 'bycount' we keep completely dropping least likely words. Does
+    # not work very well, probably should be removed altogether as unusable.
     #
-    elsif($algorithm eq 'bycount') {
-        for(my $i=0; %words && $i<$max_alt_searches; ++$i) {
-            my @wlist=sort { $words{$b}->[0]->[1] <=> $words{$a}->[0]->[1] } keys %words;
-            my @pairs;
-            my $have_difference;
-            foreach my $word (@wlist) {
-                my $altword=$words{$word}->[0]->[0];
-                $have_difference=1 if $altword ne $word;
-                push(@pairs,$word => $altword);
-            }
-            push(@jobs,{
-                pairs       => @pairs,
-                distance    => 1,
-            }) if $have_difference;
-            my $word=$wlist[$#wlist];
-            if(@{$words{$word}}>1) {
-                shift(@{$words{$word}});
-            }
-            else {
-                delete $words{$word};
-            }
-        }
+    ### elsif($algorithm eq 'bycount') {
+    ###     for(my $i=0; %words && $i<$max_alt_searches; ++$i) {
+    ###         my @wlist=sort { $words{$b}->[0]->[1] <=> $words{$a}->[0]->[1] } keys %words;
+    ###         my @pairs;
+    ###         my $have_difference;
+    ###         foreach my $word (@wlist) {
+    ###             my $altword=$words{$word}->[0]->[0];
+    ###             $have_difference=1 if $altword ne $word;
+    ###             push(@pairs,$word => $altword);
+    ###         }
+    ###         push(@jobs,{
+    ###             pairs       => @pairs,
+    ###             distance    => 1,
+    ###         }) if $have_difference;
+    ###         my $word=$wlist[$#wlist];
+    ###         if(@{$words{$word}}>1) {
+    ###             shift(@{$words{$word}});
+    ###         }
+    ###         else {
+    ###             delete $words{$word};
+    ###         }
+    ###     }
+    ### }
+    else {
+        throw $self "suggest_alternative - '$algorithm' algorithm is not supported";
     }
 
     ##
-    # Now building other alternative strings and returning the one with
-    # most results.  Not re-ordering suggested words by most matches
-    # first -- it can lead to less likely words jumping to the front.
+    # Now building other alternative strings and returning them in order.
     #
     my $results_count=$rcdata->{'results_count'} || 0;
     my @alts;
@@ -524,6 +549,7 @@ sub suggest_alternative ($%) {
                 push(@finalpairs,[ $word, $altword ]);
             }
         }
+        next if $newq =~ /^\s+$/s;
 
         dprint "Trying query '$newq' instead of '$query'";
         my $sr=$self->search(
@@ -618,7 +644,7 @@ sub update ($%) {
     if($is_partial && !$coll_ids_total) {
         return 0;
     }
-    my $coll=$cinfo->{collection};
+    my $coll=$cinfo->{'collection'};
 
     ##
     # For partial indexes we pre-load ignored words. Otherwise, as the
@@ -1071,7 +1097,7 @@ sub sequential_helper ($$;$$$) {
             next if grep { $_->[0] eq $word } @$base;
             my $altlist=$words->{$word};
             next if $newlevel>=@$altlist;
-            my $altword=$altlist->[$newlevel]->[0];
+            my $altword=$altlist->[$newlevel];
             next if $altword eq $word;
 
             my @newbase=(@$base, [ $word, $altword, $newlevel ]);
