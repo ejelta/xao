@@ -16,6 +16,7 @@ my $compression=0;
 my $dictionary;
 my $spelling_server;
 my $alternatives;
+my $no_results;
 my $gorc=GetOptions(
     'all'           => \$all,
     'create'        => \$create,
@@ -29,6 +30,7 @@ my $gorc=GetOptions(
     'dictionary'    => \$dictionary,
     'spelling-server' => \$spelling_server,
     'alternatives'  => \$alternatives,
+    'no_results'    => \$no_results,
 );
 
 if(!$gorc ||
@@ -36,7 +38,7 @@ if(!$gorc ||
    ($all && @ARGV) ||
    ($create && @ARGV!=2) ||
    ($drop && @ARGV!=1) ||
-   ($search && @ARGV!=3) ||
+   ($search && @ARGV<3) ||
    ($update && !$all && !@ARGV)) {
     print <<EOT;
 Usage: $0 [--debug] \\
@@ -98,18 +100,22 @@ my $index_list=$odb->fetch('/Indexes');
 # Searching
 #
 if($search) {
-    my ($i_name,$ordering,$str)=@ARGV;
+    my $i_name=shift @ARGV;
+    my $ordering=shift @ARGV;
     my $index=$index_list->get($i_name);
 
-    my %rcdata;
-    my $sr=$index->search_by_string($ordering,$str,\%rcdata);
-
-    if($alternatives) {
-        $index->suggest_alternative($ordering,$str,\%rcdata);
+    foreach my $str (@ARGV) {
+        dprint "Searching '$i_name' for '$str'";
+        my %rcdata;
+        my $sr=$index->search_by_string($ordering,$str,\%rcdata);
+        if($alternatives) {
+            $index->suggest_alternative($ordering,$str,\%rcdata);
+        }
+        dprint Dumper(\%rcdata);
+        unless($no_results) {
+            print join("\n",@$sr),"\n";
+        }
     }
-
-    dprint Dumper(\%rcdata);
-    print join("\n",@$sr),"\n";
 
     exit 0;
 }
