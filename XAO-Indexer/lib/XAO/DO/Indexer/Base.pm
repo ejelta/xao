@@ -43,7 +43,7 @@ sub sequential_helper ($$;$$$);
 ###############################################################################
 
 use vars qw($VERSION);
-$VERSION=(0+sprintf('%u.%03u',(q$Id: Base.pm,v 1.39 2005/11/30 23:25:20 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
+$VERSION=(0+sprintf('%u.%03u',(q$Id: Base.pm,v 1.40 2005/12/01 01:54:58 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
 
 ###############################################################################
 
@@ -465,7 +465,10 @@ sub suggest_alternative ($%) {
         }
 
         @jobs=map {
-            [ map { $_->[0],$_->[1] } @{$_->{'job'}} ]
+            {
+                pairs       => [ map { ($_->[0],$_->[1]) } @{$_->{'job'}} ],
+                distance    => $_->{'distance'},
+            }
         } sort {
             $a->{'distance'} <=> $b->{'distance'}
         } @list;
@@ -488,7 +491,10 @@ sub suggest_alternative ($%) {
                 $have_difference=1 if $altword ne $word;
                 push(@pairs,$word => $altword);
             }
-            push(@jobs,\@pairs) if $have_difference;
+            push(@jobs,{
+                pairs       => @pairs,
+                distance    => 1,
+            }) if $have_difference;
             my $word=$wlist[$#wlist];
             if(@{$words{$word}}>1) {
                 shift(@{$words{$word}});
@@ -508,7 +514,7 @@ sub suggest_alternative ($%) {
     my @alts;
     for(my $i=0; $i<@jobs; ++$i) {
         my $newq=$query;
-        my $pairs=$jobs[$i];
+        my $pairs=$jobs[$i]->{'pairs'};
         my @finalpairs;
         for(my $j=0; $j<@$pairs; $j+=2) {
             my $word=$pairs->[$j];
@@ -533,6 +539,7 @@ sub suggest_alternative ($%) {
                 pairs       => \@finalpairs,
                 results     => $args->{'need_results'} ? $sr : undef,
                 count       => $newcount,
+                distance    => $jobs[$i]->{'distance'} || 1,
             });
 
             last if scalar(@alts)>=$max_alt_results;
@@ -1077,7 +1084,8 @@ sub sequential_helper ($$;$$$) {
                 job         => \@newbase,
             });
 
-            sequential_helper($words,$list,\@newbase,$newlevel,$ixhash);
+            scalar(@$list)<100 &&
+                sequential_helper($words,$list,\@newbase,$newlevel,$ixhash);
         }
     }
 }
