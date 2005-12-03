@@ -449,6 +449,7 @@ sub download ($$) {
                 my $lfound;
 		if($thm_src_url=~/^\//) {
                     $lfound=(-r $thm_src_url);
+                    copy($thm_src_url,$thm_src_file);
                 }
                 else {
                     foreach my $lpath (@$local_path) {
@@ -509,6 +510,7 @@ sub download ($$) {
                 my $lfound;
 		if($img_src_url=~/^\//) {
                     $lfound=(-r $img_src_url);
+                    copy($img_src_url,$img_src_file);
                 }
                 else {
                     foreach my $lpath (@$local_path) {
