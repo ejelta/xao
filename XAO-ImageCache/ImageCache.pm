@@ -447,11 +447,16 @@ sub download ($$) {
         if ($period > $self->{min_period}) {
             if($thm_src_url !~ m/^(https?|ftp):\/\//i) {
                 my $lfound;
-                foreach my $lpath (@$local_path) {
-                    if(-r "$lpath/$thm_src_url") {
-                        copy("$lpath/$thm_src_url",$thm_src_file);
-                        $lfound=1;
-                        last;
+		if($thm_src_url=~/^\//) {
+                    $lfound=(-r $thm_src_url);
+                }
+                else {
+                    foreach my $lpath (@$local_path) {
+                        if(-r "$lpath/$thm_src_url") {
+                            copy("$lpath/$thm_src_url",$thm_src_file);
+                            $lfound=1;
+                            last;
+                        }
                     }
                 }
                 if(!$lfound) {
@@ -502,11 +507,16 @@ sub download ($$) {
         if ($period > $self->{min_period}) {
             if($img_src_url !~ m/^(https?|ftp):\/\//i) {
                 my $lfound;
-                foreach my $lpath (@$local_path) {
-                    if(-r "$lpath/$img_src_url") {
-                        copy("$lpath/$img_src_url",$img_src_file);
-                        $lfound=1;
-                        last;
+		if($img_src_url=~/^\//) {
+                    $lfound=(-r $img_src_url);
+                }
+                else {
+                    foreach my $lpath (@$local_path) {
+                        if(-r "$lpath/$img_src_url") {
+                            copy("$lpath/$img_src_url",$img_src_file);
+                            $lfound=1;
+                            last;
+                        }
                     }
                 }
                 if(!$lfound) {
