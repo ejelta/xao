@@ -43,7 +43,7 @@ sub sequential_helper ($$;$$$);
 ###############################################################################
 
 use vars qw($VERSION);
-$VERSION=(0+sprintf('%u.%03u',(q$Id: Base.pm,v 1.41 2005/12/01 02:57:20 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
+$VERSION=(0+sprintf('%u.%03u',(q$Id: Base.pm,v 1.42 2005/12/06 04:18:42 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
 
 ###############################################################################
 
@@ -441,6 +441,7 @@ sub suggest_alternative ($%) {
     my $algorithm=$self->config_param('spellchecker/algorithm') || 'sequential';
     my $max_alt_searches=$self->config_param('spellchecker/max_alt_searches') || 15;
     my $max_alt_results=$self->config_param('spellchecker/max_alt_results') || 2;
+    my $max_result_distance=$self->config_param('spellchecker/max_result_distance') || 5;
     ### dprint ".algorithm=$algorithm max_alt_results=$max_alt_results max_alt_searches=$max_alt_searches";
 
     ##
@@ -477,10 +478,12 @@ sub suggest_alternative ($%) {
 
         foreach my $elt (@list) {
             my $distance=0;
+            my $count=0;
             foreach my $pair (@{$elt->{'job'}}) {
                 $distance+=$pair->[2];
+                ++$count;
             }
-            $elt->{'distance'}=$distance;
+            $elt->{'distance'}=$distance+$count-1;
         }
 
         @jobs=map {
@@ -538,6 +541,9 @@ sub suggest_alternative ($%) {
     my $results_count=$rcdata->{'results_count'} || 0;
     my @alts;
     for(my $i=0; $i<@jobs; ++$i) {
+        my $distance=$jobs[$i]->{'distance'} || 1;
+        $distance<=$max_result_distance || next;
+
         my $newq=$query;
         my $pairs=$jobs[$i]->{'pairs'};
         my @finalpairs;
@@ -565,7 +571,7 @@ sub suggest_alternative ($%) {
                 pairs       => \@finalpairs,
                 results     => $args->{'need_results'} ? $sr : undef,
                 count       => $newcount,
-                distance    => $jobs[$i]->{'distance'} || 1,
+                distance    => $distance,
             });
 
             last if scalar(@alts)>=$max_alt_results;
