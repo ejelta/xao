@@ -50,7 +50,7 @@ use base XAO::Objects->load(objname => 'Atom');
 ###############################################################################
 
 use vars qw($VERSION);
-$VERSION=(0+sprintf('%u.%03u',(q$Id: Base.pm,v 1.3 2005/11/30 23:25:20 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
+$VERSION=(0+sprintf('%u.%03u',(q$Id: Base.pm,v 1.4 2005/12/06 05:04:15 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
 
 ###############################################################################
 
@@ -381,7 +381,6 @@ sub client_suggest_replacements ($$) {
                 ' ' .
                 $phrase .
                 "\015\012";
-        dprint "CMD: $cmd";
 
         $server->blocking(1);
         $server->print($cmd);
