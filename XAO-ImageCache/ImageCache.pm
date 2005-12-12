@@ -591,8 +591,7 @@ sub download_file {
     my $source_url  = shift;
     my $source_file = shift;
 
-    print "DOWNLOAD $source_url ->\n"
-        . "         $source_file\n";
+    dprint "DOWNLOAD ($source_url)->($source_file)";
 
     my $response = $self->{ua}->get($source_url);
     if ($response->is_success) {
