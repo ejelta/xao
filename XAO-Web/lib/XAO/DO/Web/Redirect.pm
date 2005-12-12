@@ -20,7 +20,7 @@ use XAO::Utils;
 use base XAO::Objects->load(objname => 'Web::Page');
 
 use vars qw($VERSION);
-$VERSION=(0+sprintf('%u.%03u',(q$Id: Redirect.pm,v 2.1 2005/01/14 01:39:57 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
+$VERSION=(0+sprintf('%u.%03u',(q$Id: Redirect.pm,v 2.2 2005/12/12 07:32:04 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
 
 ###############################################################################
 
@@ -44,7 +44,7 @@ sub display {
     ##
     # Checking parameters.
     #
-    if(! $args->{url}) {
+    if(! $args->{'url'}) {
         eprint "No URL or path in Redirect";
         return;
     }
@@ -53,29 +53,29 @@ sub display {
     # Additional fields into standard header.
     #
     my %qa=(
-        -Status => $args->{permanent} ? '301 Permanently Moved' : '302 Moved'
+        -Status => $args->{'permanent'} ? '301 Permanently Moved' : '302 Moved'
     );
 
     ##
     # Target window works only with Netscape, but we do not care here and
     # do our best.
     #
-    if($args->{target}) {
+    if($args->{'target'}) {
         dprint ref($self),"::display - 'target=$args->{target}' does not work with MSIE!";
-        $qa{-Target}=$args->{target};
+        $qa{'-Target'}=$args->{'target'};
     }
 
     ##
     # Getting redirection URL
     #
     my $url;
-    if($args->{url} =~ /^\w+:\/\//) {
-        $url=$args->{url};
+    if($args->{'url'} =~ /^\w+:\/\//) {
+        $url=$args->{'url'};
     }
     else {
-        my $base=$args->{base};
-        my $secure=$args->{secure};
-        my $url_path=$args->{url};
+        my $base=$args->{'base'};
+        my $secure=$args->{'secure'};
+        my $url_path=$args->{'url'};
         if(substr($url_path,0,1) eq '/') {
             my $base_url=$self->base_url(
                 active  => $base ? 0 : 1,

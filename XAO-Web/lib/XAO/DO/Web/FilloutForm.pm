@@ -63,10 +63,11 @@ use XAO::Errors qw(XAO::DO::Web::FilloutForm);
 use base XAO::Objects->load(objname => 'Web::Page');
 
 use vars qw($VERSION);
-$VERSION=(0+sprintf('%u.%03u',(q$Id: FilloutForm.pm,v 2.13 2005/10/19 23:42:40 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
+$VERSION=(0+sprintf('%u.%03u',(q$Id: FilloutForm.pm,v 2.14 2005/12/12 07:32:04 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
 
 sub setup ($%);
 sub field_desc ($$;$);
+sub field_names ($);
 sub display ($;%);
 sub form_ok ($%);
 sub form_phase ($);
@@ -758,8 +759,8 @@ field the method will return undef instead of throwing an error.
 sub field_desc ($$;$) {
     my ($self,$name,$soft_failure)=@_;
 
-    my $fields=$self->{fields};
-    $fields || throw $self "field_desc - has not set fields for FilloutForm";
+    my $fields=$self->{'fields'} ||
+        throw $self "field_desc - has not set fields for FilloutForm";
 
     if(ref($fields) eq 'ARRAY') {
         foreach my $fdata (@{$fields}) {
@@ -775,17 +776,45 @@ sub field_desc ($$;$) {
     throw $self "field_desc - unknown field '$name' referred";
 }
 
-##
-# Default handler for filled out form. Must be overriden!
-#
+###############################################################################
+
+=item field_names ($)
+
+Returns field a list of all field names in the current form.
+
+=cut
+
+sub field_names ($$;$) {
+    my $self=shift;
+
+    my $fields=$self->{'fields'} ||
+        throw $self "field_names - has not set fields for FilloutForm";
+
+    if(ref($fields) eq 'ARRAY') {
+        return map { $_->{'name'} } @$fields;
+    }
+    else {
+        return map { $_->{'name'} } keys %$fields;
+    }
+}
+
+###############################################################################
+
+=item form_ok
+
+Default handler for filled out form. Must be overriden!
+
+=cut
+
 sub form_ok ($%) {
     my $self=shift;
-    if($self->{form_ok}) {
-        my %na=%{get_args(\@_)};
-        $na{extra_data}=$self->{extra_data};
-        return &{$self->{form_ok}}($self,\%na);
+    if($self->{'form_ok'}) {
+        my $na=merge_refs(get_args(\@_),{
+            extra_data  => $self->{extra_data},
+        });
+        return &{$self->{'form_ok'}}($self,$na);
     }
-    $self->throw('form_ok - must be overriden in derived class or using form_ok parameter');
+    throw $self 'form_ok - must be overriden in derived class or using form_ok parameter';
 }
 
 ##
