@@ -225,30 +225,30 @@ sub new ($%) {
     #
     # Make sure paths end with /
     #
-    $self->{source_path}              .= '/' if $self->{source_path} !~ /\/$/;
-    $self->{cache_path}               .= '/' if $self->{cache_path}  !~ /\/$/;
-    $self->{cache_url}                .= '/' if $self->{cache_url}   !~ /\/$/;
-    $self->{thumbnails}->{cache_path} .= '/' if $self->{thumbnails}->{cache_path}
-                                             && $self->{thumbnails}->{cache_path} !~ /\/$/;
-    $self->{thumbnails}->{cache_url}  .= '/' if $self->{thumbnails}->{cache_url}
-                                             && $self->{thumbnails}->{cache_url}  !~ /\/$/;
+    $self->{'source_path'}               .= '/' if $self->{'source_path'} !~ /\/$/;
+    $self->{'cache_path'}                .= '/' if $self->{'cache_path'}  !~ /\/$/;
+    $self->{'cache_url'}                 .= '/' if $self->{'cache_url'}   !~ /\/$/;
+    $self->{'thumbnails'}->{'cache_path'}.= '/' if $self->{'thumbnails'}->{'cache_path'}
+                                                && $self->{'thumbnails'}->{'cache_path'} !~ /\/$/;
+    $self->{'thumbnails'}->{'cache_url'} .= '/' if $self->{'thumbnails'}->{'cache_url'}
+                                                && $self->{'thumbnails'}->{'cache_url'}  !~ /\/$/;
 
-    if (defined($self->{min_period}) && $self->{min_period}) {
+    if (defined($self->{'min_period'}) && $self->{'min_period'}) {
 
-        unless ($self->{min_period} =~ /\d+[smhd]/) {
+        unless ($self->{'min_period'} =~ /\d+[smhd]/) {
             $self->error_log("ERROR - incorrectly formatted 'min_period' parameter!");
         }
 
         # Make sure 'min_period' parameters is in seconds
-        $self->{min_period} =~ s/(\d+)([smhd])/$1/;
+        $self->{'min_period'} =~ s/(\d+)([smhd])/$1/;
         if ($2 eq 'm') {
-            $self->{min_period} *= 60;
+            $self->{'min_period'} *= 60;
         }
         elsif ($2 eq 'h') {
-            $self->{min_period} *= 3600;
+            $self->{'min_period'} *= 3600;
         }
         elsif ($2 eq 'd') {
-            $self->{min_period} *= 86400;
+            $self->{'min_period'} *= 86400;
         }
     }
     else {
@@ -419,7 +419,7 @@ sub download ($$) {
     ##
     # Local path can be a reference to an array of paths
     #
-    my $local_path=$self->{local_path} || '';
+    my $local_path=$self->{'local_path'} || '';
     $local_path=[ $local_path ] unless ref($local_path);
 
     my $img_src_file   = $source_path.$img_src_fnm;
@@ -434,20 +434,19 @@ sub download ($$) {
         $thm_src_file   = $source_path.$thm_src_fnm;
     }
 
-    #
     # Download thumbnail if specified and resize (keep source and
     # resized images). If the file is missed in the cache, but it
     # exists in the sources and is actual -- then resizing it without
     # downloading.
     #
     my $time_now = time;
-    if ($thm_cache_path && $thm_src_url) {
+    if($thm_cache_path && $thm_src_url) {
         my $mtime_src = (stat($thm_src_file))[9];
         my $period = $time_now - $mtime_src;
-        if ($period > $self->{min_period}) {
+        if($period > $self->{'min_period'}) {
             if($thm_src_url !~ m/^(https?|ftp):\/\//i) {
                 my $lfound;
-		if($thm_src_url=~/^\//) {
+		        if($thm_src_url=~/^\//) {
                     $lfound=(-r $thm_src_url);
                     copy($thm_src_url,$thm_src_file);
                 }
@@ -580,6 +579,8 @@ sub download ($$) {
 
     $img_fnm='' unless $img_src_file;
     $thm_fnm='' unless $thm_src_file;
+
+    dprint "RETURN('$img_fnm','$thm_fnm')";
 
     return ($img_fnm, $thm_fnm);
 }
