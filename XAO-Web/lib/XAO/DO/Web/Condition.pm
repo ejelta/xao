@@ -84,7 +84,7 @@ use XAO::Objects;
 use base XAO::Objects->load(objname => 'Web::Page');
 
 use vars qw($VERSION);
-$VERSION=(0+sprintf('%u.%03u',(q$Id: Condition.pm,v 2.1 2005/01/14 01:39:57 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
+$VERSION=(0+sprintf('%u.%03u',(q$Id: Condition.pm,v 2.2 2005/12/19 21:07:51 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
 
 sub display ($;%)
 { my $self=shift;
@@ -100,7 +100,7 @@ sub display ($;%)
      if($2 eq 'cgiparam')
       { my $param=$args{$a};
         my $cname=$1;
-        if($param =~ /\s*(.*?)\s*=\s*(.*?)\s*$/)
+        if($param =~ /^\s*(.*?)\s*=\s*(.*?)\s*$/)
          { my $pval=$config->cgi->param($1);
            if(defined($pval) && $pval eq $2)
             { $name=$cname;
@@ -122,9 +122,19 @@ sub display ($;%)
          }
       }
      elsif($2 eq 'arg')
-      { if($self->{parent} && $self->{parent}->{args}->{$args{$a}})
-         { $name=$1;
-           last;
+      { my $param=$args{$a};
+        my $cname=$1;
+        my $target;
+        if($param =~ /^\s*(.*?)\s*=\s*(.*?)\s*$/)
+         { $param=$1;
+           $target=$2;
+         }
+        if($self->{'parent'})
+         { my $pvalue=$self->{'parent'}->{'args'}->{$param};
+           if(defined $target ? ($pvalue eq $target) : ($pvalue))
+            { $name=$cname;
+              last;
+            }
          }
       }
      elsif($2 eq 'siteconf' || $2 eq 'siteconfig')

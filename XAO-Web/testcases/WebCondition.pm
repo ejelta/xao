@@ -55,13 +55,27 @@ EOT
             },
             result => 'GOT-V2',
         },
+        t6 => {
+            args => {
+                template => q(<%Condition a.arg='V1=abc' a.template='gV1' default.template='gDF'%>),
+                V1 => 'abc',
+            },
+            result => 'gV1',
+        },
+        t7 => {
+            args => {
+                template => q(<%Condition a.arg='V1=abc' a.template='gV1' default.template='gDF'%>),
+                V1 => 'cde',
+            },
+            result => 'gDF',
+        },
     );
 
     foreach my $test (keys %matrix) {
-        my $args=$matrix{$test}->{args};
-        $args->{template}=$template;
+        my $args=$matrix{$test}->{'args'};
+        $args->{'template'}||=$template;
         my $got=$page->expand($args);
-        my $expect=$matrix{$test}->{result};
+        my $expect=$matrix{$test}->{'result'};
         $self->assert($got eq $expect,
                       "Test $test failed - expected '$expect', got '$got'");
     }
@@ -96,13 +110,14 @@ EOT
     );
 
     foreach my $test (keys %matrix) {
-        my $args=$matrix{$test}->{args};
-        $args->{template}=$template;
+        my $args=$matrix{$test}->{'args'};
+        $args->{'template'}||=$template;
         my $got=$page->expand($args);
-        my $expect=$matrix{$test}->{result};
+        my $expect=$matrix{$test}->{'result'};
         $self->assert($got eq $expect,
                       "Test $test failed - expected '$expect', got '$got'");
     }
 }
 
+###############################################################################
 1;
