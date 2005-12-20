@@ -297,7 +297,7 @@ use XAO::Objects;
 use base XAO::Objects->load(objname => 'Web::Action');
 
 use vars qw($VERSION);
-$VERSION=(0+sprintf('%u.%03u',(q$Id: IdentifyUser.pm,v 2.5 2005/10/08 01:58:15 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
+$VERSION=(0+sprintf('%u.%03u',(q$Id: IdentifyUser.pm,v 2.6 2005/12/20 19:30:12 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
 
 ###############################################################################
 
@@ -385,9 +385,9 @@ sub check {
     # the cookie and trying to load from the database.
     #
     my $cb_uri=$config->{cb_uri} || "/IdentifyUser/$type";
-    my $id_cookie_type=$config->{id_cookie_type} || 'name';
-    my $key_list_uri=$config->{key_list_uri};
-    my $key_ref_prop=$config->{key_ref_prop};
+    my $id_cookie_type=$config->{'id_cookie_type'} || 'name';
+    my $key_list_uri=$config->{'key_list_uri'};
+    my $key_ref_prop=$config->{'key_ref_prop'};
     my $key_object;
     my $user=$clipboard->get("$cb_uri/object");
     if(!$user) {
@@ -401,7 +401,7 @@ sub check {
         }
 
         my $data;
-        my $list_uri=$config->{list_uri} ||
+        my $list_uri=$config->{'list_uri'} ||
             throw $self "check - no 'list_uri' in the configuration";
         if($id_cookie_type eq 'key') {
             $key_list_uri || throw $self "check - key_list_uri required";
@@ -429,10 +429,10 @@ sub check {
                 key_object  => $key_object,
             };
         }
-        elsif($id_cookie_type eq 'id' && $config->{user_prop}) {
+        elsif($id_cookie_type eq 'id' && $config->{'user_prop'}) {
             my $list=$self->odb->fetch($list_uri);
 
-            my $user_prop=$config->{user_prop};
+            my $user_prop=$config->{'user_prop'};
             my @names=split(/\/+/,$user_prop);
             my @ids=split(/\/+/,$cookie_value);
             my %d;
@@ -488,7 +488,7 @@ sub check {
         # Updating cookie, not doing it every time -- same reason as for
         # verification cookie below.
         #
-        my $id_cookie_expire=$config->{id_cookie_expire} || 4*365*24*60*60;
+        my $id_cookie_expire=$config->{'id_cookie_expire'} || 4*365*24*60*60;
         my $set_cookie_flag;
         if($key_list_uri) {
             $set_cookie_flag=1;
@@ -522,7 +522,7 @@ sub check {
         # browser. If there is not one, assume at most 'identified'
         # status.
         #
-        my $vf_key_cookie=$config->{vf_key_cookie};
+        my $vf_key_cookie=$config->{'vf_key_cookie'};
         if($key_list_uri && !$key_object) {
             my $key_list=$self->odb->fetch($key_list_uri);
             if($vf_key_cookie) {
@@ -546,7 +546,7 @@ sub check {
         # Checking the difference between the current time and the time
         # of last verification
         #
-        my $vf_expire_time=$config->{vf_expire_time} ||
+        my $vf_expire_time=$config->{'vf_expire_time'} ||
             throw $self "No 'vf_expire_time' in the configuration";
         my $quant=int($vf_expire_time/60);
 
@@ -569,9 +569,9 @@ sub check {
             # are present checking the content of the key cookie and
             # appropriate field in the user profile
             #
-            if(!$key_list_uri && $config->{vf_key_prop} && $vf_key_cookie) {
+            if(!$key_list_uri && $config->{'vf_key_prop'} && $vf_key_cookie) {
                 my $web_key=$self->cgi->cookie($vf_key_cookie) || '';
-                my $db_key=$user->get($config->{vf_key_prop}) || '';
+                my $db_key=$user->get($config->{'vf_key_prop'}) || '';
                 if($web_key && $db_key eq $web_key) {
                     $verified=1;
 
@@ -617,8 +617,8 @@ sub check {
                     my $key_object=$clipboard->get("$cb_uri/key_object");
                     if($key_object) {
                         $key_object->put($vf_time_prop => $current_time);
-                        if($config->{vf_time_user_prop}) {
-                            $user->put($config->{vf_time_user_prop} => $current_time);
+                        if($config->{'vf_time_user_prop'}) {
+                            $user->put($config->{'vf_time_user_prop'} => $current_time);
                         }
                     }
                     else {
@@ -633,6 +633,15 @@ sub check {
                 $verified=0;
             }
         }
+
+        ##
+        # Pushing expiration ahead on the key if needed
+        #
+        if($verified && $key_list_uri && ($current_time-$last_vf > $quant)) {
+            my $key_expire_prop=$config->{'key_expire_prop'} ||
+                throw $self "check - key_expire_prop required";
+            $key_object->put($key_expire_prop => time+$vf_expire_time);
+        }
     }
 
     ##
@@ -641,9 +650,9 @@ sub check {
     # That might help better track verification from browser side
     # applications and should not hurt anything else.
     #
-    my $expire_mode=$config->{expire_mode} || 'keep';
+    my $expire_mode=$config->{'expire_mode'} || 'keep';
     if(!$verified && $expire_mode eq 'clean') {
-	if($id_cookie_type eq 'key') {
+        if($id_cookie_type eq 'key') {
             $self->siteconfig->add_cookie(
                 -name    => $config->{id_cookie},
                 -value   => 0,
@@ -652,9 +661,9 @@ sub check {
                 -domain  => $cookie_domain,
             );
         }
-        elsif($config->{vf_key_cookie}) {
+        elsif($config->{'vf_key_cookie'}) {
             $self->siteconfig->add_cookie(
-                -name    => $config->{vf_key_cookie},
+                -name    => $config->{'vf_key_cookie'},
                 -value   => 0,
                 -path    => '/',
                 -expires => 'now',
@@ -1029,11 +1038,12 @@ sub login ($;%) {
         else {
             $key_obj->put(
                 $vf_time_prop       => $now,
+                $key_expire_prop    => $now+$vf_expire_time,
             );
         }
 
-        if($config->{vf_time_user_prop}) {
-            $user->put($config->{vf_time_user_prop} => $now);
+        if($config->{'vf_time_user_prop'}) {
+            $user->put($config->{'vf_time_user_prop'} => $now);
         }
 
         if($id_cookie_type eq 'key') {
@@ -1044,12 +1054,12 @@ sub login ($;%) {
                 -expires => '+10y',
                 -domain  => $cookie_domain,
             );
-            $data->{name}=$key_id;
-            $data->{key_object}=$key_obj;
+            $data->{'name'}=$key_id;
+            $data->{'key_object'}=$key_obj;
         }
-        elsif($config->{vf_key_cookie}) {
+        elsif($config->{'vf_key_cookie'}) {
             $self->siteconfig->add_cookie(
-                -name    => $config->{vf_key_cookie},
+                -name    => $config->{'vf_key_cookie'},
                 -value   => $key_id,
                 -path    => '/',
                 -expires => '+10y',

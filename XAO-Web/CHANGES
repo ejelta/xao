@@ -1,4 +1,5 @@
 1.08
+    * Web::IdentifyUser -- fixed old problems with expiring keys
     * Web::FS -- grouping on searches
     * Web::IdentifyUser -- new overridable method before_display()
     * Web::IdentifyUser -- 'crypt' supported as another 'pass_encrypt' method
