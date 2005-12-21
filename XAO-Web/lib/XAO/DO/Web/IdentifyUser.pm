@@ -297,7 +297,7 @@ use XAO::Objects;
 use base XAO::Objects->load(objname => 'Web::Action');
 
 use vars qw($VERSION);
-$VERSION=(0+sprintf('%u.%03u',(q$Id: IdentifyUser.pm,v 2.6 2005/12/20 19:30:12 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
+$VERSION=(0+sprintf('%u.%03u',(q$Id: IdentifyUser.pm,v 2.7 2005/12/21 02:55:36 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
 
 ###############################################################################
 
@@ -375,7 +375,7 @@ sub check {
     ##
     # These are useful for both verification and identification cookies.
     #
-    my $vf_time_prop=$config->{vf_time_prop} ||
+    my $vf_time_prop=$config->{'vf_time_prop'} ||
         throw $self "No 'vf_time_prop' in the configuration";
     my $current_time=time;
     my $last_vf;
@@ -485,28 +485,16 @@ sub check {
         $user=$data->{object};
 
         ##
-        # Updating cookie, not doing it every time -- same reason as for
-        # verification cookie below.
+        # Updating cookie
         #
         my $id_cookie_expire=$config->{'id_cookie_expire'} || 4*365*24*60*60;
-        my $set_cookie_flag;
-        if($key_list_uri) {
-            $set_cookie_flag=1;
-        }
-        else {
-            $last_vf=$user->get($vf_time_prop) unless defined $last_vf;
-            my $quant=int($id_cookie_expire/60);
-            $set_cookie_flag=($current_time-$last_vf > $quant);
-        }
-        if($set_cookie_flag) {
-            $self->siteconfig->add_cookie(
-                -name    => $id_cookie,
-                -value   => $cookie_value,
-                -path    => '/',
-                -expires => '+' . $id_cookie_expire . 's',
-                -domain  => $cookie_domain,
-            );
-        }
+        $self->siteconfig->add_cookie(
+            -name    => $id_cookie,
+            -value   => $cookie_value,
+            -path    => '/',
+            -expires => '+' . $id_cookie_expire . 's',
+            -domain  => $cookie_domain,
+        );
     }
 
     ##
@@ -530,13 +518,19 @@ sub check {
                 if($key_id) {
                     try {
                         $key_object=$key_list->get($key_id);
-                        if($key_object->get($key_ref_prop) ne $user->container_key) {
+                        my ($key_user_id,$key_last_vf)=$key_object->get($key_ref_prop,$vf_time_prop);
+                        if($key_user_id eq $user->container_key) {
+                            $last_vf=$key_last_vf;
+                        }
+                        else {
                             $key_object=undef;
+                            $last_vf=0;
                         }
                     }
                     otherwise {
                         my $e=shift;
                         dprint "IGNORED(OK): $e";
+                        $last_vf=0;
                     };
                 }
             }
@@ -548,17 +542,8 @@ sub check {
         #
         my $vf_expire_time=$config->{'vf_expire_time'} ||
             throw $self "No 'vf_expire_time' in the configuration";
-        my $quant=int($vf_expire_time/60);
 
-        if($key_list_uri) {
-            if($key_object) {
-                $last_vf=$key_object->get($vf_time_prop);
-            }
-            else {
-                $last_vf=0;
-            }
-        }
-        else {
+        if(!$key_list_uri) {
             $last_vf=$user->get($vf_time_prop);
         }
 
@@ -575,25 +560,13 @@ sub check {
                 if($web_key && $db_key eq $web_key) {
                     $verified=1;
 
-                    ##
-                    # In order to reduce global heating we only transfer
-                    # cookie if more then 1/20 of the expiration time passed
-                    # since the last visit.
-                    #
-                    # Mozilla (and probably other browsers as well) seems
-                    # to re-write its cookies file every time it gets a
-                    # new cookie. Nobody cares, but I don't like it for
-                    # aesthetic reasons.
-                    #
-                    if($current_time-$last_vf > $quant) {
-                        $vcookie={
-                            -name    => $config->{vf_key_cookie},
-                            -value   => $web_key,
-                            -path    => '/',
-                            -expires => '+4y',
-                            -domain  => $cookie_domain,
-                        };
-                    }
+                    $vcookie={
+                        -name    => $config->{'vf_key_cookie'},
+                        -value   => $web_key,
+                        -path    => '/',
+                        -expires => '+4y',
+                        -domain  => $cookie_domain,
+                    };
                 }
             }
             else {
@@ -613,17 +586,19 @@ sub check {
             );
             if(!$errstr) {
                 $clipboard->put("$cb_uri/verified" => 1);
-                if($current_time - $last_vf > $quant) {
-                    my $key_object=$clipboard->get("$cb_uri/key_object");
-                    if($key_object) {
-                        $key_object->put($vf_time_prop => $current_time);
-                        if($config->{'vf_time_user_prop'}) {
-                            $user->put($config->{'vf_time_user_prop'} => $current_time);
-                        }
+                if($key_object) {
+                    my $key_expire_prop=$config->{'key_expire_prop'} ||
+                        throw $self "check - key_expire_prop required";
+                    $key_object->put(
+                        $vf_time_prop       => $current_time,
+                        $key_expire_prop    => $current_time+$vf_expire_time,
+                    );
+                    if($config->{'vf_time_user_prop'}) {
+                        $user->put($config->{'vf_time_user_prop'} => $current_time);
                     }
-                    else {
-                        $user->put($vf_time_prop => $current_time);
-                    }
+                }
+                else {
+                    $user->put($vf_time_prop => $current_time);
                 }
                 if($vcookie) {
                     $self->siteconfig->add_cookie($vcookie);
@@ -632,15 +607,6 @@ sub check {
             else {
                 $verified=0;
             }
-        }
-
-        ##
-        # Pushing expiration ahead on the key if needed
-        #
-        if($verified && $key_list_uri && ($current_time-$last_vf > $quant)) {
-            my $key_expire_prop=$config->{'key_expire_prop'} ||
-                throw $self "check - key_expire_prop required";
-            $key_object->put($key_expire_prop => time+$vf_expire_time);
         }
     }
 

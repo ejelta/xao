@@ -34,7 +34,7 @@ use XAO::Objects;
 use base XAO::Objects->load(objname => 'Web::Action');
 
 use vars qw($VERSION);
-$VERSION=(0+sprintf('%u.%03u',(q$Id: Utility.pm,v 2.1 2005/01/14 01:39:57 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
+$VERSION=(0+sprintf('%u.%03u',(q$Id: Utility.pm,v 2.2 2005/12/21 02:55:36 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
 
 sub check_mode ($$) {
     my $self=shift;
@@ -101,42 +101,43 @@ Would display:
 
 =cut
 
-sub tracking_url ($%)
-{ my $self=shift;
-  my $args=get_args(\@_);
-  my $carrier=$args->{carrier};
-  my $tracknum=$args->{tracknum};
-  my $url;
-  if(lc($carrier) eq 'usps')
-   { $url='http://www.framed.usps.com/cgi-bin/cttgate/ontrack.cgi' .
-          '?tracknbr=' . t2ht($tracknum);
-   }
-  elsif(lc($carrier) eq 'ups')
-   { $url='http://wwwapps.ups.com/WebTracking/processInputRequest' .
-          '?HTMLVersion=5.0&sort_by=status&tracknums_displayed=1' .
-          '&TypeOfInquiryNumber=T&loc=en_US&AgreeToTermsAndConditions=yes' .
-          '&InquiryNumber1=' . t2ht($tracknum);
-   }
-  elsif(lc($carrier) eq 'fedex')
-   { $url='http://fedex.com/cgi-bin/tracking' .
-          '?tracknumbers=' .  t2ht($tracknum) .
-          '&action=track&language=english&cntry_code=us';
-   }
-  elsif(lc($carrier) eq 'dhl')
-   { $url='http://www.dhl-usa.com/cgi-bin/tracking.pl' .
-          '?AWB=' . t2ht($tracknum) .
-          'LAN=ENG&TID=US_ENG&FIRST_DB=US';
-   }
-  elsif(lc($carrier) eq 'yellow')
-   { $tracknum=sprintf('%09u',int($tracknum));
-     $url='http://www2.yellowcorp.com/cgi-bin/gx.cgi/applogic+yfsgentracing.E000YfsTrace' .
-          '?diff=protrace&PRONumber=' . t2ht($tracknum);
-   }
-  else
-   { eprint "Unknown carrier '$carrier'";
-     $url='';
-   }
-  $self->textout($url);
+sub tracking_url ($%) {
+    my $self=shift;
+    my $args=get_args(\@_);
+
+    my $carrier=$args->{'carrier'} || '';
+    my $tracknum=$args->{tracknum} || '';
+    my $url;
+    if(lc($carrier) eq 'usps') {
+        $url='http://trkcnfrm1.smi.usps.com/netdata-cgi/db2www/cbd_243.d2w/output?CAMEFROM=OK&' .
+             'strOrigTrackNum=' . t2ht($tracknum);
+    }
+    elsif(lc($carrier) eq 'ups') {
+        $url='http://wwwapps.ups.com/WebTracking/processInputRequest' .
+             '?HTMLVersion=5.0&sort_by=status&tracknums_displayed=1' .
+             '&TypeOfInquiryNumber=T&loc=en_US&AgreeToTermsAndConditions=yes' .
+             '&InquiryNumber1=' . t2ht($tracknum);
+    }
+    elsif(lc($carrier) eq 'fedex') {
+        $url='http://fedex.com/cgi-bin/tracking' .
+             '?tracknumbers=' .  t2ht($tracknum) .
+             '&action=track&language=english&cntry_code=us';
+    }
+    elsif(lc($carrier) eq 'dhl') {
+        $url='http://www.dhl-usa.com/cgi-bin/tracking.pl' .
+             '?AWB=' . t2ht($tracknum) .
+             'LAN=ENG&TID=US_ENG&FIRST_DB=US';
+    }
+    elsif(lc($carrier) eq 'yellow') {
+        $tracknum=sprintf('%09u',int($tracknum));
+        $url='http://www2.yellowcorp.com/cgi-bin/gx.cgi/applogic+yfsgentracing.E000YfsTrace' .
+             '?diff=protrace&PRONumber=' . t2ht($tracknum);
+    }
+    else {
+        eprint "Unknown carrier '$carrier'";
+        $url='';
+    }
+    $self->textout($url);
 }
 
 ###############################################################################
