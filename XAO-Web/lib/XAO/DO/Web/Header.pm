@@ -85,12 +85,12 @@ L<XAO::DO::Web::Page>.
 ###############################################################################
 package XAO::DO::Web::Header;
 use strict;
-use XAO::Utils;
+use XAO::Utils qw(:args :debug :html);
 use XAO::Objects;
 use base XAO::Objects->load(objname => 'Web::Page');
 
 use vars qw($VERSION);
-$VERSION=(0+sprintf('%u.%03u',(q$Id: Header.pm,v 2.3 2005/09/14 22:05:43 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
+$VERSION=(0+sprintf('%u.%03u',(q$Id: Header.pm,v 2.4 2005/12/27 04:10:22 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
 
 ###############################################################################
 # Displaying HTML header.
@@ -111,9 +111,11 @@ sub display ($;%) {
         return;
     }
 
-    my $meta="";
-    $meta.=qq(<META NAME="Keywords" CONTENT="$args->{keywords}">\n) if $args->{keywords};
-    $meta.=qq(<META NAME="Description" CONTENT="$args->{description}">\n) if $args->{description};
+    my $meta='';
+    $meta.=qq(<META NAME="Keywords" CONTENT=").t2hf($args->{'keywords'}).qq(">\n)
+        if $args->{'keywords'};
+    $meta.=qq(<META NAME="Description" CONTENT=").t2hf($args->{'description'}).qq(">\n)
+        if $args->{'description'};
 
     my $title=$args->{'title'} ||
               $self->siteconfig->get('default_title') ||
@@ -124,6 +126,8 @@ sub display ($;%) {
         TITLE       => $title,
         GIVEN_TITLE => $args->{'title'} || '',
         META        => $meta,
+        KEYWORDS    => $args->{'keywords'},
+        DESCRIPTION => $args->{'description'},
     });
 }
 
