@@ -63,7 +63,7 @@ use XAO::Errors qw(XAO::DO::Web::FilloutForm);
 use base XAO::Objects->load(objname => 'Web::Page');
 
 use vars qw($VERSION);
-$VERSION=(0+sprintf('%u.%03u',(q$Id: FilloutForm.pm,v 2.16 2006/01/06 04:10:49 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
+$VERSION=(0+sprintf('%u.%03u',(q$Id: FilloutForm.pm,v 2.17 2006/01/06 04:36:12 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
 
 sub setup ($%);
 sub field_desc ($$;$);
@@ -705,8 +705,9 @@ sub display ($;%) {
     # individual fields.
     #
     if(!$have_submit || !$have_cgivalues) {
+        $errstr='';
         foreach my $fdata (@{$fields}) {
-            my $param=$fdata->{param} || uc($fdata->{name});
+            my $param=$fdata->{'param'} || uc($fdata->{'name'});
             $formparams{"$param.ERRSTR"}='';
         }
     }
