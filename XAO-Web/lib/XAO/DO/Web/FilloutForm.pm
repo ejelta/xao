@@ -63,7 +63,7 @@ use XAO::Errors qw(XAO::DO::Web::FilloutForm);
 use base XAO::Objects->load(objname => 'Web::Page');
 
 use vars qw($VERSION);
-$VERSION=(0+sprintf('%u.%03u',(q$Id: FilloutForm.pm,v 2.15 2005/12/19 21:07:51 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
+$VERSION=(0+sprintf('%u.%03u',(q$Id: FilloutForm.pm,v 2.16 2006/01/06 04:10:49 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
 
 sub setup ($%);
 sub field_desc ($$;$);
@@ -201,8 +201,8 @@ sub display ($;%) {
     my $fields=$self->{fields};
     $fields || throw XAO::E::DO::Web::FilloutForm
                      "display - has not set fields for FilloutForm";
-    my $phase=$self->{phase}=$args->{phase};
-    $self->{submit_name}=$args->{submit_name} if $args->{submit_name};
+    my $phase=$self->{'phase'}=$args->{'phase'};
+    $self->{'submit_name'}=$args->{'submit_name'} if $args->{'submit_name'};
 
     ##
     # Checking the type of fields argument we have - hash or
@@ -225,6 +225,21 @@ sub display ($;%) {
     #
     my $obj=$self->object;
 
+    # Special parameter named 'submit_name' contains submit button name
+    # and used for pre-filled forms - these forms usually already have
+    # valid data and we need some way to know when the form was really
+    # checked and corrected by user.
+    #
+    my $have_cgivalues=0;
+    my $have_submit=1;
+    if($self->{'submit_name'}) {
+        $have_submit=($cgi->param($self->{'submit_name'}) ||
+                      $cgi->param($self->{'submit_name'}.'.x') ||
+                      $cgi->param($self->{'submit_name'}.'.y')
+                     ) ? 1 : 0;
+        $have_cgivalues=$have_submit;
+    }
+
     # First checking all parameters and collecting mistakes into errstr.
     #
     # Also creating hash with parameters for form diplaying while we are
@@ -232,13 +247,11 @@ sub display ($;%) {
     #
     my $errstr;
     my %formparams;
-    my $have_cgivalues=0;
+
     foreach my $fdata (@{$fields}) {
         my $name=$fdata->{'name'};
         my $cgivalue=$cgi->param($name);
-        $have_cgivalues++ if defined($cgivalue) &&
-                             (!defined($fdata->{'phase'}) ||
-                              $fdata->{'phase'} eq $phase);
+        $have_cgivalues++ if defined($cgivalue);
 
         ##
         # Checking form phase for multi-phased forms if required.
@@ -654,22 +667,10 @@ sub display ($;%) {
         $formparams{"$param.ERRSTR"}=$fdata->{'errstr'} || '';
     }
 
-    # Special parameter named 'submit_name' contains submit button name
-    # and used for pre-filled forms - these forms usually already have
-    # valid data and we need some way to know when the form was really
-    # checked and corrected by user.
-    #
-    if($self->{'submit_name'}) {
-        $have_cgivalues=($cgi->param($self->{'submit_name'}) ||
-                         $cgi->param($self->{'submit_name'}.'.x') ||
-                         $cgi->param($self->{'submit_name'}.'.y')
-                        ) ? 1 : 0;
-    }
-
     # Checking content for general compatibility by overriden
     # method. Called only if data are basicly good.
     #
-    if($have_cgivalues && !$errstr) {
+    if($have_submit && $have_cgivalues && !$errstr) {
         my @rc=$self->check_form(merge_refs($args,\%formparams));
         if(@rc<2) {
             $formparams{"ERRSTR.CHECK_FORM"}=$errstr=($rc[0] || '');
@@ -703,7 +704,7 @@ sub display ($;%) {
     # If the form is not filled at all we remove errstr's from
     # individual fields.
     #
-    if(!$have_cgivalues) {
+    if(!$have_submit || !$have_cgivalues) {
         foreach my $fdata (@{$fields}) {
             my $param=$fdata->{param} || uc($fdata->{name});
             $formparams{"$param.ERRSTR"}='';
@@ -715,8 +716,8 @@ sub display ($;%) {
     # the form here if it is not yet filled out and if it is, but we we
     # asked to keep displaying it using 'keep_form' setup parameter.
     #
-    my $keep_form=$self->{keep_form};
-    if(!$have_cgivalues || $errstr || $keep_form) {
+    my $keep_form=$self->{'keep_form'};
+    if(!$have_submit || !$have_cgivalues || $errstr || $keep_form) {
         my $eh;
         my $et;
         if($errstr && $have_cgivalues) {
@@ -735,7 +736,7 @@ sub display ($;%) {
             'ERRSTR.HTML' => $eh || '',
             %formparams,
         }));
-        return unless $keep_form && !$errstr && $have_cgivalues;
+        return unless $keep_form && !$errstr && $have_cgivalues && $have_submit;
     }
 
     ##
