@@ -50,7 +50,7 @@ use XAO::Objects;
 use base XAO::Objects->load(objname => 'Atom');
 
 use vars qw($VERSION);
-$VERSION=(0+sprintf('%u.%03u',(q$Id: Glue.pm,v 2.2 2005/07/18 07:08:47 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
+$VERSION=(0+sprintf('%u.%03u',(q$Id: Glue.pm,v 2.3 2006/01/19 04:14:54 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
 
 ###############################################################################
 
@@ -1624,10 +1624,12 @@ sub _build_search_clause ($$$$$$) {
     ##
     # And finally making the part of clause we were asked for
     #
-    $field_desc->{type} ne 'list' ||
-        $self->throw("_build_search_clause - can't search on 'list' field '$lha'");
+    $field_desc->{'type'} ne 'list' ||
+        throw $self "_build_search_clause - can't search on 'list' field '$lha'";
     ref($rha) &&
-        $self->throw("_build_search_clause - expected constant right hand side argument ['$lha', '$op', $rha]");
+        throw $self "_build_search_clause - expected constant right hand side argument ['$lha', '$op', $rha]";
+    defined $rha ||
+        throw $self "_build_search_clause - undefined right hand side for '$lha'";
 
     my $rha_escaped=$rha;
     $rha_escaped=~s/([%_\\'"])/\\$1/g;
