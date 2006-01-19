@@ -96,7 +96,7 @@ use XAO::Web;
 ###############################################################################
 
 use vars qw($VERSION);
-$VERSION=(0+sprintf('%u.%03u',(q$Id: XAO.pm,v 2.3 2005/09/23 03:30:04 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
+$VERSION=(0+sprintf('%u.%03u',(q$Id: XAO.pm,v 2.4 2006/01/19 04:35:45 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
 
 use mod_perl;
 use constant MP2 => ($mod_perl::VERSION && $mod_perl::VERSION >= 1.99);
@@ -227,7 +227,7 @@ EOT
         return DECLINED;
     }
     elsif($ptype eq 'maptodir') {
-        my $dir=$pagedesc->{directory} || '';
+        my $dir=$pagedesc->{'directory'} || '';
         if(!length($dir) || substr($dir,0,1) ne '/') {
             my $phdir=$XAO::Base::projectsdir . "/" . $sitename;
             if(length($dir)) {
