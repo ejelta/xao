@@ -63,7 +63,7 @@ use XAO::Errors qw(XAO::DO::Web::FilloutForm);
 use base XAO::Objects->load(objname => 'Web::Page');
 
 use vars qw($VERSION);
-$VERSION=(0+sprintf('%u.%03u',(q$Id: FilloutForm.pm,v 2.17 2006/01/06 04:36:12 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
+$VERSION=(0+sprintf('%u.%03u',(q$Id: FilloutForm.pm,v 2.18 2006/01/19 04:13:47 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
 
 sub setup ($%);
 sub field_desc ($$;$);
@@ -260,11 +260,13 @@ sub display ($;%) {
 
         my $value=$fdata->{'newvalue'};
         $value=$cgivalue unless defined($value);
-        $value=$fdata->{'value'} unless defined($value);
-        $value=$fdata->{'default'} unless defined($value);
+        if(!$have_cgivalues) {
+            $value=$fdata->{'value'} unless defined($value);
+            $value=$fdata->{'default'} unless defined($value);
+        }
 
         ##
-        # Empty data is the same as undefined. Spaces are trimmed from the
+        # Empty value is the same as undefined. Spaces are trimmed from the
         # beginning and the end of the string.
         #
         $value="" unless defined $value;
@@ -276,7 +278,7 @@ sub display ($;%) {
         my $newerr;
         my $style=$fdata->{'style'} || $fdata->{'type'} ||
             throw $self "display - no style or type in field '$name'";
-        if(!length($value) && $fdata->{required}) {
+        if(!length($value) && $fdata->{'required'}) {
             $newerr=$self->Tx('Required field!');
         }
         elsif($fdata->{maxlength} && length($value) > $fdata->{maxlength}) {
