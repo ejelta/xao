@@ -1,11 +1,14 @@
 package testcases::WebCondition;
 use strict;
 use XAO::Projects;
+use CGI::Cookie;
 
 use base qw(testcases::base);
 
 sub test_all {
     my $self=shift;
+
+    $ENV{'HTTP_COOKIE'}='cookie1=cvalue1; cookie2=cvalue2';
 
     my $page=XAO::Objects->new(objname => 'Web::Page');
     $self->assert(ref($page),
@@ -68,6 +71,24 @@ EOT
                 V1 => 'cde',
             },
             result => 'gDF',
+        },
+        t8 => {
+            args => {
+                template => q(<%Condition a.cookie='cookie1' a.template='OK' default.template='BAD'%>),
+            },
+            result => 'OK',
+        },
+        t9 => {
+            args => {
+                template => q(<%Condition a.cookie='cookie1=cvalue1' a.template='OK' default.template='BAD'%>),
+            },
+            result => 'OK',
+        },
+        t10 => {
+            args => {
+                template => q(<%Condition a.cookie='cookie2=fubar' a.template='BAD' default.template='OK'%>),
+            },
+            result => 'OK',
         },
     );
 

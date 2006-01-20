@@ -84,7 +84,7 @@ use XAO::Objects;
 use base XAO::Objects->load(objname => 'Web::Page');
 
 use vars qw($VERSION);
-$VERSION=(0+sprintf('%u.%03u',(q$Id: Condition.pm,v 2.3 2006/01/06 04:10:49 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
+$VERSION=(0+sprintf('%u.%03u',(q$Id: Condition.pm,v 2.4 2006/01/20 21:37:06 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
 
 sub display ($;%)
 { my $self=shift;
@@ -144,10 +144,18 @@ sub display ($;%)
          }
       }
      elsif($2 eq 'cookie')
-      {  if($config->cgi->cookie($args{$a}))
-          { $name=$1;
-             last;
-          }    
+      { my $param=$args{$a};
+        my $cname=$1;
+        my $target;
+        if($param =~ /^\s*(.*?)\s*=\s*(.*?)\s*$/)
+         { $param=$1;
+           $target=$2;
+         }
+        my $pvalue=$config->cgi->cookie($param);
+        if(defined $target ? (defined $pvalue && $pvalue eq $target) : ($pvalue))
+         { $name=$cname;
+           last;
+         }
       }
      elsif($2 eq 'number')
       { if(($args{$a} || 0)+0)
