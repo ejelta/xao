@@ -45,7 +45,7 @@ sub new ($@);
 # Package version for checks and reference
 #
 use vars qw($VERSION);
-$VERSION=(0+sprintf('%u.%03u',(q$Id: Config.pm,v 2.2 2005/02/24 01:58:49 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
+$VERSION=(0+sprintf('%u.%03u',(q$Id: Config.pm,v 2.3 2006/01/20 22:40:29 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
 
 ###############################################################################
 
@@ -171,12 +171,12 @@ usually is called as part of XAO::DO::Config cleanup().
 
 sub cleanup ($) {
     my $self=shift;
-    delete $self->{cgi};
-    delete $self->{clipboard};
-    delete $self->{cookies};
-    delete $self->{header_args};
-    delete $self->{header_printed};
-    delete $self->{special_access};
+    delete $self->{'cgi'};
+    delete $self->{'clipboard'};
+    delete $self->{'cookies'};
+    delete $self->{'header_args'};
+    delete $self->{'header_printed'};
+    delete $self->{'special_access'};
 }
 
 ###############################################################################
@@ -215,7 +215,7 @@ sub cookies ($) {
         }
     }
 
-    \@baked;
+    return \@baked;
 }
 
 ###############################################################################

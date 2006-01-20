@@ -12,13 +12,13 @@ XAO::DO::Web::Cookie - cookies manipulations
 
 Displays or sets a cookie. Arguments are:
 
-  name => cookie name
-  value => cookie value; nothing is displayed if value is given
+  name    => cookie name
+  value   => cookie value; nothing is displayed if a value is given
   default => what to display if there is no cookie set, nothing by default
   expires => when to expire the cookie (same as in CGI->cookie)
-  path => cookie visibility path (same as in CGI->cookie)
-  domain => cookie domain (same as in CGI->cookie)
-  secure => cookie secure flag (same as in CGI->cookie)
+  path    => cookie visibility path (same as in CGI->cookie)
+  domain  => cookie domain (same as in CGI->cookie)
+  secure  => cookie secure flag (same as in CGI->cookie)
 
 =cut
 
@@ -29,31 +29,31 @@ use XAO::Utils;
 use base XAO::Objects->load(objname => 'Web::Page');
 
 use vars qw($VERSION);
-$VERSION=(0+sprintf('%u.%03u',(q$Id: Cookie.pm,v 2.1 2005/01/14 01:39:57 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
+$VERSION=(0+sprintf('%u.%03u',(q$Id: Cookie.pm,v 2.2 2006/01/20 22:40:29 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
 
 sub display ($;%) {
     my $self=shift;
     my $args=get_args(\@_);
 
-    my $cgi=$self->siteconfig->cgi;
+    my $name=$args->{'name'};
+    defined($name) || throw $self "display - no name given";
 
-    my $name=$args->{name};
-    defined($name) || $self->throw("display - no name given");
-
-    if(defined($args->{value})) {
-        my $value=$args->{value};
-        dprint "Adding a cookie, name='$name', value='$value'";
-        my $c=$cgi->cookie(-name => $name,
-                           -value => $value,
-                           -expires => $args->{expires},
-                           -path => $args->{path},
-                           -domain => $args->{domain},
-                           -secure => $args->{secure});
-        $self->siteconfig->add_cookie($c);
+    if(defined($args->{'value'})) {
+        my $value=$args->{'value'};
+        $self->siteconfig->add_cookie(
+            -name       => $name,
+            -value      => $value,
+            -expires    => $args->{'expires'},
+            -path       => $args->{'path'},
+            -domain     => $args->{'domain'},
+            -secure     => $args->{'secure'},
+        );
         return;
     }
 
-    my $c=$cgi->cookie($name) || $args->{default} || '';
+    my $c=$self->siteconfig->cgi->cookie($name);
+    defined $c || ($c=$args->{'default'});
+    defined $c || ($c='');
 
     $self->textout($c);
 }
