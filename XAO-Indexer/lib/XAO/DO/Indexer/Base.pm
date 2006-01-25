@@ -43,7 +43,7 @@ sub sequential_helper ($$;$$$);
 ###############################################################################
 
 use vars qw($VERSION);
-$VERSION=(0+sprintf('%u.%03u',(q$Id: Base.pm,v 1.42 2005/12/06 04:18:42 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
+$VERSION=(0+sprintf('%u.%03u',(q$Id: Base.pm,v 1.43 2006/01/25 21:41:49 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
 
 ###############################################################################
 
@@ -332,11 +332,16 @@ sub search_multi ($$$$) {
         last unless defined $kw;
         my $sr=$data_list->search('keyword','eq',$kw);
         return [ ] unless @$sr;
+
+        use bytes;
+
         my $r=$data_list->get($sr->[0])->get("idpos_$oseq");
-        if(unpack('w',$r) == 0) {
-            my $zz=substr($r,1);
-            $r=Compress::LZO::decompress($zz);
+
+        my $compression_flag=unpack('w',$r);
+        if(defined $compression_flag && $compression_flag == 0) {
+            $r=Compress::LZO::decompress(scalar(substr($r,1)));
         }
+
         $rawdata{$kw}=$r;
     }
 
@@ -354,23 +359,20 @@ sub search_simple ($$$$) {
     my $iddata=$data_list->get($sr->[0])->get("id_$oseq");
 
     ##
-    # Decompressing if required
-    #
-    if(unpack('w',$iddata) == 0) {
-        my $zz=substr($iddata,1);
-        $iddata=Compress::LZO::decompress($zz);
-        if(!defined $iddata) {
-            eprint "Can't decompress data for kw='$keyword', sorting='$oseq'";
-            return [ ];
-        }
-    }
-
-    ##
     # Sometimes the data gets damaged or is in the process of being
     # updated. This can lead to unparsable results.
     #
     my $result;
     try {
+        use bytes;
+
+        my $compression_flag=unpack('w',$iddata);
+        if(defined $compression_flag && $compression_flag==0) {
+            $iddata=Compress::LZO::decompress(scalar(substr($iddata,1)));
+            defined $iddata ||
+                throw $self "Can't decompress data";
+        }
+
         $result=[ unpack('w*',$iddata) ];
     }
     otherwise {
@@ -378,6 +380,7 @@ sub search_simple ($$$$) {
         eprint "Bad indexer data for kw='$keyword', sorting='$oseq': $e";
         $result=[ ];
     };
+
     return $result;
 }
 
