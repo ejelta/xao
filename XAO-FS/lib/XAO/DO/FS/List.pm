@@ -33,7 +33,7 @@ use XAO::Objects;
 use base XAO::Objects->load(objname => 'FS::Glue');
 
 use vars qw($VERSION);
-$VERSION=(0+sprintf('%u.%03u',(q$Id: List.pm,v 2.3 2005/07/18 07:08:47 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
+$VERSION=(0+sprintf('%u.%03u',(q$Id: List.pm,v 2.4 2006/01/25 21:43:06 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
 
 ###############################################################################
 
@@ -382,7 +382,7 @@ sub put ($$;$) {
     else {
         ($name,$value)=@_;
         $self->check_name($name) ||
-            throw $self "put - wrong name (name=$name, class=$$self->{class_name}";
+            throw $self "put - wrong name (name=$name, class=$$self->{class_name})";
     }
 
     if($$self->{detached}) {
