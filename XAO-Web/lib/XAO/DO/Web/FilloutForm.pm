@@ -63,7 +63,7 @@ use XAO::Errors qw(XAO::DO::Web::FilloutForm);
 use base XAO::Objects->load(objname => 'Web::Page');
 
 use vars qw($VERSION);
-$VERSION=(0+sprintf('%u.%03u',(q$Id: FilloutForm.pm,v 2.18 2006/01/19 04:13:47 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
+$VERSION=(0+sprintf('%u.%03u',(q$Id: FilloutForm.pm,v 2.19 2006/01/31 05:27:33 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
 
 sub setup ($%);
 sub field_desc ($$;$);
@@ -465,12 +465,11 @@ sub display ($;%) {
             # submitted yet.
             #
             if($have_cgivalues) {
-                $value=$cgivalue ? 1 : 0;
+                $value=(defined $fdata->{'newvalue'} ? $fdata->{'newvalue'} : $cgivalue) ? 1 : 0;
             }
             else {
                 $value=(defined($fdata->{'value'}) ? $fdata->{'value'} : $fdata->{'default'}) ? 1 : 0;
             }
-            ### eprint "CBOX: value='$value' fdata.value='$fdata->{value}' fd.default='$fdata->{default}'";
         }
         elsif($style eq 'selection') {
             if(length($value)) {
