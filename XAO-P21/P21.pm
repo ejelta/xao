@@ -274,12 +274,17 @@ sub cust_item {
     my $self=shift;
     my $args=get_args(\@_);
 
-    my $callback=$args->{callback};
+    my $callback=$args->{'callback'};
 
-    my $build=$args->{build} || sub {
+    my $build=$args->{'build'} || sub {
         my %row;
-        @row{qw(cust_code item_code part_number sales_price int_desc)}=split('\t',$_[0]);
-        $row{int_desc}||='';
+        @row{qw(cust_code item_code part_number sales_price int_desc)}=
+            split('\t',$_[0]);
+        $row{'int_desc'}||='';
+
+        defined $row{'sales_price'} ||
+            throw XAO::E::P21 "cust_item - P21 error ($_[0])";
+
         return \%row;
     };
 
@@ -306,10 +311,15 @@ sub sell_schd {
     my $self=shift;
     my $args=get_args(\@_);
 
-    my $callback=$args->{callback};
+    my $callback=$args->{'callback'};
 
-    my $build=$args->{build} || sub {
-        my ($group,$vendor,$basis,$code,$type,$breaks,$discounts)=split('\t',$_[0]);
+    my $build=$args->{'build'} || sub {
+        my ($group,$vendor,$basis,$code,$type,$breaks,$discounts)=
+            split('\t',$_[0]);
+
+        (defined $breaks && defined $discounts) ||
+            throw XAO::E::P21 "sell_schd - wrong P21 line ($_[0])";
+
         my @b=split(/\//,$breaks);
         my @d=split(/\//,$discounts);
         my %row=(
