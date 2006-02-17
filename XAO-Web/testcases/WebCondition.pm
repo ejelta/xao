@@ -14,6 +14,9 @@ sub test_all {
     $self->assert(ref($page),
                   "Can't load Page object");
 
+    $page->clipboard->put('cb_foo' => 'bar');
+    $page->clipboard->put('cb_zero' => 0);
+
     my $template=<<'EOT';
 <%Condition
   v1.value="<%V1%>"
@@ -87,6 +90,36 @@ EOT
         t10 => {
             args => {
                 template => q(<%Condition a.cookie='cookie2=fubar' a.template='BAD' default.template='OK'%>),
+            },
+            result => 'OK',
+        },
+        t11 => {
+            args => {
+                template => q(<%Condition a.clipboard='cb_zero' a.template='BAD' default.template='OK'%>),
+            },
+            result => 'OK',
+        },
+        t12 => {
+            args => {
+                template => q(<%Condition a.clipboard='cb_foo' a.template='OK' default.template='BAD'%>),
+            },
+            result => 'OK',
+        },
+        t13 => {
+            args => {
+                template => q(<%Condition a.clipboard='cb_foo=bar' a.template='OK' default.template='BAD'%>),
+            },
+            result => 'OK',
+        },
+        t14 => {
+            args => {
+                template => q(<%Condition a.clipboard='cb_foo=baz' a.template='BAD' default.template='OK'%>),
+            },
+            result => 'OK',
+        },
+        t15 => {
+            args => {
+                template => q(<%Condition a.clipboard='cb_zero=0' a.template='OK' default.template='BAD'%>),
             },
             result => 'OK',
         },
