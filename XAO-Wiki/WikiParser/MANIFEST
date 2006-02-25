@@ -1,0 +1,12 @@
+Makefile.PL
+MANIFEST
+WikiParser.pm
+WikiParser.xs
+wparser/Makefile.PL
+wparser/s_string.c
+wparser/s_string.h
+wparser/test.c
+wparser/wparser.c
+wparser/wparser.h
+test.pl
+testcases/WikiParser.pm
