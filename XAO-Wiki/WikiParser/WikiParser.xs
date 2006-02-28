@@ -12,6 +12,7 @@ parse(char *s)
     CODE:
         AV * results;
         HV * rh;
+        const char *blockname;
         string str;
         str=s;
         int i,n;
@@ -23,8 +24,8 @@ parse(char *s)
          {
             if(reftable.reflist[i].skip) continue;
             rh = (HV*)sv_2mortal((SV*)newHV());
-            hv_store(rh, "type", 4, newSVpvn(reftable.reflist[i].type,
-                                strlen(reftable.reflist[i].type)), 0);
+            blockname=blocktype2name(reftable.reflist[i].type);
+            hv_store(rh, "type", 4, newSVpvn(blockname, strlen(blockname)), 0);
             if(reftable.reflist[i].level)
               hv_store(rh, "level", 5, newSVnv(reftable.reflist[i].level),0);
             hv_store(rh, "content", 7, newSVpvn(reftable.reflist[i].text,

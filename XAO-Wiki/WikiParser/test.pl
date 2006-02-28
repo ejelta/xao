@@ -1,4 +1,5 @@
 #!/usr/bin/perl
+use blib;
 
 eval "use XAO::TestUtils";
 if($@) { die "Can't find XAO::Base - call as ``perl -Mblib $0'' ($@)\n" }

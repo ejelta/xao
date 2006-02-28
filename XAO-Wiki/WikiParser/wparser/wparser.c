@@ -7,19 +7,46 @@
 
 #define MAX_LIST_PATTERN 20
 
-#define BLOCK_TYPE_TEXT     "text"
-#define BLOCK_TYPE_BLOCK    "curly"
+#define BL_TYPE_TEXT     0
+#define BL_TYPE_BLOCK    1
 #ifdef HEADER_IS_BLOCK
-#define BLOCK_TYPE_HEADER   "header"
+#define BL_TYPE_HEADER   2
 #endif
-#define BLOCK_TYPE_LINK     "link"
-#define BLOCK_TYPE_ISBN     "isbn"
-#define BLOCK_TYPE_NOWIKI   "rawtext"
+#define BL_TYPE_LINK     3
+#define BL_TYPE_ISBN     4
+#define BL_TYPE_NOWIKI   5
 #ifdef COMMENT_IS_BLOCK
-#define BLOCK_TYPE_COMMENT  "comment"
+#define BL_TYPE_COMMENT  6
 #endif
 
 
+
+const char *blocktype2name(int type)
+{
+  switch(type)
+  {
+    case BL_TYPE_TEXT:
+      return "text";
+    case BL_TYPE_BLOCK:
+      return "curly";
+#ifdef HEADER_IS_BLOCK
+    case BL_TYPE_HEADER:
+      return "header";
+#endif
+    case BL_TYPE_LINK:
+      return "link";
+    case BL_TYPE_ISBN:
+      return "isbn";
+    case BL_TYPE_NOWIKI:
+      return "rawtext";
+#ifdef COMMENT_IS_BLOCK
+    case BL_TYPE_COMMENT:
+      return "comment";
+#endif
+    default:
+      return "unknown";
+  }
+}
 
 struct wpstate {
 int paragraph_started;
@@ -457,7 +484,7 @@ struct blinetaginfo blinetags[]={
 
 
 
-int register_globaltag(char *type, int level, char *content,
+int register_globaltag(int type, int level, char *content,
                                               struct gtreftable *reftable)
 {
 int num;
@@ -488,7 +515,7 @@ string globaltag_nowiki_process(char *str, struct wpstate *state)
 {
 string s;
 s=state->separator;
-s+=register_globaltag(BLOCK_TYPE_NOWIKI,0,str,&state->reftable);
+s+=register_globaltag(BL_TYPE_NOWIKI,0,str,&state->reftable);
 s+=" ";
 return s;
 }
@@ -537,7 +564,7 @@ s="";
 cp=alltrim(str);
 if(!*cp) return s;
 s=state->separator;
-s+=register_globaltag(BLOCK_TYPE_BLOCK,0,cp,&state->reftable);
+s+=register_globaltag(BL_TYPE_BLOCK,0,cp,&state->reftable);
 s+=" ";
 cp=s;
 while(*cp)
@@ -557,7 +584,7 @@ s="";
 cp=alltrim(str);
 if(!*cp) return s;
 s=state->separator;
-s+=register_globaltag(BLOCK_TYPE_HEADER,level,cp,&state->reftable);
+s+=register_globaltag(BL_TYPE_HEADER,level,cp,&state->reftable);
 s+=" ";
 cp=s;
 while(*cp)
@@ -594,7 +621,7 @@ s="";
 cp=alltrim(str);
 if(!*cp) return s;
 s=state->separator;
-s+=register_globaltag(BLOCK_TYPE_LINK,0,cp,&state->reftable);
+s+=register_globaltag(BL_TYPE_LINK,0,cp,&state->reftable);
 s+=" ";
 cp=s;
 while(*cp)
@@ -908,7 +935,7 @@ if(isalpha(*cp)&&((cp[1]==' ')||(cp[1]=='\n')||(cp[1]==0)))
 //replace isbn tag with found value and remember pointer
 strcpy(str,isbn);
 s+=state->separator;
-s+=register_globaltag(BLOCK_TYPE_ISBN,0,str,&state->reftable);
+s+=register_globaltag(BL_TYPE_ISBN,0,str,&state->reftable);
 s+=" ";
 return taglen;
 }
@@ -1043,7 +1070,7 @@ int i,len;
 char *cp,*ptag;
 for(i=0;i<tbl->reflist_used;i++)
  {
-   if(strcasecmp(tbl->reflist[i].type,BLOCK_TYPE_TEXT)) continue;
+   if(tbl->reflist[i].type!=BL_TYPE_TEXT) continue;
    if(!tbl->reflist[i].text||!*tbl->reflist[i].text)
      {
        tbl->reflist[i].skip=1;
@@ -1159,7 +1186,7 @@ gblen=strlen(wpstate.separator);
 while((cp2=strstr(cp,wpstate.separator)))
  {
    *cp2=0;
-   register_globaltag(BLOCK_TYPE_TEXT,0,cp,dst);
+   register_globaltag(BL_TYPE_TEXT,0,cp,dst);
    nblocks++;
    cp2+=gblen;
    i=atoi(cp2);
@@ -1176,7 +1203,7 @@ while((cp2=strstr(cp,wpstate.separator)))
  }
 if(*cp)
  {
-   register_globaltag(BLOCK_TYPE_TEXT,0,cp,dst);
+   register_globaltag(BL_TYPE_TEXT,0,cp,dst);
    nblocks++;
  }
 free_reftable(&wpstate.reftable);

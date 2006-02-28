@@ -30,7 +30,7 @@ n=parse_to_blocks(str,&reftable);
 for(i=0;i<n;i++)
  {
    if(reftable.reflist[i].skip) continue;
-   printf("{ type => '%s',",reftable.reflist[i].type);
+   printf("{ type => '%s',",blocktype2name(reftable.reflist[i].type));
    if(reftable.reflist[i].level)
      printf(" level => '%i',",reftable.reflist[i].level);
    printf(" content => '%s' }\n",(char*)replaceCR(reftable.reflist[i].text));

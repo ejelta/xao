@@ -2,7 +2,7 @@
 //#define COMMENT_IS_BLOCK
 
 struct gtreflist {
-char *type;
+int  type;
 int  level;
 char *text;
 int skip;
@@ -16,7 +16,7 @@ int reflist_used;
 
 int parse_to_blocks(char * str, struct gtreftable *dst);
 int free_reftable(struct gtreftable *reftable);
-
+const char *blocktype2name(int type);
 
 
 void Wiki_parse_debug(char *);
