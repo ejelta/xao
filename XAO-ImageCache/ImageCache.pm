@@ -858,28 +858,29 @@ sub convert_time($) {
     $date_arr[4] =~ s/^0//; # Hours
     $date_arr[5] =~ s/^0//; # Minutes
     $date_arr[6] =~ s/^0//; # Seconds
-    my $time = 0;
-    if ($date_arr[7] eq 'GMT') {
-        $time = Time::Local::timegm(
-                    $date_arr[6],
-                    $date_arr[5],
-                    $date_arr[4],
-                    $date_arr[1],
-                    $month{$date_arr[2]},
-                    $date_arr[3],
-                );
-    }
-    else{
-        $time = Time::Local::timelocal(
-                    $date_arr[6],
-                    $date_arr[5],
-                    $date_arr[4],
-                    $date_arr[1],
-                    $month{$date_arr[2]},
-                    $date_arr[3],
-                );
-    }
-    $time;
+    my $time=eval {
+        if ($date_arr[7] eq 'GMT') {
+            Time::Local::timegm(
+                $date_arr[6],
+                $date_arr[5],
+                $date_arr[4],
+                $date_arr[1],
+                $month{$date_arr[2]},
+                $date_arr[3],
+            );
+        }
+        else{
+            Time::Local::timelocal(
+                $date_arr[6],
+                $date_arr[5],
+                $date_arr[4],
+                $date_arr[1],
+                $month{$date_arr[2]},
+                $date_arr[3],
+            );
+        }
+    };
+    return $time || 0;
 }
 
 ###############################################################################
