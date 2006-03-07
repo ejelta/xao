@@ -299,11 +299,17 @@ Returns sell_schd dump:
 
   disc_group                => code referenced by 'sales_group'
   vend_number               => vendor number from catalog or '' for default
+  item_code                 => item_code
   disc_basis_disp           => PIECE or COL1
   disc_code_disp            => COL1 or LIST or PRICE
   disc_type_disp            => MULT
   break_1 .. break_8        => break levels
   discount_1 .. discount_8  => break values
+
+The dump actually lists data from two similar P21 tables -- pc_override
+and sell_schd. Pc_override has item_codes, but does not have
+disc_group/vend_number. Sell_schd is the opposite, it does not have
+item_code.
 
 =cut  
 
@@ -314,17 +320,22 @@ sub sell_schd {
     my $callback=$args->{'callback'};
 
     my $build=$args->{'build'} || sub {
-        my ($group,$vendor,$basis,$code,$type,$breaks,$discounts)=
+        my ($group,$vendor,$basis,$code,$type,$breaks,$discounts,$item_code)=
             split('\t',$_[0]);
 
         (defined $breaks && defined $discounts) ||
             throw XAO::E::P21 "sell_schd - wrong P21 line ($_[0])";
+
+        $group='' if ($group eq '*' || $group eq '?');
+        $vendor='' if ($vendor eq '*' || $vendor eq '?');
+        $item_code='' if ($item_code eq '*' || $item_code eq '?');
 
         my @b=split(/\//,$breaks);
         my @d=split(/\//,$discounts);
         my %row=(
             disc_group      => $group,
             vend_number     => $vendor,
+            item_code       => $item_code,
             disc_basis_disp => $basis,
             disc_code_disp  => $code,
             disc_type_disp  => $type,
