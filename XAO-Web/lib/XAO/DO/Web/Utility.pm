@@ -34,7 +34,7 @@ use XAO::Objects;
 use base XAO::Objects->load(objname => 'Web::Action');
 
 use vars qw($VERSION);
-$VERSION=(0+sprintf('%u.%03u',(q$Id: Utility.pm,v 2.2 2005/12/21 02:55:36 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
+$VERSION=(0+sprintf('%u.%03u',(q$Id: Utility.pm,v 2.3 2006/03/07 18:14:54 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
 
 sub check_mode ($$) {
     my $self=shift;
@@ -109,8 +109,9 @@ sub tracking_url ($%) {
     my $tracknum=$args->{tracknum} || '';
     my $url;
     if(lc($carrier) eq 'usps') {
-        $url='http://trkcnfrm1.smi.usps.com/netdata-cgi/db2www/cbd_243.d2w/output?CAMEFROM=OK&' .
-             'strOrigTrackNum=' . t2ht($tracknum);
+        $url='http://trkcnfrm1.smi.usps.com/' .
+             'PTSInternetWeb/InterLabelInquiry.do?' .
+             'origTrackNum=' . t2ht($tracknum);
     }
     elsif(lc($carrier) eq 'ups') {
         $url='http://wwwapps.ups.com/WebTracking/processInputRequest' .

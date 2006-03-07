@@ -29,7 +29,7 @@ use XAO::Utils;
 use base XAO::Objects->load(objname => 'Web::Page');
 
 use vars qw($VERSION);
-$VERSION=(0+sprintf('%u.%03u',(q$Id: Cookie.pm,v 2.2 2006/01/20 22:40:29 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
+$VERSION=(0+sprintf('%u.%03u',(q$Id: Cookie.pm,v 2.3 2006/03/07 18:14:54 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
 
 sub display ($;%) {
     my $self=shift;
@@ -51,7 +51,7 @@ sub display ($;%) {
         return;
     }
 
-    my $c=$self->siteconfig->cgi->cookie($name);
+    my $c=$self->siteconfig->get_cookie($name);
     defined $c || ($c=$args->{'default'});
     defined $c || ($c='');
 
