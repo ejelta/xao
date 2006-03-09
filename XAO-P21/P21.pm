@@ -856,6 +856,30 @@ sub ping {
 }
 
 ###############################################################################
+
+=item units
+
+Returns a list of unit_name/unit_description pairs
+
+=cut  
+
+sub units {
+    my $self=shift;
+    my $args=get_args(\@_);
+
+    my $callback=$args->{'callback'};
+
+    my $build=$args->{'build'} || sub {
+        my %row;
+        @row{qw(unit_name unit_description)}=split('\t',$_[0]);
+        return \%row;
+    };
+
+    $self->call($build,$callback,'units');
+}
+
+
+###############################################################################
 1;
 __END__
 
