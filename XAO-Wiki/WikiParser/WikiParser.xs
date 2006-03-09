@@ -5,7 +5,7 @@
 #include "wparser/wparser.h"
 #include "wparser/s_string.h"
 
-MODULE = XAO::Wiki::WikiParser   PACKAGE = XAO::Wiki::WikiParser
+MODULE = XAO::WikiParser   PACKAGE = XAO::WikiParser
 
 SV *
 parse(char *s)

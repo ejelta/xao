@@ -1,11 +1,18 @@
 package testcases::WikiParser;
 use strict;
-use Data::Dumper;
 use XAO::Utils;
+use XAO::Objects;
+use Data::Dumper;
 
-use base qw(Test::Unit::TestCase);
+use base qw(testcases::base);
 
-use XAO::Wiki::WikiParser;
+sub test_override {
+    my $self=shift;
+
+    my $parser=XAO::Objects->new(objname => 'Wiki::Parser::Test');
+    $self->assert($parser->isa('XAO::DO::Wiki::Parser'),
+                  "Expected Wiki::Parser::Test to be based on Wiki::Parser");
+}
 
 sub test_parse {
     my $self=shift;
@@ -169,8 +176,9 @@ sub test_parse {
         
     );
 
+    my $parser=XAO::Objects->new(objname => 'Wiki::Parser');
     foreach my $template (keys %matrix) {
-        my $parsed=XAO::Wiki::WikiParser::parse($template);
+        my $parsed=$parser->parse($template);
         my $expect=$matrix{$template};
         my $rc=ref($expect) ? Compare($expect,$parsed) : !ref($parsed);
         $rc ||

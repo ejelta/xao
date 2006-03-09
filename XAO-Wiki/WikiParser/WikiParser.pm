@@ -1,4 +1,4 @@
-package XAO::Wiki::WikiParser;
+package XAO::WikiParser;
 use strict;
 use warnings;
 
@@ -8,6 +8,8 @@ require DynaLoader;
 our @ISA = qw(Exporter DynaLoader);
 our @EXPORT = qw();
 our $VERSION = '0.01';
-bootstrap XAO::Wiki::WikiParser $VERSION;
+
+bootstrap XAO::WikiParser $VERSION;
+
 1;
 __END__

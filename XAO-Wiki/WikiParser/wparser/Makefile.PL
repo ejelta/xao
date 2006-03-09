@@ -1,12 +1,12 @@
 use ExtUtils::MakeMaker;
 
-$Verbose=1;
+### $Verbose=1;
 $CC='c++';
 
 WriteMakefile(
-    NAME    => 'XAO::Wiki::WParser::wparser',
-    SKIP    => [qw(all static static_lib dynamic dynamic_lib)],
-    clean   => {'FILES' => 'libwparser$(LIB_EXT) testparser'},
+    NAME    => 'XAO::WikiParser::wparser',
+    #SKIP    => [qw(all static static_lib dynamic dynamic_lib)],
+    #clean   => {'FILES' => 'libwparser$(LIB_EXT) testparser'},
     CC      => $CC,
 );
 
@@ -26,8 +26,10 @@ libwparser$(LIB_EXT): s_string.o wparser.o
 	$(AR) cr libwparser$(LIB_EXT) s_string.o wparser.o
 	$(RANLIB) libwparser$(LIB_EXT)
 
-testparser: s_string.o wparser.o test.o
-	$(CC) -o $@ s_string.o wparser.o test.o
+testparser: libwparser$(LIB_EXT) testparser.o
+	$(CC) -o $@ testparser.o libwparser$(LIB_EXT)
 
+clean ::
+	$(NO_ECHO) rm -f testparser
 EOT
 }

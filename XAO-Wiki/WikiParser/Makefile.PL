@@ -4,7 +4,7 @@ use ExtUtils::MakeMaker;
 $CC='c++';
 
 WriteMakefile(
-    NAME                => 'XAO::Wiki::WikiParser',
+    NAME                => 'XAO::WikiParser',
     VERSION_FROM        => 'WikiParser.pm',
     PREREQ_PM           => {},
     LIBS                => [''], # e.g., '-lm'

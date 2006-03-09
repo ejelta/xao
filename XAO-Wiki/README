@@ -1,1 +1,20 @@
-XAO Wiki parser & related
+NAME
+    XAO::Wiki - XAO Wiki parsing/displaying support
+
+SYNOPSIS
+     ...
+
+DESCRIPTION
+    TODO
+
+EXPORTS
+    Nothing.
+
+AUTHORS
+    Copyright (c) 2006 Nick Eremeev, Andrew Maltsev
+
+    Ejelta LLC, http://ejelta.com/xao/
+
+SEE ALSO
+    Recommended reading: XAO::Web, XAO::Web::Intro, XAO::DO::Web::Page.
+
