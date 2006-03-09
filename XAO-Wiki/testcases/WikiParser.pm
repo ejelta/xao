@@ -260,21 +260,21 @@ sub test_parse {
                 content =>  "<p>Paragraph\n</p>\n<p>break\n</p>\n",
             },
         ],
-        ##TODO-CRLF## "Paragraph\r\n\r\nbreak" => [
-        ##TODO-CRLF##     {   type    => 'text',
-        ##TODO-CRLF##         content =>  "<p>Paragraph\n</p>\n<p>break\n</p>\n",
-        ##TODO-CRLF##     },
-        ##TODO-CRLF## ],
-        ##TODO-LFCR## "Paragraph\n\r\n\rbreak" => [
-        ##TODO-LFCR##     {   type    => 'text',
-        ##TODO-LFCR##         content =>  "<p>Paragraph\n</p>\n<p>break\n</p>\n",
-        ##TODO-LFCR##     },
-        ##TODO-LFCR## ],
-        ##TODO-CR## "Paragraph\r\rbreak" => [
-        ##TODO-CR##     {   type    => 'text',
-        ##TODO-CR##         content =>  "<p>Paragraph\n</p>\n<p>break\n</p>\n",
-        ##TODO-CR##     },
-        ##TODO-CR## ],
+        "Paragraph\r\n\r\nbreak" => [
+            {   type    => 'text',
+                content =>  "<p>Paragraph\n</p>\n<p>break\n</p>\n",
+            },
+        ],
+        "Paragraph\n\r\n\rbreak" => [
+            {   type    => 'text',
+                content =>  "<p>Paragraph\n</p>\n<p>break\n</p>\n",
+            },
+        ],
+        "Paragraph\r\rbreak" => [
+            {   type    => 'text',
+                content =>  "<p>Paragraph\n</p>\n<p>break\n</p>\n",
+            },
+        ],
         " nowrap block" => [
             {   type    => 'text',
                 content =>  "<pre>nowrap block\n</pre>\n",

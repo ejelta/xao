@@ -20,6 +20,87 @@
 #endif
 
 
+#define CRLF_LF     0
+#define CRLF_CR     1
+#define CRLF_CRLF   2
+#define CRLF_LFCR   3
+
+
+int guess_crlfmode(const char *str)
+{
+int lf,cr,crlf,lfcr;
+const char *cp;
+lf=cr=crlf=lfcr=0;
+for(cp=str;*cp;cp++)
+ {
+   if(*cp=='\n')
+   {
+     if(cp[1]=='\r')
+     {
+       cp++;
+       lfcr++;
+       continue;
+     }
+     lf++;
+     continue;
+   }
+   if(*cp=='\r')
+   {
+     if(cp[1]=='\n')
+     {
+       cp++;
+       crlf++;
+       continue;
+     }
+     cr++;
+     continue;
+   }
+ }
+if((cr>lf)&&(cr>crlf)&&(cr>lfcr)) return CRLF_CR;
+if((crlf>lf)&&(crlf>cr)&&(crlf>lfcr)) return CRLF_CRLF;
+if((lfcr>lf)&&(lfcr>cr)&&(lfcr>crlf)) return CRLF_LFCR;
+return CRLF_LF;
+}
+
+char *adjust_crlf(char *str)
+{
+char *from,*to;
+int mode=guess_crlfmode(str);
+from=to=str;
+switch(mode)
+ {
+   case CRLF_LF:
+     break;
+   case CRLF_CR:    //replace \r to \n, purge \n
+     for(;*from;from++)
+       switch(*from)
+       {
+         case '\n':
+           continue;
+         case '\r':
+           *to++='\n';
+           continue;
+         default:
+           *to++=*from;
+       }
+     *to=0;
+     break;
+   case CRLF_CRLF:    //purge \r
+   case CRLF_LFCR:    //purge \r
+     for(;*from;from++)
+       switch(*from)
+       {
+         case '\r':
+           continue;
+         default:
+           *to++=*from;
+       }
+     *to=0;
+     break;
+ }
+return str;
+}
+
 
 const char *blocktype2name(int type)
 {
@@ -1124,14 +1205,16 @@ return tbl->reflist_used-1;
 
 
 
-int parse_to_blocks(char * str, struct gtreftable *dst)
+int parse_to_blocks(char * strin, struct gtreftable *dst)
 {
 char *cp,*cp2,*gtagcp,*endtagcp,*linestart;
 int gtagidx,starttaglen,endtaglen;
 struct wpstate wpstate;
 int gblen,i,found,eot,nblocks=0;
-string acc,mixacc;
+string str,acc,mixacc;
 
+str=strin;
+adjust_crlf(str);
 memset(&wpstate,0,sizeof(struct wpstate));
 //init separator, find string that does not occur inside str
 found=0;
