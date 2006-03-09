@@ -8,10 +8,16 @@ use base XAO::Objects->load(objname => 'Wiki::Parser');
 sub parse ($$) {
     my ($self,$template)=@_;
 
-    my $wd=$self->SUPER::parse($template);
-    dprint "Test::parse - got ".scalar(@$wd)." parsed records";
+    my $wdlist=$self->SUPER::parse($template);
+    dprint "Test::parse - got ".scalar(@$wdlist)." parsed records";
 
-    return $wd;
+    foreach my $wd (@$wdlist) {
+        next unless $wd->{'type'} eq 'curly';
+
+        #...
+    }
+
+    return $wdlist;
 }
 
 1;

@@ -16,6 +16,34 @@ sub test_override {
     my $wiki=XAO::Objects->new(objname => 'Wiki::Parser::Test');
     $self->assert($wiki->isa('XAO::DO::Wiki::Parser'),
                   "Expected Wiki::Parser::Test to be based on Wiki::Parser");
+
+    ### my %tests=(
+    ###     t001        => {
+    ###         template    => "blah {{fubar}} blah",
+    ###         expect      => [
+    ###             {   type        => 'fubar',
+    ###                 content     => '',
+    ###             },
+    ###         ],
+    ###     },
+    ###     t002        => {
+    ###         template    => "blah}} {vals|\na=1|    b=test}}}",
+    ###         expect      => [
+    ###             {   type        => 'vals',
+    ###                 values      => {
+    ###                     a           => '1',
+    ###                     b           => 'test',
+    ###                 },
+    ###             },
+    ###         ],
+    ###         expect_not => [
+    ###             {   type        => 'curly',
+    ###             },
+    ###         ],
+    ###     },
+    ### );
+
+    ### $self->run_tests($wiki,\%tests);
 }
 
 ###############################################################################
@@ -77,6 +105,39 @@ sub test_isbndb_original {
                 },
             ],
         },
+        ##TODO-UNICODE## t012        => {
+        ##TODO-UNICODE##     template    => "Bold smiley -- '''\x{263a}'''",
+        ##TODO-UNICODE##     expect      => [
+        ##TODO-UNICODE##         {   type        => 'text',
+        ##TODO-UNICODE##             content     => "<p>Bold smiley -- <b>\x{263a}</b>\n</p>\n",
+        ##TODO-UNICODE##         },
+        ##TODO-UNICODE##     ],
+        ##TODO-UNICODE## },
+        t020        => {
+            template    => '{{}}',
+            expect_not  => [
+                {   type        => 'curly',
+                },
+            ],
+        },
+        t021        => {
+            template    => '{{fubar}}',
+            expect      => [
+                {   type        => 'curly',
+                    opcode      => 'fubar',
+                    content     => '',
+                },
+            ],
+        },
+        t022        => {
+            template    => "{{\n values\n| some=thing\n| other=that\n}}",
+            expect      => [
+                {   type        => 'curly',
+                    opcode      => 'values',
+                    content     => '| some=thing\n| other=that',
+                },
+            ],
+        }
     );
 
     $self->run_tests($wiki,\%tests);
@@ -263,6 +324,13 @@ sub test_parse {
 
 sub run_tests ($$$) {
     my ($self,$wiki,$tests)=@_;
+
+    eval 'use Data::Compare';
+    if($@) {
+        print STDERR "\n" .
+                     "Perl extension Data::Compare is not available, skipping tests\n" .
+        return;
+    }
 
     ##
     # For each test checking that we get _at least_ the blocks listed in
