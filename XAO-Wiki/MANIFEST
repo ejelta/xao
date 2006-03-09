@@ -1,5 +1,9 @@
-Makefile.PL
 MANIFEST
+MANIFEST.SKIP
+Makefile.PL
+README
+Wiki.pm
+WikiParser/Makefile.PL
 WikiParser/WikiParser.pm
 WikiParser/WikiParser.xs
 WikiParser/wparser/Makefile.PL
@@ -8,5 +12,9 @@ WikiParser/wparser/s_string.h
 WikiParser/wparser/testparser.c
 WikiParser/wparser/wparser.c
 WikiParser/wparser/wparser.h
+lib/XAO/DO/Wiki/Parser.pm
 test.pl
 testcases/WikiParser.pm
+testcases/base.pm
+testcases/testroot/projects/test/objects/Config.pm
+testcases/testroot/projects/test/objects/Wiki/Parser/Test.pm
