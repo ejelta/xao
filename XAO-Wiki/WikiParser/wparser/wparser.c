@@ -484,7 +484,7 @@ struct blinetaginfo blinetags[]={
 
 
 
-int register_globaltag(int type, int level, char *content,
+int register_globaltag(int type, int level, char *opcode, char *content,
                                               struct gtreftable *reftable)
 {
 int num;
@@ -506,7 +506,14 @@ if(reftable->reflist_used==reftable->reflist_allocated)
 }
 reftable->reflist[reftable->reflist_used].type=type;
 reftable->reflist[reftable->reflist_used].level=level;
-reftable->reflist[reftable->reflist_used].text=strdup(content);
+if(opcode)
+   reftable->reflist[reftable->reflist_used].opcode=strdup(opcode);
+else
+   reftable->reflist[reftable->reflist_used].opcode=0;
+if(content)
+  reftable->reflist[reftable->reflist_used].text=strdup(content);
+else
+  reftable->reflist[reftable->reflist_used].text=0;
 num=reftable->reflist_used++;
 return num;
 }
@@ -515,7 +522,7 @@ string globaltag_nowiki_process(char *str, struct wpstate *state)
 {
 string s;
 s=state->separator;
-s+=register_globaltag(BL_TYPE_NOWIKI,0,str,&state->reftable);
+s+=register_globaltag(BL_TYPE_NOWIKI,0,NULL,str,&state->reftable);
 s+=" ";
 return s;
 }
@@ -525,7 +532,7 @@ string s;
 s="";
 #ifdef COMMENT_IS_BLOCK
 s=state->separator;
-s+=register_globaltag(BLOCK_TYPE_COMMENT,0,str,&state->reftable);
+s+=register_globaltag(BLOCK_TYPE_COMMENT,0,NULL,str,&state->reftable);
 s+=" ";
 #endif
 return s;
@@ -536,7 +543,12 @@ int free_reftable(struct gtreftable *reftable)
 int i;
 if(!reftable->reflist) return 0;
 for(i=0;i<reftable->reflist_used;i++)
-  free(reftable->reflist[i].text);
+{
+  if(reftable->reflist[i].text)
+     free(reftable->reflist[i].text);
+  if(reftable->reflist[i].opcode)
+     free(reftable->reflist[i].opcode);
+}
 reftable->reflist_used=0;
 reftable->reflist_allocated=0;
 free(reftable->reflist);
@@ -558,20 +570,39 @@ return cp;
 
 string globaltag_datablock_process(char *str, struct wpstate *state)
 {
-char *cp;
+char *cp,*opcode,*content,*cp2;
 string s;
 s="";
-cp=alltrim(str);
-if(!*cp) return s;
-s=state->separator;
-s+=register_globaltag(BL_TYPE_BLOCK,0,cp,&state->reftable);
-s+=" ";
-cp=s;
+cp=str;
 while(*cp)
 {
   if(*cp=='\n') *cp=' ';
   cp++;
 }
+cp=alltrim(str);
+if(!*cp) return s;
+content="";
+opcode=cp;
+while(*cp)
+ {
+   if(*cp==' ') //blank first
+   {
+     *cp++=0;
+     while(*cp==' ') *cp++;
+     content=cp;
+     break;
+   }
+   if((*cp=='=')||(*cp=='|')) //not opcode, all is content;
+   {
+     content=opcode;
+     opcode=0;
+     break;
+   }
+   cp++;
+ }
+s=state->separator;
+s+=register_globaltag(BL_TYPE_BLOCK,0,opcode,content,&state->reftable);
+s+=" ";
 return s;
 }
 
@@ -584,7 +615,7 @@ s="";
 cp=alltrim(str);
 if(!*cp) return s;
 s=state->separator;
-s+=register_globaltag(BL_TYPE_HEADER,level,cp,&state->reftable);
+s+=register_globaltag(BL_TYPE_HEADER,level,NULL,cp,&state->reftable);
 s+=" ";
 cp=s;
 while(*cp)
@@ -621,7 +652,7 @@ s="";
 cp=alltrim(str);
 if(!*cp) return s;
 s=state->separator;
-s+=register_globaltag(BL_TYPE_LINK,0,cp,&state->reftable);
+s+=register_globaltag(BL_TYPE_LINK,0,NULL,cp,&state->reftable);
 s+=" ";
 cp=s;
 while(*cp)
@@ -637,7 +668,7 @@ return s;
 struct globaltaginfo globaltags[]={
 {"<nowiki>","</nowiki>",           PAIR_OMIT, globaltag_nowiki_process},
 {"<!--",    "-->",               PAIR_MANDAT, globaltag_comment_process},
-{"{{",      "}}",  PAIR_MANDAT|PAIR_SAMELINE, globaltag_datablock_process},
+{"{{",      "}}",  PAIR_MANDAT, globaltag_datablock_process},
 {"[[",      "]]",  PAIR_MANDAT|PAIR_SAMELINE, globaltag_link_process},
 #ifdef HEADER_IS_BLOCK
 {"====",    "====",PAIR_MANDAT|PAIR_SAMELINE|BREAK_P|BOL,globaltag_h4_process},
@@ -935,7 +966,7 @@ if(isalpha(*cp)&&((cp[1]==' ')||(cp[1]=='\n')||(cp[1]==0)))
 //replace isbn tag with found value and remember pointer
 strcpy(str,isbn);
 s+=state->separator;
-s+=register_globaltag(BL_TYPE_ISBN,0,str,&state->reftable);
+s+=register_globaltag(BL_TYPE_ISBN,0,NULL,str,&state->reftable);
 s+=" ";
 return taglen;
 }
@@ -1186,7 +1217,7 @@ gblen=strlen(wpstate.separator);
 while((cp2=strstr(cp,wpstate.separator)))
  {
    *cp2=0;
-   register_globaltag(BL_TYPE_TEXT,0,cp,dst);
+   register_globaltag(BL_TYPE_TEXT,0,NULL,cp,dst);
    nblocks++;
    cp2+=gblen;
    i=atoi(cp2);
@@ -1194,6 +1225,7 @@ while((cp2=strstr(cp,wpstate.separator)))
    {
      register_globaltag(wpstate.reftable.reflist[i].type,
                wpstate.reftable.reflist[i].level,
+               wpstate.reftable.reflist[i].opcode,
                wpstate.reftable.reflist[i].text,
                dst);
      nblocks++;
@@ -1203,7 +1235,7 @@ while((cp2=strstr(cp,wpstate.separator)))
  }
 if(*cp)
  {
-   register_globaltag(BL_TYPE_TEXT,0,cp,dst);
+   register_globaltag(BL_TYPE_TEXT,0,NULL,cp,dst);
    nblocks++;
  }
 free_reftable(&wpstate.reftable);

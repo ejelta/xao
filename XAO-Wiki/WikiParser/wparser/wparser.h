@@ -5,6 +5,7 @@ struct gtreflist {
 int  type;
 int  level;
 char *text;
+char *opcode;
 int skip;
 };
 

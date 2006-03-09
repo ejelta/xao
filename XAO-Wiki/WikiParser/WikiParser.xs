@@ -28,6 +28,9 @@ parse(char *s)
             hv_store(rh, "type", 4, newSVpvn(blockname, strlen(blockname)), 0);
             if(reftable.reflist[i].level)
               hv_store(rh, "level", 5, newSVnv(reftable.reflist[i].level),0);
+            if(reftable.reflist[i].opcode)
+              hv_store(rh, "opcode", 6, newSVpvn(reftable.reflist[i].opcode,
+                              strlen(reftable.reflist[i].opcode)),0);
             hv_store(rh, "content", 7, newSVpvn(reftable.reflist[i].text,
                                 strlen(reftable.reflist[i].text)), 0);
             av_push(results, newRV((SV *)rh));

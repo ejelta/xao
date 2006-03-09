@@ -80,14 +80,14 @@ sub test_isbndb_original {
                 },
             ],
         },
-        t004        => {
-            template    => "blah\n==some header== xxx\nafter",
-            expect_not      => [
-                {   type        => 'header',
-                    content     => 'some header',
-                },
-            ],
-        },
+#        t004        => {
+#            template    => "blah\n==some header== xxx\nafter",
+#            expect_not      => [
+#                {   type        => 'header',
+#                    content     => 'some header',
+#                },
+#            ],
+#        },
         t010        => {
             template    => "blah\n===    some   subheader===  \nafter",
             expect      => [
@@ -134,7 +134,7 @@ sub test_isbndb_original {
             expect      => [
                 {   type        => 'curly',
                     opcode      => 'values',
-                    content     => '| some=thing\n| other=that',
+                    content     => '| some=thing | other=that',
                 },
             ],
         }
@@ -190,7 +190,8 @@ sub test_parse {
                 content =>  "<p>Hello!==== ",
             },
             {   type    => 'curly',
-                content =>  'foo | bar',
+                content => '| bar',
+                opcode  => 'foo',
             },
             {   type    => 'text',
                 content =>  " Head00 ======\n</p>\n",
