@@ -17,15 +17,15 @@ sub test_override {
     $self->assert($wiki->isa('XAO::DO::Wiki::Parser'),
                   "Expected Wiki::Parser::Test to be based on Wiki::Parser");
 
-    ### my %tests=(
-    ###     t001        => {
-    ###         template    => "blah {{fubar}} blah",
-    ###         expect      => [
-    ###             {   type        => 'fubar',
-    ###                 content     => '',
-    ###             },
-    ###         ],
-    ###     },
+    my %tests=(
+        t001        => {
+            template    => "blah {{fubar}} blah",
+            expect      => [
+                {   type        => 'fubar',
+                    content     => '',
+                },
+            ],
+        },
     ###     t002        => {
     ###         template    => "blah}} {vals|\na=1|    b=test}}}",
     ###         expect      => [
@@ -41,9 +41,9 @@ sub test_override {
     ###             },
     ###         ],
     ###     },
-    ### );
+    );
 
-    ### $self->run_tests($wiki,\%tests);
+    $self->run_tests($wiki,\%tests);
 }
 
 ###############################################################################
@@ -74,20 +74,23 @@ sub test_isbndb_original {
         },
         t003        => {
             template    => "blah\n===some header==\nafter",
-            expect_not      => [
+            expect_not  => [
                 {   type        => 'header',
                     content     => 'some header',
                 },
             ],
         },
-#        t004        => {
-#            template    => "blah\n==some header== xxx\nafter",
-#            expect_not      => [
-#                {   type        => 'header',
-#                    content     => 'some header',
-#                },
-#            ],
-#        },
+        #
+        # Strange, but this is how Wikipedia parses it, so keeping ourselves compatible
+        #
+        t004        => {
+            template    => "blah\n==some header== xxx\nafter",
+            expect      => [
+                {   type        => 'header',
+                    content     => 'some header',
+                },
+            ],
+        },
         t010        => {
             template    => "blah\n===    some   subheader===  \nafter",
             expect      => [
