@@ -6,6 +6,10 @@ use Data::Dumper;
 
 use base qw(testcases::base);
 
+sub run_tests ($$$);
+
+###############################################################################
+
 sub test_override {
     my $self=shift;
 
@@ -13,6 +17,72 @@ sub test_override {
     $self->assert($wiki->isa('XAO::DO::Wiki::Parser'),
                   "Expected Wiki::Parser::Test to be based on Wiki::Parser");
 }
+
+###############################################################################
+
+sub test_isbndb_original {
+    my $self=shift;
+
+    my $wiki=XAO::Objects->new(objname => 'Wiki::Parser');
+    $self->assert($wiki->isa('XAO::DO::Wiki::Parser'),
+                  "Expected Wiki::Parser::Test to be based on Wiki::Parser");
+
+    my %tests=(
+        t001        => {
+            template    => "blah\n==some header==\nafter",
+            expect      => [
+                {   type        => 'header',
+                    content     => 'some header',
+                },
+            ],
+        },
+        t002        => {
+            template    => "blah\n==  some header  ==\nafter",
+            expect      => [
+                {   type        => 'header',
+                    content     => 'some header',
+                },
+            ],
+        },
+        t003        => {
+            template    => "blah\n===some header==\nafter",
+            expect_not      => [
+                {   type        => 'header',
+                    content     => 'some header',
+                },
+            ],
+        },
+        t004        => {
+            template    => "blah\n==some header== xxx\nafter",
+            expect_not      => [
+                {   type        => 'header',
+                    content     => 'some header',
+                },
+            ],
+        },
+        t010        => {
+            template    => "blah\n===    some   subheader===  \nafter",
+            expect      => [
+                {   type        => 'header',
+                    level       => 3,
+                    content     => 'some   subheader',
+                },
+            ],
+        },
+        t011        => {
+            template    => "blah\nxxx ===    some   subheader===  \nafter",
+            expect_not      => [
+                {   type        => 'subheader',
+                    content     => 'some   subheader',
+                },
+            ],
+        },
+    );
+
+    $self->run_tests($wiki,\%tests);
+}
+
+###############################################################################
 
 sub test_parse {
     my $self=shift;
@@ -188,5 +258,67 @@ sub test_parse {
                       "Wrong result for '$template'");
     }
 }
+
+###############################################################################
+
+sub run_tests ($$$) {
+    my ($self,$wiki,$tests)=@_;
+
+    ##
+    # For each test checking that we get _at least_ the blocks listed in
+    # 'expect' in the same order. There may be other blocks in parser
+    # response too.
+    #
+    foreach my $tid (sort keys %$tests) {
+        my $tdata=$tests->{$tid};
+        my $got=$wiki->parse($tdata->{'template'});
+        my $got_pos=0;
+        my $expect=$tdata->{'expect'} || [ ];
+        for(my $i=0; $i<@$expect; ++$i) {
+            my $eblock=$expect->[$i];
+            my $found;
+            for(my $j=$got_pos; $j<@$got; ++$j) {
+                $found=1;
+                foreach my $k (keys %$eblock) {
+                    if(!defined $got->[$j]->{$k} || $got->[$j]->{$k} ne $eblock->{$k}) {
+                        $found=0;
+                        last;
+                    }
+                }
+                if($found) {
+                    $got_pos=$j;
+                    last;
+                }
+            }
+            if(!$found) {
+                print STDERR Dumper($got);
+                $self->assert($found,
+                              "Can't find expected block (#=$i, type='$eblock->{'type'}', content='$eblock->{'content'}') for test $tid");
+            }
+        }
+
+        my $exnot=$tdata->{'expect_not'} || [ ];
+        for(my $i=0; $i<@$exnot; ++$i) {
+            my $eblock=$exnot->[$i];
+            my $found;
+            for(my $j=0; $j<@$got; ++$j) {
+                $found=1;
+                foreach my $k (keys %$eblock) {
+                    if(!defined $got->[$j]->{$k} || $got->[$j]->{$k} ne $eblock->{$k}) {
+                        $found=0;
+                        last;
+                    }
+                }
+                if($found) {
+                    print STDERR Dumper($got);
+                    $self->assert(!$found,
+                                  "Found unexpected block (#=$i, type='$eblock->{'type'}', content='$eblock->{'content'}') for test $tid");
+                }
+            }
+        }
+    }
+}
+
+###############################################################################
 
 1;
