@@ -14,6 +14,7 @@ size_t allocated;
 void _expand(size_t);
 public:
 string();
+string(char const *, size_t);
 ~string();
 size_t length() {return len;}
 operator char* ();

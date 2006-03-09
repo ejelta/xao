@@ -26,6 +26,10 @@ libwparser$(LIB_EXT): s_string.o wparser.o
 	$(AR) cr libwparser$(LIB_EXT) s_string.o wparser.o
 	$(RANLIB) libwparser$(LIB_EXT)
 
+s_string.o : s_string.h
+
+wparser.o : wparser.h
+
 testparser: libwparser$(LIB_EXT) testparser.o
 	$(CC) -o $@ testparser.o libwparser$(LIB_EXT)
 

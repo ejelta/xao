@@ -9,6 +9,16 @@ string::string()
 val=NULL;
 allocated=len=0;
 }
+
+string::string(char const *s, size_t n)
+{
+val=NULL;
+allocated=len=0;
+_expand(n+1);
+memcpy(val,s,n);
+val[n]=0;
+}
+
 string::~string()
 {
 if(val) free(val);

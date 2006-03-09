@@ -108,14 +108,22 @@ sub test_isbndb_original {
                 },
             ],
         },
-        ##TODO-UNICODE## t012        => {
-        ##TODO-UNICODE##     template    => "Bold smiley -- '''\x{263a}'''",
-        ##TODO-UNICODE##     expect      => [
-        ##TODO-UNICODE##         {   type        => 'text',
-        ##TODO-UNICODE##             content     => "<p>Bold smiley -- <b>\x{263a}</b>\n</p>\n",
-        ##TODO-UNICODE##         },
-        ##TODO-UNICODE##     ],
-        ##TODO-UNICODE## },
+        t012        => {
+            template    => "\x{263a}",
+            expect      => [
+                {   type        => 'text',
+                    content     => "<p>\x{263a}\n</p>\n",
+                },
+            ],
+        },
+        t013        => {
+            template    => "Bold smiley -- '''\x{263a}'''",
+            expect      => [
+                {   type        => 'text',
+                    content     => "<p>Bold smiley -- <b>\x{263a}</b>\n</p>\n",
+                },
+            ],
+        },
         t020        => {
             template    => '{{}}',
             expect_not  => [
@@ -252,6 +260,21 @@ sub test_parse {
                 content =>  "<p>Paragraph\n</p>\n<p>break\n</p>\n",
             },
         ],
+        ##TODO-CRLF## "Paragraph\r\n\r\nbreak" => [
+        ##TODO-CRLF##     {   type    => 'text',
+        ##TODO-CRLF##         content =>  "<p>Paragraph\n</p>\n<p>break\n</p>\n",
+        ##TODO-CRLF##     },
+        ##TODO-CRLF## ],
+        ##TODO-LFCR## "Paragraph\n\r\n\rbreak" => [
+        ##TODO-LFCR##     {   type    => 'text',
+        ##TODO-LFCR##         content =>  "<p>Paragraph\n</p>\n<p>break\n</p>\n",
+        ##TODO-LFCR##     },
+        ##TODO-LFCR## ],
+        ##TODO-CR## "Paragraph\r\rbreak" => [
+        ##TODO-CR##     {   type    => 'text',
+        ##TODO-CR##         content =>  "<p>Paragraph\n</p>\n<p>break\n</p>\n",
+        ##TODO-CR##     },
+        ##TODO-CR## ],
         " nowrap block" => [
             {   type    => 'text',
                 content =>  "<pre>nowrap block\n</pre>\n",

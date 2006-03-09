@@ -8,34 +8,47 @@
 MODULE = XAO::WikiParser   PACKAGE = XAO::WikiParser
 
 SV *
-parse(char *s)
+parse(text)
+        unsigned int text_length=0;
+        char *text=SvPV(ST(0),text_length);
+        bool text_is_utf8=SvUTF8(ST(0));
     CODE:
-        AV * results;
-        HV * rh;
-        const char *blockname;
-        string str;
-        str=s;
-        int i,n;
+        string str(text,text_length);
+
         struct gtreftable reftable;
         memset(&reftable,0,sizeof(struct gtreftable));
-        results = (AV *)sv_2mortal((SV *)newAV());
-        n=parse_to_blocks(str,&reftable);
-        for(i=0;i<n;i++)
-         {
+
+        unsigned n=parse_to_blocks(str,&reftable);
+
+        AV * results=(AV *)sv_2mortal((SV *)newAV());
+        for(unsigned i=0; i<n; i++) {
             if(reftable.reflist[i].skip) continue;
-            rh = (HV*)sv_2mortal((SV*)newHV());
-            blockname=blocktype2name(reftable.reflist[i].type);
-            hv_store(rh, "type", 4, newSVpvn(blockname, strlen(blockname)), 0);
+
+            HV * rh = (HV*)sv_2mortal((SV*)newHV());
+
+            const char *blockname=blocktype2name(reftable.reflist[i].type);
+            SV *nsv=newSVpvn(blockname, strlen(blockname));
+            if(text_is_utf8) SvUTF8_on(nsv);
+            hv_store(rh, "type", 4, nsv, 0);
+
             if(reftable.reflist[i].level)
-              hv_store(rh, "level", 5, newSVnv(reftable.reflist[i].level),0);
-            if(reftable.reflist[i].opcode)
-              hv_store(rh, "opcode", 6, newSVpvn(reftable.reflist[i].opcode,
-                              strlen(reftable.reflist[i].opcode)),0);
-            hv_store(rh, "content", 7, newSVpvn(reftable.reflist[i].text,
-                                strlen(reftable.reflist[i].text)), 0);
+              hv_store(rh, "level", 5, newSVuv(reftable.reflist[i].level),0);
+
+            if(reftable.reflist[i].opcode) {
+                nsv=newSVpvn(reftable.reflist[i].opcode, strlen(reftable.reflist[i].opcode));
+                if(text_is_utf8) SvUTF8_on(nsv);
+                hv_store(rh, "opcode", 6, nsv, 0);
+            }
+
+            nsv=newSVpvn(reftable.reflist[i].text, strlen(reftable.reflist[i].text));
+            if(text_is_utf8) SvUTF8_on(nsv);
+            hv_store(rh, "content", 7, nsv, 0);
+
             av_push(results, newRV((SV *)rh));
-         }
+        }
+
         free_reftable(&reftable);
+
         RETVAL = newRV((SV *)results);
     OUTPUT:
         RETVAL
