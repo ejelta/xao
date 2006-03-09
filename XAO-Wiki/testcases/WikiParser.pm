@@ -9,8 +9,8 @@ use base qw(testcases::base);
 sub test_override {
     my $self=shift;
 
-    my $parser=XAO::Objects->new(objname => 'Wiki::Parser::Test');
-    $self->assert($parser->isa('XAO::DO::Wiki::Parser'),
+    my $wiki=XAO::Objects->new(objname => 'Wiki::Parser::Test');
+    $self->assert($wiki->isa('XAO::DO::Wiki::Parser'),
                   "Expected Wiki::Parser::Test to be based on Wiki::Parser");
 }
 
@@ -176,9 +176,9 @@ sub test_parse {
         
     );
 
-    my $parser=XAO::Objects->new(objname => 'Wiki::Parser');
+    my $wiki=XAO::Objects->new(objname => 'Wiki::Parser');
     foreach my $template (keys %matrix) {
-        my $parsed=$parser->parse($template);
+        my $parsed=$wiki->parse($template);
         my $expect=$matrix{$template};
         my $rc=ref($expect) ? Compare($expect,$parsed) : !ref($parsed);
         $rc ||
