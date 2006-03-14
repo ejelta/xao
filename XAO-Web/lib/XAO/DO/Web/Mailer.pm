@@ -27,7 +27,8 @@ Arguments are:
  subject     => message subject;
  [text.]path => text-only template path (required);
  html.path   => html template path;
- date        => optional date header, passed as is
+ date        => optional date header, passed as is;
+ pass        => pass parameters of the calling template to the mail template;
  ARG         => VALUE - passed to Page when executing templates;
 
 If 'to', 'from' or 'subject' are not specified then get_to(), get_from()
@@ -74,11 +75,11 @@ package XAO::DO::Web::Mailer;
 use strict;
 use MIME::Lite 2.117;
 use XAO::Utils;
-use XAO::Errors qw(XAO::DO::Web::Mailer);
+use XAO::Objects;
 use base XAO::Objects->load(objname => 'Web::Page');
 
 use vars qw($VERSION);
-$VERSION=(0+sprintf('%u.%03u',(q$Id: Mailer.pm,v 2.1 2005/01/14 01:39:57 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
+$VERSION=(0+sprintf('%u.%03u',(q$Id: Mailer.pm,v 2.2 2006/03/14 04:05:04 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
 
 sub display ($;%) {
     my $self=shift;
@@ -86,23 +87,23 @@ sub display ($;%) {
 
     my $config=$self->siteconfig->get('/mailer') || {};
 
-    my $to=$args->{to} ||
+    my $to=$args->{'to'} ||
            $self->get_to($args) ||
            throw $self "display - no 'to' given";
 
-    if($config->{override_to}) {
+    if($config->{'override_to'}) {
         dprint ref($self)."::display - overriding '$to' with '$config->{override_to}'";
-        $to=$config->{override_to};
+        $to=$config->{'override_to'};
     }
 
-    my $from=$args->{from};
+    my $from=$args->{'from'};
     if(!$from) {
-        $from=$config->{from};
-        $from=$from->{default} if ref($from);
+        $from=$config->{'from'};
+        $from=$from->{'default'} if ref($from);
     }
     else {
-        $from=$config->{from}->{$from} if ref($config->{from}) &&
-                                          $config->{from}->{$from};
+        $from=$config->{'from'}->{$from} if ref($config->{'from'}) &&
+                                            $config->{'from'}->{$from};
     }
     $from || throw $self "display - no 'from' given";
 
@@ -117,20 +118,32 @@ sub display ($;%) {
         $from=~s/^\s*(.*?)\s*$/$1/;
     }
 
-    my $subject=$args->{subject} || $self->get_subject() || 'No subject';
+    my $subject=$args->{'subject'} || $self->get_subject() || 'No subject';
+
+    ##
+    # Getting common args from the parent template by a little bit of black magic.
+    #
+    my %common;
+    if($args->{'pass'} && $self->{'parent'} && $self->{'parent'}->{'args'}) {
+        foreach my $paname (keys %{$self->{'parent'}->{'args'}}) {
+            next if $args->{$paname};
+            next if $paname eq 'path' || $paname eq 'template';
+            my $pavalue=$self->{'parent'}->{'args'}->{$paname};
+            next if ref $pavalue;
+            $common{$paname}=$pavalue;
+        }
+    }
 
     ##
     # Parsing text template
     #
     my $page=$self->object;
     my $text;
-    if($args->{'text.path'} || $args->{path} ||
-       $args->{'text.template'} || $args->{template}) {
-        my $objargs=merge_refs($args, {
-            path        => $args->{'text.path'} || $args->{path},
-            template    => $args->{'text.template'} || $args->{template},
+    if($args->{'text.path'} || $args->{'path'} || $args->{'text.template'} || $args->{'template'}) {
+        $text=$page->expand($args,\%common,{
+            path        => $args->{'text.path'} || $args->{'path'},
+            template    => $args->{'text.template'} || $args->{'template'},
         });
-        $text=$page->expand($objargs);
     }
     
     ##
@@ -138,11 +151,10 @@ sub display ($;%) {
     #
     my $html;
     if($args->{'html.path'} || $args->{'html.template'}) {
-        my $objargs=merge_refs($args,{
+        $html=$page->expand($args,\%common,{
             path        => $args->{'html.path'},
             template    => $args->{'html.template'},
         });
-        $html=$page->expand($objargs);
     }
 
     ##
