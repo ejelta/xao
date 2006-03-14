@@ -79,7 +79,7 @@ use XAO::Objects;
 use base XAO::Objects->load(objname => 'Web::Page');
 
 use vars qw($VERSION);
-$VERSION=(0+sprintf('%u.%03u',(q$Id: Mailer.pm,v 2.2 2006/03/14 04:05:04 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
+$VERSION=(0+sprintf('%u.%03u',(q$Id: Mailer.pm,v 2.3 2006/03/14 20:31:42 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
 
 sub display ($;%) {
     my $self=shift;
@@ -161,6 +161,7 @@ sub display ($;%) {
     # Preparing mailer and storing content in
     #
     my $mailer;
+    my $encoding=$args->{'encoding'} || $config->{'encoding'} || undef;
     if($html && !$text) {
         $mailer=MIME::Lite->new(
             From        => $from_hdr,
@@ -169,6 +170,7 @@ sub display ($;%) {
             Subject     => $subject,
             Data        => $html,
             Type        => 'text/html',
+            Encoding    => $encoding,
             Datestamp   => 0,
             Date        => $args->{'date'} || undef,
         );
@@ -180,6 +182,7 @@ sub display ($;%) {
             To          => $to,
             Subject     => $subject,
             Data        => $text,
+            Encoding    => $encoding,
             Datestamp   => 0,
             Date        => $args->{'date'} || undef,
         );
@@ -195,25 +198,27 @@ sub display ($;%) {
             Date        => $args->{'date'} || undef,
         );
         $mailer->attach(
-            Type        => 'text/html',
-            Data        => $html,
-        );
-        $mailer->attach(
             Type        => 'text/plain',
             Data        => $text,
+            Encoding    => $encoding,
+        );
+        $mailer->attach(
+            Type        => 'text/html',
+            Data        => $html,
+            Encoding    => $encoding,
         );
     }
     else {
         throw $self "display - no text for either html or text part";
     }
-    $mailer->add(Cc => $args->{cc}) if $args->{cc};
+    $mailer->add(Cc => $args->{'cc'}) if $args->{'cc'};
 
     ##
     # Sending
     #
     ### dprint $mailer->as_string;
-    my $method=$config->{method} || 'local';
-    my $agent=$config->{agent};
+    my $method=$config->{'method'} || 'local';
+    my $agent=$config->{'agent'};
     if(lc($method) eq 'local') {
         if($agent) {
             $mailer->send('sendmail',$agent);
