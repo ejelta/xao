@@ -15,7 +15,7 @@ following structure:
  [ { name       => field name,
      required   => 0 || 1,
      style      => selection || text || email || phone || integer ||
-                   dollars || real,
+                   dollars || real || textarea ,
      maxlength  => maximum length,
      minlength  => minimum length,
      param      => name of parameter for form substitution,
@@ -29,7 +29,7 @@ supply 'fields' as a hash reference:
 
  { name => {
        required     => 0 || 1,
-       style        => text || email || phone || integer || dollars || real,
+       style        => text || email || phone || integer || dollars || real || textarea ,
        maxlength    => maximum length,
        minlength    => minimum length,
        param        => name of parameter for form substitution,
@@ -63,7 +63,7 @@ use XAO::Errors qw(XAO::DO::Web::FilloutForm);
 use base XAO::Objects->load(objname => 'Web::Page');
 
 use vars qw($VERSION);
-$VERSION=(0+sprintf('%u.%03u',(q$Id: FilloutForm.pm,v 2.19 2006/01/31 05:27:33 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
+$VERSION=(0+sprintf('%u.%03u',(q$Id: FilloutForm.pm,v 2.20 2006/03/17 17:41:58 enn Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
 
 sub setup ($%);
 sub field_desc ($$;$);
@@ -290,6 +290,9 @@ sub display ($;%) {
         }
         elsif($style eq 'text') {
             # No checks for text
+        }
+        elsif($style eq 'textarea') {
+            # No checks for textarea
         }
         elsif($style eq 'email') {
             if(length($value) && $value !~ /^[\w\.-]+\@([a-z0-9-]+\.)+[a-z]+$/i) {
@@ -623,13 +626,22 @@ sub display ($;%) {
         elsif($style eq 'text' || $style eq 'phone' || $style eq 'usphone' ||
               $style eq 'ccnum' || $style eq 'email' || $style eq 'year' ||
               $style eq 'number' || $style eq 'int' || $style eq 'integer' ||
-              $style eq 'real') {
+              $style eq 'real' ) {
             $fdata->{html}=$obj->expand(
                 path => '/bits/fillout-form/html-text',
                 NAME => $name,
                 VALUE => $value || '',
                 MAXLENGTH => $fdata->{maxlength} || 100,
                 SIZE => $fdata->{size} || 30,
+            );
+        }
+        elsif($style eq 'textarea') {
+            $fdata->{'html'}=$obj->expand(
+                path    => '/bits/fillout-form/html-textarea',
+                NAME    => $name,
+                VALUE   => $fdata->{'value'} || '',
+                SIZE    => $fdata->{size} || 30,
+                ROWS    => $fdata->{rows} || 8,
             );
         }
         elsif($style eq 'password') {
@@ -663,6 +675,7 @@ sub display ($;%) {
         $formparams{"$param.HTML"}=$fdata->{'html'} || "";
         $formparams{"$param.REQUIRED"}=$fdata->{'required'} ? 1 : 0;
         $formparams{"$param.SIZE"}=$fdata->{'size'} || 30;
+        $formparams{"$param.ROWS"}=$fdata->{'rows'} || 1;
         $formparams{"$param.MAXLENGTH"}=$fdata->{'maxlength'} || 0;
         $formparams{"$param.MINLENGTH"}=$fdata->{'minlength'} || 0;
         $formparams{"$param.ERRSTR"}=$fdata->{'errstr'} || '';
