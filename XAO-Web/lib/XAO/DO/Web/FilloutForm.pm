@@ -14,8 +14,8 @@ following structure:
 
  [ { name       => field name,
      required   => 0 || 1,
-     style      => selection || text || email || phone || integer ||
-                   dollars || real || textarea ,
+     style      => selection || text || textarea || email || phone ||
+                   integer || dollars || real,
      maxlength  => maximum length,
      minlength  => minimum length,
      param      => name of parameter for form substitution,
@@ -29,7 +29,8 @@ supply 'fields' as a hash reference:
 
  { name => {
        required     => 0 || 1,
-       style        => text || email || phone || integer || dollars || real || textarea ,
+       style        => selection || text || textarea || email || phone ||
+                       integer || dollars || real,
        maxlength    => maximum length,
        minlength    => minimum length,
        param        => name of parameter for form substitution,
@@ -63,7 +64,7 @@ use XAO::Errors qw(XAO::DO::Web::FilloutForm);
 use base XAO::Objects->load(objname => 'Web::Page');
 
 use vars qw($VERSION);
-$VERSION=(0+sprintf('%u.%03u',(q$Id: FilloutForm.pm,v 2.20 2006/03/17 17:41:58 enn Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
+$VERSION=(0+sprintf('%u.%03u',(q$Id: FilloutForm.pm,v 2.21 2006/03/17 18:57:56 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
 
 sub setup ($%);
 sub field_desc ($$;$);
@@ -640,8 +641,8 @@ sub display ($;%) {
                 path    => '/bits/fillout-form/html-textarea',
                 NAME    => $name,
                 VALUE   => $fdata->{'value'} || '',
-                SIZE    => $fdata->{size} || 30,
-                ROWS    => $fdata->{rows} || 8,
+                SIZE    => $fdata->{'size'} || 30,
+                ROWS    => $fdata->{'rows'} || 8,
             );
         }
         elsif($style eq 'password') {
@@ -649,8 +650,8 @@ sub display ($;%) {
                 path => '/bits/fillout-form/html-password',
                 NAME => $name,
                 VALUE => $value || '',
-                MAXLENGTH => $fdata->{maxlength} || 100,
-                SIZE => $fdata->{size} || 30,
+                MAXLENGTH => $fdata->{'maxlength'} || 100,
+                SIZE => $fdata->{'size'} || 30,
             );
         }
 
