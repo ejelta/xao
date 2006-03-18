@@ -1,1 +1,1 @@
-<TEXTAREA NAME="<%NAME/f%>" COLS="<%SIZE/f%>" ROWS="<%ROWS/f%>"><%VALUE/f%></TEXTAREA><%End%>
+<TEXTAREA NAME="<$NAME/f$>" COLS="<$SIZE/f$>" ROWS="<$ROWS/f$>"><$VALUE/h$></TEXTAREA><%End%>
