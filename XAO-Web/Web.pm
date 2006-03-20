@@ -589,7 +589,7 @@ sub process ($%) {
     $siteconfig->embedded('web')->disable_special_access;
 
     ##
-    # Traditionally URLs that do not end with .foo get are considered
+    # Traditionally URLs that do not end with .foo are considered
     # directories and get an internal redirect to path/index.html
     # Sometimes it is desirable to be able to pass down any URLs without
     # a forced redirect -- this is controlled by 'urlstyle' parameter
