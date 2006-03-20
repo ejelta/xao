@@ -478,10 +478,10 @@ sub process ($%) {
     # CGI usage.
     #
     my $active_url;
-    my $apache=$args->{apache};
-    my $cgi=$args->{cgi};
+    my $apache=$args->{'apache'};
+    my $cgi=$args->{'cgi'};
     if(!$cgi) {
-        $cgi=$pd->{no_cgi} ? CGI->new('foo=bar') : CGI->new;
+        $cgi=$pd->{'no_cgi'} ? CGI->new('foo=bar') : CGI->new;
     }
     if($apache) {
         $active_url="http://" . $apache->hostname;
@@ -589,21 +589,33 @@ sub process ($%) {
     $siteconfig->embedded('web')->disable_special_access;
 
     ##
-    # Checking for directory index url without trailing slash and
-    # redirecting with appended slash if this is the case.
+    # Traditionally URLs that do not end with .foo get are considered
+    # directories and get an internal redirect to path/index.html
+    # Sometimes it is desirable to be able to pass down any URLs without
+    # a forced redirect -- this is controlled by 'urlstyle' parameter
+    # set to 'raw'.
     #
-    if($pd->{patharr}->[-1] !~ /\.\w+$/) {
-        my $pd=$self->analyze([ @{$pd->{patharr}},'index.html' ]);
-        #use Data::Dumper; dprint "pd=",Dumper($pd);
-        if($pd->{objname} ne 'Default') {
-            my $newpath=$siteconfig->get('base_url') . $path . '/';
-            dprint "Redirecting $path to $newpath";
-            $siteconfig->header_args(
-                -Location   => $newpath,
-                -Status     => 301,
-            );
-            return "Directory index redirection\n";
+    my $urlstyle=$pd->{'urlstyle'} || 'files';
+    if($urlstyle eq 'files') {
+        if($pd->{'patharr'}->[-1] !~ /\.\w+$/) {
+            my $pd=$self->analyze([ @{$pd->{'patharr'}},'index.html' ]);
+            #use Data::Dumper; dprint "pd=",Dumper($pd);
+            if($pd->{'objname'} ne 'Default') {
+                my $newpath=$siteconfig->get('base_url') . $path . '/';
+                dprint "Redirecting $path to $newpath";
+                $siteconfig->header_args(
+                    -Location   => $newpath,
+                    -Status     => 301,
+                );
+                return "Directory index redirection\n";
+            }
         }
+    }
+    elsif($urlstyle eq 'raw') {
+        # nothing
+    }
+    else {
+        eprint "Unknown urlstyle '$urlstyle' for $path";
     }
 
     ##
@@ -668,16 +680,16 @@ sub process ($%) {
     # preference).
     #
     my $objargs={
-        path => $pd->{path},
-        fullpath => $pd->{fullpath},
-        prefix => $pd->{prefix},
+        path        => $pd->{'path'},
+        fullpath    => $pd->{'fullpath'},
+        prefix      => $pd->{'prefix'},
     };
-    $objargs=merge_refs($objargs,$pd->{objargs},$args->{objargs});
+    $objargs=merge_refs($objargs,$pd->{'objargs'},$args->{'objargs'});
 
     ##
     # Loading page displaying object and executing it.
     #
-    my $obj=XAO::Objects->new(objname => 'Web::' . $pd->{objname});
+    my $obj=XAO::Objects->new(objname => 'Web::' . $pd->{'objname'});
     $pagetext.=$obj->expand($objargs);
 
     ##

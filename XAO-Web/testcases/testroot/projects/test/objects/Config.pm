@@ -4,14 +4,35 @@ use XAO::Utils;
 use XAO::SimpleHash;
 use XAO::Objects;
 use XAO::Errors qw(XAO::DO::Config);
-use vars qw(@ISA);
-@ISA=XAO::Objects->load(objname => 'Config', baseobj => 1);
+use base XAO::Objects->load(objname => 'Config', baseobj => 1);
+
+my %data = (
+    base_url => 'http://xao.com',
+    path_mapping_table  => {
+        '/rawobj' => {
+            type        => 'xaoweb',
+            objname     => 'Page',
+            objargs     => {
+                path        => '/bits/rawobj-template',
+            },
+            urlstyle    => 'raw',
+        },
+        '/filesobj' => {
+            type        => 'xaoweb',
+            objname     => 'Page',
+            objargs     => {
+                path        => '/bits/rawobj-template',
+            },
+            urlstyle    => 'files',
+        },
+    },
+);
 
 sub init {
     my $self=shift;
 
     my $hash=XAO::SimpleHash->new();
-    $hash->put(base_url => 'http://xao.com');
+    $hash->fill(\%data);
 
     my $webconfig=XAO::Objects->new(objname => 'Web::Config');
 
