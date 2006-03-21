@@ -57,7 +57,7 @@ sub test_urlstyle_raw {
     $web->execute(path => '/rawobj', cgi => $cgi);
     $text=$self->get_stdout();
     $self->assert(scalar($text !~ m/^Location:\s+(.*?)[\r\n\s]+/m),
-                  "Should not have redirected ($1) for /rawobj");
+                  "Should not have redirected (".($1 || '').") for /rawobj");
     $self->assert(scalar($text =~ m/^Content-Type: text\/html/m),
                   "No Content-Type header returned");
     $self->assert(scalar($text =~ m/^RAWOBJ/m),
