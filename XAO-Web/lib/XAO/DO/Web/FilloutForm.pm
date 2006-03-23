@@ -64,7 +64,7 @@ use XAO::Errors qw(XAO::DO::Web::FilloutForm);
 use base XAO::Objects->load(objname => 'Web::Page');
 
 use vars qw($VERSION);
-$VERSION=(0+sprintf('%u.%03u',(q$Id: FilloutForm.pm,v 2.21 2006/03/17 18:57:56 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
+$VERSION=(0+sprintf('%u.%03u',(q$Id: FilloutForm.pm,v 2.22 2006/03/23 15:41:34 enn Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
 
 sub setup ($%);
 sub field_desc ($$;$);
@@ -640,7 +640,7 @@ sub display ($;%) {
             $fdata->{'html'}=$obj->expand(
                 path    => '/bits/fillout-form/html-textarea',
                 NAME    => $name,
-                VALUE   => $fdata->{'value'} || '',
+                VALUE   => $value || '',
                 SIZE    => $fdata->{'size'} || 30,
                 ROWS    => $fdata->{'rows'} || 8,
             );
