@@ -39,7 +39,7 @@ sub merge_refs (@);
 sub fround ($$);
 
 use vars qw($VERSION);
-$VERSION=(0+sprintf('%u.%03u',(q$Id: Utils.pm,v 2.2 2006/03/24 12:25:08 enn Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
+$VERSION=(0+sprintf('%u.%03u',(q$Id: Utils.pm,v 2.3 2006/03/24 21:47:04 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
 
 ###############################################################################
 # Export control
@@ -338,8 +338,8 @@ XAO::Web object arguments as well.
 
  " ->> &quot;
 
-All symbols from 0x0 to 0x1f and from 0x80 to 0x9f are substituted with
-their codes in &#NNN; format.
+All symbols from 0x0 to 0x1f are substituted with their codes in &#NNN;
+format.
 
 =cut
 

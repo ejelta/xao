@@ -3,6 +3,24 @@ use strict;
 
 use base qw(testcases::base);
 
+sub test_utils_unicode_transparency {
+    my $self=shift;
+
+    use XAO::Utils;
+
+    my @tests=(
+        "qwerty",
+        "smiley - \x{263a}",
+        "\x90\x91\x92\x93",     # binary, non-unicode
+    );
+
+    foreach my $str (@tests) {
+        my $got=XAO::Utils::t2hf($str);
+        $self->assert($got eq $str,
+                      "Got '$got' for '$str'");
+    }
+}
+
 sub test_logprint_handler {
     my $self=shift;
 
