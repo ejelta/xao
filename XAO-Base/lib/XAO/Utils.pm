@@ -39,7 +39,7 @@ sub merge_refs (@);
 sub fround ($$);
 
 use vars qw($VERSION);
-$VERSION=(0+sprintf('%u.%03u',(q$Id: Utils.pm,v 2.1 2005/01/13 22:34:34 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
+$VERSION=(0+sprintf('%u.%03u',(q$Id: Utils.pm,v 2.2 2006/03/24 12:25:08 enn Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
 
 ###############################################################################
 # Export control
@@ -346,7 +346,7 @@ their codes in &#NNN; format.
 sub t2hf ($) {
     my $text=t2ht($_[0]);
     $text=~s/"/&quot;/sg;
-    $text=~s/([\x00-\x1f\x80-\x9f<>])/'&#'.ord($1).';'/sge;
+    $text=~s/([\x00-\x1f<>])/'&#'.ord($1).';'/sge;
     $text;
 }
 
