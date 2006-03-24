@@ -64,7 +64,7 @@ use XAO::Errors qw(XAO::DO::Web::FilloutForm);
 use base XAO::Objects->load(objname => 'Web::Page');
 
 use vars qw($VERSION);
-$VERSION=(0+sprintf('%u.%03u',(q$Id: FilloutForm.pm,v 2.22 2006/03/23 15:41:34 enn Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
+$VERSION=(0+sprintf('%u.%03u',(q$Id: FilloutForm.pm,v 2.23 2006/03/24 23:53:20 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
 
 sub setup ($%);
 sub field_desc ($$;$);
@@ -628,30 +628,30 @@ sub display ($;%) {
               $style eq 'ccnum' || $style eq 'email' || $style eq 'year' ||
               $style eq 'number' || $style eq 'int' || $style eq 'integer' ||
               $style eq 'real' ) {
-            $fdata->{html}=$obj->expand(
-                path => '/bits/fillout-form/html-text',
-                NAME => $name,
-                VALUE => $value || '',
+            $fdata->{'html'}=$obj->expand(
+                path    => '/bits/fillout-form/html-text',
+                NAME    => $name,
+                VALUE   => defined($value) ? $value : '',
                 MAXLENGTH => $fdata->{maxlength} || 100,
-                SIZE => $fdata->{size} || 30,
+                SIZE    => $fdata->{size} || 30,
             );
         }
         elsif($style eq 'textarea') {
             $fdata->{'html'}=$obj->expand(
                 path    => '/bits/fillout-form/html-textarea',
                 NAME    => $name,
-                VALUE   => $value || '',
+                VALUE   => defined($value) ? $value : '',
                 SIZE    => $fdata->{'size'} || 30,
                 ROWS    => $fdata->{'rows'} || 8,
             );
         }
         elsif($style eq 'password') {
-            $fdata->{html}=$obj->expand(
-                path => '/bits/fillout-form/html-password',
-                NAME => $name,
-                VALUE => $value || '',
+            $fdata->{'html'}=$obj->expand(
+                path    => '/bits/fillout-form/html-password',
+                NAME    => $name,
+                VALUE   => defined $value ? $value : '',
                 MAXLENGTH => $fdata->{'maxlength'} || 100,
-                SIZE => $fdata->{'size'} || 30,
+                SIZE    => $fdata->{'size'} || 30,
             );
         }
 

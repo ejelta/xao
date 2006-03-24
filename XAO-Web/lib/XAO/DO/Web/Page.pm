@@ -392,7 +392,6 @@ from Page unless overwritten) are:
 ###############################################################################
 package XAO::DO::Web::Page;
 use strict;
-#use Data::Dumper; #XXX - remove
 use XAO::Utils;
 use XAO::Cache;
 use XAO::Templates;
@@ -404,7 +403,7 @@ use Error qw(:try);
 use base XAO::Objects->load(objname => 'Atom');
 
 use vars qw($VERSION);
-$VERSION=(0+sprintf('%u.%03u',(q$Id: Page.pm,v 2.1 2005/01/14 01:39:57 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
+$VERSION=(0+sprintf('%u.%03u',(q$Id: Page.pm,v 2.2 2006/03/24 23:53:20 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
 
 ##
 # Prototypes
@@ -642,7 +641,7 @@ sub expand ($%) {
     #
     XAO::PageSupport::push();
     $self->display(@_);
-    XAO::PageSupport::pop();
+    return XAO::PageSupport::pop();
 }
 
 ###############################################################################
@@ -741,7 +740,7 @@ sub parse ($%) {
     #
     if($self->debug_check('show-parse')) {
         if($path) {
-            dprint $self->{objname}."::parse - parsing path='$path'"
+            dprint $self->{'objname'}."::parse - parsing path='$path'"
         }
         else {
             my $te=substr($template,0,20);
@@ -749,16 +748,16 @@ sub parse ($%) {
             $te=~s/\n/\\n/sg;
             $te=~s/\t/\\t/sg;
             $te.='...' if length($template)>20;
-            dprint $self->{objname}."::parse - parsing inline template ($te)";
+            dprint $self->{'objname'}."::parse - parsing inline template ($te)";
         }
     }
-    my $page=XAO::PageSupport::parse($template);
-    ref $page ||
-        throw $self "parse - $page";
+    my $parsed=XAO::PageSupport::parse($template);
+    ref $parsed ||
+        throw $self "parse - $parsed";
 
-    $parsed_cache{$sitename}->{$path}=$page if $path;
+    $parsed_cache{$sitename}->{$path}=$parsed if $path;
 
-    return $page;
+    return $parsed;
 }
 
 ###############################################################################

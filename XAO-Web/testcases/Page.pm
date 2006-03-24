@@ -1,10 +1,65 @@
 package testcases::Page;
 use strict;
+use Encode;
 use XAO::Objects;
+use XAO::Utils;
 use Error qw(:try);
 use XAO::Errors qw(XAO::DO::Web::Page XAO::DO::Web::MyPage);
 
 use base qw(testcases::base);
+
+sub test_unicode_transparency {
+    my $self=shift;
+
+    my $page=XAO::Objects->new(objname => 'Web::Page');
+    $self->assert(ref($page),
+                  "Can't load Page object");
+
+    ##
+    # Explanation: This is probably going to change in the future, but
+    # for right now we assume that the template engine operates on
+    # bytes, not characters. Thus we expect bytes back even when we
+    # supply unicode.
+    #
+    # TODO: The better way is probably to define an encoding for input/output
+    # text somewhere and always convert from that encoding to UTF and
+    # back whenever we cross the border between templates and perl code.
+    #
+    my %tests=(
+        t1  => {
+            template    => "unicode - \x{263a} - ttt",
+            expect      => Encode::encode('utf8',"unicode - \x{263a} - ttt"),
+        },
+        t2  => {
+            template    => Encode::encode('utf8',"unicode - \x{263a} - ttt"),
+            expect      => Encode::encode('utf8',"unicode - \x{263a} - ttt"),
+        },
+        t3  => {
+            template    => Encode::encode('ucs2',"unicode - \x{263a} - ttt"),
+            expect      => Encode::encode('ucs2',"unicode - \x{263a} - ttt"),
+        },
+        t4 => {
+            template    => "8bit - \x90\x91\x92",
+            expect      => "8bit - \x90\x91\x92",
+        },
+        t5 => {
+            template    => '<%SetArg name="A" value="<$BAR/f$>"%>foo<$A$>',
+            BAR         => "<\x{263a}>",
+            expect      => Encode::encode('utf8',"foo<\x{263a}>"),
+        },
+    );
+
+    foreach my $test (keys %tests) {
+        my $template=$tests{$test}->{'template'};
+        my $got=$page->expand($tests{$test});
+        my $expect=$tests{$test}->{'expect'};
+        ### dprint "length(template=$template)=".length($template);
+        ### dprint "length(got=$got)=".length($got);
+        ### dprint "length(expect=$expect)=".length($expect);
+        $self->assert($got eq $expect,
+                      "Test $test - expected '$expect', got '$got'");
+    }
+}
 
 sub test_expand {
     my $self=shift;
@@ -43,6 +98,12 @@ sub test_expand {
             template => q(<%Page
                             template={'<%Page template="<%TEST%>"%>'}
                             TEST='123'
+                          %>),
+        },
+        '1234' => {
+            template => q(<%Page
+                            template={'<%Page template="<$TEST$>"%>'}
+                            TEST='1234'
                           %>),
         },
     );
