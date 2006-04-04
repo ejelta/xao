@@ -13,17 +13,29 @@ ASSIGN d_d="\001".
 */
 ASSIGN onum=INTEGER(OS-GETENV("P0")).
 
-/* Getting default req_date from p21.order
-*/
-FOR FIRST p21.order WHERE p21.order.ord_number = onum:
-    ASSIGN rdate=p21.order.req_date.
-    ASSIGN sflag=p21.order.suspend_flag.
-END.
-
 /* Starting transaction here to get consistent results about
  * the order. Lock up if we have to wait.
 */
 DO TRANSACTION:
+
+    /* Records in p21.order allow us to look into the fresh orders, not invoiced yet
+    */
+    FOR FIRST p21.order WHERE p21.order.ord_number = onum SHARE-LOCK:
+        ASSIGN rdate=p21.order.req_date.
+        ASSIGN sflag=p21.order.suspend_flag.
+
+        PUT UNFORMATTED
+            "ORDER"                         d_d
+            order.line_number               d_d
+            order.cust_code                 d_d
+            order.cust_po                   d_d
+            order.sales_loc                 d_d
+            order.req_date                  d_d
+            order.ord_date                  d_d
+            order.suspend_flag              d_d
+            skip
+        .
+    END.
 
     /* First we display general line item information and statuses.
     */

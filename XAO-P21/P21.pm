@@ -678,7 +678,7 @@ sub view_order_details {
     my $self=shift;
     my $args=get_args(\@_);
 
-    my $order_id=$args->{order_id} ||
+    my $order_id=$args->{'order_id'} ||
         throw XAO::E::P21 "view_order_details - no 'order_id' given";
 
     my $build=sub {
@@ -723,6 +723,12 @@ sub view_order_details {
                      release_rel_qty release_inv_qty
                      release_allo_qty release_canc_qty
                      release_comp_flag release_disp
+                    )}=@arr;
+        }
+        elsif($arr[0] eq 'ORDER') {
+            @arr==8 ||
+                throw XAO::E::P21 "view_order_details - wrong ORDER ($str)";
+            @line{qw(type line_number cust_code cust_po sales_loc req_date ord_date suspend_flag
                     )}=@arr;
         }
         else {
