@@ -731,6 +731,13 @@ sub view_order_details {
             @line{qw(type line_number cust_code cust_po sales_loc req_date ord_date suspend_flag
                     )}=@arr;
         }
+        elsif($arr[0] eq 'SHIPPED') {
+            @arr==7 ||
+                throw XAO::E::P21 "view_order_details - wrong SHIPPED ($str)";
+            @line{qw(type line_number sub_seq_num inv_date ship_num ship_line ship_qty
+                    )}=@arr;
+                
+        }
         else {
             throw XAO::E::P21 "view_order_details - unknown type=$arr[0] ($str)";
         }
@@ -739,7 +746,7 @@ sub view_order_details {
     };
 
     $self->call($build,
-                $args->{callback},
+                $args->{'callback'},
                 'view_order_details',
                 $order_id);
 }
