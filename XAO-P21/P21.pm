@@ -696,7 +696,7 @@ sub view_order_details {
                      ship_loc
                      req_date
                      suspend_flag)}=@arr;
-            $line{suspend_flag}=lc($line{suspend_flag} || '') eq 'no' ? 0 : 1;
+            $line{'suspend_flag'}=lc($line{'suspend_flag'} || '') eq 'no' ? 0 : 1;
         }
         elsif($arr[0] eq 'INVOICE') {
             @arr==20 ||
@@ -732,11 +732,10 @@ sub view_order_details {
                     )}=@arr;
         }
         elsif($arr[0] eq 'SHIPPED') {
-            @arr==7 ||
+            @arr==6 ||
                 throw XAO::E::P21 "view_order_details - wrong SHIPPED ($str)";
-            @line{qw(type line_number sub_seq_num inv_date ship_num ship_line ship_qty
+            @line{qw(type line_number inv_date ship_num ship_line ship_qty
                     )}=@arr;
-                
         }
         else {
             throw XAO::E::P21 "view_order_details - unknown type=$arr[0] ($str)";
@@ -745,10 +744,10 @@ sub view_order_details {
         return \%line;
     };
 
-    $self->call($build,
-                $args->{'callback'},
-                'view_order_details',
-                $order_id);
+    return $self->call($build,
+                       $args->{'callback'},
+                       'view_order_details',
+                       $order_id);
 }
 
 ###############################################################################
