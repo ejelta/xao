@@ -734,7 +734,7 @@ sub view_order_details {
         elsif($arr[0] eq 'SHIPPED') {
             @arr==6 ||
                 throw XAO::E::P21 "view_order_details - wrong SHIPPED ($str)";
-            @line{qw(type line_number inv_date ship_num ship_line ship_qty
+            @line{qw(type line_number inv_date ship_number ship_line ship_qty
                     )}=@arr;
         }
         else {
