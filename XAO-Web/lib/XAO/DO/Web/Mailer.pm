@@ -22,6 +22,7 @@ Arguments are:
  to          => e-mail address of the recepient; default is taken from
                 userdata->email if defined.
  cc          => optional e-mail addresses of secondary recepients
+ bcc         => optional e-mail addresses of blind CC recepients
  from        => optional 'from' e-mail address, default is taken from
                 'from' site configuration parameter.
  subject     => message subject;
@@ -33,7 +34,7 @@ Arguments are:
 
 If 'to', 'from' or 'subject' are not specified then get_to(), get_from()
 or get_subject() methods are called first. Derived class may override
-them. 'To' and 'cc' may be comma-separated addresses lists.
+them. 'To', 'cc' and 'bcc' may be comma-separated addresses lists.
 
 The configuration for Web::Mailer is kept in a hash stored in the site
 configuration under 'mailer' name. Normally it is not required, the
@@ -79,7 +80,7 @@ use XAO::Objects;
 use base XAO::Objects->load(objname => 'Web::Page');
 
 use vars qw($VERSION);
-$VERSION=(0+sprintf('%u.%03u',(q$Id: Mailer.pm,v 2.3 2006/03/14 20:31:42 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
+$VERSION=(0+sprintf('%u.%03u',(q$Id: Mailer.pm,v 2.4 2006/04/06 22:56:48 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
 
 sub display ($;%) {
     my $self=shift;
@@ -212,6 +213,7 @@ sub display ($;%) {
         throw $self "display - no text for either html or text part";
     }
     $mailer->add(Cc => $args->{'cc'}) if $args->{'cc'};
+    $mailer->add(Bcc => $args->{'bcc'}) if $args->{'bcc'};
 
     ##
     # Sending
