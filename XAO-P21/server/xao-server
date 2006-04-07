@@ -9,7 +9,7 @@ use File::Copy;
 
 use vars qw($VERSION $REVISION);
 $VERSION='0.05';
-$REVISION='$Id: xao-server,v 1.12 2006/03/09 00:18:00 am Exp $';
+$REVISION='$Id: xao-server,v 1.13 2006/04/07 22:20:01 am Exp $';
 
 sub chld_handler ();
 sub pipe_handler ();
@@ -505,7 +505,7 @@ Reads user permissions and passwords.
 
 =cut
 
-	elsif($opcode eq 'puser') {
+        elsif($opcode eq 'puser') {
             ##
             # First reading users config to understand who belongs to what system and
             # what ID maps to what unix logname
@@ -531,6 +531,22 @@ Reads user permissions and passwords.
                 $fd->close();
 
                 ##
+                # Reading a map between lognames and "generics" that are
+                # useful for generic@rshughes.com emails.
+                #
+                $fd=IO::File->new('/etc/mail/genericstable','r');
+                my %generics;
+                if($fd) {
+                    while(my $str=$fd->getline) {
+                        chop $str while $str=~/[\r\n\s]$/;
+                        my ($logname,$generic)=split(/\s/,$str);
+                        next unless $logname && $generic;
+                        $generics{lc($logname)}=lc($generic);
+                    }
+                    $fd->close;
+                }
+
+                ##
                 # Now reading P21 data, skipping users defaulting to unit1. If the user has no P21 id
                 # set up we still let them flow, otherwise pretty much everybody gets excluded.
                 # Also, if system mask is not set at all - we allow such users.
@@ -541,8 +557,8 @@ Reads user permissions and passwords.
                 while(<$in>) {
                     s/\t/ /g;
                     chop while /[\r\n]$/;
-		    my @a=split(/\001/,$_);
-		    if(@a!=4) {
+                    my @a=split(/\001/,$_);
+                    if(@a!=4) {
                         printsock "Wrong data\n";
                         last;
                     }
@@ -552,9 +568,9 @@ Reads user permissions and passwords.
                         if(@ud && $ud[0]->{'syst_default'}==0 && (!$ud[0]->{'syst_mask'} || ($ud[0]->{'syst_mask'}&0x01))) {
                             my @pwdata=getpwnam($ud[0]->{'logname'});
                             my $password=@pwdata && $pwdata[0] && $pwdata[1] ? $pwdata[1] : '**';
-                            printsock join("\t",@a,$password)."\n";
+                            printsock join("\t",@a,$password,$generics{lc($ud[0]->{'logname'})})."\n";
                         }
-			else {
+                        else {
                             dprint "skipping $p21_id";
                             if(@ud) {
                                 dprint ".$ud[0]->{syst_default}..$ud[0]->{syst_mask}..$ud[0]->{logname}";
@@ -570,7 +586,7 @@ Reads user permissions and passwords.
 
 =cut
 
-	elsif($opcode eq 'units') {
+        elsif($opcode eq 'units') {
             my $in=open_stream 'units';
             while(<$in>) {
                 printsock "$_";
