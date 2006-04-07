@@ -1,4 +1,5 @@
 1.08
+    * Web::Mailer -- can now send arbitrary attachments
     * Web -- raw URL mapping using path_mapping_table
     * Web::Cookie -- creates cookies as a hash, for easy overrides
     * Web::IdentifyUser -- fixed old problems with expiring keys

@@ -36,6 +36,17 @@ If 'to', 'from' or 'subject' are not specified then get_to(), get_from()
 or get_subject() methods are called first. Derived class may override
 them. 'To', 'cc' and 'bcc' may be comma-separated addresses lists.
 
+To send additional attachments along with the email pass the following
+arguments (where N can be any alphanumeric tag):
+
+ attachment.N.type        => MIME type for attachment (image/gif, text/plain, etc)
+ attachment.N.filename    => download filename for the attachment (optional)
+ attachment.N.disposition => attachment disposition (optional, 'attachment' by default)
+ attachment.N.path        => path to a template for building the attachment
+ attachment.N.template    => inline template for building the attachment
+ attachment.N.pass        => pass all arguments of the calling template
+ attachment.N.ARG         => VALUE - passed literally as ARG=>VALUE to the template
+
 The configuration for Web::Mailer is kept in a hash stored in the site
 configuration under 'mailer' name. Normally it is not required, the
 default is to use sendmail for delivery. The parameters are:
@@ -80,7 +91,7 @@ use XAO::Objects;
 use base XAO::Objects->load(objname => 'Web::Page');
 
 use vars qw($VERSION);
-$VERSION=(0+sprintf('%u.%03u',(q$Id: Mailer.pm,v 2.4 2006/04/06 22:56:48 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
+$VERSION=(0+sprintf('%u.%03u',(q$Id: Mailer.pm,v 2.5 2006/04/07 20:54:19 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
 
 sub display ($;%) {
     my $self=shift;
@@ -214,6 +225,48 @@ sub display ($;%) {
     }
     $mailer->add(Cc => $args->{'cc'}) if $args->{'cc'};
     $mailer->add(Bcc => $args->{'bcc'}) if $args->{'bcc'};
+
+    ##
+    # Adding attachments if any
+    #
+    foreach my $k (sort keys %$args) {
+        next unless $k=~/^attachment\.(\w+)\.type$/;
+        my $id=$1;
+
+        my %data=(
+            Type        => $args->{$k},
+            Filename    => $args->{'attachment.'.$id.'.filename'} || '',
+            Disposition => $args->{'attachment.'.$id.'.disposition'} || 'attachment',
+        );
+
+        if($args->{'attachment.'.$id.'.template'} || $args->{'attachment.'.$id.'.path'}) {
+            my %objargs;
+            foreach my $kk (keys %$args) {
+                next unless $kk =~ /^attachment\.$id\.(.*)$/;
+                $objargs{$1}=$args->{$kk};
+            }
+
+            my $obj=$self->object(objname => ($objargs{'objname'} || 'Page'));
+            delete $objargs{'objname'};
+
+            if($args->{'attachment.'.$id.'.pass'} && $self->{'parent'} && $self->{'parent'}->{'args'}) {
+                my $aaa=merge_refs($self->{'parent'}->{'args'});
+                delete $aaa->{'path'};
+                delete $aaa->{'template'};
+                %objargs=%{merge_refs($aaa,\%objargs)};
+            }
+
+            $data{'Data'}=$obj->expand(\%objargs);
+        }
+        elsif($args->{'attachment.'.$id.'.file'}) {
+            throw $self "display - attaching files not implemented";
+        }
+        else {
+            throw $self "display - no path/template/file given for attachment '$id'";
+        }
+
+        $mailer->attach(%data);
+    }
 
     ##
     # Sending
