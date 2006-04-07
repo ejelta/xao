@@ -639,6 +639,7 @@ encrypted passwords.
   security  => 
   name      => 
   password  => 
+  generic   => generic name lookup in /etc/mail/generics
 
 =cut  
 
@@ -650,7 +651,7 @@ sub puser {
 
     my $build=$args->{'build'} || sub {
         my %row;
-        @row{qw(user_id branch name security_2 password)}=split('\t',$_[0]);
+        @row{qw(user_id branch name security_2 password generic)}=split('\t',$_[0]);
         return \%row;
     };
 
