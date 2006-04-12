@@ -108,7 +108,8 @@ DO TRANSACTION:
             wbw_line.ship_number            d_d
             wbw_line.item_code              d_d
             wbw_line.inv_qty                d_d
-            wbw_line.line_number            skip
+            wbw_line.line_number            d_d
+            wbw_line.part_number            skip
         .
     END.
 

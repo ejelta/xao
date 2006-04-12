@@ -711,9 +711,10 @@ sub view_order_details {
                     )}=@arr;
         }
         elsif($arr[0] eq 'ITEM') {
-            @arr==5 ||
+            @arr==6 ||
                 throw XAO::E::P21 "view_order_details - wrong ITEM ($str)";
-            @line{qw(type ship_number item_code inv_qty line_number)}=@arr;
+            @line{qw(type ship_number item_code inv_qty line_number part_number)}=@arr;
+            $line{'part_number'}='' if $line{'part_number'} eq '?';
         }
         elsif($arr[0] eq 'BLANKET') {
             @arr==12 ||
