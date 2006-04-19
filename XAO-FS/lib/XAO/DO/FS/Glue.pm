@@ -50,7 +50,7 @@ use XAO::Objects;
 use base XAO::Objects->load(objname => 'Atom');
 
 use vars qw($VERSION);
-$VERSION=(0+sprintf('%u.%03u',(q$Id: Glue.pm,v 2.3 2006/01/19 04:14:54 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
+$VERSION=(0+sprintf('%u.%03u',(q$Id: Glue.pm,v 2.4 2006/04/19 01:36:31 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
 
 ###############################################################################
 
@@ -762,7 +762,7 @@ sub _field_default ($$) {
 
     my $type=$desc->{type};
     my $default;
-    if($type eq 'text') {
+    if($type eq 'text' || $type eq 'blob') {
         $default='';
     }
     elsif($type eq 'integer' || $type eq 'real') {
@@ -894,8 +894,8 @@ sub _retrieve_data_fields ($@) {
 #
 sub _store_data_fields ($$) {
     my ($self,$data)=@_;
-    my $table=$self->_class_description->{table};
-    $self->_driver->update_fields($table,$$self->{unique_id},$data);
+    my $table=$self->_class_description->{'table'};
+    $self->_driver->update_fields($table,$$self->{'unique_id'},$data);
 }
 
 ###############################################################################
@@ -1846,11 +1846,11 @@ sub _add_data_placeholder ($%) {
     my $self=shift;
     my $args=get_args(\@_);
 
-    my $name=$args->{name};
-    my $type=$args->{type};
+    my $name=$args->{'name'};
+    my $type=$args->{'type'};
 
     my $desc=$self->_class_description;
-    my $table=$self->_class_description->{table};
+    my $table=$self->_class_description->{'table'};
     my $driver=$self->_driver;
 
     ##
@@ -1870,7 +1870,7 @@ sub _add_data_placeholder ($%) {
     ##
     # Checking or setting the default value.
     #
-    $fdesc{default}=$self->_field_default($name,\%fdesc);
+    $fdesc{'default'}=$self->_field_default($name,\%fdesc);
 
     ##
     # Adding...
@@ -1879,30 +1879,48 @@ sub _add_data_placeholder ($%) {
         throw $self "_add_data_placeholder - 'words' not supported any more";
     }
     elsif ($type eq 'text') {
-        $fdesc{maxlength}=100 unless $fdesc{maxlength};
+        if(!$fdesc{'maxlength'}) {
+            eprint "Default maxlength is deprecated for field '$name', type '$type'";
+            $fdesc{'maxlength'}=100;
+        }
 
-        my $dl=length($fdesc{default});
+        $fdesc{'charset'}||='binary';
+
+        my $dl=length($fdesc{'default'});
         $dl <= 30 ||
             throw $self "_add_data_placeholder - default text is longer then 30 characters";
-        $dl <= $fdesc{maxlength} ||
+        $dl <= $fdesc{'maxlength'} ||
             throw $self "_add_data_placeholder - default text is longer then maxlength ($fdesc{maxlength})";
 
-        $driver->add_field_text($table,$name,$fdesc{index},$fdesc{unique},
-                                $fdesc{maxlength},$fdesc{default},$connected);
+        $driver->add_field_text($table,$name,$fdesc{'index'},$fdesc{'unique'},
+                                $fdesc{'maxlength'},$fdesc{'default'},$fdesc{'charset'},$connected);
+    }
+    elsif ($type eq 'blob') {
+        my $maxlength=$fdesc{'maxlength'} ||
+            throw $self "_add_data_placeholder($name) - no blob maxlength specified";
+
+        my $dl=length($fdesc{'default'});
+        $dl <= 30 ||
+            throw $self "_add_data_placeholder($name) - default blob is longer then 30 characters";
+        $dl <= $maxlength ||
+            throw $self "_add_data_placeholder($name) - default blob is longer then maxlength ($maxlength)";
+
+        $driver->add_field_text($table,$name,$fdesc{'index'},$fdesc{'unique'},
+                                $maxlength,$fdesc{'default'},'binary',$connected);
     }
     elsif ($type eq 'integer') {
-        $fdesc{minvalue}=-0x80000000 unless defined($fdesc{minvalue});
-        if(!defined($fdesc{maxvalue})) {
-            $fdesc{maxvalue}=$fdesc{minvalue}<0 ? 0x7FFFFFFF : 0xFFFFFFFF;
+        $fdesc{'minvalue'}=-0x80000000 unless defined($fdesc{'minvalue'});
+        if(!defined($fdesc{'maxvalue'})) {
+            $fdesc{'maxvalue'}=$fdesc{'minvalue'}<0 ? 0x7FFFFFFF : 0xFFFFFFFF;
         }
-        $driver->add_field_integer($table,$name,$fdesc{index},$fdesc{unique},
-                                   $fdesc{minvalue},$fdesc{maxvalue},$fdesc{default},$connected);
+        $driver->add_field_integer($table,$name,$fdesc{'index'},$fdesc{'unique'},
+                                   $fdesc{'minvalue'},$fdesc{'maxvalue'},$fdesc{'default'},$connected);
     }
     elsif ($type eq 'real') {
-        $fdesc{minvalue}+=0 if defined($fdesc{minvalue});
-        $fdesc{maxvalue}+=0 if defined($fdesc{maxvalue});
-        $driver->add_field_real($table,$name,$fdesc{index},$fdesc{unique},
-                                $fdesc{minvalue},$fdesc{maxvalue},$fdesc{default},$connected);
+        $fdesc{'minvalue'}+=0 if defined($fdesc{'minvalue'});
+        $fdesc{'maxvalue'}+=0 if defined($fdesc{'maxvalue'});
+        $driver->add_field_real($table,$name,$fdesc{'index'},$fdesc{'unique'},
+                                $fdesc{'minvalue'},$fdesc{'maxvalue'},$fdesc{'default'},$connected);
     }
     else {
         $self->throw("_add_data_placeholder - unknown type ($type)");
@@ -1911,7 +1929,7 @@ sub _add_data_placeholder ($%) {
     ##
     # Updating in-memory data with our new field.
     #
-    $desc->{fields}->{$name}=\%fdesc;
+    $desc->{'fields'}->{$name}=\%fdesc;
 
     ##
     # Updating Global_Fields
@@ -1919,12 +1937,13 @@ sub _add_data_placeholder ($%) {
     $driver->store_row('Global_Fields',
                        'field_name',$name,
                        'table_name',$table,
-                       { type => $fdesc{type},
-                         index => $fdesc{unique} ? 2 : ($fdesc{index} ? 1 : 0),
-                         default => $fdesc{default},
-                         maxlength => $fdesc{maxlength},
-                         maxvalue => $fdesc{maxvalue},
-                         minvalue => $fdesc{minvalue},
+                       { type       => $fdesc{'type'},
+                         index      => $fdesc{'unique'} ? 2 : ($fdesc{'index'} ? 1 : 0),
+                         default    => $fdesc{'default'},
+                         maxlength  => $fdesc{'maxlength'},
+                         maxvalue   => $fdesc{'maxvalue'},
+                         minvalue   => $fdesc{'minvalue'},
+                         charset    => $fdesc{'charset'},
                        });
 }
 
@@ -2051,7 +2070,7 @@ sub _drop_data_placeholder ($$) {
     my $name=shift;
 
     my $desc=$self->_class_description;
-    my $table=$self->_class_description->{table};
+    my $table=$self->_class_description->{'table'};
     my $driver=$self->_driver;
 
     my $uid=$driver->unique_id('Global_Fields',
@@ -2064,13 +2083,14 @@ sub _drop_data_placeholder ($$) {
     # If that field was marked as 'unique' or 'index' then we need to
     # drop index as well.
     #
-    my $connected=$self->upper_class eq 'FS::Global' ? 0 : 1;
-    my $index=$desc->{fields}->{$name}->{index};
-    my $unique=$desc->{fields}->{$name}->{unique};
+    my $upper_class=$self->upper_class;
+    my $connected=(!$upper_class || $upper_class eq 'FS::Global') ? 0 : 1;
+    my $index=$desc->{'fields'}->{$name}->{'index'};
+    my $unique=$desc->{'fields'}->{$name}->{'unique'};
 
     $driver->drop_field($table,$name,$index,$unique,$connected);
 
-    delete $desc->{fields}->{$name};
+    delete $desc->{'fields'}->{$name};
 }
 
 ##

@@ -216,7 +216,8 @@ sub test_deeper {
     my $orders=$c->get('Orders');
     my $o=$orders->get_new();
     $o->add_placeholder(name => 'foo',
-                        type => 'text');
+                        type => 'text',
+                        maxlength => 20);
     $o->put(foo => 'test');
     $orders->put($o);
     $o->put(foo => 'fubar');

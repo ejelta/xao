@@ -35,6 +35,8 @@ lib/XAO/DO/FS/List.pm
  ------------------------------------------------------------- Test Cases
 lib/XAO/testcases/FS/base.pm
 lib/XAO/testcases/FS/basic.pm
+lib/XAO/testcases/FS/blobs.pm
+lib/XAO/testcases/FS/charsets.pm
 lib/XAO/testcases/FS/collection.pm
 lib/XAO/testcases/FS/config.pm
 lib/XAO/testcases/FS/fields.pm

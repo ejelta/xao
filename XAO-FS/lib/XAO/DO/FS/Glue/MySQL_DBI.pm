@@ -31,7 +31,7 @@ use XAO::Objects;
 use base XAO::Objects->load(objname => 'FS::Glue::SQL_DBI');
 
 use vars qw($VERSION);
-$VERSION=(0+sprintf('%u.%03u',(q$Id: MySQL_DBI.pm,v 2.1 2005/01/14 00:23:54 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
+$VERSION=(0+sprintf('%u.%03u',(q$Id: MySQL_DBI.pm,v 2.2 2006/04/19 01:36:31 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
 
 ###############################################################################
 
@@ -222,22 +222,39 @@ later.
 
 sub add_field_text ($$$$$$) {
     my $self=shift;
-    my ($table,$name,$index,$unique,$max,$default,$connected)=@_;
+    my ($table,$name,$index,$unique,$max,$default,$charset,$connected)=@_;
     $name.='_';
 
     if($self->tr_loc_active || $self->tr_ext_active) {
         throw $self "add_field_text - modifying structure in transaction scope is not supported";
     }
 
+    $charset ||
+        throw $self "add_field_text - 'charset' is required for text fields";
+
     my $sql;
-    if($max<255) {
-        $sql="CHAR($max)";
-    } elsif($max<65535) {
-        $sql="TEXT";
-    } elsif($max<16777215) {
-        $sql="MEDIUMTEXT";
-    } elsif($max<4294967295) {
-        $sql="LONGTEXT";
+    if($charset eq 'binary') {
+        if($max<255) {
+            $sql="BINARY($max)";
+        } elsif($max<65535) {
+            $sql="BLOB";
+        } elsif($max<16777215) {
+            $sql="MEDIUMBLOB";
+        } elsif($max<4294967295) {
+            $sql="LONGBLOB";
+        }
+    }
+    else {
+        if($max<255) {
+            $sql="CHAR($max)";
+        } elsif($max<65535) {
+            $sql="TEXT";
+        } elsif($max<16777215) {
+            $sql="MEDIUMTEXT";
+        } elsif($max<4294967295) {
+            $sql="LONGTEXT";
+        }
+        $sql.=" CHARSET '$charset'";
     }
 
     $self->sql_do("ALTER TABLE $table ADD $name $sql NOT NULL DEFAULT ?",
@@ -437,7 +454,7 @@ sub initialize_database ($) {
     }
 
     my $sth=$self->sql_execute('SHOW TABLE STATUS');
-    my $table_type=$self->{table_type};
+    my $table_type=$self->{'table_type'};
     while(my $row=$self->sql_fetch_row($sth)) {
         my ($name,$type)=@$row;
         $table_type||=lc($type);
@@ -449,14 +466,15 @@ sub initialize_database ($) {
         <<'END_OF_SQL',
 CREATE TABLE Global_Fields (
   unique_id INT UNSIGNED NOT NULL AUTO_INCREMENT,
-  table_name_ CHAR(30) NOT NULL DEFAULT '',
-  field_name_ CHAR(30) NOT NULL DEFAULT '',
-  type_ CHAR(20) NOT NULL DEFAULT '',
-  refers_ CHAR(30) DEFAULT NULL,
-  key_format_ CHAR(100) DEFAULT NULL,
+  table_name_ CHAR(30) CHARSET latin1 NOT NULL DEFAULT '',
+  field_name_ CHAR(30) CHARSET latin1 NOT NULL DEFAULT '',
+  type_ CHAR(20) CHARSET latin1 NOT NULL DEFAULT '',
+  refers_ CHAR(30) CHARSET latin1 DEFAULT NULL,
+  key_format_ CHAR(100) CHARSET latin1 DEFAULT NULL,
   key_seq_ INT UNSIGNED DEFAULT NULL,
   index_ TINYINT DEFAULT NULL,
-  default_ CHAR(30) DEFAULT NULL,
+  default_ BINARY(30) DEFAULT NULL,
+  charset_ CHAR(30) CHARSET latin1 DEFAULT '',
   maxlength_ INT UNSIGNED DEFAULT NULL,
   maxvalue_ DOUBLE DEFAULT NULL,
   minvalue_ DOUBLE DEFAULT NULL,
@@ -466,12 +484,12 @@ CREATE TABLE Global_Fields (
 END_OF_SQL
         <<'END_OF_SQL',
 INSERT INTO Global_Fields VALUES (1,'Global_Data','project',
-                                  'text','',NULL,NULL,0,'',40,NULL,NULL)
+                                  'text','',NULL,NULL,0,'',40,'utf8',NULL,NULL)
 END_OF_SQL
         <<'END_OF_SQL',
 CREATE TABLE Global_Data (
   unique_id INT UNSIGNED NOT NULL AUTO_INCREMENT,
-  project_ char(40) NOT NULL DEFAULT '',
+  project_ char(40) CHARSET utf8 NOT NULL DEFAULT '',
   PRIMARY KEY (unique_id)
 )
 END_OF_SQL
@@ -562,8 +580,8 @@ sub load_structure ($) {
         $table_count++;
         # dprint "Table '$name', type=$type, row_format=$row_format, rows=$rows";
     }
-    if($self->{table_type}) {
-        my $table_type=$self->{table_type};
+    if($self->{'table_type'}) {
+        my $table_type=$self->{'table_type'};
         if($table_type eq 'innodb' || $table_type eq 'myisam') {
             foreach my $table_name (keys %table_status) {
                 next if $table_status{$table_name} eq $table_type;
@@ -575,14 +593,14 @@ sub load_structure ($) {
             throw $self "Unsupported table_type '$table_type' in DSN options";
         }
     }
-    elsif($type_counts{innodb} && $type_counts{innodb}==$table_count) {
-        $self->{table_type}='innodb';
+    elsif($type_counts{'innodb'} && $type_counts{'innodb'}==$table_count) {
+        $self->{'table_type'}='innodb';
     }
-    elsif($type_counts{myisam} && $type_counts{myisam}==$table_count) {
-        $self->{table_type}='myisam';
+    elsif($type_counts{'myisam'} && $type_counts{'myisam'}==$table_count) {
+        $self->{'table_type'}='myisam';
     }
     else {
-        $self->{table_type}='mixed';
+        $self->{'table_type'}='mixed';
         eprint "You have mixed table types in the database (" .
                join(',',map { $_ . '=' . $table_status{$_} } sort keys %table_status) . 
                ")";
@@ -595,12 +613,22 @@ sub load_structure ($) {
     $sth=$self->sql_execute("DESC Global_Fields");
     my $flist=$self->sql_first_column($sth);
     if(! grep { $_ eq 'key_format_' } @$flist) {
+        dprint "Old database detected, adding Global_Fields.key_format_";
         $self->sql_do('ALTER TABLE Global_Fields ADD key_format_ CHAR(100) DEFAULT NULL');
     }
     if(! grep { $_ eq 'key_seq_' } @$flist) {
+        dprint "Old database detected, adding Global_Fields.key_seq_";
         $self->sql_do('ALTER TABLE Global_Fields ADD key_seq_ INT UNSIGNED DEFAULT NULL');
     }
 
+    ##
+    # Checking for charset field, adding it if needed.
+    #
+    if(! grep { $_ eq 'charset_' } @$flist) {
+        dprint "Old database detected, adding Global_Fields.charset_";
+        $self->sql_do(q{ALTER TABLE Global_Fields ADD charset_ CHAR(30) CHARSET latin1 NOT NULL DEFAULT ''});
+    }
+    
     ##
     # Loading fields descriptions from the database.
     #
@@ -609,13 +637,13 @@ sub load_structure ($) {
     my %ckeys;
     $sth=$self->sql_execute("SELECT unique_id,table_name_,field_name_," .
                                    "type_,refers_,key_format_," .
-                                   "index_,default_," .
+                                   "index_,default_,charset_," .
                                    "maxlength_,minvalue_,maxvalue_" .
                             " FROM Global_Fields");
 
     while(my $row=$self->sql_fetch_row($sth)) {
         my ($uid,$table,$field,$type,$refers,$key_format,
-            $index,$default,$maxlength,$minvalue,$maxvalue)=@$row;
+            $index,$default,$charset,$maxlength,$minvalue,$maxvalue)=@$row;
         my $data;
         if($type eq 'list') {
             $refers || $self->throw("load_structure - no class name at Global_Fields($table,$field,..)");
@@ -643,13 +671,23 @@ sub load_structure ($) {
                 refers      => $refers
             };
         }
-        elsif($type eq 'text' || $type eq 'words') {
+        elsif($type eq 'blob') {
             $data={
                 type        => $type,
                 index       => $index ? 1 : 0,
                 unique      => $index==2 ? 1 : 0,
                 default     => $default,
                 maxlength   => $maxlength,
+            };
+        }
+        elsif($type eq 'text' || $type eq 'words') {
+            $data={
+                type        => $type,
+                index       => $index ? 1 : 0,
+                unique      => $index==2 ? 1 : 0,
+                default     => $default,
+                maxlength   => $maxlength || 100,
+                charset     => $charset,
             };
         }
         elsif($type eq 'real' || $type eq 'integer') {
@@ -668,6 +706,56 @@ sub load_structure ($) {
         $fields{$table}->{$field}=$data;
     }
     $self->sql_finish($sth);
+
+    ##
+    # Checking that we have a charset for every text field. Altering
+    # tables to binary for compatibility if the charset is not defined.
+    #
+    foreach my $table (keys %fields) {
+        my $sql='';
+        my $flist=$fields{$table};
+        my @deflist;
+        my @altered_fields;
+        foreach my $fname (keys %$flist) {
+            my $fdata=$flist->{$fname};
+
+            next unless $fdata->{'type'} eq 'text' &&
+                        ! $fdata->{'charset'};
+
+            dprint "Table '$table' has empty charset for text field '$fname', altering to 'binary'";
+            my $max=$fdata->{'maxlength'};
+            my $def;
+            if($max<255) {
+                $def="BINARY($max)";
+            }
+            elsif($max<65535) {
+                $def="BLOB";
+            }
+            elsif($max<16777215) {
+                $def="MEDIUMBLOB";
+            }
+            elsif($max<4294967295) {
+                $def="LONGBLOB";
+            }
+
+            $sql.=', ' if $sql;
+            $sql.="CHANGE ".$fname."_ ".$fname."_ $def NOT NULL DEFAULT ?";
+
+            push(@deflist,$fdata->{'default'});
+            push(@altered_fields,$fname);
+            $fdata->{'charset'}='binary';
+        }
+        if($sql) {
+            $sql="ALTER TABLE $table $sql";
+            dprint $sql;
+            $self->sql_do($sql,@deflist);
+            foreach my $fname (@altered_fields) {
+                $sql="UPDATE Global_Fields SET charset_='binary' WHERE table_name_='$table' AND field_name_='$fname'";
+                dprint $sql;
+                $self->sql_do($sql);
+            }
+        }
+    }
 
     ##
     # Now loading classes translation table and putting fields
@@ -1003,7 +1091,7 @@ sub update_fields ($$$$;$) {
 
     $self->sql_do($sql,values %$data,$unique_id);
 
-    if(!$internal && $self->{table_type} eq 'innodb') {
+    if(!$internal && $self->{'table_type'} eq 'innodb') {
         #dprint "store_row: transaction commit";
         $self->tr_loc_commit;
     }

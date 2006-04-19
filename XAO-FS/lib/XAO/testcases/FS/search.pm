@@ -113,10 +113,12 @@ sub test_real_deep {
                                 name => {
                                     type        => 'text',
                                     maxlength   => 50,
+                                    charset     => 'latin1',
                                 },
                                 desc => {
                                     type        => 'text',
                                     maxlength   => 300,
+                                    charset     => 'utf8',
                                 },
                             },
                         },
@@ -525,14 +527,20 @@ sub test_search {
     $self->assert(ref($customer),
                   "Can't create Customer");
 
-    $customer->add_placeholder(name => 'short',
-                               type => 'text',
-                               maxlength => 100,
-                               index => 1);
+    $customer->add_placeholder(
+        name        => 'short',
+        type        => 'text',
+        charset     => 'utf8',  # required for case-ign. collation
+        maxlength   => 100,
+        index       => 1,
+    );
 
-    $customer->add_placeholder(name => 'long',
-                               type => 'text',
-                               maxlength => 1000);
+    $customer->add_placeholder(
+        name        => 'long',
+        type        => 'text',
+        charset     => 'utf8',
+        maxlength   => 1000,
+    );
 
     ##
     # For deeper search
@@ -862,7 +870,8 @@ sub test_multiple_branches {
             key         => 'order_id',
             structure   => {
                 name => {
-                    type    => 'text',
+                    type        => 'text',
+                    maxlength   => 100,
                 },
             },
         },
@@ -872,7 +881,8 @@ sub test_multiple_branches {
             key         => 'product_id',
             structure   => {
                 name => {
-                    type    => 'text',
+                    type        => 'text',
+                    maxlength   => 100,
                 },
             },
         },

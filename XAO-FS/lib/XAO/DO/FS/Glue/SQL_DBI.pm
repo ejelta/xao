@@ -37,7 +37,7 @@ use DBI;
 use base XAO::Objects->load(objname => 'Atom');
 
 use vars qw($VERSION);
-$VERSION=(0+sprintf('%u.%03u',(q$Id: SQL_DBI.pm,v 2.1 2005/01/14 00:23:54 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
+$VERSION=(0+sprintf('%u.%03u',(q$Id: SQL_DBI.pm,v 2.2 2006/04/19 01:36:31 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
 
 ###############################################################################
 
@@ -85,7 +85,7 @@ Closes connection to the database.
 sub sql_disconnect ($) {
     my $self=shift;
 
-    $self->{sql}->disconnect if $self->{sql};
+    $self->{'sql'}->disconnect if $self->{sql};
 }
 
 ###############################################################################
@@ -103,20 +103,25 @@ argument.
 sub sql_do ($$;@) {
     my ($self,$query,@values)=@_;
 
+    ### use Data::Dumper;
     if(@values && ref $values[0]) {
-        $self->{sql}->do($query,undef,@{$values[0]}) ||
-            throw $self "sql_do - SQL error: ".$self->{sql}->errstr;
+        ### dprint "SQL: $query";
+        ### dprint Dumper($values[0]);
+        $self->{'sql'}->do($query,undef,@{$values[0]}) ||
+            throw $self "sql_do - SQL error: ".$self->{'sql'}->errstr;
     }
     else {
-        $self->{sql}->do($query,undef,@values) ||
-            throw $self "sql_do - SQL error: ".$self->{sql}->errstr;
+        ### dprint "SQL: $query";
+        ### dprint Dumper(\@values);
+        $self->{'sql'}->do($query,undef,@values) ||
+            throw $self "sql_do - SQL error: ".$self->{'sql'}->errstr;
     }
 }
 
 sub sql_do_no_error ($$;@) {
     my ($self,$query)=@_;
 
-    $self->{sql}->do($query);
+    $self->{'sql'}->do($query);
 }
 
 ###############################################################################
@@ -150,6 +155,9 @@ sql_execute() as a parameter.
 sub sql_execute ($$;@) {
     my ($self,$pq,@values)=@_;
     $pq=$self->sql_prepare($pq) unless ref $pq;
+
+    ### use Data::Dumper;
+    ### dprint "Executed with: ".Dumper(@values && ref($values[0]) ? $values[0] : \@values);
 
     $pq->execute(@values && ref($values[0]) ? @{$values[0]} : @values) ||
         throw $self "sql_execute - SQL error: ".$pq->errstr;

@@ -63,11 +63,12 @@ package XAO::DO::FS::Hash;
 use strict;
 use XAO::Utils;
 use XAO::Objects;
+use Encode;
 
 use base XAO::Objects->load(objname => 'FS::Glue');
 
 use vars qw($VERSION);
-$VERSION=(0+sprintf('%u.%03u',(q$Id: Hash.pm,v 2.1 2005/01/14 00:23:54 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
+$VERSION=(0+sprintf('%u.%03u',(q$Id: Hash.pm,v 2.2 2006/04/19 01:36:31 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
 
 ###############################################################################
 
@@ -90,6 +91,21 @@ Arguments are (alphabetically):
 Only makes sense for 'list' type - sets the name of class for the
 objects that would be contained in the list. That class have to exist
 and be available for object loader at the time of the call.
+
+=item charset
+
+For fields of 'text' type this can be one of 'binary', 'latin1', or
+'utf8'. For compatibility with older version that did not have a
+dedicated 'blob' data type the default charset is 'binary'.
+
+Fields of 'latin1' or 'utf8' charset have no guaranteed behaviour on
+characters not defined for these charsets. Such characters can be
+skipped or converted to '?' for instance.
+
+'Binary' charset fields will accept any data just like 'blob' data type,
+but the sorting order and word matching in search may differ from older
+versions. As another side effect, searches on 'binary' charset fields
+are case sensitive.
 
 =item connector
 
@@ -115,13 +131,12 @@ going to use this field in searches a lot. This works especially good on
 `real' and `integer' fields when you later search on them using ranges
 or equivalence.
 
-For text searches it is usually better to make a field of type `words'
-then making an index on it. Indexing text fields works great mostly on
-'eq' and 'ne' search operators, not 'ws' or 'wq'.
+Note, that indexing text fields works mostly on 'eq', 'ne', and 'sw'
+search operators, not 'cs', 'ws', or 'wq'.
 
-Regardless of your use of indexes searches are guaranteed to produc
-equal results. Indexing can only improve performance or decrease it when
-used incorrectly.
+Regardless of your use of indexes searches are guaranteed to produce
+equal results. Indexing can only improve performance (or decrease it when
+used incorrectly).
 
 =item key
 
@@ -189,9 +204,13 @@ name length in Hashes for consistency reasons).
 
 =item maxlength
 
-Maximum length for 'text' type in characters. If later on you will try
-to store longer text string into that field an error will be
-thrown. Default is 100.
+Maximum length for 'text' type in bytes (so for 'utf8' charset you may
+store less characters than the maxlength depending on the data). If
+later on you will try to store longer text string into that field an
+error will be thrown.
+
+Default is 100, but using default length is deprecated -- it may become
+illegal in future versions.
 
 =item maxvalue
 
@@ -228,7 +247,7 @@ be created from class name (something like 'osCustomer_Address' for
 
 =item type
 
-Placeholder type, one of 'text', 'words', 'integer', 'unsigned', 'real'
+Placeholder type, one of 'text', 'blob', 'integer', 'unsigned', 'real'
 or 'list'.
 
 =item unique
@@ -1020,8 +1039,16 @@ sub put ($$$) {
         elsif($name eq 'unique_id') {
             $self->throw("put - attempt to modify unique_id");
         }
-        elsif($type eq 'text' || $type eq 'words') {
-            length($value) <= $field->{maxlength} ||
+        elsif($type eq 'text' || $type eq 'blob' ) {
+            if($type eq 'text') {
+                if(utf8::is_utf8($value)) {
+                    $value=Encode::encode($field->{'charset'} eq 'binary' ? 'utf8' : $field->{'charset'},$value);
+                }
+            }
+            elsif(utf8::is_utf8($value)) {
+                $value=Encode::encode('utf8',$value);
+            }
+            length($value) <= $field->{'maxlength'} ||
                 $self->throw("put - value is longer then $field->{maxlength} for $name");
         }
         elsif($type eq 'integer' || $type eq 'real') {
@@ -1042,7 +1069,7 @@ sub put ($$$) {
     # Storing all values at once
     #
     if($detached) {
-        @{$$self->{data}}{@data_keys}=values %$data;
+        @{$$self->{'data'}}{@data_keys}=values %$data;
     }
     else {
         $self->_store_data_fields($data);

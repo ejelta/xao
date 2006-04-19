@@ -1,3 +1,6 @@
+1.07 -
+    * support for blobs and text charsets
+
 1.06 - 11-Jan-2005
     * key_format allows to choose from different list key generation schemas
     * Minor tweaks and improvements

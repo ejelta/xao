@@ -193,7 +193,7 @@ sub test_list_placeholder {
     $self->assert(ref($o1),
                   "Can't create an empty order");
 
-    $o1->add_placeholder(name => 'foo', type => 'text');
+    $o1->add_placeholder(name => 'foo', type => 'text', maxlength => 50);
     $o1->put(foo => 'bar');
 
     $cust_orders->put(o0 => $o1);
@@ -240,7 +240,8 @@ sub test_list_placeholder {
                   "Can't get reference to Products list from /Customers/c1/Orders/o1");
     my $product=$products->get_new();
     $product->add_placeholder(name => 'name',
-                              type => 'text');
+                              type => 'text',
+                              maxlength => 50);
     $product->put(name => 'test');
     my $newprod=$products->put($product);
     $product=$products->get($newprod);
@@ -379,6 +380,7 @@ sub test_build_structure {
                 },
                 foo => {
                     type => 'text',
+                    maxlength => 50,
                 },
             },
         },

@@ -20,7 +20,7 @@ sub stderr_restore {
     close(SE);
 }
 
-sub test_update_field {
+sub test_space_stripping {
     my $self=shift;
 
     my $odb=$self->get_odb();
@@ -32,14 +32,51 @@ sub test_update_field {
     # Spaces at the end of string are chopped off at least by
     # MySQL. Documented bug.
     #
-    foreach my $text (q('"~!@#$%^&*_+=[]{}),
-                      '()æù÷áÊÃÕË',
-                      '  Spaces  .' ,
-                      'Test Project') {
+    foreach my $text ("   aaa   .") {
         $global->put(project => $text);
         my $got=$global->get('project');
         $self->assert($got eq $text,
                       "Field update ('$text' != '$got')");
+    }
+}
+
+sub test_8bit_transparency {
+    my $self=shift;
+
+    my $odb=$self->get_odb();
+
+    my $global=$odb->fetch('/');
+    $self->assert(ref($global), "Failure getting / reference");
+
+    ##
+    # For compatibility no charset means binary transparency, checking for it
+    #
+    $global->add_placeholder(
+        name        => 'text',
+        type        => 'text',
+        maxlength   => 3,
+    );
+    $global->add_placeholder(
+        name        => 'tbin',
+        type        => 'text',
+        maxlength   => 3,
+        charset     => 'binary',
+    );
+    $global->add_placeholder(
+        name        => 'bin',
+        type        => 'blob',
+        maxlength   => 3,
+    );
+    use bytes;
+    foreach my $code (0..31,128..255) {
+        my $char=chr($code).chr($code).chr($code);
+        foreach my $fname (qw(text tbin bin)) {
+            $global->put($fname => $char);
+            my $got=$global->get($fname);
+            ### dprint "char='$char', got='$got'";
+            $self->assert($char eq $got,
+                          "Bin.transparency failure on code $code, got '$got' for field '$fname' (".ord($got).")");
+        }
     }
 }
 
@@ -155,7 +192,8 @@ sub test_values {
     $self->assert($cust, 'Hash object fetch failed');
 
     $cust->add_placeholder(name => 'xxx',
-                           type => 'text'
+                           type => 'text',
+                           maxlength => 20,
                           );
 
     $cust->put(name => 'foo');
@@ -326,13 +364,16 @@ sub test_unique {
     my $list=$odb->fetch('/Customers');
     $list->destroy();
 
-    foreach my $type (qw(text integer real)) {
+    foreach my $type (qw(text blob integer real)) {
 
         my $c=$list->get_new();
 
-        $c->add_placeholder(name => 'uf',
-                            type => $type,
-                            unique => 1);
+        $c->add_placeholder(
+            name        => 'uf',
+            type        => $type,
+            unique      => 1,
+            maxlength   => ($type eq 'text' || $type eq 'blob') ? 100 : undef,
+        );
 
         $c->put(uf => 1);
 
@@ -397,7 +438,7 @@ sub test_unique_2 {
     my $c1=$list->get('c1');
     my $c2=$list->get('c2');
 
-    foreach my $type (qw(text integer real)) {
+    foreach my $type (qw(text blob integer real)) {
         $c1->add_placeholder(
             name    => 'Orders',
             type    => 'list',
@@ -408,9 +449,10 @@ sub test_unique_2 {
         my $order=$c1->get('Orders')->get_new;
 
         $order->add_placeholder(
-            name    => 'foo',
-            type    => $type,
-            unique  => 1,
+            name        => 'foo',
+            type        => $type,
+            unique      => 1,
+            maxlength   => ($type eq 'text' || $type eq 'blob') ? 100 : undef,
         );
 
         $order->put(foo => 1);
@@ -483,7 +525,8 @@ sub test_get_multi {
     $self->assert($cust, 'Hash object fetch failed');
 
     $cust->add_placeholder(name => 'xxx',
-                           type => 'text'
+                           type => 'text',
+                           maxlength => 50,
                           );
 
     $cust->put(name => 'foo', xxx => '123');
@@ -531,10 +574,17 @@ sub test_null {
 
     $cust->add_placeholder(name     => 'text',
                            type     => 'text',
+                           maxlength=> 50,
                           );
     $cust->add_placeholder(name     => 'text2',
                            type     => 'text',
                            default  => 'test',
+                           maxlength=> 50,
+                          );
+    $cust->add_placeholder(name     => 'blob',
+                           type     => 'blob',
+                           default  => "\x80\x82\x84\x86",
+                           maxlength=> 50,
                           );
     $cust->add_placeholder(name     => 'integer',
                            type     => 'integer',
@@ -583,6 +633,10 @@ sub test_null {
         t7  => {
             name    => 'text2',
             default => 'test',
+        },
+        78 => {
+            name    => 'blob',
+            default => "\x80\x82\x84\x86",
         },
     );
 
