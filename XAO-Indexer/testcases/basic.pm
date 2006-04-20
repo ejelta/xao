@@ -20,9 +20,9 @@ sub test_basic {
     #
     my $index_new=$index_list->get_new;
     my $ds=$index_new->data_structure;
-    $self->assert($ds->{Data}->{structure}->{id_3}->{type} eq 'text',
+    $self->assert($ds->{'Data'}->{'structure'}->{'id_3'}->{'type'} eq 'blob',
                   "Wrong data structure (id_5)");
-    $self->assert($ds->{Data}->{structure}->{idpos_5}->{type} eq 'text',
+    $self->assert($ds->{'Data'}->{'structure'}->{'idpos_5'}->{'type'} eq 'blob',
                   "Wrong data structure (idpos_9)");
 
     ##

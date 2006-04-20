@@ -47,20 +47,24 @@ sub set_up {
                         name => {
                             type        => 'text',
                             maxlength   => NAME_LENGTH,
+                            charset     => 'utf8',
                         },
                         text => {
                             type        => 'text',
                             maxlength   => TEXT_LENGTH,
+                            charset     => 'utf8',
                         },
                     },
                 },
                 name => {
                     type        => 'text',
                     maxlength   => NAME_LENGTH,
+                    charset     => 'utf8',
                 },
                 text => {
                     type        => 'text',
                     maxlength   => TEXT_LENGTH,
+                    charset     => 'utf8',
                 },
             },
         },
