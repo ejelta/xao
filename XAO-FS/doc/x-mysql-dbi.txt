@@ -55,6 +55,17 @@ METHODS
         Creates new empty table with unique_id, key and optionally connector
         fields.
 
+    charset_change_prepare ($)
+        Prepares an internal structure for a later one-shot modification of
+        charsets in a table.
+
+    charset_change_field
+        Adds a field to the list of things to alter on
+        charset_change_execute()
+
+    charset_change_execute
+        Executes actual SQL collected from charset_change_field()
+
     delete_row ($$)
         Deletes a row from the given name and unique_id.
 
@@ -141,6 +152,14 @@ METHODS
 
         Connector name and connector value are optional if this list is
         directly underneath of Global.
+
+    text_field_definition
+        Returns a MySQL definition for the field suitable for use in CREATE
+        TABLE or ALTER TABLE.
+
+        Something like "TEXT CHARSET 'charset' NOT NULL DEFAULT ?".
+
+        Note that the default needs to be substituted in later!
 
     unique_id ($$$$$)
         Looks up row unique ID by given key name and value (required) and

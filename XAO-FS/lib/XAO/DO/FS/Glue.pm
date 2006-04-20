@@ -50,7 +50,7 @@ use XAO::Objects;
 use base XAO::Objects->load(objname => 'Atom');
 
 use vars qw($VERSION);
-$VERSION=(0+sprintf('%u.%03u',(q$Id: Glue.pm,v 2.4 2006/04/19 01:36:31 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
+$VERSION=(0+sprintf('%u.%03u',(q$Id: Glue.pm,v 2.5 2006/04/20 02:19:20 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
 
 ###############################################################################
 
@@ -256,7 +256,7 @@ Rough equivalent of:
 sub destroy ($;$) {
     my ($self,$lists_only)=@_;
     foreach my $key ($self->keys) {
-        my $type=$self->describe($key)->{type};
+        my $type=$self->describe($key)->{'type'};
         next if $type eq 'key';
         next if $lists_only && $type ne 'list';
         $self->delete($key);
@@ -647,6 +647,51 @@ B<never use the following methods in your applications>.
 
 ###############################################################################
 
+=item _charset_change (%)
+
+Upgrades charset information for the given text fields both in memory
+structures AND in the database tables.
+
+=cut
+
+sub _charset_change ($%) {
+    my $self=shift;
+
+    my $flist=get_args(\@_);
+
+    my $desc=$self->_class_description;
+    my $table=$desc->{'table'};
+
+    my $driver=$self->_driver;
+    my $csh=$driver->charset_change_prepare($table);
+
+    foreach my $name (keys %$flist) {
+        my $fdesc=$desc->{'fields'}->{$name} || throw $self "_charset_change - something went wrong";
+
+        my $charset_new=$flist->{$name};
+        my $charset_old=$fdesc->{'charset'} || throw $self "_charset_change - no existing charset";
+        dprint "...field $name, changing charset from '$charset_old' to '$charset_new'";
+
+        $driver->charset_change_field($csh,$name,$charset_new,$fdesc->{'maxlength'},$fdesc->{'default'});
+
+        $fdesc->{'charset'}=$charset_new;
+    }
+
+    dprint "...executing";
+    $driver->charset_change_execute($csh);
+
+    foreach my $name (keys %$flist) {
+        my $fdesc=$self->describe($name) || throw $self "_charset_change - something went wrong";
+
+        my $uid=$driver->unique_id('Global_Fields','field_name',$name,'table_name',$table);
+        $driver->update_fields('Global_Fields',$uid,{ charset => $fdesc->{'charset'} });
+    }
+
+    dprint "...done";
+}
+
+###############################################################################
+
 =item _class_description ()
 
 Returns hash reference describing fields of the class name given.
@@ -658,16 +703,16 @@ sub _class_description ($) {
     my $class_name=shift;
 
     if($class_name) {
-        return ${$self->_glue}->{classes}->{$class_name} ||
+        return ${$self->_glue}->{'classes'}->{$class_name} ||
             $self->throw("_class_description - no description for class $class_name");
     }
     else {
-        return $$self->{description} if $$self->{description};
+        return $$self->{'description'} if $$self->{'description'};
 
-        my $objname=$$self->{objname};
-        my $desc=${$self->_glue}->{classes}->{$objname} ||
+        my $objname=$$self->{'objname'};
+        my $desc=${$self->_glue}->{'classes'}->{$objname} ||
             $self->throw("_class_description - object ($objname) is not configured in the database");
-        $$self->{description}=$desc;
+        $$self->{'description'}=$desc;
 
         return $desc;
     }
@@ -1262,7 +1307,7 @@ sub _build_search_query ($%) {
             $clause.=" AND " if $clause;
             $clause.="$un.unique_id=$cn.$conn";
         }
-        $up->{$cc}->{$ct}->{done}=1;
+        $up->{$cc}->{$ct}->{'done'}=1;
         $cc=$uc;
         $ct=$ut;
     }
@@ -1461,12 +1506,12 @@ sub _build_search_field ($$$) {
     # and unique index even more. If not overriden in options that is
     # going to be out center table.
     #
-    my $inc=$field_desc->{unique} ? 20 : ($field_desc->{index} ? 10 : 1);
-    my $weight=$classes->{names}->{$class_index}->{weight}+=$inc;
-    if(!$classes->{center_weight} || $classes->{center_weight}<$weight) {
-        $classes->{center_weight}=$weight;
-        $classes->{center_class}=$class_name;
-        $classes->{center_tag}=$class_tag;
+    my $inc=$field_desc->{'unique'} ? 20 : ($field_desc->{'index'} ? 10 : 1);
+    my $weight=$classes->{'names'}->{$class_index}->{'weight'}+=$inc;
+    if(!$classes->{'center_weight'} || $classes->{'center_weight'}<$weight) {
+        $classes->{'center_weight'}=$weight;
+        $classes->{'center_class'}=$class_name;
+        $classes->{'center_tag'}=$class_tag;
     }
 
     ##
@@ -2044,7 +2089,7 @@ sub _add_list_placeholder ($%) {
                        { type       => 'connector',
                          refers     => $self->objname
                        }) if defined($connector);
-    $desc->{fields}->{$name}=$args;
+    $desc->{'fields'}->{$name}=$args;
     $driver->store_row('Global_Fields',
                        'field_name',$name,
                        'table_name',$desc->{table},
@@ -2059,7 +2104,7 @@ sub _add_list_placeholder ($%) {
     my $key_uid=$driver->unique_id('Global_Fields',
                                    'field_name',$key,
                                    'table_name',$table);
-    $$glue->{classes}->{$class}->{fields}->{$key}->{key_unique_id}=$key_uid;
+    $$glue->{'classes'}->{$class}->{'fields'}->{$key}->{'key_unique_id'}=$key_uid;
 }
 
 ##

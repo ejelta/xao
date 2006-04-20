@@ -68,7 +68,7 @@ use Encode;
 use base XAO::Objects->load(objname => 'FS::Glue');
 
 use vars qw($VERSION);
-$VERSION=(0+sprintf('%u.%03u',(q$Id: Hash.pm,v 2.2 2006/04/19 01:36:31 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
+$VERSION=(0+sprintf('%u.%03u',(q$Id: Hash.pm,v 2.3 2006/04/20 02:19:20 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
 
 ###############################################################################
 
@@ -345,10 +345,13 @@ sub build_structure ($%) {
     my $self=shift;
     my $args=get_args(\@_);
 
+    my %changed_charsets;
+
     foreach my $name (keys %$args) {
         my %ph;
         @ph{keys %{$args->{$name}}}=values %{$args->{$name}};
-        $ph{name}=$name;
+        $ph{'name'}=$name;
+
 
         my $desc=$self->describe($name);
         if($desc) {
@@ -356,9 +359,19 @@ sub build_structure ($%) {
                 next if $n eq 'name';
                 next if $n eq 'structure';
                 my $dbv=$desc->{$n};
-                (!defined($v) && !defined($dbv)) || $dbv eq $v ||
-                    throw $self "build_structure - structure mismatch, " .
-                                "property=$name, ($n,$v) <> ($n,$dbv)";
+
+                if($n eq 'charset') {
+                    $v eq 'binary' || Encode::resolve_alias($v) ||
+                        throw $self "build_structure - new charset '$v' is not supported for field '$name'";
+                    if($v ne $dbv) {
+                        $changed_charsets{$name}=$v;
+                    }
+                }
+                else {
+                    (!defined($v) && !defined($dbv)) || $dbv eq $v ||
+                        throw $self "build_structure - structure mismatch, " .
+                                    "property=$name, ($n,$v) <> ($n,$dbv)";
+                }
             }
         }
         else {
@@ -367,11 +380,24 @@ sub build_structure ($%) {
 
         # Building recursive structures
         #
-        if($ph{type} eq 'list' && $ph{structure}) {
-            my $ro=XAO::Objects->new(objname => $ph{class},
+        if($ph{'type'} eq 'list' && $ph{'structure'}) {
+            my $ro=XAO::Objects->new(objname => $ph{'class'},
                                      glue => $self->_glue);
-            $ro->build_structure($ph{structure});
+            $ro->build_structure($ph{'structure'});
         }
+    }
+
+    if(keys %changed_charsets) {
+        my $debug_status=XAO::Utils::get_debug();
+        XAO::Utils::set_debug(1);
+
+        dprint "Some text fields in ".$$self->{'class'}." have changed charset values.";
+        dprint "An automatic conversion will be attempted in 10 seconds. Interrupt to abort.";
+        sleep 10;
+        dprint "Converting...";
+        $self->_charset_change(\%changed_charsets);
+
+        XAO::Utils::set_debug($debug_status);
     }
 }
 
@@ -1054,10 +1080,10 @@ sub put ($$$) {
         elsif($type eq 'integer' || $type eq 'real') {
             $value=$self->_field_default($name,$field) if $value eq '';
 
-            !defined($field->{minvalue}) || $value>=$field->{minvalue} ||
+            !defined($field->{'minvalue'}) || $value>=$field->{'minvalue'} ||
                 $self->throw("put - value ($value) is less then $field->{minvalue} for $name");
 
-            !defined($field->{maxvalue}) || $value<=$field->{maxvalue} ||
+            !defined($field->{'maxvalue'}) || $value<=$field->{'maxvalue'} ||
                 $self->throw("put - value ($value) is bigger then $field->{maxvalue} for $name");
         }
         else {

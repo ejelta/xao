@@ -31,7 +31,7 @@ use XAO::Objects;
 use base XAO::Objects->load(objname => 'FS::Glue::SQL_DBI');
 
 use vars qw($VERSION);
-$VERSION=(0+sprintf('%u.%03u',(q$Id: MySQL_DBI.pm,v 2.2 2006/04/19 01:36:31 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
+$VERSION=(0+sprintf('%u.%03u',(q$Id: MySQL_DBI.pm,v 2.3 2006/04/20 02:19:20 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
 
 ###############################################################################
 
@@ -81,9 +81,20 @@ sub new ($%) {
         throw $self "new - wrong driver type ($driver)";
 
     $self->sql_connect(dsn => "DBI:mysql:$dbname$dbopts",
-                       user => $args->{user},
-                       password => $args->{password});
+                       user => $args->{'user'},
+                       password => $args->{'password'});
 
+    ##
+    # Without this option we risk getting weird results -- for instance
+    # a 'koi8r' column might be returned encoded in 'utf8' otherwise
+    # depending on the server config.
+    #
+    $self->sql_do("SET character_set_results=binary");
+    $self->sql_do("SET character_set_connection=binary");
+
+    ##
+    # Done preparing
+    #
     return $self;
 }
 
@@ -222,7 +233,7 @@ later.
 
 sub add_field_text ($$$$$$) {
     my $self=shift;
-    my ($table,$name,$index,$unique,$max,$default,$charset,$connected)=@_;
+    my ($table,$name,$index,$unique,$maxlength,$default,$charset,$connected)=@_;
     $name.='_';
 
     if($self->tr_loc_active || $self->tr_ext_active) {
@@ -232,49 +243,25 @@ sub add_field_text ($$$$$$) {
     $charset ||
         throw $self "add_field_text - 'charset' is required for text fields";
 
-    my $sql;
-    if($charset eq 'binary') {
-        if($max<255) {
-            $sql="BINARY($max)";
-        } elsif($max<65535) {
-            $sql="BLOB";
-        } elsif($max<16777215) {
-            $sql="MEDIUMBLOB";
-        } elsif($max<4294967295) {
-            $sql="LONGBLOB";
-        }
-    }
-    else {
-        if($max<255) {
-            $sql="CHAR($max)";
-        } elsif($max<65535) {
-            $sql="TEXT";
-        } elsif($max<16777215) {
-            $sql="MEDIUMTEXT";
-        } elsif($max<4294967295) {
-            $sql="LONGTEXT";
-        }
-        $sql.=" CHARSET '$charset'";
-    }
+    my $def=$self->text_field_definition($charset,$maxlength);
 
-    $self->sql_do("ALTER TABLE $table ADD $name $sql NOT NULL DEFAULT ?",
-                  $default);
+    $self->sql_do("ALTER TABLE $table ADD $name $def",$default);
 
-    !$unique || $max<=255 ||
-        throw $self "add_field_text - property is too long to make it unique ($max)";
-    !$index || $max<=255 ||
-        throw $self "add_field_text - property is too long for an index ($max)";
+    !$unique || $maxlength<=255 ||
+        throw $self "add_field_text - property is too long to make it unique ($maxlength)";
+    !$index || $maxlength<=255 ||
+        throw $self "add_field_text - property is too long for an index ($maxlength)";
 
     if(($index || $unique) && (!$unique || !$connected)) {
         my $usql=$unique ? " UNIQUE" : "";
-        $sql="ALTER TABLE $table ADD$usql INDEX fsi__$name ($name)";
-        #dprint ">>>$sql<<<";
+        my $sql="ALTER TABLE $table ADD$usql INDEX fsi__$name ($name)";
+        ### dprint ">>>$sql<<<";
         $self->sql_do($sql);
     }
 
     if($unique && $connected) {
-        $sql="ALTER TABLE $table ADD UNIQUE INDEX fsu__$name (parent_unique_id_,$name)";
-        #dprint ">>>$sql<<<";
+        my $sql="ALTER TABLE $table ADD UNIQUE INDEX fsu__$name (parent_unique_id_,$name)";
+        ### dprint ">>>$sql<<<";
         $self->sql_do($sql);
     }
 }
@@ -311,6 +298,63 @@ sub add_table ($$$$$) {
         if $self->{table_type} && $self->{table_type} ne 'mixed';
 
     $self->sql_do($sql);
+}
+
+###############################################################################
+
+=item charset_change_prepare ($)
+
+Prepares an internal structure for a later one-shot modification of
+charsets in a table.
+
+=cut
+
+sub charset_change_prepare ($$) {
+    my ($self,$table)=@_;
+
+    $table || throw $self "charset_change_prepare - no 'table' given";
+
+    return {
+        sql     => '',
+        table   => $table,
+        defaults=> [ ],
+    };
+}
+
+###############################################################################
+
+=item charset_change_field
+
+Adds a field to the list of things to alter on charset_change_execute()
+
+=cut
+
+sub charset_change_field ($$$$$$) {
+    my ($self,$csh,$name,$charset,$maxlength,$default)=@_;
+
+    my $def=$self->text_field_definition($charset,$maxlength);
+
+    $csh->{'sql'}.=', ' if $csh->{'sql'};
+    $csh->{'sql'}.="CHANGE ".
+                   $self->mangle_field_name($name)." ".
+                   $self->mangle_field_name($name)." ".$def;
+
+    push(@{$csh->{'defaults'}},$default);
+}
+
+###############################################################################
+
+=item charset_change_execute
+
+Executes actual SQL collected from charset_change_field()
+
+=cut
+
+sub charset_change_execute ($$) {
+    my ($self,$csh)=@_;
+
+    my $sql="ALTER TABLE ".$csh->{'table'}." ".$csh->{'sql'};
+    $self->sql_do($sql,$csh->{'defaults'});
 }
 
 ###############################################################################
@@ -583,10 +627,25 @@ sub load_structure ($) {
     if($self->{'table_type'}) {
         my $table_type=$self->{'table_type'};
         if($table_type eq 'innodb' || $table_type eq 'myisam') {
+            my $warning_shown;
             foreach my $table_name (keys %table_status) {
                 next if $table_status{$table_name} eq $table_type;
-                dprint "Converting table '$table_name' type from '$table_status{$table_name}' to '$table_type'";
+
+                my $debug_status=XAO::Utils::get_debug();
+                XAO::Utils::set_debug(1);
+
+                unless($warning_shown) {
+                    dprint "Some tables in your database differ from the requested table type ($table_type)";
+                    dprint "In 5 seconds they will be converted to the new table type, interrupt to abort..";
+                    sleep 5;
+                    dprint "Converting...";
+                    $warning_shown=1;
+                }
+
+                dprint "...table '$table_name' type from '$table_status{$table_name}' to '$table_type'";
                 $self->sql_do("ALTER TABLE $table_name TYPE=$table_type");
+
+                XAO::Utils::set_debug($debug_status);
             }
         }
         else {
@@ -614,7 +673,7 @@ sub load_structure ($) {
     my $flist=$self->sql_first_column($sth);
     if(! grep { $_ eq 'key_format_' } @$flist) {
         dprint "Old database detected, adding Global_Fields.key_format_";
-        $self->sql_do('ALTER TABLE Global_Fields ADD key_format_ CHAR(100) DEFAULT NULL');
+        $self->sql_do('ALTER TABLE Global_Fields ADD key_format_ CHAR(100) CHARSET latin1 DEFAULT NULL');
     }
     if(! grep { $_ eq 'key_seq_' } @$flist) {
         dprint "Old database detected, adding Global_Fields.key_seq_";
@@ -711,7 +770,11 @@ sub load_structure ($) {
     # Checking that we have a charset for every text field. Altering
     # tables to binary for compatibility if the charset is not defined.
     #
+    my $warning_shown;
     foreach my $table (keys %fields) {
+        my $debug_status=XAO::Utils::get_debug();
+        XAO::Utils::set_debug(1);
+
         my $sql='';
         my $flist=$fields{$table};
         my @deflist;
@@ -722,39 +785,40 @@ sub load_structure ($) {
             next unless $fdata->{'type'} eq 'text' &&
                         ! $fdata->{'charset'};
 
-            dprint "Table '$table' has empty charset for text field '$fname', altering to 'binary'";
-            my $max=$fdata->{'maxlength'};
-            my $def;
-            if($max<255) {
-                $def="BINARY($max)";
-            }
-            elsif($max<65535) {
-                $def="BLOB";
-            }
-            elsif($max<16777215) {
-                $def="MEDIUMBLOB";
-            }
-            elsif($max<4294967295) {
-                $def="LONGBLOB";
+
+            unless($warning_shown) {
+                dprint "Some text fields in your database have no 'charset' value";
+                dprint "In 10 seconds we will start converting them to 'binary' for behavior compatibility.";
+                dprint "For large datasets this may require a lot of time, interrupt to abort.";
+                sleep 10;
+                dprint "Converting...";
+                $warning_shown=1;
             }
 
+            dprint "...table '$table' has empty charset for text field '$fname', altering to 'binary'";
+
+            my $def=$self->text_field_definition('binary',$fdata->{'maxlength'});
+
             $sql.=', ' if $sql;
-            $sql.="CHANGE ".$fname."_ ".$fname."_ $def NOT NULL DEFAULT ?";
+            $sql.="CHANGE ".$fname."_ ".$fname."_ ".$def;
 
             push(@deflist,$fdata->{'default'});
             push(@altered_fields,$fname);
             $fdata->{'charset'}='binary';
         }
         if($sql) {
+            dprint "...executing SQL instructions, do not interrupt";
             $sql="ALTER TABLE $table $sql";
-            dprint $sql;
+            ### dprint $sql;
             $self->sql_do($sql,@deflist);
             foreach my $fname (@altered_fields) {
                 $sql="UPDATE Global_Fields SET charset_='binary' WHERE table_name_='$table' AND field_name_='$fname'";
-                dprint $sql;
+                ### dprint $sql;
                 $self->sql_do($sql);
             }
         }
+
+        XAO::Utils::set_debug($debug_status);
     }
 
     ##
@@ -791,7 +855,7 @@ sub load_structure ($) {
     ##
     # Resulting structure
     #
-    \%classes;
+    return \%classes;
 }
 
 ###############################################################################
@@ -1027,6 +1091,50 @@ sub store_row ($$$$$$$) {
     }
 
     $key_value;
+}
+
+###############################################################################
+
+=item text_field_definition
+
+Returns a MySQL definition for the field suitable for use in CREATE
+TABLE or ALTER TABLE.
+
+Something like "TEXT CHARSET 'charset' NOT NULL DEFAULT ?".
+
+Note that the default needs to be substituted in later!
+
+=cut
+
+sub text_field_definition ($$$) {
+    my ($self,$charset,$maxlength)=@_;
+
+    my $def;
+    if($charset eq 'binary') {
+        if($maxlength<255) {
+            $def="BINARY($maxlength)";
+        } elsif($maxlength<65535) {
+            $def="BLOB";
+        } elsif($maxlength<16777215) {
+            $def="MEDIUMBLOB";
+        } elsif($maxlength<4294967295) {
+            $def="LONGBLOB";
+        }
+    }
+    else {
+        if($maxlength<255) {
+            $def="CHAR($maxlength)";
+        } elsif($maxlength<65535) {
+            $def="TEXT";
+        } elsif($maxlength<16777215) {
+            $def="MEDIUMTEXT";
+        } elsif($maxlength<4294967295) {
+            $def="LONGTEXT";
+        }
+        $def.=" CHARSET '$charset'";
+    }
+
+    return "$def NOT NULL DEFAULT ?";
 }
 
 ###############################################################################

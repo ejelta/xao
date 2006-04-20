@@ -62,6 +62,21 @@ DESCRIPTION
             to exist and be available for object loader at the time of the
             call.
 
+        charset
+            For fields of 'text' type this can be one of 'binary', 'latin1',
+            or 'utf8'. For compatibility with older version that did not
+            have a dedicated 'blob' data type the default charset is
+            'binary'.
+
+            Fields of 'latin1' or 'utf8' charset have no guaranteed
+            behaviour on characters not defined for these charsets. Such
+            characters can be skipped or converted to '?' for instance.
+
+            'Binary' charset fields will accept any data just like 'blob'
+            data type, but the sorting order and word matching in search may
+            differ from older versions. As another side effect, searches on
+            'binary' charset fields are case sensitive.
+
         connector
             Optional name of the key that would refer objects in the list to
             the object they are contained in. Default is 'parent_unique_id',
@@ -83,14 +98,12 @@ DESCRIPTION
             especially good on `real' and `integer' fields when you later
             search on them using ranges or equivalence.
 
-            For text searches it is usually better to make a field of type
-            `words' then making an index on it. Indexing text fields works
-            great mostly on 'eq' and 'ne' search operators, not 'ws' or
-            'wq'.
+            Note, that indexing text fields works mostly on 'eq', 'ne', and
+            'sw' search operators, not 'cs', 'ws', or 'wq'.
 
             Regardless of your use of indexes searches are guaranteed to
-            produc equal results. Indexing can only improve performance or
-            decrease it when used incorrectly.
+            produce equal results. Indexing can only improve performance (or
+            decrease it when used incorrectly).
 
         key Name of the key that would identify objects in the list.
             Required if you add a 'list' placeholder.
@@ -148,9 +161,13 @@ DESCRIPTION
             field name length in Hashes for consistency reasons).
 
         maxlength
-            Maximum length for 'text' type in characters. If later on you
-            will try to store longer text string into that field an error
-            will be thrown. Default is 100.
+            Maximum length for 'text' type in bytes (so for 'utf8' charset
+            you may store less characters than the maxlength depending on
+            the data). If later on you will try to store longer text string
+            into that field an error will be thrown.
+
+            Default is 100, but using default length is deprecated -- it may
+            become illegal in future versions.
 
         maxvalue
             Maximum possible value for `integer' and `real' properties,
@@ -184,7 +201,7 @@ DESCRIPTION
             'osCustomer_Address' for 'Customer::Address' class).
 
         type
-            Placeholder type, one of 'text', 'words', 'integer', 'unsigned',
+            Placeholder type, one of 'text', 'blob', 'integer', 'unsigned',
             'real' or 'list'.
 
         unique
