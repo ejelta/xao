@@ -131,11 +131,11 @@ sub data_structure ($) {
                 },
                 map {
                     (   "id_$_" => {
-                            type        => 'text',
+                            type        => 'blob',
                             maxlength   => $max_kwdata_length,
                         },
                         "idpos_$_" => {
-                            type        => 'text',
+                            type        => 'blob',
                             maxlength   => $max_kwdata_length,
                         }
                     );
@@ -167,6 +167,7 @@ sub data_structure ($) {
         indexer_objname => {
             type        => 'text',
             maxlength   => 100,
+            charset     => 'latin1',
         },
         compression => {
             type        => 'integer',
