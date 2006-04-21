@@ -96,38 +96,41 @@ use XAO::Web;
 ###############################################################################
 
 use vars qw($VERSION);
-$VERSION=(0+sprintf('%u.%03u',(q$Id: XAO.pm,v 2.4 2006/01/19 04:35:45 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
+$VERSION=(0+sprintf('%u.%03u',(q$Id: XAO.pm,v 2.5 2006/04/21 00:39:27 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
 
-use mod_perl;
-use constant MP2 => ($mod_perl::VERSION && $mod_perl::VERSION >= 1.99);
+use vars qw($MP2);
 
 BEGIN {
-    if(MP2) {
-    	eval {
-            require Apache2::Const;
-            Apache2::Const->import(qw(:common));
-            require Apache2::ServerRec;
-            require Apache2::ServerUtil;
-            require Apache2::Log;
-            require Apache2::RequestRec;
-            require Apache2::RequestIO;
-	};
-	if($@) {
-            eval {
-                require Apache::Const;
-		Apache::Const->import(qw(:common));
-                require Apache::Server;
-                require Apache::ServerUtil;
-                require Apache::Log;
-                require Apache::RequestRec;
-                require Apache::RequestIO;
-	    };
-	}
+    eval {
+        require mod_perl2;
+        require Apache2::Const;
+        Apache2::Const->import(qw(:common));
+        require Apache2::ServerRec;
+        require Apache2::ServerUtil;
+        require Apache2::Log;
+        require Apache2::RequestRec;
+        require Apache2::RequestIO;
+        $MP2=2;
+    };
+    if($@) {
+        eval {
+            require Apache2;
+            require mod_perl;
+            require Apache::Const;
+            Apache::Const->import(qw(:common));
+            require Apache::Server;
+            require Apache::ServerUtil;
+            require Apache::Log;
+            require Apache::RequestRec;
+            require Apache::RequestIO;
+            $MP2=1;
+        };
     }
-    else {
+    if($@) {
         eval {
             require Apache::Constants;
             Apache::Constants->import(qw(:common));
+            $MP2=0;
         };
     }
     if($@) {
@@ -271,7 +274,7 @@ EOT
         # will still attempt to map filename, and worse yet -- attempt
         # to redirect to language specific 'index.html.en' for example.
         #
-        if(MP2) {
+        if($MP2) {
             $r->push_handlers(PerlMapToStorageHandler => \&handler_map_to_storage);
             $r->push_handlers(PerlResponseHandler => \&handler_content);
             return OK;
