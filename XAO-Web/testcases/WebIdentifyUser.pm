@@ -40,6 +40,7 @@ sub test_no_vf_key {
                 password => {
                     type        => 'text',
                     maxlength   => 100,
+                    charset     => 'latin1',
                 },
                 verify_time => {
                     type        => 'integer',
@@ -328,6 +329,7 @@ sub test_vf_key_simple {
                 password => {
                     type        => 'text',
                     maxlength   => 100,
+                    charset     => 'latin1',
                 },
                 verify_time => {
                     type        => 'integer',
@@ -336,6 +338,7 @@ sub test_vf_key_simple {
                 verify_key => {
                     type        => 'text',
                     maxlength   => 20,
+                    charset     => 'latin1',
                 },
             },
         },
@@ -547,12 +550,14 @@ sub test_user_prop_list {
                             maxlength   => '50',
                             index       => 1,
                             unique      => 1,
+                            charset     => 'latin1',
                         },
                     },
                 },
                 password => {
                     type        => 'text',
                     maxlength   => 100,
+                    charset     => 'latin1',
                 },
                 verify_time => {
                     type        => 'integer',
@@ -561,6 +566,7 @@ sub test_user_prop_list {
                 verify_key => {
                     type        => 'text',
                     maxlength   => 20,
+                    charset     => 'latin1',
                 },
             },
         },
@@ -649,7 +655,7 @@ sub test_user_prop_list {
             args => {
                 mode        => 'login',
                 type        => 'member',
-                username    => 'N3',
+                username    => 'N3',        # Will break if collation is case-sensitive
                 password    => '12345',
             },
             results => {
@@ -719,10 +725,12 @@ sub test_user_prop_hash {
                     type        => 'text',
                     maxlength   => 100,
                     unique      => 1,
+                    charset     => 'latin1',
                 },
                 password => {
                     type        => 'text',
                     maxlength   => 100,
+                    charset     => 'latin1',
                 },
                 verify_time => {
                     type        => 'integer',
@@ -731,6 +739,7 @@ sub test_user_prop_hash {
                 verify_key => {
                     type        => 'text',
                     maxlength   => 20,
+                    charset     => 'latin1',
                 },
             },
         },
@@ -863,6 +872,7 @@ sub test_key_list {
                 password => {
                     type        => 'text',
                     maxlength   => 100,
+                    charset     => 'latin1',
                 },
                 uvf_time => {
                     type        => 'integer',
@@ -880,6 +890,7 @@ sub test_key_list {
                     type        => 'text',
                     maxlength   => 30,
                     index       => 1,
+                    charset     => 'latin1',
                 },
                 expire_time => {
                     type        => 'integer',
