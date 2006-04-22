@@ -22,7 +22,9 @@ sub test_charsets {
     my $global=$odb->fetch('/');
     $self->assert(ref($global), "Failure getting / reference");
 
-    my @charset_list=qw(latin1 koi8r utf8 binary);
+    my @charset_list=qw(latin1 utf8 binary);
+    push(@charset_list,'koi8r') if Encode::resolve_alias('koi8r');
+
     #TODO: my @charset_list=$odb->charset_list;
 
     foreach my $charset (@charset_list) {

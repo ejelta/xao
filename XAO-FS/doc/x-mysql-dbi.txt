@@ -157,7 +157,7 @@ METHODS
         Returns a MySQL definition for the field suitable for use in CREATE
         TABLE or ALTER TABLE.
 
-        Something like "TEXT CHARSET 'charset' NOT NULL DEFAULT ?".
+        Something like "TEXT CHARACTER SET 'charset' NOT NULL DEFAULT ?".
 
         Note that the default needs to be substituted in later!
 

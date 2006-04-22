@@ -31,7 +31,7 @@ use XAO::Objects;
 use base XAO::Objects->load(objname => 'FS::Glue::SQL_DBI');
 
 use vars qw($VERSION);
-$VERSION=(0+sprintf('%u.%03u',(q$Id: MySQL_DBI.pm,v 2.3 2006/04/20 02:19:20 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
+$VERSION=(0+sprintf('%u.%03u',(q$Id: MySQL_DBI.pm,v 2.4 2006/04/22 02:01:17 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
 
 ###############################################################################
 
@@ -89,8 +89,10 @@ sub new ($%) {
     # a 'koi8r' column might be returned encoded in 'utf8' otherwise
     # depending on the server config.
     #
-    $self->sql_do("SET character_set_results=binary");
-    $self->sql_do("SET character_set_connection=binary");
+    # SET NAMES is the same as assigning the value to each of
+    # character-set-{client,connection,results} separately.
+    #
+    $self->sql_do("SET NAMES 'binary'");
 
     ##
     # Done preparing
@@ -287,15 +289,15 @@ sub add_table ($$$$$) {
 
     my $sql="CREATE TABLE $table (" . 
             " unique_id INT UNSIGNED AUTO_INCREMENT NOT NULL PRIMARY KEY," .
-            " $key CHAR($key_length) NOT NULL," .
-            " INDEX $key($key)" .
-            (defined($connector) ? ", $connector INT UNSIGNED NOT NULL" .
-                                   ", INDEX $connector($connector)"
-                                 : "") .
+            " $key CHAR($key_length) CHARACTER SET 'utf8' NOT NULL," .
+            (defined($connector) ? " $connector INT UNSIGNED NOT NULL," .
+                                   " INDEX $key($key)," .
+                                   " INDEX $connector($connector)"
+                                 : " UNIQUE INDEX $key($key)") .
             ")";
 
-    $sql.=" TYPE=$self->{table_type}"
-        if $self->{table_type} && $self->{table_type} ne 'mixed';
+    $sql.=" TYPE=".$self->{'table_type'}
+        if $self->{'table_type'} && $self->{'table_type'} ne 'mixed';
 
     $self->sql_do($sql);
 }
@@ -510,15 +512,15 @@ sub initialize_database ($) {
         <<'END_OF_SQL',
 CREATE TABLE Global_Fields (
   unique_id INT UNSIGNED NOT NULL AUTO_INCREMENT,
-  table_name_ CHAR(30) CHARSET latin1 NOT NULL DEFAULT '',
-  field_name_ CHAR(30) CHARSET latin1 NOT NULL DEFAULT '',
-  type_ CHAR(20) CHARSET latin1 NOT NULL DEFAULT '',
-  refers_ CHAR(30) CHARSET latin1 DEFAULT NULL,
-  key_format_ CHAR(100) CHARSET latin1 DEFAULT NULL,
+  table_name_ CHAR(30) CHARACTER SET utf8 NOT NULL DEFAULT '',
+  field_name_ CHAR(30) CHARACTER SET utf8 NOT NULL DEFAULT '',
+  type_ CHAR(20) CHARACTER SET latin1 NOT NULL DEFAULT '',
+  refers_ CHAR(30) CHARACTER SET latin1 DEFAULT NULL,
+  key_format_ CHAR(100) CHARACTER SET utf8 DEFAULT NULL,
   key_seq_ INT UNSIGNED DEFAULT NULL,
   index_ TINYINT DEFAULT NULL,
   default_ BINARY(30) DEFAULT NULL,
-  charset_ CHAR(30) CHARSET latin1 DEFAULT '',
+  charset_ CHAR(30) CHARACTER SET latin1 DEFAULT '',
   maxlength_ INT UNSIGNED DEFAULT NULL,
   maxvalue_ DOUBLE DEFAULT NULL,
   minvalue_ DOUBLE DEFAULT NULL,
@@ -533,7 +535,7 @@ END_OF_SQL
         <<'END_OF_SQL',
 CREATE TABLE Global_Data (
   unique_id INT UNSIGNED NOT NULL AUTO_INCREMENT,
-  project_ char(40) CHARSET utf8 NOT NULL DEFAULT '',
+  project_ char(40) CHARACTER SET utf8 NOT NULL DEFAULT '',
   PRIMARY KEY (unique_id)
 )
 END_OF_SQL
@@ -673,7 +675,7 @@ sub load_structure ($) {
     my $flist=$self->sql_first_column($sth);
     if(! grep { $_ eq 'key_format_' } @$flist) {
         dprint "Old database detected, adding Global_Fields.key_format_";
-        $self->sql_do('ALTER TABLE Global_Fields ADD key_format_ CHAR(100) CHARSET latin1 DEFAULT NULL');
+        $self->sql_do('ALTER TABLE Global_Fields ADD key_format_ CHAR(100) CHARACTER SET latin1 DEFAULT NULL');
     }
     if(! grep { $_ eq 'key_seq_' } @$flist) {
         dprint "Old database detected, adding Global_Fields.key_seq_";
@@ -685,7 +687,7 @@ sub load_structure ($) {
     #
     if(! grep { $_ eq 'charset_' } @$flist) {
         dprint "Old database detected, adding Global_Fields.charset_";
-        $self->sql_do(q{ALTER TABLE Global_Fields ADD charset_ CHAR(30) CHARSET latin1 NOT NULL DEFAULT ''});
+        $self->sql_do(q{ALTER TABLE Global_Fields ADD charset_ CHAR(30) CHARACTER SET latin1 NOT NULL DEFAULT ''});
     }
     
     ##
@@ -1100,7 +1102,7 @@ sub store_row ($$$$$$$) {
 Returns a MySQL definition for the field suitable for use in CREATE
 TABLE or ALTER TABLE.
 
-Something like "TEXT CHARSET 'charset' NOT NULL DEFAULT ?".
+Something like "TEXT CHARACTER SET 'charset' NOT NULL DEFAULT ?".
 
 Note that the default needs to be substituted in later!
 
@@ -1131,7 +1133,7 @@ sub text_field_definition ($$$) {
         } elsif($maxlength<4294967295) {
             $def="LONGTEXT";
         }
-        $def.=" CHARSET '$charset'";
+        $def.=" CHARACTER SET '$charset'";
     }
 
     return "$def NOT NULL DEFAULT ?";

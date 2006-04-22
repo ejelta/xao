@@ -61,6 +61,7 @@ description. Methods are listed in alphabetical order.
 #
 package XAO::DO::FS::Hash;
 use strict;
+use utf8;
 use XAO::Utils;
 use XAO::Objects;
 use Encode;
@@ -68,7 +69,7 @@ use Encode;
 use base XAO::Objects->load(objname => 'FS::Glue');
 
 use vars qw($VERSION);
-$VERSION=(0+sprintf('%u.%03u',(q$Id: Hash.pm,v 2.3 2006/04/20 02:19:20 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
+$VERSION=(0+sprintf('%u.%03u',(q$Id: Hash.pm,v 2.4 2006/04/22 02:01:17 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
 
 ###############################################################################
 
@@ -1067,11 +1068,11 @@ sub put ($$$) {
         }
         elsif($type eq 'text' || $type eq 'blob' ) {
             if($type eq 'text') {
-                if(utf8::is_utf8($value)) {
+                if(Encode::is_utf8($value)) {
                     $value=Encode::encode($field->{'charset'} eq 'binary' ? 'utf8' : $field->{'charset'},$value);
                 }
             }
-            elsif(utf8::is_utf8($value)) {
+            elsif(Encode::is_utf8($value)) {
                 $value=Encode::encode('utf8',$value);
             }
             length($value) <= $field->{'maxlength'} ||
