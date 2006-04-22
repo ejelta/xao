@@ -46,7 +46,7 @@ use vars qw(@ISA @EXPORT_OK @EXPORT $VERSION);
              );
 @EXPORT=();
 
-$VERSION=(0+sprintf('%u.%03u',(q$Id: TestUtils.pm,v 2.1 2005/01/13 22:34:34 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
+$VERSION=(0+sprintf('%u.%03u',(q$Id: TestUtils.pm,v 2.2 2006/04/22 01:57:44 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
 
 ###############################################################################
 
@@ -199,8 +199,8 @@ If you see that a test failed, please run it as follows:
 
    perl -w ta/failed_test_name.pl
 
-That will show you details about failure. Send the output to
-the module author along with your perl version and short
+That will show you details about the failure. Send the output
+to the module author along with your perl version and a short
 description of what you think might be the reason.
 ===============================================================
 END_OF_WARNING
