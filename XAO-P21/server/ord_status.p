@@ -69,8 +69,19 @@ DO TRANSACTION:
             .
         PUT UNFORMATTED
             sflag
-            skip
         .
+
+        FIND FIRST p21.cust_item WHERE p21.cust_item.frecno = ord_line.part_rec SHARE-LOCK NO-ERROR.
+        IF AVAILABLE(p21.cust_item) THEN
+            PUT UNFORMATTED
+                p21.cust_item.part_number   d_d
+            .
+        ELSE
+            PUT UNFORMATTED
+                ?                           d_d
+            .
+
+        PUT UNFORMATTED skip.
     END.
 
     /* And now shipping information and invoices

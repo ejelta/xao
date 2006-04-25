@@ -22,7 +22,8 @@ XAO::P21 - Perl extension for network interaction with prophet21.
 
 =head1 DESCRIPTION
 
-This module is intended for remote interaction with prophet21 system; it is mainly client-side stub for web server.
+This module is intended for remote interaction with prophet21 system; it is
+mainly a client-side stub for web server.
 
 =head1 METHODS
 
@@ -688,7 +689,7 @@ sub view_order_details {
 
         my %line;
         if($arr[0] eq 'LINE') {
-            @arr==14 ||
+            @arr==15 ||
                 throw XAO::E::P21 "view_order_details - wrong LINE ($str)";
             @line{qw(type line_number item_code entry_date
                      ord_qty inv_qty canc_qty
@@ -696,8 +697,11 @@ sub view_order_details {
                      disposition disposition_desc
                      ship_loc
                      req_date
-                     suspend_flag)}=@arr;
+                     suspend_flag
+		     part_number
+		    )}=@arr;
             $line{'suspend_flag'}=lc($line{'suspend_flag'} || '') eq 'no' ? 0 : 1;
+            $line{'part_number'}='' if $line{'part_number'} eq '?';
         }
         elsif($arr[0] eq 'INVOICE') {
             @arr==20 ||
