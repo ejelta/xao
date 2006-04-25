@@ -68,7 +68,7 @@ DO TRANSACTION:
                 rdate                       d_d
             .
         PUT UNFORMATTED
-            sflag
+            sflag                           d_d
         .
 
         FIND FIRST p21.cust_item WHERE p21.cust_item.frecno = ord_line.part_rec SHARE-LOCK NO-ERROR.
