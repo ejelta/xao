@@ -37,7 +37,7 @@ DO TRANSACTION:
         .
     END.
 
-    /* First we display general line item information and statuses.
+    /* General line item information and statuses.
     */
     FOR EACH p21.ord_line WHERE ord_line.ord_number = onum SHARE-LOCK:
 	ASSIGN c_price=ord_line.ut_price * ord_line.multiplier.
@@ -67,6 +67,7 @@ DO TRANSACTION:
             PUT UNFORMATTED
                 rdate                       d_d
             .
+
         PUT UNFORMATTED
             sflag                           d_d
         .
@@ -124,7 +125,28 @@ DO TRANSACTION:
         .
     END.
 
-    FOR EACH p21.blanket WHERE blanket.ord_number EQ onum NO-LOCK:
+    /* Showing shippers information useful for orders that were not invoiced yet
+    */
+    FOR EACH p21.ord_ship WHERE p21.ord_ship.ord_number = onum SHARE-LOCK:
+        i=1.
+        DO WHILE i LE 8:
+            IF ord_ship.ship_detail_ship_num[i] NE 0 AND ord_ship.ship_detail_ship_qty[i] NE 0 THEN
+            PUT UNFORMATTED
+                "SHIPPED"                                  d_d
+                ord_ship.line_number                       d_d
+                ord_ship.ship_detail_inv_date[i]           d_d
+                ord_ship.ship_detail_ship_num[i]           d_d
+                ord_ship.ship_detail_ship_line[i]          d_d
+                ord_ship.ship_detail_ship_qty[i]
+                skip
+            .
+            i=(i + 1).
+        END.
+    END.
+
+    /* Blanket order data
+    */
+    FOR EACH p21.blanket WHERE blanket.ord_number EQ onum SHARE-LOCK:
         i=1.
         DO WHILE i LE 18:
             PUT UNFORMATTED
