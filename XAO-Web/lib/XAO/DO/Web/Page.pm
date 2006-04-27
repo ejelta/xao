@@ -403,7 +403,7 @@ use Error qw(:try);
 use base XAO::Objects->load(objname => 'Atom');
 
 use vars qw($VERSION);
-$VERSION=(0+sprintf('%u.%03u',(q$Id: Page.pm,v 2.2 2006/03/24 23:53:20 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
+$VERSION=(0+sprintf('%u.%03u',(q$Id: Page.pm,v 2.3 2006/04/27 05:42:54 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
 
 ##
 # Prototypes
@@ -591,19 +591,19 @@ sub display ($%) {
         #
         if(defined($text) && $itemflag && $itemflag ne 't') {
             if($itemflag eq 'h') {
-                $text=XAO::Utils::t2ht($text)
+                $text=XAO::Utils::t2ht($text);
             }
             elsif($itemflag eq 's') {
                 $text=(defined $text && length($text)) ? XAO::Utils::t2ht($text) : "&nbsp;";
             }
             elsif($itemflag eq 'q') {
-                $text=XAO::Utils::t2hq($text)
+                $text=XAO::Utils::t2hq($text);
             }
             elsif($itemflag eq 'f') {
-                $text=XAO::Utils::t2hf($text)
+                $text=XAO::Utils::t2hf($text);
             }
             elsif($itemflag eq 'u') {
-                $text=XAO::Utils::t2hq($text)
+                $text=XAO::Utils::t2hq($text);
             }
         }
 
