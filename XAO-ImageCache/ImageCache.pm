@@ -44,6 +44,7 @@ local URL of image back to data object.
 ###############################################################################
 package XAO::ImageCache;
 use strict;
+use Error qw(:try);
 use XAO::Utils;
 use XAO::FS;
 use XAO::Errors qw(XAO::ImageCache);
@@ -73,6 +74,7 @@ sub remove_cache($);
 
 # Activities loging
 sub cache_log($$);
+sub error_log($$);
 
 # Special functions
 sub get_filename($);
@@ -623,77 +625,83 @@ sub resize($$) {
     my $outfile  = shift;
     my $geometry = ''; # image dimensions in ImageMagick geometry format
 
-    my $image = Image::Magick->new() 
-             || $self->error_log("ERROR - Image::Magick creation failure!");
-    my $err   = $image->ReadImage($infile);
-    $self->cache_log("RESIZE ERROR - $err") if $err;
-    
-    # Get source image dimensions
-    my ($src_width, $src_height) = $image->Get('columns','rows');
-
-    if ($src_height < 1) {
-        $self->cache_log("RESIZE ERROR - source Height less than 1");
-        $image->Set(quality => 80);
-        $image->Write($outfile);
-        return;
-    }
-    # Do nothing if size already correct
-    elsif (
-        !$self->{size} ||
-        (
-            ($self->{size}->{width}  eq $src_width) &&
-            ($self->{size}->{height} eq $src_height)
-        )
-    ) {
-        $image->Set(quality => 80);
-        $image->Write($outfile);
-        return;
-    }
-               
-    # Getting cached image width and height
-    #
-    if($self->{size}->{geometry}){
-        $geometry = $self->{size}->{geometry}; # size was set as geometry string
-    }
-    elsif ($self->{size}->{save_aspect_ratio}) {
-
-        $self->{size}->{width}  = $src_width  unless $self->{size}->{width};
-        $self->{size}->{height} = $src_height unless $self->{size}->{height};
+    try {
+        my $image = Image::Magick->new() || $self->error_log("ERROR - Image::Magick creation failure!");
+        my $err   = $image->ReadImage($infile);
+        $self->cache_log("RESIZE ERROR - $err") if $err;
         
-        # Counting width & height to save source image aspect ratio
-        my $aspect        = $src_width  / $src_height;
-        my $width_aspect  = $src_width  / $self->{size}->{width};
-        my $height_aspect = $src_height / $self->{size}->{height};
-        
-        my ($width,$height);
-         
-        if ($width_aspect >= $height_aspect) {
-            $width = $self->{size}->{width};
-            $height= sprintf('%i',($self->{size}->{width} / $aspect));
-        }
-        else {
-            $width = sprintf('%i',($self->{size}->{height} * $aspect));
-            $height= $self->{size}->{height};
-        }
+        # Get source image dimensions
+        my ($src_width, $src_height) = $image->Get('columns','rows');
 
+        if ($src_height < 1) {
+            $self->cache_log("RESIZE ERROR - source Height less than 1");
+            $image->Set(quality => 80);
+            $image->Write($outfile);
+            return;
+        }
         # Do nothing if size already correct
-        if (($width eq $src_width) && ($height eq $src_height)) {
+        elsif (
+            !$self->{size} ||
+            (
+                ($self->{size}->{width}  eq $src_width) &&
+                ($self->{size}->{height} eq $src_height)
+            )
+        ) {
             $image->Set(quality => 80);
             $image->Write($outfile);
             return;
         }
                    
-        $geometry = $width.'x'.$height.'!';
+        # Getting cached image width and height
+        #
+        if($self->{size}->{geometry}){
+            $geometry = $self->{size}->{geometry}; # size was set as geometry string
+        }
+        elsif ($self->{size}->{save_aspect_ratio}) {
+
+            $self->{size}->{width}  = $src_width  unless $self->{size}->{width};
+            $self->{size}->{height} = $src_height unless $self->{size}->{height};
+            
+            # Counting width & height to save source image aspect ratio
+            my $aspect        = $src_width  / $src_height;
+            my $width_aspect  = $src_width  / $self->{size}->{width};
+            my $height_aspect = $src_height / $self->{size}->{height};
+            
+            my ($width,$height);
+             
+            if ($width_aspect >= $height_aspect) {
+                $width = $self->{size}->{width};
+                $height= sprintf('%i',($self->{size}->{width} / $aspect));
+            }
+            else {
+                $width = sprintf('%i',($self->{size}->{height} * $aspect));
+                $height= $self->{size}->{height};
+            }
+
+            # Do nothing if size already correct
+            if (($width eq $src_width) && ($height eq $src_height)) {
+                $image->Set(quality => 80);
+                $image->Write($outfile);
+                return;
+            }
+                       
+            $geometry = $width.'x'.$height.'!';
+        }
+        else {
+            # Use given width & height as is (or image size if not set)
+            $geometry = ($self->{'size'}->{'width'}  || $src_width) .'x'.
+                        ($self->{'size'}->{'height'} || $src_height).'!';
+        }
+        $image->Scale(geometry => $geometry);
+        $image->Set(quality => 88);
+        $image->Write($outfile);
+        $self->cache_log("RESIZED from $src_width"."x$src_height to $geometry");
     }
-    else {
-        # Use given width & height as is (or image size if not set)
-        $geometry = ($self->{'size'}->{'width'}  || $src_width) .'x'.
-                    ($self->{'size'}->{'height'} || $src_height).'!';
-    }
-    $image->Scale(geometry => $geometry);
-    $image->Set(quality => 88);
-    $image->Write($outfile);
-    $self->cache_log("RESIZED from $src_width"."x$src_height to $geometry");
+    otherwise {
+        my $e=shift;
+        $self->cache_log("RESIZE ERROR - $e");
+        eprint $e;
+    };
 }
 
 ###############################################################################
@@ -716,18 +724,26 @@ sub thumbnail($$$) {
     my $self = shift;
     my $file = shift;
     my $thumbnail_file = shift;
-    my $image = Image::Magick->new();
-    my $err = $image->ReadImage($file);
-    if ($err) {
-        $self->cache_log("THUMBNAIL ERROR - $err");
-        dprint($err);
+    try {
+        my $image = Image::Magick->new();
+
+        my $err = $image->ReadImage($file);
+        $err && $self->error_log("THUMBNAIL ERROR - $err");
+
+        my ($src_width, $src_height) = $image->Get('columns','rows');
+        my $geometry = $self->{'thumbnails'}->{'geometry'} || "50%";
+        $image->Scale(geometry => $geometry);
+        $image->Set(quality => 88);
+
+        $image->Write($thumbnail_file);
+
+        $self->cache_log("RESIZED from $src_width"."x$src_height to $geometry");
     }
-    my ($src_width, $src_height) = $image->Get('columns','rows');
-    my $geometry = $self->{'thumbnails'}->{'geometry'} || "50%";
-    $image->Scale(geometry => $geometry);
-    $image->Set(quality => 88);
-    $image->Write($thumbnail_file);
-    $self->cache_log("RESIZED from $src_width"."x$src_height to $geometry");
+    otherwise {
+        my $e=shift;
+        $self->cache_log("THUMBNAIL ERROR - $e");
+        eprint $e;
+    };
 }
 
 ###############################################################################
