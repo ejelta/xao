@@ -50,7 +50,7 @@ use XAO::Objects;
 use base XAO::Objects->load(objname => 'Atom');
 
 use vars qw($VERSION);
-$VERSION=(0+sprintf('%u.%03u',(q$Id: Glue.pm,v 2.6 2006/05/03 07:55:46 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
+$VERSION=(0+sprintf('%u.%03u',(q$Id: Glue.pm,v 2.7 2006/05/03 20:40:48 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
 
 ###############################################################################
 
@@ -1051,8 +1051,8 @@ sub _list_search ($%) {
         $self->throw('_list_search - bad arguments');
     }
 
-    if($$self->{connector_name} && $$self->{base_id}) {
-        my $special=[ $$self->{connector_name}, 'eq', $$self->{base_id} ];
+    if($$self->{'connector_name'} && $$self->{'base_id'}) {
+        my $special=[ $$self->{'connector_name'}, 'eq', $$self->{'base_id'} ];
         if($conditions) {
             $conditions=[ $special, 'and', $conditions ];
         }
@@ -1066,7 +1066,7 @@ sub _list_search ($%) {
         $key='unique_id';
     }
     else {
-        $key=$$self->{key_name};
+        $key=$$self->{'key_name'};
     }
 
     my $query=$self->_build_search_query(options => $options,
@@ -1131,7 +1131,8 @@ sub _build_search_query ($%) {
     # In case where we do not have conditions we just put current class
     # name into classes.
     #
-    my $condition=$args->{conditions};
+    my $condition=$args->{'conditions'};
+    ### use Data::Dumper;
     ### dprint "CONDITION: ",Dumper($condition);
     my %classes;
     my @values;
@@ -1147,7 +1148,7 @@ sub _build_search_query ($%) {
     }
     else {
         $clause='';
-        my $class_name=$$self->{class_name} ||
+        my $class_name=$$self->{'class_name'} ||
             $self->throw("_build_search_query - no 'class_name', not a List or Collection?");
         $self->_build_search_field_class(\%classes,$class_name,1,"",1);
     }
@@ -1417,8 +1418,8 @@ sub _build_search_field ($$$) {
     my $lha=shift;
     my $glue=$self->_glue;
 
-    my $up=$classes->{up};
-    $up=$classes->{up}={} unless $up;
+    my $up=$classes->{'up'};
+    $up=$classes->{'up'}={} unless $up;
 
     ##
     # Optimizing stupid things like 'D/../E' into 'E'
@@ -1442,7 +1443,7 @@ sub _build_search_field ($$$) {
         shift @path;
     }
     else {
-        $class_name=$$self->{class_name} ||
+        $class_name=$$self->{'class_name'} ||
             $self->throw("_build_search_field - no 'class_name', not a List or Collection?");
         while(@path && $path[0] eq '..') {
             $class_name=$glue->upper_class($class_name) ||
@@ -1599,12 +1600,7 @@ conditions.
 =cut
 
 sub _build_search_clause ($$$$$$) {
-    my $self=shift;
-    my $classes=shift;
-    my $values=shift;
-    my $fields_map=shift;
-    my $post_process=shift;
-    my $condition=shift;
+    my ($self,$classes,$values,$fields_map,$post_process,$condition)=@_;
 
     ##
     # Checking if the condition has exactly three elements
@@ -1622,6 +1618,9 @@ sub _build_search_clause ($$$$$$) {
     #                      [ 'comment', 'wq', 'ugly' ]);
     #
     if(!ref($lha) && ref($rha) eq 'ARRAY') {
+        @$rha ||
+            throw $self "_build_search_query - shortcut array cannot be empty ('$lha','$op',[])";
+
         my @args=($lha,$op,$rha->[0]);
         for(my $i=1; $i!=@$rha; $i++) {
             @args=( [ @args ], 'or', [ $lha, $op, $rha->[$i] ] );

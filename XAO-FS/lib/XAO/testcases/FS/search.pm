@@ -2,6 +2,7 @@ package XAO::testcases::FS::search;
 use strict;
 use XAO::Utils;
 use XAO::Objects;
+use Error qw(:try);
 
 use base qw(XAO::testcases::FS::base);
 
@@ -13,14 +14,22 @@ sub test_empty_array_ref {
     my $self=shift;
     my $odb=$self->get_odb();
     my $customers=$odb->fetch('/Customers');
-    my $sr=$customers->search([ 'name','sw', [ ] ]);
-    my $got=join(',',sort @$sr);
-    my $expect='';
-    $self->assert($got eq $expect,
-                  "Bug in empty array reference treatment - expected $expect, got $got");
+
+    my $got;
+    try {
+        my $sr=$customers->search([ 'name','sw', [ ] ]);
+        my $got=join(',',sort @$sr);
+    }
+    otherwise {
+        my $e=shift;
+        dprint "Expected error: $e";
+    };
+
+    $self->assert(!defined $got,
+                  "Bug in empty array reference treatment - expected <undef>, got $got");
 }
 
-###############################################################################
+##################################################################################
 
 # Test for a bug in MySQL_DBI driver in handling on multi-value returns
 # in search.
@@ -1098,4 +1107,5 @@ sub deep_variants {
                   "Wrong complex deep search in test_deep_variants");
 }
 
+###############################################################################
 1;
