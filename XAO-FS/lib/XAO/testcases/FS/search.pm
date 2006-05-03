@@ -5,10 +5,26 @@ use XAO::Objects;
 
 use base qw(XAO::testcases::FS::base);
 
-##
+###############################################################################
+
+# reported by enn@, 2006/05/03
+
+sub test_empty_array_ref {
+    my $self=shift;
+    my $odb=$self->get_odb();
+    my $customers=$odb->fetch('/Customers');
+    my $sr=$customers->search([ 'name','sw', [ ] ]);
+    my $got=join(',',sort @$sr);
+    my $expect='';
+    $self->assert($got eq $expect,
+                  "Bug in empty array reference treatment - expected $expect, got $got");
+}
+
+###############################################################################
+
 # Test for a bug in MySQL_DBI driver in handling on multi-value returns
 # in search.
-#
+
 sub test_bug_20030505 {
     my $self=shift;
     my $odb=$self->get_odb();
