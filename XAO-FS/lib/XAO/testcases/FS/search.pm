@@ -26,7 +26,7 @@ sub test_empty_array_ref {
     };
 
     $self->assert(!defined $got,
-                  "Bug in empty array reference treatment - expected <undef>, got $got");
+                  "Bug in empty array reference treatment");
 }
 
 ##################################################################################
