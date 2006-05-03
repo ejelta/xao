@@ -113,6 +113,10 @@ DESCRIPTION
             Orders list placeholder it is recommended to call the key
             'order_id'.
 
+        key_charset
+            Charset to be used for the list key. Default is 'binary' which
+            should be sufficient for the majority of applications.
+
         key_format
             Only for 'list' placeholders. Specifies format of the
             auto-generated keys for a single argument put() method on Lists

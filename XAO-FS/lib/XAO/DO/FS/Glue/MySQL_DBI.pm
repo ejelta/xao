@@ -31,7 +31,7 @@ use XAO::Objects;
 use base XAO::Objects->load(objname => 'FS::Glue::SQL_DBI');
 
 use vars qw($VERSION);
-$VERSION=(0+sprintf('%u.%03u',(q$Id: MySQL_DBI.pm,v 2.4 2006/04/22 02:01:17 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
+$VERSION=(0+sprintf('%u.%03u',(q$Id: MySQL_DBI.pm,v 2.5 2006/05/03 07:55:47 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
 
 ###############################################################################
 
@@ -279,7 +279,7 @@ fields.
 
 sub add_table ($$$$$) {
     my $self=shift;
-    my ($table,$key,$key_length,$connector)=@_;
+    my ($table,$key,$key_length,$key_charset,$connector)=@_;
     $key.='_';
     $connector.='_' if $connector;
 
@@ -287,9 +287,11 @@ sub add_table ($$$$$) {
         throw $self "add_table - modifying structure in transaction scope is not supported";
     }
 
+    my $def=$self->text_field_definition($key_charset,$key_length);
+
     my $sql="CREATE TABLE $table (" . 
             " unique_id INT UNSIGNED AUTO_INCREMENT NOT NULL PRIMARY KEY," .
-            " $key CHAR($key_length) CHARACTER SET 'utf8' NOT NULL," .
+            " $key $def," .
             (defined($connector) ? " $connector INT UNSIGNED NOT NULL," .
                                    " INDEX $key($key)," .
                                    " INDEX $connector($connector)"
@@ -299,7 +301,7 @@ sub add_table ($$$$$) {
     $sql.=" TYPE=".$self->{'table_type'}
         if $self->{'table_type'} && $self->{'table_type'} ne 'mixed';
 
-    $self->sql_do($sql);
+    $self->sql_do($sql,'');
 }
 
 ###############################################################################
@@ -520,7 +522,7 @@ CREATE TABLE Global_Fields (
   key_seq_ INT UNSIGNED DEFAULT NULL,
   index_ TINYINT DEFAULT NULL,
   default_ BINARY(30) DEFAULT NULL,
-  charset_ CHAR(30) CHARACTER SET latin1 DEFAULT '',
+  charset_ CHAR(30) CHARACTER SET latin1 DEFAULT NULL,
   maxlength_ INT UNSIGNED DEFAULT NULL,
   maxvalue_ DOUBLE DEFAULT NULL,
   minvalue_ DOUBLE DEFAULT NULL,
@@ -687,7 +689,7 @@ sub load_structure ($) {
     #
     if(! grep { $_ eq 'charset_' } @$flist) {
         dprint "Old database detected, adding Global_Fields.charset_";
-        $self->sql_do(q{ALTER TABLE Global_Fields ADD charset_ CHAR(30) CHARACTER SET latin1 NOT NULL DEFAULT ''});
+        $self->sql_do(q{ALTER TABLE Global_Fields ADD charset_ CHAR(30) CHARACTER SET latin1 DEFAULT NULL});
     }
     
     ##
@@ -722,6 +724,7 @@ sub load_structure ($) {
                 key_format  => $key_format || '<$RANDOM$>',
                 key_unique_id => $uid,
                 key_length  => $maxlength || 30,
+                key_charset => $charset,
             };
             $tkeys{$table}=$field;
         }
@@ -784,32 +787,49 @@ sub load_structure ($) {
         foreach my $fname (keys %$flist) {
             my $fdata=$flist->{$fname};
 
-            next unless $fdata->{'type'} eq 'text' &&
-                        ! $fdata->{'charset'};
-
+            next unless ($fdata->{'type'} eq 'text' && !$fdata->{'charset'}) ||
+                        ($fdata->{'type'} eq 'key' && !$fdata->{'key_charset'});
 
             unless($warning_shown) {
-                dprint "Some text fields in your database have no 'charset' value";
+                dprint "Some key and text fields in your database have no 'charset' value";
                 dprint "In 10 seconds we will start converting them to 'binary' for behavior compatibility.";
                 dprint "For large datasets this may require a lot of time, interrupt to abort.";
                 sleep 10;
-                dprint "Converting...";
                 $warning_shown=1;
             }
 
             dprint "...table '$table' has empty charset for text field '$fname', altering to 'binary'";
 
-            my $def=$self->text_field_definition('binary',$fdata->{'maxlength'});
+            my $default;
+            my $maxlength;
+            if($fdata->{'type'} eq 'text') {
+                $default=$fdata->{'default'};
+                $maxlength=$fdata->{'maxlength'};
+            }
+            else {
+                $default='';
+                $maxlength=$fdata->{'key_length'};
+            }
+
+            my $def=$self->text_field_definition('binary',$maxlength);
 
             $sql.=', ' if $sql;
             $sql.="CHANGE ".$fname."_ ".$fname."_ ".$def;
 
-            push(@deflist,$fdata->{'default'});
+            push(@deflist,$default);
             push(@altered_fields,$fname);
-            $fdata->{'charset'}='binary';
+
+            if($fdata->{'type'} eq 'text') {
+                $fdata->{'charset'}='binary';
+            }
+            else {
+                $fdata->{'key_charset'}='binary';
+            }
         }
         if($sql) {
-            dprint "...executing SQL instructions, do not interrupt";
+            dprint "....preparing to execute, LAST CHANCE TO ABORT";
+            sleep 3;
+            dprint ".....executing SQL instructions, do not interrupt";
             $sql="ALTER TABLE $table $sql";
             ### dprint $sql;
             $self->sql_do($sql,@deflist);
@@ -850,8 +870,8 @@ sub load_structure ($) {
         my $key_name=$tkeys{$table};
         my $key_data=$data->{$key_name};
         my $upper_data=$classes{$key_data->{refers}}->{fields}->{$upper_key_name};
-        @{$upper_data}{qw(key key_format key_length)}=
-            ($key_name,@{$key_data}{qw(key_format key_length)});
+        @{$upper_data}{qw(key key_format key_length key_charset)}=
+            ($key_name,@{$key_data}{qw(key_format key_length key_charset)});
     }
 
     ##

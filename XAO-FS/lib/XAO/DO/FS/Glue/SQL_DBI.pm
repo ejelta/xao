@@ -37,7 +37,7 @@ use DBI;
 use base XAO::Objects->load(objname => 'Atom');
 
 use vars qw($VERSION);
-$VERSION=(0+sprintf('%u.%03u',(q$Id: SQL_DBI.pm,v 2.2 2006/04/19 01:36:31 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
+$VERSION=(0+sprintf('%u.%03u',(q$Id: SQL_DBI.pm,v 2.3 2006/05/03 07:55:47 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
 
 ###############################################################################
 
@@ -260,7 +260,8 @@ method. Guaranteed to return a reference of some sort. Example:
 
 sub sql_prepare ($$) {
     my ($self,$query)=@_;
-    return $self->{sql}->prepare($query) ||
+    ### dprint "SQL_PREPARE: $query";
+    return $self->{'sql'}->prepare($query) ||
         throw $self "sql_prepare - SQL error: ".$self->{sql}->errstr;
 }
 

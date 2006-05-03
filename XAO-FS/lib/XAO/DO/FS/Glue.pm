@@ -50,7 +50,7 @@ use XAO::Objects;
 use base XAO::Objects->load(objname => 'Atom');
 
 use vars qw($VERSION);
-$VERSION=(0+sprintf('%u.%03u',(q$Id: Glue.pm,v 2.5 2006/04/20 02:19:20 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
+$VERSION=(0+sprintf('%u.%03u',(q$Id: Glue.pm,v 2.6 2006/05/03 07:55:46 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
 
 ###############################################################################
 
@@ -677,7 +677,9 @@ sub _charset_change ($%) {
         $fdesc->{'charset'}=$charset_new;
     }
 
-    dprint "...executing";
+    dprint "....preparing to execute, LAST CHANCE TO ABORT";
+    sleep 3;
+    dprint ".....executing";
     $driver->charset_change_execute($csh);
 
     foreach my $name (keys %$flist) {
@@ -1750,18 +1752,19 @@ only in derived objects.
 
 sub _list_setup ($) {
     my $self=shift;
-    my $glue=$$self->{glue};
+    my $glue=$$self->{'glue'};
     $glue || $self->throw("_setup_list - meaningless on Glue object");
-    my $class_name=$$self->{class_name} || $self->throw("_setup_list - no class name given");
-    my $base_name=$$self->{base_name} || $self->throw("_setup_list - no base class name given");
-    $$self->{connector_name}=$glue->_connector_name($class_name,$base_name);
-    $$self->{class_description}=$$glue->{classes}->{$class_name};
-    $$self->{key_name}=$glue->_list_key_name($class_name,$base_name);
+    my $class_name=$$self->{'class_name'} || $self->throw("_setup_list - no class name given");
+    my $base_name=$$self->{'base_name'} || $self->throw("_setup_list - no base class name given");
+    $$self->{'connector_name'}=$glue->_connector_name($class_name,$base_name);
+    $$self->{'class_description'}=$$glue->{'classes'}->{$class_name};
+    $$self->{'key_name'}=$glue->_list_key_name($class_name,$base_name);
 
-    my $kdesc=$$self->{class_description}->{fields}->{$$self->{key_name}};
-    $$self->{key_format}=$kdesc->{key_format};
-    $$self->{key_length}=$kdesc->{key_length} || 30;
-    $$self->{key_unique_id}=$kdesc->{key_unique_id};
+    my $kdesc=$$self->{class_description}->{'fields'}->{$$self->{'key_name'}};
+    $$self->{'key_format'}=$kdesc->{'key_format'};
+    $$self->{'key_length'}=$kdesc->{'key_length'} || 30;
+    $$self->{'key_charset'}=$kdesc->{'key_charset'} || 'binary';
+    $$self->{'key_unique_id'}=$kdesc->{key_unique_id};
 }
 
 ##
@@ -2004,25 +2007,27 @@ sub _add_list_placeholder ($%) {
 
     my $desc=$self->_class_description;
 
-    my $name=$args->{name} || $self->throw("_add_list_placeholder - no 'name' argument");
-    my $class=$args->{class} || $self->throw("_add_list_placeholder - no 'class' argument");
-    my $key=$args->{key} || $self->throw("_add_list_placeholder - no 'key' argument");
+    my $name=$args->{'name'} || $self->throw("_add_list_placeholder - no 'name' argument");
+    my $class=$args->{'class'} || $self->throw("_add_list_placeholder - no 'class' argument");
+    my $key=$args->{'key'} || $self->throw("_add_list_placeholder - no 'key' argument");
     $self->check_name($key) || $self->throw("_add_list_placeholder - bad key name ($key)");
     my $connector;
     if($self->objname ne 'FS::Global') {  
-        $connector=$args->{connector} || 'parent_unique_id';
+        $connector=$args->{'connector'} || 'parent_unique_id';
         $self->check_name($connector) ||
             $self->throw("_add_list_placeholder - bad connector name ($key)");
     }
 
-    my $key_format=$args->{key_format} || '<$RANDOM$>';
+    my $key_format=$args->{'key_format'} || '<$RANDOM$>';
     if($key_format !~ /<\$RANDOM\$>/ && $key_format !~ /<\$AUTOINC(\/\d+)?\$>/) {
         throw $self "_add_list_placeholder - key_format must include either <\$RANDOM\$> or <\$AUTOINC\$> ($key_format)";
     }
 
-    my $key_length=$args->{key_length} || 30;
+    my $key_length=$args->{'key_length'} || 30;
     $key_length < 255 ||
         throw $self "_add_list_placeholder - key_length ($key_length) must be less then 255";
+
+    my $key_charset=$args->{'key_charset'} || 'binary';
 
     XAO::Objects->load(objname => $class);
 
@@ -2041,14 +2046,14 @@ sub _add_list_placeholder ($%) {
         throw $self "_add_list_placeholder - multiple lists for the same class ($class) are not allowed";
     }
     else {
-        foreach my $c (keys %{$$self->{classes}}) {
-            $c->{table} ne $table ||
+        foreach my $c (keys %{$$self->{'classes'}}) {
+            $c->{'table'} ne $table ||
                 throw $self "_add_list_placeholder - such table ($table) is already used";
         }
 
-        $driver->add_table($table,$key,$key_length,$connector);
+        $driver->add_table($table,$key,$key_length,$key_charset,$connector);
 
-        $$glue->{classes}->{$class}={
+        $$glue->{'classes'}->{$class}={
             table => $table,
             fields => {
                 $key => {
@@ -2056,11 +2061,12 @@ sub _add_list_placeholder ($%) {
                     refers      => $self->objname,
                     key_format  => $key_format,
                     key_length  => $key_length,
+                    key_charset => $key_charset,
                 }
             }
         };
         if(defined($connector)) {
-            $$glue->{classes}->{$class}->{fields}->{$connector}={
+            $$glue->{'classes'}->{$class}->{'fields'}->{$connector}={
                 type        => 'connector',
                 refers      => $self->objname,
             }
@@ -2082,6 +2088,7 @@ sub _add_list_placeholder ($%) {
                          key_format => $key_format,
                          key_seq    => 1,
                          maxlength  => $key_length,
+                         charset    => $key_charset,
                        });
     $driver->store_row('Global_Fields',
                        'field_name',$connector,
@@ -2092,7 +2099,7 @@ sub _add_list_placeholder ($%) {
     $desc->{'fields'}->{$name}=$args;
     $driver->store_row('Global_Fields',
                        'field_name',$name,
-                       'table_name',$desc->{table},
+                       'table_name',$desc->{'table'},
                        { type       => 'list',
                          refers     => $class
                        });

@@ -75,6 +75,12 @@ DESCRIPTION
         Returns the Glue object which was used to retrieve the current
         object from.
 
+    key_charset
+        Returns key charset for the given list. Default is 'binary'.
+
+    key_format
+        Returns key format for the given list. Default is '<$RANDOM$>'.
+
     key_length
         Returns key length for the given list. Default is 30.
 

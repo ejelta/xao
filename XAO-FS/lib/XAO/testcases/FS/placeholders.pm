@@ -69,6 +69,100 @@ sub test_double_drop_20031009 {
                   "Orders exists after drop_placeholder");
 }
 
+###############################################################################
+
+sub test_key_charset {
+    my $self=shift;
+
+    my $odb=$self->get_odb();
+
+    my $customer=$odb->fetch('/Customers/c1');
+    $self->assert(ref($customer),
+                  "Can't fetch /Customers/c1");
+
+    $customer->add_placeholder(
+        name        => 'Orders',
+        type        => 'list',
+        class       => 'Data::Order',
+        key         => 'order_id',
+    );
+
+    my $orders=$customer->get('Orders');
+    my $no=$orders->get_new;
+
+    my $cs=$no->describe('order_id')->{'key_charset'};
+    $self->assert($cs eq 'binary',
+                  "Got wrong key_charset, method 1, expected 'binary', got '$cs'");
+
+    $cs=$orders->key_charset;
+    $self->assert($cs eq 'binary',
+                  "Got wrong key_charset, method 2, expected 'binary', got '$cs'");
+
+    $no->add_placeholder(
+        name        => 'name',
+        type        => 'text',
+        maxlength   => 10,
+    );
+
+    my $k1='ABCdef';
+    my $k2='abcDEF';
+
+    $no->put(name => 'k1');
+    $orders->put($k1 => $no);
+
+    $no->put(name => 'k2');
+    $orders->put($k2 => $no);
+
+    my $v1=$orders->get($k1)->get('name');
+    my $v2=$orders->get($k2)->get('name');
+
+    $self->assert($v1 eq 'k1',
+                  "Expected 'k1', got '$v1', key_charset 'binary'");
+    $self->assert($v2 eq 'k2',
+                  "Expected 'k2', got '$v2', key_charset 'binary'");
+
+    $customer->drop_placeholder('Orders');
+
+    ##
+    # Now checking on latin1 key_charset, it should be case insensitive
+    #
+    $customer->add_placeholder(
+        name        => 'Orders',
+        type        => 'list',
+        class       => 'Data::Order',
+        key         => 'order_id',
+        key_charset => 'latin1',
+    );
+
+    $orders=$customer->get('Orders');
+    $no=$orders->get_new;
+
+    $cs=$no->describe('order_id')->{'key_charset'};
+    $self->assert($cs eq 'latin1',
+                  "Got wrong key_charset, method 1, expected 'latin1', got '$cs'");
+
+    $cs=$orders->key_charset;
+    $self->assert($cs eq 'latin1',
+                  "Got wrong key_charset, method 2, expected 'latin1', got '$cs'");
+
+    $no->add_placeholder(
+        name        => 'name',
+        type        => 'text',
+        maxlength   => 10,
+    );
+
+    my $k='abcdeFGHIK';
+    $no->put(name => 'zzzzzz');
+    $orders->put($k => $no);
+
+    for($k,lc($k),uc($k)) {
+        $self->assert($orders->exists($_),
+                      "Expected '$_' to exist, key_charset 'latin1'");
+    }
+}
+
+###############################################################################
+
 sub test_key_length {
     my $self=shift;
 
@@ -89,7 +183,7 @@ sub test_key_length {
     my $orders=$customer->get('Orders');
     my $no=$orders->get_new;
 
-    my $kl=$no->describe('order_id')->{key_length};
+    my $kl=$no->describe('order_id')->{'key_length'};
     $self->assert($kl == 40,
                   "Got wrong key length, method 1");
 
@@ -120,6 +214,8 @@ sub test_key_length {
     $self->assert($v2 eq 'k2',
                   "Expected 'k2', got '$v2'");
 }
+
+###############################################################################
 
 sub test_same_field_name {
     my $self=shift;

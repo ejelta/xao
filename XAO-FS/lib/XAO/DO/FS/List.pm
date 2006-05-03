@@ -33,7 +33,7 @@ use XAO::Objects;
 use base XAO::Objects->load(objname => 'FS::Glue');
 
 use vars qw($VERSION);
-$VERSION=(0+sprintf('%u.%03u',(q$Id: List.pm,v 2.4 2006/01/25 21:43:06 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
+$VERSION=(0+sprintf('%u.%03u',(q$Id: List.pm,v 2.5 2006/05/03 07:55:47 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
 
 ###############################################################################
 
@@ -239,7 +239,7 @@ that list can store.
 
 sub get_new ($) {
     my $self=shift;
-    $self->_glue->new(objname => $$self->{class_name});
+    $self->_glue->new(objname => $$self->{'class_name'});
 }
 
 ###############################################################################
@@ -255,6 +255,34 @@ from.
 
 ###############################################################################
 
+=item key_charset
+
+Returns key charset for the given list. Default is 'binary'.
+
+=cut
+
+sub key_charset ($) {
+    my $self=shift;
+    return $$self->{'key_charset'} ||
+        throw $self "key_charset - not defined (internal logic problem, $$self->{'class_name'})";
+}
+
+###############################################################################
+
+=item key_format
+
+Returns key format for the given list. Default is '<$RANDOM$>'.
+
+=cut
+
+sub key_format ($) {
+    my $self=shift;
+    return $$self->{'key_format'} ||
+        throw $self "key_format - not defined (internal logic problem, $$self->{'class_name'})";
+}
+
+###############################################################################
+
 =item key_length
 
 Returns key length for the given list. Default is 30.
@@ -263,7 +291,8 @@ Returns key length for the given list. Default is 30.
 
 sub key_length ($) {
     my $self=shift;
-    return $$self->{key_length} || 30;
+    return $$self->{'key_length'} ||
+        throw $self "key_length - not defined (internal logic problem, $$self->{'class_name'})";
 }
 
 ###############################################################################
@@ -277,7 +306,7 @@ Returns unsorted list of all keys for all objects stored in that list.
 sub keys ($) {
     my $self=shift;
 
-    if($$self->{detached}) {
+    if($$self->{'detached'}) {
         $self->throw("keys - is not implemented yet for detached mode");
     } else {
         @{$self->_list_keys()};
