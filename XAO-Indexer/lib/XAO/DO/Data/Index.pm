@@ -164,15 +164,15 @@ sub data_structure ($) {
                 },
             },
         },
-        indexer_objname => {
-            type        => 'text',
-            maxlength   => 100,
-            charset     => 'latin1',
-        },
         compression => {
             type        => 'integer',
             minvalue    => 0,
             maxvalue    => 99,
+        },
+        indexer_objname => {
+            type        => 'text',
+            maxlength   => 100,
+            charset     => 'latin1',
         },
     };
 }
