@@ -629,6 +629,12 @@ sub resize($$) {
         my $image = Image::Magick->new() || $self->error_log("ERROR - Image::Magick creation failure!");
         my $err   = $image->ReadImage($infile);
         $self->cache_log("RESIZE ERROR - $err") if $err;
+
+        ##
+        # This is required, otherwise new ImageMagick sometimes converts
+        # images to CMYK colorspace for whatever reason.
+        #
+        $image->Set(colorspace => 'RGB');
         
         # Get source image dimensions
         my ($src_width, $src_height) = $image->Get('columns','rows');
@@ -729,6 +735,12 @@ sub thumbnail($$$) {
 
         my $err = $image->ReadImage($file);
         $err && $self->error_log("THUMBNAIL ERROR - $err");
+
+        ##
+        # This is required, otherwise new ImageMagick sometimes converts
+        # images to CMYK colorspace for whatever reason.
+        #
+        $image->Set(colorspace => 'RGB');
 
         my ($src_width, $src_height) = $image->Get('columns','rows');
         my $geometry = $self->{'thumbnails'}->{'geometry'} || "50%";
