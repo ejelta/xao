@@ -8,6 +8,35 @@ use XAO::Errors qw(XAO::DO::Web::Page XAO::DO::Web::MyPage);
 
 use base qw(testcases::base);
 
+sub test_pass {
+    my $self=shift;
+
+    my $page=XAO::Objects->new(objname => 'Web::Page');
+    $self->assert(ref($page),
+                  "Can't load Page object");
+
+    my $template=q(<%Page ) .
+                 q(  template={'<%SetArg name='FOO' value='IN'%><$FOO$>'} ) .
+                 q(  pass ) .
+                 q(%>);
+
+    my $got=$page->expand(
+        template    => $template,
+    );
+    $self->assert($got eq 'IN',
+                  "Something wrong with arguments, expected 'IN' got '$got'");
+
+    $got=$page->expand(
+        template    => $template,
+        FOO         => 'OUT',
+    );
+    $self->assert($got eq 'OUT',
+                  "Page with 'pass' does not work, expected 'OUT' got '$got'");
+
+}
+
+###############################################################################
+
 sub test_unicode_transparency {
     my $self=shift;
 
