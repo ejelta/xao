@@ -403,7 +403,7 @@ use Error qw(:try);
 use base XAO::Objects->load(objname => 'Atom');
 
 use vars qw($VERSION);
-$VERSION=(0+sprintf('%u.%03u',(q$Id: Page.pm,v 2.3 2006/04/27 05:42:54 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
+$VERSION=(0+sprintf('%u.%03u',(q$Id: Page.pm,v 2.4 2006/05/20 00:08:10 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
 
 ##
 # Prototypes
@@ -473,7 +473,17 @@ path in URL.
 
 sub display ($%) {
     my $self=shift;
-    my $args=$self->{args}=get_args(\@_);
+    my $args=$self->{'args'}=get_args(\@_);
+
+    ##
+    # Merging parent's args in if requested
+    #
+    if($args->{'pass'} && $self->{'parent'} && $self->{'parent'}->{'args'}) {
+        my $pargs=$self->{'parent'}->{'args'};
+        delete $pargs->{'path'};
+        delete $pargs->{'template'};
+        $args=$self->{'args'}=merge_refs($pargs,$args);
+    }
 
     ##
     # Parsing template or getting already pre-parsed template when it is
@@ -491,22 +501,22 @@ sub display ($%) {
 
         my $text;
 
-        if(exists $item->{text}) {
-            $text=$item->{text};
+        if(exists $item->{'text'}) {
+            $text=$item->{'text'};
         }
 
-        elsif(exists $item->{varname}) {
-            my $varname=$item->{varname};
+        elsif(exists $item->{'varname'}) {
+            my $varname=$item->{'varname'};
             $text=$args->{$varname};
             defined $text ||
                 throw $self "display - undefined argument '$varname'";
-            $itemflag=$item->{flag};
+            $itemflag=$item->{'flag'};
         }
 
-        elsif(exists $item->{objname}) {
-            my $objname=$item->{objname};
+        elsif(exists $item->{'objname'}) {
+            my $objname=$item->{'objname'};
 
-            $itemflag=$item->{flag};
+            $itemflag=$item->{'flag'};
 
             ##
             # First we're trying to substitute from arguments
@@ -524,7 +534,7 @@ sub display ($%) {
                 # they are expanded first.
                 #
                 my %objargs;
-                my $ia=$item->{args};
+                my $ia=$item->{'args'};
                 my $args_copy;
                 foreach my $a (keys %$ia) {
                     my $v=$ia->{$a};
@@ -535,9 +545,9 @@ sub display ($%) {
                         else {
                             if(!$args_copy) {
                                 $args_copy=merge_refs($args);
-                                delete $args_copy->{path};
+                                delete $args_copy->{'path'};
                             }
-                            $args_copy->{template}=$v;
+                            $args_copy->{'template'}=$v;
                             $v=$self->expand($args_copy);
                         }
                     }
@@ -561,7 +571,7 @@ sub display ($%) {
                 # with the text anyway. This way we avoid push/pop and at
                 # least two extra memcpy's.
                 #
-                delete $self->{merge_args};
+                delete $self->{'merge_args'};
                 if($itemflag && $itemflag ne 't') {
                     $text=$obj->expand(\%objargs);
                 }
@@ -578,8 +588,8 @@ sub display ($%) {
                 ##
                 # Was it something like SetArg object? Merging changes in then.
                 #
-                if($self->{merge_args}) {
-                    @{$args}{keys %{$self->{merge_args}}}=values %{$self->{merge_args}};
+                if($self->{'merge_args'}) {
+                    @{$args}{keys %{$self->{'merge_args'}}}=values %{$self->{'merge_args'}};
                 }
             }
         }

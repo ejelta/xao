@@ -36,6 +36,7 @@ sub test_no_vf_key {
             type        => 'list',
             class       => 'Data::Member1',
             key         => 'member_id',
+            key_charset => 'latin1',
             structure   => {
                 password => {
                     type        => 'text',
