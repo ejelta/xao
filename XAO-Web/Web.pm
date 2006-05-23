@@ -308,15 +308,24 @@ sub execute ($%) {
     }
     otherwise {
         my $e=shift;
+
+        $self->config->header_args(
+            -Status         => '500 Internal Error',
+            -expires        => 'now',
+            -cache_control  => 'no-cache',
+        );
+
         my $path="/internal-error/index.html";
         my $pd=$self->analyze($path);
         if($pd && $pd->{'type'} eq 'xaoweb' && $pd->{'objname'} ne 'Default') {
             eprint "$e";
+
             $self->clipboard->put("internal_error" => {
                 error       => $e,
                 path        => $args->{path},
                 pagedesc    => $self->clipboard->get('pagedesc'),
             });
+
             ($pagetext,$header)=$self->expand($args,{
                 path        => $path,
                 pagedesc    => $pd,
@@ -333,7 +342,7 @@ sub execute ($%) {
     # when page includes something like Redirect object.
     #
     if(defined($header)) {
-        if(my $r=$args->{apache}) {
+        if(my $r=$args->{'apache'}) {
             my $h=$self->config->header_args;
             while(my ($n,$v)=each %$h) {
                 $r->header_out($n => $v);
