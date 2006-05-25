@@ -448,8 +448,8 @@ sub download ($$) {
         if($period > $self->{'min_period'}) {
             if($thm_src_url !~ m/^(https?|ftp):\/\//i) {
                 my $lfound;
-		        if($thm_src_url=~/^\//) {
-                    $lfound=(-r $thm_src_url);
+		        if($thm_src_url=~/^\// && -r $thm_src_url) {
+                    $lfound=1;
                     copy($thm_src_url,$thm_src_file);
                 }
                 else {
@@ -509,8 +509,8 @@ sub download ($$) {
         if ($period > $self->{min_period}) {
             if($img_src_url !~ m/^(https?|ftp):\/\//i) {
                 my $lfound;
-		if($img_src_url=~/^\//) {
-                    $lfound=(-r $img_src_url);
+                if($img_src_url=~/^\// && -r $img_src_url) {
+                    $lfound=1;
                     copy($img_src_url,$img_src_file);
                 }
                 else {
