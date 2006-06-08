@@ -64,7 +64,7 @@ use XAO::Errors qw(XAO::DO::Web::FilloutForm);
 use base XAO::Objects->load(objname => 'Web::Page');
 
 use vars qw($VERSION);
-$VERSION=(0+sprintf('%u.%03u',(q$Id: FilloutForm.pm,v 2.24 2006/04/01 05:45:32 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
+$VERSION=(0+sprintf('%u.%03u',(q$Id: FilloutForm.pm,v 2.25 2006/06/08 22:41:28 enn Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
 
 sub setup ($%);
 sub field_desc ($$;$);
@@ -294,6 +294,11 @@ sub display ($;%) {
         }
         elsif($style eq 'textarea') {
             # No checks for textarea
+        }
+        elsif($style eq 'file') {
+	    if(!$value) {
+		$newerr=$self->Tx("No filename given");
+	    }
         }
         elsif($style eq 'email') {
             if(length($value) && $value !~ /^[\w\.\+-]+\@([a-z0-9-]+\.)+[a-z]+$/i) {
@@ -643,6 +648,13 @@ sub display ($;%) {
                 VALUE   => defined($value) ? $value : '',
                 SIZE    => $fdata->{'size'} || 30,
                 ROWS    => $fdata->{'rows'} || 8,
+            );
+        }
+        elsif($style eq 'file') {
+            $fdata->{'html'}=$obj->expand(
+                path    => '/bits/fillout-form/html-file',
+                NAME    => $name,
+                SIZE    => $fdata->{'size'} || 30,
             );
         }
         elsif($style eq 'password') {
