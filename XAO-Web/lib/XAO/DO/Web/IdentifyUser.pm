@@ -297,7 +297,7 @@ use XAO::Objects;
 use base XAO::Objects->load(objname => 'Web::Action');
 
 use vars qw($VERSION);
-$VERSION=(0+sprintf('%u.%03u',(q$Id: IdentifyUser.pm,v 2.7 2005/12/21 02:55:36 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
+$VERSION=(0+sprintf('%u.%03u',(q$Id: IdentifyUser.pm,v 2.8 2006/06/09 22:37:19 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
 
 ###############################################################################
 
@@ -1171,12 +1171,14 @@ sub logout{
     $config=$config->{$type} ||
         throw $self "logout - no 'identify_user' configuration for '$type'";
 
-    my $cookie_domain=$config->{domain};
+    my $cookie_domain=$config->{'domain'};
 
     ##
-    # Logging in the user first
+    # Logging in the user first. Skipping if 'logged_in' to avoid
+    # recursion when we need to log the user out after some failed
+    # checks.
     #
-    $self->check(type => $type);
+    $self->check(type => $type) unless $args->{'logged_in'};
 
     ##
     # Checking if we're currently logged in at all -- either verified or
