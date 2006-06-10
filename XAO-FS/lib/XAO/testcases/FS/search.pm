@@ -967,11 +967,11 @@ sub test_multiple_branches {
     $ids=$customers->search([ 'Orders/name', 'eq', 'kaaau' ],
                             'or',
                             [ 'Products/name', 'eq', 'ru' ],
-                            { orderby => 'customer_id' });
+                            { orderby => '-customer_id' });
 
     $t_ids=join(",",@$ids);
-    $self->assert($t_ids eq 'c2,c3',
-                  "Wrong search results for multi-branch search (got '$t_ids', expect 'c2,c3')");
+    $self->assert($t_ids eq 'c3,c2',
+                  "Wrong search results for multi-branch search (got '$t_ids', expect 'c3,c2')");
 
     $ids=$customers->search([ 'Orders/name', 'eq', 'foo' ],
                             'and',

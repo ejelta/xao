@@ -50,7 +50,7 @@ use XAO::Objects;
 use base XAO::Objects->load(objname => 'Atom');
 
 use vars qw($VERSION);
-$VERSION=(0+sprintf('%u.%03u',(q$Id: Glue.pm,v 2.7 2006/05/03 20:40:48 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
+$VERSION=(0+sprintf('%u.%03u',(q$Id: Glue.pm,v 2.8 2006/06/10 04:20:33 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
 
 ###############################################################################
 
@@ -1181,6 +1181,9 @@ sub _build_search_query ($%) {
                 if(ref($list)) {
                     ref($list) eq 'ARRAY' ||
                         $self->throw("_list_search - 'orderby' orderby argument must be an array reference");
+                }
+                elsif(substr($list,0,1) eq '-') {
+                    $list=[ descend => substr($list,1) ];
                 }
                 else {
                     $list=[ ascend => $list ];
