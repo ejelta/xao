@@ -326,8 +326,8 @@ DESCRIPTION
         Example:
 
          my $description=$customer->describe('first_name');
-         print "Type: $description->{type}\n";
-         print "Maximum length: $description->{maxlength}\n";
+         print "Type: $description->{'type'}\n";
+         print "Maximum length: $description->{'maxlength'}\n";
 
     destroy ()
         Deletes everything inside the current object -- an alias for the

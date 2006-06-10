@@ -31,7 +31,7 @@ use XAO::Objects;
 use base XAO::Objects->load(objname => 'FS::Glue::SQL_DBI');
 
 use vars qw($VERSION);
-$VERSION=(0+sprintf('%u.%03u',(q$Id: MySQL_DBI.pm,v 2.5 2006/05/03 07:55:47 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
+$VERSION=(0+sprintf('%u.%03u',(q$Id: MySQL_DBI.pm,v 2.6 2006/06/10 04:06:45 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
 
 ###############################################################################
 
@@ -532,7 +532,7 @@ CREATE TABLE Global_Fields (
 END_OF_SQL
         <<'END_OF_SQL',
 INSERT INTO Global_Fields VALUES (1,'Global_Data','project',
-                                  'text','',NULL,NULL,0,'',40,'utf8',NULL,NULL)
+                                  'text','',NULL,NULL,0,'','utf8',40,NULL,NULL)
 END_OF_SQL
         <<'END_OF_SQL',
 CREATE TABLE Global_Data (

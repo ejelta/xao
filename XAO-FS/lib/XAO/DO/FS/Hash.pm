@@ -69,7 +69,7 @@ use Encode;
 use base XAO::Objects->load(objname => 'FS::Glue');
 
 use vars qw($VERSION);
-$VERSION=(0+sprintf('%u.%03u',(q$Id: Hash.pm,v 2.5 2006/05/03 07:55:47 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
+$VERSION=(0+sprintf('%u.%03u',(q$Id: Hash.pm,v 2.6 2006/06/10 04:06:45 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
 
 ###############################################################################
 
@@ -291,8 +291,8 @@ sub add_placeholder ($%) {
 	my $self=shift;
 	my $args=get_args(\@_);
 
-	my $name=$args->{name} || throw $self 'add_placeholder - no name given';
-	my $type=$args->{type} || throw $self 'add_placeholder - no type given';
+	my $name=$args->{'name'} || throw $self 'add_placeholder - no name given';
+	my $type=$args->{'type'} || throw $self 'add_placeholder - no type given';
 
 	$self->check_name($name) ||
 	    throw $self "add_placeholder - bad name ($name)";
@@ -420,7 +420,7 @@ Will return undef on detached objects.
 
 sub collection_key ($) {
     my $self=shift;
-    return $$self->{unique_id};
+    return $$self->{'unique_id'};
 }
 
 ###############################################################################
@@ -458,7 +458,7 @@ sub container_object ($) {
 
     return undef if $self->objname eq 'FS::Global';
 
-    my $list_base_name=$$self->{list_base_name} ||
+    my $list_base_name=$$self->{'list_base_name'} ||
         $self->throw("container_object - the object was not retrieved from the database");
 
     ##
@@ -500,7 +500,7 @@ sub defined ($$) {
 
     return 1 if $name eq 'unique_id';
 
-    my $f=$self->_class_description->{fields};
+    my $f=$self->_class_description->{'fields'};
 
     exists $f->{$name} ||
         throw $self "defined - unknown property ($name)";
@@ -532,7 +532,7 @@ sub delete ($$) {
     my $field=$self->_field_description($name);
     $field || $self->throw("delete($name) - unknown field name");
 
-    my $type=$field->{type};
+    my $type=$field->{'type'};
     if($type eq 'list') {
         $self->get($name)->destroy();
     }
@@ -564,8 +564,8 @@ non-existing fields.
 Example:
 
  my $description=$customer->describe('first_name');
- print "Type: $description->{type}\n";
- print "Maximum length: $description->{maxlength}\n";
+ print "Type: $description->{'type'}\n";
+ print "Maximum length: $description->{'maxlength'}\n";
 
 =cut
 
@@ -677,7 +677,7 @@ sub drop_placeholder ($$) {
     my $field=$self->_field_description($name) ||
         $self->throw("drop_placeholder - placeholder does not exist ($name)");
 
-	if($field->{type} eq 'list') {
+	if($field->{'type'} eq 'list') {
 	    $self->_drop_list_placeholder($name);
 	} else {
 	    $self->_drop_data_placeholder($name);
@@ -703,7 +703,7 @@ sub exists ($$) {
     my $self=shift;
     my $name=shift;
     return 1 if $name eq 'unique_id';
-    my $f=$self->_class_description->{fields};
+    my $f=$self->_class_description->{'fields'};
     exists $f->{$name};
 }
 
@@ -776,12 +776,12 @@ sub get ($$) {
         my $field=$self->_field_description($name) ||
                     $self->throw("get - unknown property ($name)");
 
-        my $type=$field->{type};
-        if($$self->{detached}) {
+        my $type=$field->{'type'};
+        if($$self->{'detached'}) {
             if($type eq 'list') {
                 $self->throw("get - retrieval of lists on detached objects not implemented yet");
             } else {
-                my $value=$$self->{data}->{$name};
+                my $value=$$self->{'data'}->{$name};
                 $value=$self->_field_default($name,$field) unless defined($value);
                 return $value;
             }
@@ -792,15 +792,21 @@ sub get ($$) {
                             objname => 'FS::List',
                             glue => $self->_glue,
                             uri => $self->uri($name),
-                            class_name => $field->{class},
-                            base_name => $$self->{objname},
-                            base_id => $$self->{unique_id},
+                            class_name => $field->{'class'},
+                            base_name => $$self->{'objname'},
+                            base_id => $$self->{'unique_id'},
                             key_value => $name);
             }
             else {
                 my $value=$self->_retrieve_data_fields($name);
+
                 defined $value ||
                     throw $self "get('$name') - db query returned undef";
+
+                if($type eq 'text' && $field->{'charset'} ne 'binary' && !Encode::is_utf8($value)) {
+                    $value=Encode::decode($field->{'charset'},$value,Encode::FB_DEFAULT);
+                }
+                    
                 return $value;
             }
         }
@@ -811,20 +817,20 @@ sub get ($$) {
     #
     else {
 
-        my $fields=$self->_class_description->{fields} ||
+        my $fields=$self->_class_description->{'fields'} ||
             $self->throw("get - internal data problem");
 
         my @datanames=map {
             my $f=$fields->{$_} || $self->throw("get - unknown property ($_)");
-            $f->{type} eq 'list' ? () : ($_);
+            $f->{'type'} eq 'list' ? () : ($_);
         } @_;
 
-        if($$self->{detached}) {
+        if($$self->{'detached'}) {
             scalar(@datanames) == scalar(@_) ||
                 $self->throw("get - retrieval of lists on detached objects not implemented yet");
 
             return map {
-                my $value=$$self->{data}->{$_};
+                my $value=$$self->{'data'}->{$_};
                 if(!defined($value)) {
                     $value=$self->_field_default($_,$fields->{$_});
                 }
@@ -838,13 +844,15 @@ sub get ($$) {
             }
 
             return map {
-                if($fields->{$_}->{type} eq 'list') {
+                my $type=$fields->{$_}->{'type'};
+
+                if($type eq 'list') {
                     XAO::Objects->new(objname => 'FS::List',
                                       glue => $self->_glue,
                                       uri => $self->uri($_),
-                                      class_name => $fields->{$_}->{class},
-                                      base_name => $$self->{objname},
-                                      base_id => $$self->{unique_id},
+                                      class_name => $fields->{$_}->{'class'},
+                                      base_name => $$self->{'objname'},
+                                      base_id => $$self->{'unique_id'},
                                       key_value => $_);
                 }
                 else {
@@ -852,6 +860,14 @@ sub get ($$) {
                     if(!defined($value)) {
                         $value=$self->_field_default($_,$fields->{$_});
                     }
+
+                    if($type eq 'text') {
+                        my $charset=$fields->{$_}->{'charset'};
+                        if($charset ne 'binary' && !Encode::is_utf8($value)) {
+                            $value=Encode::decode($charset,$value,Encode::FB_DEFAULT);
+                        }
+                    }
+
                     $value;
                 }
             } @_;
@@ -881,7 +897,7 @@ false otherwise.
 
 sub is_attached ($) {
     my $self=shift;
-    ! $$self->{detached};
+    ! $$self->{'detached'};
 }
 
 ###############################################################################
@@ -903,10 +919,10 @@ Example:
 sub keys ($) {
     my $self=shift;
 
-    my $fields=$self->_class_description()->{fields};
+    my $fields=$self->_class_description()->{'fields'};
     my @list;
     foreach my $key (keys %{$fields}) {
-        next if $fields->{$key}->{type} eq 'connector';
+        next if $fields->{$key}->{'type'} eq 'connector';
         push(@list,$key);
     }
 
@@ -945,30 +961,30 @@ sub new ($%) {
     my $self=$class->SUPER::new(@_);
     my $args=get_args(\@_);
 
-    $$self->{unique_id}=$args->{unique_id};
+    $$self->{'unique_id'}=$args->{'unique_id'};
 
-    if(! $$self->{unique_id}) {
-        $$self->{detached}=1;
+    if(! $$self->{'unique_id'}) {
+        $$self->{'detached'}=1;
     }
     else {
-        $$self->{key_name}=$args->{key_name};
-        defined($$self->{key_name}) || $self->throw("new - no 'key_name' passed");
-        $$self->{key_value}=$args->{key_value} ||
-                            $self->get($args->{key_name});
+        $$self->{'key_name'}=$args->{'key_name'};
+        defined($$self->{'key_name'}) || $self->throw("new - no 'key_name' passed");
+        $$self->{'key_value'}=$args->{'key_value'} ||
+                            $self->get($args->{'key_name'});
 
-        $$self->{list_base_name}=$args->{list_base_name};
-        $$self->{list_base_id}=$args->{list_base_id};
-        $$self->{list_key_value}=$args->{list_key_value};
+        $$self->{'list_base_name'}=$args->{'list_base_name'};
+        $$self->{'list_base_id'}=$args->{'list_base_id'};
+        $$self->{'list_key_value'}=$args->{'list_key_value'};
 
-        if(! defined($$self->{uri})) {
-            my $uri=$$self->{key_value};
+        if(! defined($$self->{'uri'})) {
+            my $uri=$$self->{'key_value'};
             my $p=$self;
             while(defined($p=$p->container_object)) {
                 my $ck=$p->container_key();
                 $ck='' unless defined($ck);
                 $uri=$ck . '/' . $uri;
             }
-            $$self->{uri}=$uri;
+            $$self->{'uri'}=$uri;
         }
     }
 
@@ -1047,7 +1063,7 @@ sub put ($$$) {
     my $self=shift;
     my $data=get_args(\@_);
 
-    my $detached=$$self->{detached};
+    my $detached=$$self->{'detached'};
 
     my @data_keys=CORE::keys %$data;
     foreach my $name (@data_keys) {
@@ -1060,7 +1076,7 @@ sub put ($$$) {
             $data->{$name}=$value=$self->_field_default($name,$field);
         }
 
-        my $type=$field->{type};
+        my $type=$field->{'type'};
         if($type eq 'list') {
             $self->throw("put - storing lists not implemented yet");
         }
@@ -1073,23 +1089,23 @@ sub put ($$$) {
         elsif($type eq 'text' || $type eq 'blob' ) {
             if($type eq 'text') {
                 if(Encode::is_utf8($value)) {
-                    $value=Encode::encode($field->{'charset'} eq 'binary' ? 'utf8' : $field->{'charset'},$value);
+                    $data->{$name}=$value=Encode::encode($field->{'charset'} eq 'binary' ? 'utf8' : $field->{'charset'},$value);
                 }
             }
             elsif(Encode::is_utf8($value)) {
-                $value=Encode::encode('utf8',$value);
+                $data->{$name}=$value=Encode::encode('utf8',$value);
             }
             length($value) <= $field->{'maxlength'} ||
-                $self->throw("put - value is longer then $field->{maxlength} for $name");
+                $self->throw("put - value is longer then $field->{'maxlength'} for $name");
         }
         elsif($type eq 'integer' || $type eq 'real') {
-            $value=$self->_field_default($name,$field) if $value eq '';
+            $data->{$name}=$value=$self->_field_default($name,$field) if $value eq '';
 
             !defined($field->{'minvalue'}) || $value>=$field->{'minvalue'} ||
-                $self->throw("put - value ($value) is less then $field->{minvalue} for $name");
+                $self->throw("put - value ($value) is less then $field->{'minvalue'} for $name");
 
             !defined($field->{'maxvalue'}) || $value<=$field->{'maxvalue'} ||
-                $self->throw("put - value ($value) is bigger then $field->{maxvalue} for $name");
+                $self->throw("put - value ($value) is bigger then $field->{'maxvalue'} for $name");
         }
         else {
             throw $self "put - something is wrong";
