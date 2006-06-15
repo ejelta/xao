@@ -31,7 +31,7 @@ use XAO::Objects;
 use base XAO::Objects->load(objname => 'FS::Glue::SQL_DBI');
 
 use vars qw($VERSION);
-$VERSION=(0+sprintf('%u.%03u',(q$Id: MySQL_DBI.pm,v 2.6 2006/06/10 04:06:45 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
+$VERSION=(0+sprintf('%u.%03u',(q$Id: MySQL_DBI.pm,v 2.7 2006/06/15 06:02:21 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
 
 ###############################################################################
 
@@ -521,7 +521,7 @@ CREATE TABLE Global_Fields (
   key_format_ CHAR(100) CHARACTER SET utf8 DEFAULT NULL,
   key_seq_ INT UNSIGNED DEFAULT NULL,
   index_ TINYINT DEFAULT NULL,
-  default_ BINARY(30) DEFAULT NULL,
+  default_ VARBINARY(30) DEFAULT NULL,
   charset_ CHAR(30) CHARACTER SET latin1 DEFAULT NULL,
   maxlength_ INT UNSIGNED DEFAULT NULL,
   maxvalue_ DOUBLE DEFAULT NULL,
@@ -1134,7 +1134,7 @@ sub text_field_definition ($$$) {
     my $def;
     if($charset eq 'binary') {
         if($maxlength<255) {
-            $def="BINARY($maxlength)";
+            $def="VARBINARY($maxlength)";
         } elsif($maxlength<65535) {
             $def="BLOB";
         } elsif($maxlength<16777215) {
