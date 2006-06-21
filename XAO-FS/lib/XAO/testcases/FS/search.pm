@@ -6,6 +6,123 @@ use Error qw(:try);
 
 use base qw(XAO::testcases::FS::base);
 
+use Data::Dumper;
+
+###############################################################################
+
+# Testing how returning multiple fields works -- 'fields' option in search
+
+sub test_return_fields {
+    my $self=shift;
+    my $odb=$self->get_odb();
+
+    my $cust_list=$odb->fetch('/Customers');
+
+    $cust_list->get_new->add_placeholder(
+        name        => 'desc',
+        type        => 'text',
+        maxlength   => 50,
+        charset     => 'utf8',
+    );
+    $cust_list->get('c1')->put(name => 'name1', desc => 'aaaaa');
+    $cust_list->get('c2')->put(name => 'name2', desc => 'ddddd');
+
+    $cust_list->get_new->add_placeholder(
+        name        => 'Orders',
+        type        => 'list',
+        class       => 'Data::Order',
+        key         => 'order_id',
+    );
+    my $order_list=$cust_list->get('c1')->get('Orders');
+    my $order_obj=$order_list->get_new;
+    $order_obj->add_placeholder(
+        name        => 'total',
+        type        => 'real',
+    );
+    $order_obj->add_placeholder(
+        name        => 'text',
+        type        => 'text',
+        maxlength   => 100,
+    );
+    $order_obj->put(
+        total       => 123.45,
+        text        => 'c1o1',
+    );
+    $order_list->put('o1' => $order_obj);
+    $order_obj->put(
+        total       => 234.56,
+        text        => 'c1o2',
+    );
+    $order_list->put('o2' => $order_obj);
+    $order_obj->put(
+        total       => 345.67,
+        text        => 'c1o3',
+    );
+    $order_list->put('o3' => $order_obj);
+    $order_list=$cust_list->get('c2')->get('Orders');
+    $order_obj->put(
+        total       => 456.78,
+        text        => 'c2o1',
+    );
+    $order_list->put('o1' => $order_obj);
+    $order_obj->put(
+        total       => 567.89,
+        text        => 'c2o2',
+    );
+    $order_list->put('o2' => $order_obj);
+
+    my $order_coll=$odb->collection(class => 'Data::Order');
+
+    my %matrix=(
+        t01 => {
+            list    => $cust_list,
+            args    => [ 'desc','cs','d' ],
+            options => { fields => [ qw(name desc) ], orderby => '-name' },
+            result  => 'desc=ddddd|name=name2',
+        },
+        t02 => {
+            list    => $cust_list,
+            args    => [ 'desc','cs','a' ],
+            options => { fields => [ qw(#container_key customer_id name desc) ], orderby => '-name' },
+            result  => '#container_key=c1|customer_id=c1|desc=aaaaa|name=name2',
+        },
+        t02 => {
+            list    => $cust_list,
+            options => { fields => [ qw(#collection_key) ], orderby => '-name' },
+            result  => '#collection_key=1;#collection_key=2',
+        },
+        t10 => {
+            list    => $cust_list,
+            args    => [ 'Orders/total','gt',300 ],
+            options => { fields => [ qw(name desc) ], orderby => 'customer_id' },
+            result  => 'desc=aaaaa|name=name1;desc=ddddd|name=name2',
+        },
+        t11 => {
+            list    => $cust_list,
+            args    => [ 'Orders/total','gt',300 ],
+            options => { fields => [ qw(Orders/total Orders/text) ],
+                         orderby => [ ascend => 'customer_id', descend => 'Orders/total' ] },
+            result  => 'desc=aaaaa|name=name1;desc=ddddd|name=name2',
+        },
+    );
+
+    foreach my $t (keys %matrix) {
+        my $test=$matrix{$t};
+        my $list=$test->{'list'};
+        my $sr=$test->{'args'} ? $list->search($test->{'args'},$test->{'options'})
+                               : $list->search($test->{'options'});
+        my $got=join(';',map {
+            my $row=$_;
+            join('|',map { ($_,$row->{$_}) } sort keys %$row);
+        } @$sr);
+        my $expect=$test->{'result'};
+        dprint Dumper($test);
+        dprint Dumper($sr);
+        $self->assert($got eq $expect,
+                      "Test '$t', expected '$expect', got '$got'");
+    }
+}
+
 ###############################################################################
 
 # reported by enn@, 2006/05/03
