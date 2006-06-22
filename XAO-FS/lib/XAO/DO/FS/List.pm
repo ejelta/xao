@@ -33,7 +33,7 @@ use XAO::Objects;
 use base XAO::Objects->load(objname => 'FS::Glue');
 
 use vars qw($VERSION);
-$VERSION=(0+sprintf('%u.%03u',(q$Id: List.pm,v 2.6 2006/06/22 06:56:29 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
+$VERSION=(0+sprintf('%u.%03u',(q$Id: List.pm,v 2.7 2006/06/22 07:12:12 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
 
 ###############################################################################
 
@@ -727,6 +727,12 @@ Returns the value of the key in the list you're searching on.
 
 Returns the values of the collection key for the object if a collection
 was built on the same class.
+
+=item #id
+
+Returns collection key if the search is being done on a collection, and
+a list key if on a list. In other words, returns the same ID that would
+have been returned without the 'result' option.
 
 =back
 

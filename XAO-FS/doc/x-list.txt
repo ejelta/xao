@@ -404,6 +404,11 @@ DESCRIPTION
                 Returns the values of the collection key for the object if a
                 collection was built on the same class.
 
+            #id Returns collection key if the search is being done on a
+                collection, and a list key if on a list. In other words,
+                returns the same ID that would have been returned without
+                the 'result' option.
+
             Examples:
 
              my $rr=$data->search(
