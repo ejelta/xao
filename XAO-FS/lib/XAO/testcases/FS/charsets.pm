@@ -8,6 +8,59 @@ use base qw(XAO::testcases::FS::base);
 
 ###############################################################################
 
+sub test_result_charset {
+    my $self=shift;
+
+    eval 'use Encode';
+    if($@) {
+        print STDERR "Encode not available, support for charset is probably broken, not testing\n";
+        return;
+    }
+
+    my $odb=$self->get_odb();
+
+    my $cust_list=$odb->fetch('/Customers');
+    $cust_list->get_new->add_placeholder(
+        name        => 'text1',
+        type        => 'text',
+        maxlength   => 50,
+        charset     => 'utf8',
+    );
+    $cust_list->get_new->add_placeholder(
+        name        => 'text2',
+        type        => 'text',
+        maxlength   => 50,
+        charset     => 'utf8',
+    );
+
+    my $text1="Smile - \x{263a}";
+    my $text2="Omega - \x{03a9}";
+    $cust_list->get('c1')->put(
+        text1 => $text1,
+        text2 => $text2,
+    );
+
+    my $sr=$cust_list->search(
+        'text1','ne','',
+        { result => [ qw(text2 text1) ] }
+    );
+
+    $self->assert(ref $sr && ref $sr eq 'ARRAY',
+                  "Expected to get ARRAY ref, got $sr");
+    $self->assert(@$sr==1,
+                  "Expected to get 1 result, got ".scalar(@$sr));
+    $self->assert(ref $sr->[0] && ref $sr->[0] eq 'ARRAY',
+                  "Expected to get and ARR/ARR, got $sr->[0]");
+    $self->assert(Encode::is_utf8($sr->[0]->[0]),
+                  "Expected to get unicode, got $sr->[0]->[0]");
+    $self->assert($sr->[0]->[0] eq $text2,
+                  "Expected to get '$text2', got $sr->[0]->[0]");
+    $self->assert($sr->[0]->[1] eq $text1,
+                  "Expected to get '$text1', got $sr->[0]->[1]");
+}
+
+###############################################################################
+
 # as of 6/09/2006 we are supposed to get back perl Unicode strings for
 # text fields in non-binary encodings.
 

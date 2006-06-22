@@ -1,4 +1,5 @@
 1.07 -
+    * support for 'result' option, multiple return fields in searches
     * support for blobs and text charsets
 
 1.06 - 11-Jan-2005

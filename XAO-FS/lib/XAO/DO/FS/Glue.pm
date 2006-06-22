@@ -50,7 +50,7 @@ use XAO::Objects;
 use base XAO::Objects->load(objname => 'Atom');
 
 use vars qw($VERSION);
-$VERSION=(0+sprintf('%u.%03u',(q$Id: Glue.pm,v 2.8 2006/06/10 04:20:33 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
+$VERSION=(0+sprintf('%u.%03u',(q$Id: Glue.pm,v 2.9 2006/06/22 06:56:29 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
 
 ###############################################################################
 
@@ -93,9 +93,9 @@ sub new ($%) {
     #
     if(ref($proto) &&
        $proto->isa('XAO::DO::FS::Glue') &&
-       $$proto->{objname} eq 'FS::Glue') {
+       $$proto->{'objname'} eq 'FS::Glue') {
         my %a=%{$args};
-        $a{glue}=$proto;
+        $a{'glue'}=$proto;
         return XAO::Objects->new(\%a);
     }
 
@@ -108,15 +108,15 @@ sub new ($%) {
     ##
     # We must always have objname
     #
-    my $objname=$args->{objname};
+    my $objname=$args->{'objname'};
     $objname || $self->throw("new - must be loaded by XAO::Objects");
-    $$self->{objname}=$objname;
+    $$self->{'objname'}=$objname;
 
     ##
     # When new object is created by get()'ing it we will have 'uri'
     # parameter passed.
     #
-    $$self->{uri}=$args->{uri};
+    $$self->{'uri'}=$args->{'uri'};
 
     ##
     # Checking if this is System::Glue or something else that is based
@@ -124,10 +124,10 @@ sub new ($%) {
     #
     if($objname eq 'FS::Glue') {
 
-        my $user=$args->{user};
-        my $password=$args->{password};
+        my $user=$args->{'user'};
+        my $password=$args->{'password'};
 
-        my $dsn=$args->{dsn};
+        my $dsn=$args->{'dsn'};
         $dsn || $self->throw("new - required parameter missed 'dsn'");
         $dsn=~/^OS:(\w+):\w+(;.*)?$/ || $self->throw("new - bad format of 'dsn' ($dsn)");
         my $drvname='FS::Glue::' . $1;
@@ -136,14 +136,14 @@ sub new ($%) {
                                      dsn      => $dsn,
                                      user     => $user,
                                      password => $password);
-        $$self->{driver}=$driver;
+        $$self->{'driver'}=$driver;
 
         ##
         # Checking if this is a request to trash everything and produce a
         # squeky clean new database.
         #
-        if($args->{empty_database}) {
-            $args->{empty_database} eq 'confirm' ||
+        if($args->{'empty_database'}) {
+            $args->{'empty_database'} eq 'confirm' ||
                 throw $self "new - request for 'empty_database' is not 'confirm'ed";
 
             $driver->initialize_database;
@@ -152,7 +152,7 @@ sub new ($%) {
         ##
         # Loading data layout
         #
-        $$self->{classes}=$driver->load_structure;
+        $$self->{'classes'}=$driver->load_structure;
     }
 
     else {
@@ -160,9 +160,9 @@ sub new ($%) {
         # We must have glue object somewhere - either explicitly given
         # or from an object being cloned..
         #
-        my $glue=ref($proto) ? $proto : $args->{glue};
+        my $glue=ref($proto) ? $proto : $args->{'glue'};
         $glue || throw $self "new - required parameter missed 'glue'";
-        $$self->{glue}=$glue;
+        $$self->{'glue'}=$glue;
     }
 
     ##
@@ -175,7 +175,7 @@ sub new ($%) {
 
 sub DESTROY () {
     my $self=shift;
-    if($$self->{driver}) {
+    if($$self->{'driver'}) {
         $self->disconnect();
     }
 }
@@ -226,7 +226,7 @@ upper level container.
 
 sub container_key ($) {
     my $self=shift;
-    $$self->{key_value};
+    $$self->{'key_value'};
 }
 
 ###############################################################################
@@ -278,11 +278,11 @@ database.
 
 sub disconnect () {
     my $self=shift;
-    $$self->{glue} &&
+    $$self->{'glue'} &&
         throw $self "disconnect - only makes sense on database handler (did you mean 'detach'?)";
-    if($$self->{driver}) {
-        $$self->{driver}->disconnect();
-        delete $$self->{driver};
+    if($$self->{'driver'}) {
+        $$self->{'driver'}->disconnect();
+        delete $$self->{'driver'};
     }
 }
 
@@ -393,7 +393,7 @@ Returns relative object name that XAO::Objects would accept.
 
 sub objname ($) {
     my $self=shift;
-    $$self->{objname} || throw $self "objname - must have an objname";
+    $$self->{'objname'} || throw $self "objname - must have an objname";
 }
 
 ###############################################################################
@@ -573,11 +573,11 @@ sub upper_class ($$) {
 
     return undef if $class_name eq 'FS::Global';
 
-    my $cdesc=$$self->{classes}->{$class_name} ||
+    my $cdesc=$$self->{'classes'}->{$class_name} ||
         $self->throw("upper_class - nothing known about '$class_name'");
 
-    foreach my $fd (values %{$cdesc->{fields}}) {
-        return $fd->{refers} if $fd->{type} eq 'connector';
+    foreach my $fd (values %{$cdesc->{'fields'}}) {
+        return $fd->{'refers'} if $fd->{'type'} eq 'connector';
     }
     return 'FS::Global';
 }
@@ -619,7 +619,7 @@ sub uri ($;$) {
     my $self=shift;
     my $name=shift;
 
-    my $uri=$$self->{uri};
+    my $uri=$$self->{'uri'};
     return undef unless $uri;
 
     return $uri unless defined($name);
@@ -727,8 +727,8 @@ sub _class_description ($) {
 #
 sub _collection_keys ($) {
     my $self=shift;
-    my $desc=$$self->{class_description};
-    $self->_driver->list_keys($desc->{table},'unique_id');
+    my $desc=$$self->{'class_description'};
+    $self->_driver->list_keys($desc->{'table'},'unique_id');
 }
 
 ###############################################################################
@@ -745,17 +745,17 @@ sub _collection_setup ($) {
     my $glue=$self->_glue;
     $glue || $self->throw("_collection_setup - meaningless on Glue object");
 
-    my $class_name=$$self->{class_name} || $self->throw("_collection_setup - no class name given");
-    $$self->{class_description}=$self->_class_description($class_name);
+    my $class_name=$$self->{'class_name'} || $self->throw("_collection_setup - no class name given");
+    $$self->{'class_description'}=$self->_class_description($class_name);
 
-    my $base_name=$$self->{base_name};
+    my $base_name=$$self->{'base_name'};
     if(!$base_name) {
-        $base_name=$$self->{base_name}=$glue->upper_class($class_name) ||
+        $base_name=$$self->{'base_name'}=$glue->upper_class($class_name) ||
                   $self->throw("_collection_setup - $class_name does not belong to the database");
     }
 
-    $$self->{key_name}=$glue->_list_key_name($class_name,$base_name);
-    $$self->{class_description}=$self->_class_description($class_name);
+    $$self->{'key_name'}=$glue->_list_key_name($class_name,$base_name);
+    $$self->{'class_description'}=$self->_class_description($class_name);
 }
 
 ###############################################################################
@@ -768,7 +768,7 @@ Returns a reference to the driver for both Glue and derived objects.
 
 sub _driver ($) {
     my $self=shift;
-    ($$self->{glue} ? ${$$self->{glue}}->{driver} : $$self->{driver}) ||
+    ($$self->{'glue'} ? ${$$self->{'glue'}}->{'driver'} : $$self->{'driver'}) ||
         $self->throw("_driver - no low level driver found");
 }
 
@@ -783,7 +783,7 @@ Returns the description of the given field.
 sub _field_description ($$) {
     my $self=shift;
     my $field=shift;
-    $self->_class_description->{fields}->{$field};
+    $self->_class_description->{'fields'}->{$field};
 }
 
 ###############################################################################
@@ -805,23 +805,23 @@ sub _field_default ($$) {
 
     my $desc=shift || $self->_field_description($field);
 
-    return $desc->{default} if defined($desc->{default});
+    return $desc->{'default'} if defined($desc->{'default'});
 
-    my $type=$desc->{type};
+    my $type=$desc->{'type'};
     my $default;
     if($type eq 'text' || $type eq 'blob') {
         $default='';
     }
     elsif($type eq 'integer' || $type eq 'real') {
-        if(!defined $desc->{minvalue}) {
+        if(!defined $desc->{'minvalue'}) {
             $default=0;
         }
-        elsif($desc->{minvalue} <= 0 &&
-              (!defined($desc->{maxvalue}) || $desc->{maxvalue} >= 0)) {
+        elsif($desc->{'minvalue'} <= 0 &&
+              (!defined($desc->{'maxvalue'}) || $desc->{'maxvalue'} >= 0)) {
             $default=0;
         }
         else {
-            $default=$desc->{minvalue};
+            $default=$desc->{'minvalue'};
         }
     }
     else {
@@ -829,7 +829,7 @@ sub _field_default ($$) {
         $default='';
     }
 
-    $desc->{default}=$default;
+    $desc->{'default'}=$default;
 
     return $default;
 }
@@ -846,7 +846,7 @@ behavior!
 
 sub _glue ($) {
     my $self=shift;
-    $$self->{glue} || $self->throw("_glue - meaningless on Glue object");
+    $$self->{'glue'} || $self->throw("_glue - meaningless on Glue object");
 }
 
 ###############################################################################
@@ -865,19 +865,19 @@ sub _hash_list_base_id () {
     # Most of the time that will work fine, except for objects retrieved
     # from a Collection of some sort.
     #
-    return $$self->{list_base_id} if $$self->{list_base_id};
+    return $$self->{'list_base_id'} if $$self->{'list_base_id'};
 
     ##
     # Global is a special case
     #
-    my $base_name=$$self->{list_base_name};
-    return $$self->{list_base_id}=1 if $base_name eq 'FS::Global';
+    my $base_name=$$self->{'list_base_name'};
+    return $$self->{'list_base_id'}=1 if $base_name eq 'FS::Global';
 
     ##
     # Collection skips over hierarchy and we have to be more elaborate.
     #
     my $connector=$self->_glue->_connector_name($self->objname,$base_name);
-    $$self->{list_base_id}=$self->_retrieve_data_fields($connector);
+    $$self->{'list_base_id'}=$self->_retrieve_data_fields($connector);
 }
 
 ###############################################################################
@@ -895,18 +895,18 @@ sub _hash_list_key_value () {
     ##
     # Returning cached value if available
     #
-    return $$self->{list_key_value} if $$self->{list_key_value};
+    return $$self->{'list_key_value'} if $$self->{'list_key_value'};
 
     ##
     # Finding that out.
     #
-    my $cdesc=${$self->_glue}->{classes}->{$$self->{list_base_name}} ||
+    my $cdesc=${$self->_glue}->{'classes'}->{$$self->{'list_base_name'}} ||
         $self->throw("_hash_list_key_value - no 'list_base_name' available");
     my $class_name=$self->objname;
-    foreach my $fn (keys %{$cdesc->{fields}}) {
-        my $fd=$cdesc->{fields}->{$fn};
-        next unless $fd->{type} eq 'list' && $fd->{class} eq $class_name;
-        return $$self->{list_key_value}=$fn;
+    foreach my $fn (keys %{$cdesc->{'fields'}}) {
+        my $fd=$cdesc->{'fields'}->{$fn};
+        next unless $fd->{'type'} eq 'list' && $fd->{'class'} eq $class_name;
+        return $$self->{'list_key_value'}=$fn;
     }
 
     $self->throw("_hash_list_key_value - no reference to the list in upper class, weird");
@@ -925,8 +925,8 @@ sub _retrieve_data_fields ($@) {
 
     my $desc=$self->_class_description();
 
-    my $data=$self->_driver->retrieve_fields($desc->{table},
-                                             $$self->{unique_id},
+    my $data=$self->_driver->retrieve_fields($desc->{'table'},
+                                             $$self->{'unique_id'},
                                              @_);
 
     $data ? (@_ == 1 ? $data->[0] : @$data)
@@ -955,15 +955,15 @@ sub _connector_name ($$$) {
     my $self=shift;
     my $class_name=shift;
     my $base_name=shift;
-    if(exists($$self->{connectors_cache}->{$class_name}->{$base_name})) {
-        return $$self->{connectors_cache}->{$class_name}->{$base_name};
+    if(exists($$self->{'connectors_cache'}->{$class_name}->{$base_name})) {
+        return $$self->{'connectors_cache'}->{$class_name}->{$base_name};
     }
-    my $class_desc=$$self->{classes}->{$class_name};
+    my $class_desc=$$self->{'classes'}->{$class_name};
     $class_desc || $self->throw("_connector_name - no data for class $class_name (called on derived object?)");
-    foreach my $field (keys %{$class_desc->{fields}}) {
-        my $fdesc=$class_desc->{fields}->{$field};
-        next unless $fdesc->{type} eq 'connector' && $fdesc->{refers} eq $base_name;
-        $$self->{connectors_cache}->{$class_name}->{$base_name}=$field;
+    foreach my $field (keys %{$class_desc->{'fields'}}) {
+        my $fdesc=$class_desc->{'fields'}->{$field};
+        next unless $fdesc->{'type'} eq 'connector' && $fdesc->{'refers'} eq $base_name;
+        $$self->{'connectors_cache'}->{$class_name}->{$base_name}=$field;
         return $field;
     }
     undef;
@@ -990,15 +990,15 @@ sub _list_key_name ($$$) {
     my $self=shift;
     my $class_name=shift;
     my $base_name=shift || '';
-    if(exists($$self->{list_keys_cache}->{$class_name}->{$base_name})) {
-        return $$self->{list_keys_cache}->{$class_name}->{$base_name};
+    if(exists($$self->{'list_keys_cache'}->{$class_name}->{$base_name})) {
+        return $$self->{'list_keys_cache'}->{$class_name}->{$base_name};
     }
-    my $class_desc=$$self->{classes}->{$class_name};
+    my $class_desc=$$self->{'classes'}->{$class_name};
     $class_desc || $self->throw("_list_key_name - no data for class $class_name (called on derived object?)");
-    foreach my $field (keys %{$class_desc->{fields}}) {
-        my $fdesc=$class_desc->{fields}->{$field};
-        next unless $fdesc->{type} eq 'key' && $fdesc->{refers} eq $base_name;
-        $$self->{list_keys_cache}->{$class_name}->{$base_name}=$field;
+    foreach my $field (keys %{$class_desc->{'fields'}}) {
+        my $fdesc=$class_desc->{'fields'}->{$field};
+        next unless $fdesc->{'type'} eq 'key' && $fdesc->{'refers'} eq $base_name;
+        $$self->{'list_keys_cache'}->{$class_name}->{$base_name}=$field;
         return $field;
     }
     $self->throw("_list_key_name - no key defines $class_name in $base_name");
@@ -1012,11 +1012,11 @@ sub _list_key_name ($$$) {
 #
 sub _list_keys ($) {
     my $self=shift;
-    my $desc=$$self->{class_description};
-    $self->_driver->list_keys($desc->{table},
-                              $$self->{key_name},
-                              $$self->{connector_name},
-                              $$self->{base_id});
+    my $desc=$$self->{'class_description'};
+    $self->_driver->list_keys($desc->{'table'},
+                              $$self->{'key_name'},
+                              $$self->{'connector_name'},
+                              $$self->{'base_id'});
 }
 
 ###############################################################################
@@ -1069,9 +1069,11 @@ sub _list_search ($%) {
         $key=$$self->{'key_name'};
     }
 
-    my $query=$self->_build_search_query(options => $options,
-                                         conditions => $conditions,
-                                         key => $key);
+    my $query=$self->_build_search_query(
+        options     => $options,
+        conditions  => $conditions,
+        key         => $key,
+    );
 
     ##
     # Performing the search
@@ -1083,14 +1085,51 @@ sub _list_search ($%) {
     # currently is if database driver does not support regex'es and
     # ws/wq search was performed.
     #
-    if($query->{post_process}) {
-        $self->throw('TODO; post-processing not supported yet, mail am@xao.com');
+    if($query->{'post_process'}) {
+        $self->throw('TODO; post-processing not supported yet, mail am@ejelta.com');
     }
 
     ##
     # Done.
     #
-    if(@{$query->{fields_list}} > 1) {
+    if($options->{'result'}) {
+        
+        ##
+        # Checking if we need to manipulate the results before returning them
+        #
+        my $result_descs=$query->{'result_descs'} || throw $self "_list_search - internal error";
+        my @dmap;
+        my $need_mapping;
+        for(my $i=0; $i<@$result_descs; ++$i) {
+            my $d=$result_descs->[$i];
+            if($d->{'type'} && $d->{'type'} eq 'text' && $d->{'charset'} ne 'binary') {
+                $need_mapping=1;
+                $dmap[$i]=$d->{'charset'};
+            }
+            elsif($d->{'type'} && $d->{'type'} eq 'key' && $d->{'key_charset'} ne 'binary') {
+                $need_mapping=1;
+                $dmap[$i]=$d->{'key_charset'};
+            }
+        }
+
+        if($need_mapping) {
+            my $i;
+            return [ map {
+                $i=-1;
+                [ map {
+                    ++$i;
+                    $dmap[$i] ? Encode::decode($dmap[$i],$_) : $_;
+                  } @$_ ];
+            } @{$query->{'fields_list'}}==1 ? (map { [ $_ ] } @$list) : @$list ];
+        }
+        elsif(@{$query->{'fields_list'}}==1) {
+            return [ map { [ $_ ] } @$list ];
+        }
+        else {
+            return $list;
+        }
+    }
+    elsif(@{$query->{'fields_list'}} > 1) {
         return [ map { $_->[0] } @$list ];
     }
     else {
@@ -1154,13 +1193,22 @@ sub _build_search_query ($%) {
     }
 
     ##
+    # Adding key name into fields we need.
+    #
+    my $key=$args->{'key'} ||
+        $self->throw("_build_search_query - no 'key' given");
+    my ($key_field,$key_fdesc)=$self->_build_search_field(\%classes,$key);
+
+    ##
     # Analyzing options
     #
     my %return_fields;
     my @distinct;
     my @orderby;
-    my $options=$args->{options};
     my $debug;
+    my $options=$args->{'options'};
+    my @result_fields;
+    my @result_descs;
     if($options) {
         foreach my $option (keys %$options) {
             if(lc($option) eq 'distinct') {
@@ -1168,19 +1216,62 @@ sub _build_search_query ($%) {
                 $list=[ $list ] unless ref($list);
                 foreach my $fn (@$list) {
                     my ($sqlfn,$fdesc)=$self->_build_search_field(\%classes,$fn);
-                    $fdesc->{type} eq 'list' &&
+                    $fdesc->{'type'} eq 'list' &&
                         $self->throw("_build_search_query - can't use 'list' fields in DISTINCT");
                     $return_fields{$sqlfn}=1;
                     push(@distinct,$sqlfn);
                 }
             }
-            elsif(lc($option) eq 'orderby') {
+            elsif(lc($option) eq 'result') {
+                my $list=$options->{$option};
+                $list=[ $list ] unless ref $list;
 
+                @$list ||
+                    throw $self "_build_search_query - list of fields in 'result' option can't be empty";
+
+                foreach my $fn (@$list) {
+                    my ($sqlfn,$fdesc);
+                    if($fn eq '#id') {
+                        $sqlfn=$key_field;
+                        $fdesc=$key_fdesc;
+                    }
+                    elsif($fn eq '#container_key') {
+                        if($self->objname eq 'FS::Collection') {
+                            ($sqlfn,$fdesc)=$self->_build_search_field(\%classes,$$self->{'key_name'});
+                        }
+                        else {
+                            $sqlfn=$key_field;
+                            $fdesc=$key_fdesc;
+                        }
+                    }
+                    elsif($fn eq '#collection_key') {
+                        if($self->objname eq 'FS::Collection') {
+                            $sqlfn=$key_field;
+                            $fdesc=$key_fdesc;
+                        }
+                        else {
+                            ($sqlfn,$fdesc)=$self->_build_search_field(\%classes,'unique_id');
+                        }
+                    }
+                    else {
+                        ($sqlfn,$fdesc)=$self->_build_search_field(\%classes,$fn);
+                        $fdesc->{'type'} eq 'list' &&
+                            $self->throw("_build_search_query - can't use 'list' fields in 'result' option");
+                    }
+                    $return_fields{$sqlfn}=1;
+                    push(@result_fields,$sqlfn);
+                    push(@result_descs,$fdesc);
+                }
+
+                ### dprint Dumper(\%return_fields);
+                ### dprint Dumper(\@result_descs);
+            }
+            elsif(lc($option) eq 'orderby') {
                 my $list=$options->{$option};
 
                 if(ref($list)) {
                     ref($list) eq 'ARRAY' ||
-                        $self->throw("_list_search - 'orderby' orderby argument must be an array reference");
+                        $self->throw("_list_search - 'orderby' argument must be an array reference");
                 }
                 elsif(substr($list,0,1) eq '-') {
                     $list=[ descend => substr($list,1) ];
@@ -1195,7 +1286,7 @@ sub _build_search_query ($%) {
                 for(my $i=0; $i<@$list; $i+=2) {
                     my $fn=$list->[$i+1];
                     my ($sqlfn,$fdesc)=$self->_build_search_field(\%classes,$fn);
-                    $fdesc->{type} eq 'list' &&
+                    $fdesc->{'type'} eq 'list' &&
                         $self->throw("_build_search_query - can't use 'list' fields in ORDERBY");
                     my $o=lc($list->[$i]);
                     $o='ascend' if $o eq 'asc';
@@ -1210,9 +1301,9 @@ sub _build_search_query ($%) {
                 my $fn=$options->{$option};
                 my ($sqlfn,$fdesc,$class_name,$class_tag)=
                     $self->_build_search_field(\%classes,$fn);
-                $classes{center_class}=$class_name;
-                $classes{center_tag}=$class_tag;
-                $classes{center_weight}=1000;
+                $classes{'center_class'}=$class_name;
+                $classes{'center_tag'}=$class_tag;
+                $classes{'center_weight'}=1000;
             }
             elsif(lc($option) eq 'debug') {
                 $debug=$options->{$option};
@@ -1232,26 +1323,19 @@ sub _build_search_query ($%) {
     }
 
     ##
-    # Adding key name into fields we need.
-    #
-    my $key=$args->{key} ||
-        $self->throw("_build_search_query - no 'key' given");
-    my ($key_field)=$self->_build_search_field(\%classes,$key);
-
-    ##
     # Removing unused top of the tree
     #
-    my $top_class=$classes{top_class};
-    my $top_tag=$classes{top_tag};
-    my $up=$classes{up};
+    my $top_class=$classes{'top_class'};
+    my $top_tag=$classes{'top_tag'};
+    my $up=$classes{'up'};
     while(1) {
-        last if $up->{$top_class}->{$top_tag}->{name};
+        last if $up->{$top_class}->{$top_tag}->{'name'};
         my $count=0;
         my $ntc;
         my $ntt;
         foreach my $cin (keys %$up) {
             foreach my $tin (keys %{$up->{$cin}}) {
-                if($up->{$cin}->{$tin}->{class} eq $top_class) {
+                if($up->{$cin}->{$tin}->{'class'} eq $top_class) {
                     if(!$count) {
                         $ntc=$cin;
                         $ntt=$tin;
@@ -1263,9 +1347,9 @@ sub _build_search_query ($%) {
         }
         last if $count>1;
         delete $up->{$top_class};
-        $top_class=$classes{top_class}=$ntc;
-        $top_tag=$classes{top_tag}=$ntt;
-        $up->{$top_class}->{$top_tag}->{class}='';
+        $top_class=$classes{'top_class'}=$ntc;
+        $top_tag=$classes{'top_tag'}=$ntt;
+        $up->{$top_class}->{$top_tag}->{'class'}='';
     }
 
     ##
@@ -1274,14 +1358,14 @@ sub _build_search_query ($%) {
     #
     foreach my $cin (keys %$up) {
         foreach my $tin (keys %{$up->{$cin}}) {
-            if(!$up->{$cin}->{$tin}->{name}) {
-                my $ci=$classes{index}++;
-                $up->{$cin}->{$tin}->{name}=$ci;
-                $classes{names}->{$ci}={
+            if(!$up->{$cin}->{$tin}->{'name'}) {
+                my $ci=$classes{'index'}++;
+                $up->{$cin}->{$tin}->{'name'}=$ci;
+                $classes{'names'}->{$ci}={
                     class       => $cin,
                     tag         => $tin,
                     weight      => 0,
-                    table       => $self->_class_description($cin)->{table},
+                    table       => $self->_class_description($cin)->{'table'},
                 };
             }
         }
@@ -1309,7 +1393,7 @@ sub _build_search_query ($%) {
         my $conn=$glue->_connector_name($cc,$uc);
         if($conn) {
             $conn=$self->_driver->mangle_field_name($conn);
-            my $un=$up->{$uc}->{$ut}->{name};
+            my $un=$up->{$uc}->{$ut}->{'name'};
             $clause.=" AND " if $clause;
             $clause.="$un.unique_id=$cn.$conn";
         }
@@ -1330,7 +1414,7 @@ sub _build_search_query ($%) {
             my $conn=$glue->_connector_name($cc,$uc);
             if($conn) {
                 $conn=$self->_driver->mangle_field_name($conn);
-                my $un=$up->{$uc}->{$ut}->{name};
+                my $un=$up->{$uc}->{$ut}->{'name'};
                 $clause.=" AND " if $clause;
                 $clause.="$cn.$conn=$un.unique_id";
             }
@@ -1338,20 +1422,30 @@ sub _build_search_query ($%) {
     }
 
     ##
-    # Moving key to the first position in the list of fields
+    # Unless we were asked for a specific set of fields, moving key to
+    # the first position in the list of fields. Otherwise making sure
+    # the fields we were asked for are the first in the given order.
     #
-    delete $return_fields{$key_field};
-    my @fields_list=($key_field, keys %return_fields);
+    my @fields_list;
+    if(@result_fields) {
+        delete @return_fields{@result_fields};
+        @fields_list=(@result_fields,keys %return_fields);
+    }
+    else {
+        delete $return_fields{$key_field};
+        @fields_list=($key_field, keys %return_fields);
+    }
     undef %return_fields;
+    undef @result_fields;
 
     ##
     # Composing SQL query out of data we have.
     #
-    my $c_names=$classes{names};
+    my $c_names=$classes{'names'};
     my $sql='SELECT ';
     $sql.=join(',',@fields_list) .
           ' FROM ' .
-          join(',',map { $c_names->{$_}->{table} . ' AS ' . $_ } keys %{$c_names});
+          join(',',map { $c_names->{$_}->{'table'} . ' AS ' . $_ } keys %{$c_names});
     $sql.=' WHERE ' . $clause if $clause;
 
     ##
@@ -1390,16 +1484,17 @@ sub _build_search_query ($%) {
     # Returning resulting hash
     #
     return {
-        sql => $sql,
-        where => $clause,
-        values => \@values,
-        classes => \%classes,
-        fields_list => \@fields_list,
-        fields_map => \%fields_map,
-        distinct => \@distinct,
-        order_by => \@orderby,
-        post_process => $post_process,
-        options => $options,
+        sql             => $sql,
+        where           => $clause,
+        values          => \@values,
+        classes         => \%classes,
+        fields_list     => \@fields_list,
+        fields_map      => \%fields_map,
+        result_descs    => \@result_descs,
+        distinct        => \@distinct,
+        order_by        => \@orderby,
+        post_process    => $post_process,
+        options         => $options,
     };
 }
 
@@ -1462,17 +1557,17 @@ sub _build_search_field ($$$) {
     for(my $i=0; $i!=@path; $i++) {
         my $n=$path[$i];
 
-        my $fd=$class_desc->{fields}->{$n} ||
+        my $fd=$class_desc->{'fields'}->{$n} ||
             $self->throw("_build_search_field - unknown field '$n' in $lha");
-        $fd->{type} eq 'list' ||
+        $fd->{'type'} eq 'list' ||
             $self->throw("_build_search_field - '$n' is not a list in $lha");
-        my $n_class=$fd->{class};
+        my $n_class=$fd->{'class'};
 
         my $n_tag=$i+1==@path ? '' : $path[$i+1];
         if($n_tag eq '*') {
             $i++;
-            $classes->{tag_index}||='ta';
-            $n_tag=$classes->{tag_index}++;
+            $classes->{'tag_index'}||='ta';
+            $n_tag=$classes->{'tag_index'}++;
         }
         elsif($n_tag=~/^\d+$/) {
             $i++;
@@ -1488,29 +1583,29 @@ sub _build_search_field ($$$) {
         $class_desc=$self->_class_description($class_name);
     }
 
-    my $class_index=$up->{$class_name}->{$class_tag}->{name};
+    my $class_index=$up->{$class_name}->{$class_tag}->{'name'};
     if(!$class_index) {
-        $classes->{index}||='a';
-        $class_index=$classes->{index}++;
-        $up->{$class_name}->{$class_tag}->{name}=$class_index;
-        $classes->{names}->{$class_index}={
+        $classes->{'index'}||='a';
+        $class_index=$classes->{'index'}++;
+        $up->{$class_name}->{$class_tag}->{'name'}=$class_index;
+        $classes->{'names'}->{$class_index}={
             class       => $class_name,
             tag         => $class_tag,
             weight      => 0,
-            table       => $class_desc->{table},
+            table       => $class_desc->{'table'},
         };
     }
 
     ##
     # Special condition for 'unique_id' field names
     #
-    my $field_desc=$lha eq 'unique_id' ? {} : $class_desc->{fields}->{$lha};
+    my $field_desc=$lha eq 'unique_id' ? {} : $class_desc->{'fields'}->{$lha};
     $field_desc || $self->throw("_build_search_field - unknown field '$lha'");
 
     ##
     # Counting number of fields using that table, index have more weight
     # and unique index even more. If not overriden in options that is
-    # going to be out center table.
+    # going to be our center table.
     #
     my $inc=$field_desc->{'unique'} ? 20 : ($field_desc->{'index'} ? 10 : 1);
     my $weight=$classes->{'names'}->{$class_index}->{'weight'}+=$inc;
@@ -1538,15 +1633,15 @@ sub _build_search_field ($$$) {
 sub _build_search_field_class ($$$$$$) {
     my ($self,$classes,$n_class,$n_tag,$p_class,$p_tag)=@_;
 
-    my $up=$classes->{up};
+    my $up=$classes->{'up'};
 
     if(!$p_class && (!$up->{$n_class} || !$up->{$n_class}->{$n_tag})) {
-        if(!$classes->{top_class}) {
-            $classes->{top_class}=$n_class;
-            $classes->{top_tag}=$n_tag;
+        if(!$classes->{'top_class'}) {
+            $classes->{'top_class'}=$n_class;
+            $classes->{'top_tag'}=$n_tag;
         }
-        elsif($classes->{top_class} ne $n_class) {
-            my $uc=$classes->{top_class};
+        elsif($classes->{'top_class'} ne $n_class) {
+            my $uc=$classes->{'top_class'};
             while($uc ne $n_class) {
                 $uc=$self->_glue->upper_class($uc);
                 last unless $uc;
@@ -1567,15 +1662,15 @@ sub _build_search_field_class ($$$$$$) {
                             class   => $self->_glue->upper_class($uc),
                             tag     => 1,
                         };
-                        $uc=$up->{$uc}->{$ut}->{class};
+                        $uc=$up->{$uc}->{$ut}->{'class'};
                         $ut=1;
                     }
                     last if $up->{$uc}->{$ut};
                 }
             }
         }
-        elsif($classes->{top_tag} ne $n_tag) {
-            my $uc=$classes->{top_class};
+        elsif($classes->{'top_tag'} ne $n_tag) {
+            my $uc=$classes->{'top_class'};
             $uc=$self->_glue->upper_class($uc) ||
                 throw $self "_build_search_field_class - no upper class for $uc";
             $up->{$uc}->{1}={
@@ -1762,11 +1857,11 @@ sub _list_setup ($) {
     $$self->{'class_description'}=$$glue->{'classes'}->{$class_name};
     $$self->{'key_name'}=$glue->_list_key_name($class_name,$base_name);
 
-    my $kdesc=$$self->{class_description}->{'fields'}->{$$self->{'key_name'}};
+    my $kdesc=$$self->{'class_description'}->{'fields'}->{$$self->{'key_name'}};
     $$self->{'key_format'}=$kdesc->{'key_format'};
     $$self->{'key_length'}=$kdesc->{'key_length'} || 30;
     $$self->{'key_charset'}=$kdesc->{'key_charset'} || 'binary';
-    $$self->{'key_unique_id'}=$kdesc->{key_unique_id};
+    $$self->{'key_unique_id'}=$kdesc->{'key_unique_id'};
 }
 
 ##
@@ -1776,12 +1871,12 @@ sub _list_setup ($) {
 sub _find_unique_id ($$) {
     my $self=shift;
     my $name=shift;
-    my $key_name=$$self->{key_name} || $self->throw("_find_unique_id - no key name");
-    my $connector_name=$$self->{connector_name};
-    my $table=$$self->{class_description}->{table};
+    my $key_name=$$self->{'key_name'} || $self->throw("_find_unique_id - no key name");
+    my $connector_name=$$self->{'connector_name'};
+    my $table=$$self->{'class_description'}->{'table'};
     $self->_driver->unique_id($table,
                               $key_name,$name,
-                              $connector_name,$$self->{base_id});
+                              $connector_name,$$self->{'base_id'});
 }
 
 ##
@@ -1804,8 +1899,8 @@ sub _list_unlink_object ($$$) {
     ##
     # And now dropping the row itself.
     #
-    $self->_driver->delete_row($class_desc->{table},
-                               $$object->{unique_id});
+    $self->_driver->delete_row($class_desc->{'table'},
+                               $$object->{'unique_id'});
 }
 
 ##
@@ -1817,13 +1912,13 @@ sub _list_store_object ($$$) {
 
     ref($value) ||
         $self->throw("_list_store_object - value must be an object reference");
-    $value->objname eq $$self->{class_name} ||
-        $self->throw("_list_store_object - wrong objname ".$value->objname.", should be $self->{class_name}");
+    $value->objname eq $$self->{'class_name'} ||
+        $self->throw("_list_store_object - wrong objname ".$value->objname.", should be $self->{'class_name'}");
 
     my $desc=$value->_class_description;
     my @flist;
-    foreach my $fn (keys %{$desc->{fields}}) {
-        my $type=$desc->{fields}->{$fn}->{type};
+    foreach my $fn (keys %{$desc->{'fields'}}) {
+        my $type=$desc->{'fields'}->{$fn}->{'type'};
         next if $type eq 'list';
         next if $type eq 'key';
         next if $type eq 'connector';
@@ -1832,7 +1927,7 @@ sub _list_store_object ($$$) {
     my %fields;
     @fields{@flist}=$value->get(@flist) if @flist;
 
-    my $table=$desc->{table};
+    my $table=$desc->{'table'};
     $table || $self->throw("_list_store_object - no table");
 
     ##
@@ -1840,10 +1935,10 @@ sub _list_store_object ($$$) {
     # according to key_format.
     #
     my $driver=$self->_driver;
-    my $key_name=$$self->{key_name};
+    my $key_name=$$self->{'key_name'};
     if(!$key_value) {
-        my $format=$$self->{key_format} || '<$RANDOM$>';
-        my $uid=$$self->{key_unique_id};
+        my $format=$$self->{'key_format'} || '<$RANDOM$>';
+        my $uid=$$self->{'key_unique_id'};
         my $translate=sub {
             my ($kw,$opt)=@_;
             my $text='';
@@ -1883,7 +1978,7 @@ sub _list_store_object ($$$) {
     #
     $key_value=$driver->store_row($table,
                                   $key_name,$key_value,
-                                  $$self->{connector_name},$$self->{base_id},
+                                  $$self->{'connector_name'},$$self->{'base_id'},
                                   \%fields);
 
     return $key_value;
@@ -1940,7 +2035,7 @@ sub _add_data_placeholder ($%) {
         $dl <= 30 ||
             throw $self "_add_data_placeholder - default text is longer then 30 characters";
         $dl <= $fdesc{'maxlength'} ||
-            throw $self "_add_data_placeholder - default text is longer then maxlength ($fdesc{maxlength})";
+            throw $self "_add_data_placeholder - default text is longer then maxlength ($fdesc{'maxlength'})";
 
         $driver->add_field_text($table,$name,$fdesc{'index'},$fdesc{'unique'},
                                 $fdesc{'maxlength'},$fdesc{'default'},$fdesc{'charset'},$connected);
@@ -2033,7 +2128,7 @@ sub _add_list_placeholder ($%) {
 
     XAO::Objects->load(objname => $class);
 
-    my $table=$args->{table};
+    my $table=$args->{'table'};
     if(!$table) {
         $table=$class;
         $table =~ s/^Data:://;
@@ -2159,19 +2254,19 @@ sub _drop_list_placeholder ($$;$$) {
     my ($self,$name,$recursive,$upper_class)=@_;
 
     my $desc=$recursive || $self->_field_description($name);
-    my $class=$desc->{class};
+    my $class=$desc->{'class'};
     my $glue=$self->_glue;
-    my $cdesc=$$glue->{classes}->{$class};
-    my $cf=$cdesc->{fields};
+    my $cdesc=$$glue->{'classes'}->{$class};
+    my $cf=$cdesc->{'fields'};
 
     foreach my $fname (keys %{$cf}) {
-        if($cf->{$fname}->{type} eq 'list') {
+        if($cf->{$fname}->{'type'} eq 'list') {
             $self->_drop_list_placeholder($fname,$cf->{$fname},$class);
         }
     }
 
     my $driver=$self->_driver;
-    my $table=$cdesc->{table};
+    my $table=$cdesc->{'table'};
 
     my $uid=$driver->unique_id('Global_Classes',
                                'class_name',$class,
@@ -2185,7 +2280,7 @@ sub _drop_list_placeholder ($$;$$) {
     }
 
     if(! $recursive) {
-        my $selftable=$$glue->{classes}->{$self->objname}->{table};
+        my $selftable=$$glue->{'classes'}->{$self->objname}->{'table'};
         $uid=$driver->unique_id('Global_Fields',
                             'field_name',$name,
                             'table_name',$selftable);
@@ -2193,15 +2288,15 @@ sub _drop_list_placeholder ($$;$$) {
         $driver->delete_row('Global_Fields',$uid);
     }
 
-    delete $$glue->{classes}->{$class};
-    delete $$glue->{list_keys_cache}->{$class};
-    delete $$glue->{connectors_cache}->{$class};
+    delete $$glue->{'classes'}->{$class};
+    delete $$glue->{'list_keys_cache'}->{$class};
+    delete $$glue->{'connectors_cache'}->{$class};
 
     if($recursive) {
-        delete $$glue->{classes}->{$upper_class}->{fields}->{$name};
+        delete $$glue->{'classes'}->{$upper_class}->{'fields'}->{$name};
     }
     else {
-        delete $$glue->{classes}->{$self->objname}->{fields}->{$name};
+        delete $$glue->{'classes'}->{$self->objname}->{'fields'}->{$name};
     }
 
     $self->_driver->drop_table($table);

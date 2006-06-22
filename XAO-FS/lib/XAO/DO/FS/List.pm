@@ -33,7 +33,7 @@ use XAO::Objects;
 use base XAO::Objects->load(objname => 'FS::Glue');
 
 use vars qw($VERSION);
-$VERSION=(0+sprintf('%u.%03u',(q$Id: List.pm,v 2.5 2006/05/03 07:55:47 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
+$VERSION=(0+sprintf('%u.%03u',(q$Id: List.pm,v 2.6 2006/06/22 06:56:29 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
 
 ###############################################################################
 
@@ -691,63 +691,52 @@ underlying database does not support this feature.
 
 =item result
 
-Note: [Not completely implemented yet]
+This is a very powerful option that can significantly decrease your
+database load if used properly.
 
-Be default search() method returns a reference to an array of object
-keys. Result options allows you to alter that behavior.
+By default search() method returns a reference to an array of object
+keys. The 'result' option allows you to alter that behavior and receive
+database values in the same query, avoiding an extra step of retrieving
+the object and calling its get() method.
 
-Generally you can pass single description of return value or multiple
-descriptions as an array reference. In the first case what you get then
-is array of scalars, in the second case -- you get an array of arrays of
-scalars.
+Note, that if you're going to use only a portion of the results it may
+be faster to get only IDs in the usual manner and then load the data you
+need. Loading multiple fields of data on more objects than you actually
+need may be significantly slower.
 
-Description of return value can be a scalar -- in that case it is simply
-a name of field in the database; or it can be a hash reference. For hash
-reference the only required field is 'type', that determines type of the
-result. Other parameters in the hash depend on the specific type.
+You can pass a single description of a return field or multiple descriptions
+as an array reference. Regardless of how many fields you request if
+'result' option is used you always get a reference to an array of
+arrays.
 
-Recognized types are:
+The returning array rows may contain more records than you requested,
+but it is guaranteed that they will contain at least as many as
+requested and in the same order as requested. It's best to ignore the
+extra fields should you get any, their presense or content are not
+guaranteed.
+
+In addition to usual field names some special names are supported:
 
 =over
 
-=item count
+=item #container_key
 
-No other parameters, return number of would-be results for the
-search. Resulting array will have only one row if 'count' is used.
+Returns the value of the key in the list you're searching on.
 
-=item key
+=item #collection_key
 
-Returns object ID, just the same as would be returned by default.
-
-=item sum
-
-Returns arithmetic sum of all 'name' fields in the resulting set.
+Returns the values of the collection key for the object if a collection
+was built on the same class.
 
 =back
 
 Examples:
 
- my $rr=$data->search('last_name','cs','smit', {
-                    orderby => 'last_name',
-                    result => [qw(id last_name first_name age)]
-                });
-
- my $rr=$data->search({
-                    result => {
-                        type    => 'count',
-                    },
-                 });
- my $count=$rr->[0];
-
- my $rr=$data->search({
-                    result => [ {
-                        type    => 'count',
-                    }, {
-                        type    => 'sum',
-                        name    => 'gross_rev',
-                    }
-                ] });
- my ($count,$sum)=@{$rr->[0]};
+ my $rr=$data->search(
+    'last_name','cs','smit', {
+    orderby => 'last_name',
+    result => [qw(#container_key last_name first_name age)]
+ });
 
 =back
 
@@ -770,6 +759,11 @@ to select everything in the given list. Examples:
  # This is the way to get all the keys ordered by price.
  #
  my $keys=$products->search({ orderby => 'price' });
+
+ ##
+ # Getting name and surname for all records
+ #
+ my $data=$customers->search({ result => [qw(name surname)] });
 
 =cut
 

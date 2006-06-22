@@ -6,13 +6,11 @@ use Error qw(:try);
 
 use base qw(XAO::testcases::FS::base);
 
-use Data::Dumper;
-
 ###############################################################################
 
-# Testing how returning multiple fields works -- 'fields' option in search
+# Testing how returning multiple fields works -- 'result' option in search
 
-sub test_return_fields {
+sub test_result_option {
     my $self=shift;
     my $odb=$self->get_odb();
 
@@ -24,8 +22,14 @@ sub test_return_fields {
         maxlength   => 50,
         charset     => 'utf8',
     );
-    $cust_list->get('c1')->put(name => 'name1', desc => 'aaaaa');
-    $cust_list->get('c2')->put(name => 'name2', desc => 'ddddd');
+    $cust_list->get_new->add_placeholder(
+        name        => 'common',
+        type        => 'text',
+        maxlength   => 50,
+        charset     => 'utf8',
+    );
+    $cust_list->get('c1')->put(name => 'name1', desc => 'aaaaa', common => 'common');
+    $cust_list->get('c2')->put(name => 'name2', desc => 'ddddd', common => 'common');
 
     $cust_list->get_new->add_placeholder(
         name        => 'Orders',
@@ -77,47 +81,83 @@ sub test_return_fields {
         t01 => {
             list    => $cust_list,
             args    => [ 'desc','cs','d' ],
-            options => { fields => [ qw(name desc) ], orderby => '-name' },
-            result  => 'desc=ddddd|name=name2',
+            options => { result => [ qw(name desc) ], orderby => '-name', distinct => 'customer_id' },
+            result  => 'name2|ddddd',
+            rcount  => 2,
         },
         t02 => {
+            list    => $cust_list,
+            options => { result => [ qw(desc) ], orderby => 'name' },
+            result  => 'aaaaa;ddddd',
+            rcount  => 1,
+        },
+        t03 => {
             list    => $cust_list,
             args    => [ 'desc','cs','a' ],
-            options => { fields => [ qw(#container_key customer_id name desc) ], orderby => '-name' },
-            result  => '#container_key=c1|customer_id=c1|desc=aaaaa|name=name2',
+            options => { result => [ '#container_key','customer_id','name','desc' ], orderby => '-name' },
+            result  => 'c1|c1|name1|aaaaa',
+            rcount  => 4,
         },
-        t02 => {
+        t04 => {
             list    => $cust_list,
-            options => { fields => [ qw(#collection_key) ], orderby => '-name' },
-            result  => '#collection_key=1;#collection_key=2',
+            options => { result => [ '#collection_key' ], orderby => 'desc' },
+            result  => '1;2',         # this may break in other databases
+            rcount  => 1,
+        },
+        t05 => {
+            list    => $order_coll,
+            options => { result => [ '#id' ], orderby => 'text' },
+            result  => '1;2;3;4;5',     # this may break in other databases
+        },
+        t06 => {
+            list    => $cust_list,
+            options => { result => [ qw(common common) ], distinct => 'common' },
+            result  => 'common|common',
         },
         t10 => {
             list    => $cust_list,
             args    => [ 'Orders/total','gt',300 ],
-            options => { fields => [ qw(name desc) ], orderby => 'customer_id' },
-            result  => 'desc=aaaaa|name=name1;desc=ddddd|name=name2',
+            options => { result => [ qw(name common) ], orderby => 'customer_id' },
+            result  => 'name1|common;name2|common',
         },
         t11 => {
             list    => $cust_list,
             args    => [ 'Orders/total','gt',300 ],
-            options => { fields => [ qw(Orders/total Orders/text) ],
+            options => { result => [ qw(Orders/total Orders/text) ],
                          orderby => [ ascend => 'customer_id', descend => 'Orders/total' ] },
-            result  => 'desc=aaaaa|name=name1;desc=ddddd|name=name2',
+            result  => '345.67|c1o3;567.89|c2o2;456.78|c2o1',
+        },
+        t12 => {
+            list    => $cust_list,
+            options => { result => [ qw(Orders/total desc Orders/text) ],
+                         orderby => '-Orders/total' },
+            result  => '567.89|ddddd|c2o2;456.78|ddddd|c2o1;345.67|aaaaa|c1o3;234.56|aaaaa|c1o2;123.45|aaaaa|c1o1',
+        },
+        t20 => {
+            list    => $order_coll,
+            options => { result => [ 'text','../name','#container_key' ],
+                         orderby => '-total' },
+            result  => 'c2o2|name2|o2;c2o1|name2|o1;c1o3|name1|o3;c1o2|name1|o2;c1o1|name1|o1',
         },
     );
 
-    foreach my $t (keys %matrix) {
+    foreach my $t (sort keys %matrix) {
         my $test=$matrix{$t};
         my $list=$test->{'list'};
+
         my $sr=$test->{'args'} ? $list->search($test->{'args'},$test->{'options'})
                                : $list->search($test->{'options'});
+
+        ### dprint Dumper($sr);
+        $self->assert(ref($sr) eq 'ARRAY',
+                      "Test '$t', expected to get a list reference, got '".ref($sr)."'");
+        $self->assert(ref($sr->[0]) eq 'ARRAY',
+                      "Test '$t', expected to get a list of arrays, got '".ref($sr->[0])."'");
+
         my $got=join(';',map {
-            my $row=$_;
-            join('|',map { ($_,$row->{$_}) } sort keys %$row);
+            join('|',$test->{'rcount'} ? @$_[0..($test->{'rcount'}-1)] : @$_);
         } @$sr);
         my $expect=$test->{'result'};
-        dprint Dumper($test);
-        dprint Dumper($sr);
         $self->assert($got eq $expect,
                       "Test '$t', expected '$expect', got '$got'");
     }
