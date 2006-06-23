@@ -50,7 +50,7 @@ use XAO::Objects;
 use base XAO::Objects->load(objname => 'Atom');
 
 use vars qw($VERSION);
-$VERSION=(0+sprintf('%u.%03u',(q$Id: Glue.pm,v 2.9 2006/06/22 06:56:29 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
+$VERSION=(0+sprintf('%u.%03u',(q$Id: Glue.pm,v 2.10 2006/06/23 19:46:06 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
 
 ###############################################################################
 
@@ -1209,6 +1209,7 @@ sub _build_search_query ($%) {
     my $options=$args->{'options'};
     my @result_fields;
     my @result_descs;
+    my $groupby_pos;
     if($options) {
         foreach my $option (keys %$options) {
             if(lc($option) eq 'distinct') {
@@ -1234,6 +1235,7 @@ sub _build_search_query ($%) {
                     if($fn eq '#id') {
                         $sqlfn=$key_field;
                         $fdesc=$key_fdesc;
+                        $groupby_pos=@result_fields;
                     }
                     elsif($fn eq '#container_key') {
                         if($self->objname eq 'FS::Collection') {
@@ -1252,11 +1254,15 @@ sub _build_search_query ($%) {
                         else {
                             ($sqlfn,$fdesc)=$self->_build_search_field(\%classes,'unique_id');
                         }
+                        $groupby_pos=@result_fields;
                     }
                     else {
                         ($sqlfn,$fdesc)=$self->_build_search_field(\%classes,$fn);
                         $fdesc->{'type'} eq 'list' &&
                             $self->throw("_build_search_query - can't use 'list' fields in 'result' option");
+                    }
+                    if(!defined $groupby_pos && $sqlfn eq $key_field) {
+                        $groupby_pos=@result_fields;
                     }
                     $return_fields{$sqlfn}=1;
                     push(@result_fields,$sqlfn);
@@ -1429,11 +1435,19 @@ sub _build_search_query ($%) {
     my @fields_list;
     if(@result_fields) {
         delete @return_fields{@result_fields};
-        @fields_list=(@result_fields,keys %return_fields);
+        if(@distinct || defined $groupby_pos) {
+            @fields_list=(@result_fields,keys %return_fields);
+        }
+        else {
+            delete $return_fields{$key_field};
+            @fields_list=(@result_fields,$key_field,keys %return_fields);
+            $groupby_pos=@result_fields;
+        }
     }
     else {
         delete $return_fields{$key_field};
         @fields_list=($key_field, keys %return_fields);
+        $groupby_pos=0;
     }
     undef %return_fields;
     undef @result_fields;
@@ -1460,7 +1474,7 @@ sub _build_search_query ($%) {
         $sql.=' GROUP BY ' . join(',',@distinct);
     }
     elsif(@fields_list>1 || scalar(keys %$c_names)>1) {
-        $sql.=' GROUP BY ' . join(',',$fields_list[0]);
+        $sql.=' GROUP BY ' . $fields_list[$groupby_pos];
     }
 
     ##
