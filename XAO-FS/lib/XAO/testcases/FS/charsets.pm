@@ -61,6 +61,51 @@ sub test_result_charset {
 
 ###############################################################################
 
+sub test_maxlength {
+    my $self=shift;
+
+    eval 'use Encode';
+    if($@) {
+        print STDERR "Encode not available, support for charset is probably broken, not testing\n";
+        return;
+    }
+
+    my $odb=$self->get_odb();
+
+    my $global=$odb->fetch('/');
+    $self->assert(ref($global), "Failure getting / reference");
+
+    $global->add_placeholder(
+        name        => 'utf8',
+        type        => 'text',
+        maxlength   => 10,
+        charset     => 'utf8',
+    );
+
+    my $text="\x{263a}" x 10;
+    $self->assert(length($text) == 10,
+                  "Expected the length of '$text' to be 10, got ".length($text)." (perl error?)");
+
+    my $stored;
+    try {
+        $global->put(utf8 => $text);
+        $stored=1;
+    }
+    otherwise {
+        my $e=shift;
+        dprint "Error storing: $e";
+    };
+
+    $self->assert($stored,
+                  "Could not store 10 UTF characters into a maxlength=10 field");
+
+    my $got=$global->get('utf8');
+    $self->assert($got eq $text,
+                  "Expected '$text', got '$got'");
+}
+
+###############################################################################
+
 # as of 6/09/2006 we are supposed to get back perl Unicode strings for
 # text fields in non-binary encodings.
 
