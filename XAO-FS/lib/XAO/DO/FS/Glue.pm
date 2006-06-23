@@ -50,7 +50,7 @@ use XAO::Objects;
 use base XAO::Objects->load(objname => 'Atom');
 
 use vars qw($VERSION);
-$VERSION=(0+sprintf('%u.%03u',(q$Id: Glue.pm,v 2.10 2006/06/23 19:46:06 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
+$VERSION=(0+sprintf('%u.%03u',(q$Id: Glue.pm,v 2.11 2006/06/23 20:00:03 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
 
 ###############################################################################
 
@@ -1473,7 +1473,7 @@ sub _build_search_query ($%) {
     if(@distinct) {
         $sql.=' GROUP BY ' . join(',',@distinct);
     }
-    elsif(@fields_list>1 || scalar(keys %$c_names)>1) {
+    elsif(scalar(keys %$c_names)>1) {
         $sql.=' GROUP BY ' . $fields_list[$groupby_pos];
     }
 

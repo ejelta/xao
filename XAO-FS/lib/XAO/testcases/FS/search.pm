@@ -179,6 +179,14 @@ sub test_result_option {
             result  => 'common;common',
             rcount  => 1,
         },
+        t30 => {
+            list    => $order_list,
+            args    => [ [ 'total','gt',0 ], 'and', [ 'total','lt',1000 ] ],
+            options => { result => [ qw(order_id text total) ],
+                         orderby => 'text' },
+            result  => 'o1|c2o1|456.78;o2|c2o2|567.89',
+            rcount  => 3,
+        }
     );
 
     foreach my $t (sort keys %matrix) {
