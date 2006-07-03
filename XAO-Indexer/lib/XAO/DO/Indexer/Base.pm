@@ -29,6 +29,7 @@ Methods are:
 package XAO::DO::Indexer::Base;
 use strict;
 use Error qw(:try);
+use Encode;
 use XAO::Utils;
 use XAO::Objects;
 use XAO::Projects qw(get_current_project);
@@ -43,7 +44,7 @@ sub sequential_helper ($$;$$$);
 ###############################################################################
 
 use vars qw($VERSION);
-$VERSION=(0+sprintf('%u.%03u',(q$Id: Base.pm,v 1.43 2006/01/25 21:41:49 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
+$VERSION=(0+sprintf('%u.%03u',(q$Id: Base.pm,v 1.44 2006/07/03 22:46:05 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
 
 ###############################################################################
 
@@ -813,7 +814,7 @@ sub update ($%) {
             ##
             # Using md5 based IDs
             #
-            my $kwmd5=md5_base64($kw);
+            my $kwmd5=md5_base64(Encode::encode_utf8($kw));
             $kwmd5=~s/\W/_/g;
             my $data_obj;
             if($data_list->exists($kwmd5)) {

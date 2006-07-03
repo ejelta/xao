@@ -1,5 +1,7 @@
 package testcases::base;
 use strict;
+use utf8;
+use Encode;
 use XAO::Utils;
 use XAO::Base;
 use XAO::Objects;
@@ -92,6 +94,8 @@ sub timediff ($$$) {
     $t1-$t2;
 }
 
+use vars qw(@words);
+
 sub generate_content {
     my $self=shift;
     my $odb=$self->{config}->odb;
@@ -107,8 +111,8 @@ sub generate_content {
     $odb->transact_begin;
     for(1..150) {
         $foo_new->put(
-            name   => $self->random_text($foo_new->describe('name')->{maxlength}),
-            text   => $self->random_text($foo_new->describe('text')->{maxlength}),
+            name   => $self->random_text($foo_new->describe('name')->{'maxlength'}),
+            text   => $self->random_text($foo_new->describe('text')->{'maxlength'}),
         );
         my $foo=$foo_list->get($foo_list->put($foo_new));
         my $bar_list=$foo->get('Bar');
@@ -116,16 +120,47 @@ sub generate_content {
         my $bar_num=int(rand(7));
         for(1..$bar_num) {
             $bar_new->put(
-                name   => $self->random_text($foo_new->describe('name')->{maxlength}),
-                text   => $self->random_text($foo_new->describe('text')->{maxlength}),
+                name   => $self->random_text($foo_new->describe('name')->{'maxlength'}),
+                text   => $self->random_text($foo_new->describe('text')->{'maxlength'}),
             );
             $bar_list->put($bar_new);
         }
     }
+
+    @words=();
+    for(1..20) {
+        $foo_new->put(
+            name   => $self->random_unicode($foo_new->describe('name')->{'maxlength'}),
+            text   => $self->random_unicode($foo_new->describe('text')->{'maxlength'}),
+        );
+        $foo_list->put($foo_new);
+    }
+
     $odb->transact_commit;
 }
 
-use vars qw(@words);
+sub unicode_words {
+    my $self=shift;
+    return (
+        decode('iso-8859-1',"Birkh\xf6user"),
+        split(/\s/,decode('iso-8859-1',"Minist\xe8re des Affaires \xe9trang\xe8res")),
+        "\x{0412}\x{0435}\x{0431}", # Russian: Web
+        "\x{041a}\x{0430}\x{0440}\x{0442}\x{0438}\x{043d}\x{043a}\x{0438}", # Russian: Images
+        qw(filler1 filler2 filler3 filler4 filler5 filler6 filler7 filler8 filler9),
+        qw(killer1 killer2 killer3 killer4 killer5 killer6 killer7 killer8 killer9),
+        qw(biller1 biller2 biller3 biller4 biller5 biller6 biller7 biller8 biller9),
+    );
+}
+
+sub random_unicode {
+    my ($self,$maxl)=@_;
+    if(!@words) {
+        @words=$self->unicode_words;
+        ### binmode(STDERR,':utf8');
+        ### dprint join("|",@words);
+    }
+    return $self->random_text($maxl);
+}
 
 sub random_text {
     my ($self,$maxl)=@_;
@@ -149,6 +184,7 @@ sub random_text {
         $text.=$word;
     }
 
+    ### dprint $text;
     return $text;
 }
 
