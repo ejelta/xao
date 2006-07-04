@@ -50,7 +50,7 @@ use XAO::Objects;
 use base XAO::Objects->load(objname => 'Atom');
 
 use vars qw($VERSION);
-$VERSION=(0+sprintf('%u.%03u',(q$Id: Glue.pm,v 2.11 2006/06/23 20:00:03 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
+$VERSION=(0+sprintf('%u.%03u',(q$Id: Glue.pm,v 2.12 2006/07/04 06:06:57 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
 
 ###############################################################################
 
@@ -1614,7 +1614,7 @@ sub _build_search_field ($$$) {
     # Special condition for 'unique_id' field names
     #
     my $field_desc=$lha eq 'unique_id' ? {} : $class_desc->{'fields'}->{$lha};
-    $field_desc || $self->throw("_build_search_field - unknown field '$lha'");
+    $field_desc || $self->throw("_build_search_field - unknown field '$lha' ($class_name)");
 
     ##
     # Counting number of fields using that table, index have more weight
