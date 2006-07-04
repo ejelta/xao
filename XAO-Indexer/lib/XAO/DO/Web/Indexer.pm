@@ -36,7 +36,7 @@ use base XAO::Objects->load(objname => 'Web::Action');
 ###############################################################################
 
 use vars qw($VERSION);
-$VERSION=(0+sprintf('%u.%03u',(q$Id: Indexer.pm,v 1.1 2006/05/08 06:24:37 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
+$VERSION=(0+sprintf('%u.%03u',(q$Id: Indexer.pm,v 1.2 2006/07/04 02:28:37 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
 
 ###############################################################################
 
@@ -65,11 +65,17 @@ sub search ($%) {
     my $orderby=$args->{'orderby'} ||
         throw $self "search - no 'orderby' given";
 
-    my $keywords=lc($args->{'keywords'}) ||
-        throw $self "search - no 'keywords' given";
+    my $keywords;
+    if($args->{'keywords.param'}) {
+        $keywords=lc($self->cgi->param($args->{'keywords.param'}));
+    }
+    else {
+        $keywords=lc($self->decode_charset($args->{'keywords'})) ||
+            throw $self "search - no 'keywords' given";
+    }
     $keywords=~s/^\s*(.*?)\s*$/$1/s;
 
-    dprint ">>>$index_id >> $orderby >> $keywords";
+    ### dprint ">>>$index_id >> $orderby >> '$keywords'";
 
     ##
     # Limit is not supported by the indexed search internally, we

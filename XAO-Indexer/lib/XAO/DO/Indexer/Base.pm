@@ -44,7 +44,7 @@ sub sequential_helper ($$;$$$);
 ###############################################################################
 
 use vars qw($VERSION);
-$VERSION=(0+sprintf('%u.%03u',(q$Id: Base.pm,v 1.44 2006/07/03 22:46:05 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
+$VERSION=(0+sprintf('%u.%03u',(q$Id: Base.pm,v 1.45 2006/07/04 02:28:36 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
 
 ###############################################################################
 
@@ -69,7 +69,7 @@ sub analyze_text ($$$@) {
         my $pos=1;
         foreach my $kw (@$kwlist) {
             $kw_data->{'count_uid'}->{$unique_id}->{$kw}++;
-            if(! exists $kw_data->{ignore}->{$kw}) {
+            if(! exists $kw_data->{'ignore'}->{$kw}) {
                 my $kwt=$kw_info->{lc($kw)}->{$unique_id};
                 if(! $kwt->[$field_num]) {
                     $kw_info->{lc($kw)}->{$unique_id}->[$field_num]=[ $pos ];
