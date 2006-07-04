@@ -4,7 +4,7 @@ package testcases::Web;
 use strict;
 use XAO::Utils;
 use XAO::Web;
-use CGI;
+use XAO::Objects;
 
 use base qw(testcases::base);
 
@@ -17,7 +17,7 @@ sub test_all {
     $self->assert(ref($web),
                   "Can't create an instance of XAO::Web");
 
-    my $cgi=CGI->new('foo=bar');
+    my $cgi=XAO::Objects->new(objname => 'CGI', query => 'foo=bar');
 
     $self->catch_stdout();
     $web->execute(path => '/index.html', cgi => $cgi);
@@ -43,7 +43,7 @@ sub test_urlstyle_raw {
     $self->assert(ref($web),
                   "Can't create an instance of XAO::Web");
 
-    my $cgi=CGI->new('foo=bar');
+    my $cgi=XAO::Objects->new(objname => 'CGI', query => 'foo=bar');
 
     $self->catch_stdout();
     $web->execute(path => '/raw', cgi => $cgi);

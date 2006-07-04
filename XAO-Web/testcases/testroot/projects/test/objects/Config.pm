@@ -8,6 +8,7 @@ use base XAO::Objects->load(objname => 'Config', baseobj => 1);
 
 my %data = (
     base_url => 'http://xao.com',
+    charset  => 'UTF-8',
     path_mapping_table  => {
         '/rawobj' => {
             type        => 'xaoweb',

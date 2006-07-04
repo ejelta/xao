@@ -1,6 +1,5 @@
 package XAO::Web;
 use strict;
-use CGI;
 use Error qw(:try);
 use XAO::Utils;
 use XAO::Projects;
@@ -379,7 +378,7 @@ passed to the template being executed.
 
 Example:
 
- my $report=$web->expand(cgi     => CGI->new,
+ my $report=$web->expand(cgi     => XAO::Objects->new(objname => 'CGI'),
                          path    => '/bits/stat-report',
                          objargs => {
                              CUSTOMER_ID => '123X234Z',
@@ -490,7 +489,7 @@ sub process ($%) {
     my $apache=$args->{'apache'};
     my $cgi=$args->{'cgi'};
     if(!$cgi) {
-        $cgi=$pd->{'no_cgi'} ? CGI->new('foo=bar') : CGI->new;
+        $cgi=XAO::Objects->new(objname => 'CGI', no_cgi => $pd->{'no_cgi'});
     }
     if($apache) {
         $active_url="http://" . $apache->hostname;
@@ -557,7 +556,7 @@ sub process ($%) {
     # Checking if we have base_url, assuming active_url if not.
     # Ensuring that URL does not end with '/'.
     #
-    if($siteconfig->defined("base_url")) {
+    if($siteconfig->defined('base_url')) {
         my $url=$siteconfig->get('base_url');
         $url=~/^http:/i ||
             throw XAO::E::Web "expand - bad base_url ($url) for sitename=$sitename";
@@ -586,6 +585,22 @@ sub process ($%) {
     my $mod_perl=($apache || $ENV{MOD_PERL}) ? 1 : 0;
     $siteconfig->clipboard->put(mod_perl => $mod_perl);
     $siteconfig->clipboard->put(mod_perl_request => $apache);
+
+    ##
+    # Checking if a charset is known for the site. If it is, setting
+    # it up for CGI-params decoding and for output.
+    #
+    if(my $charset=$siteconfig->get('charset')) {
+        if($cgi->can('set_param_charset')) {
+            $cgi->set_param_charset($charset);
+        }
+        else {
+            eprint "CGI object we have does not support set_param_charset";
+        }
+        $siteconfig->header_args(
+            -Charset   => $charset,
+        );
+    }
 
     ##
     # Putting CGI object into site configuration. The special case is

@@ -22,7 +22,6 @@ use XAO::Errors qw(XAO::E::Handler);
 ##
 # Some global variables.
 #
-my $cgi=new CGI;
 my $siteconfig;
 
 ##
@@ -33,7 +32,9 @@ try {
     ##
     # Getting CGI object and path
     #
-    my $path_info=$cgi->path_info;
+    my $path_info=$ENV{'PATH_INFO'} ||
+        throw XAO::E::Handler "No PATH_INFO in the environment";
+
     my @path=split('/+','/'.$path_info);
     shift @path;
     my $sitename=shift @path;
@@ -41,7 +42,7 @@ try {
     push @path,'' if $path_info=~/\/$/;
 
     ##
-    # This is not very good way to check it here, should be more
+    # This is not a very good way to check it here, should be more
     # flexible I guess.
     #
     throw XAO::E::Handler "Bad file path" if grep(/^bits$/,@path);
@@ -55,8 +56,9 @@ try {
     # Executing.
     #
     my $path=join('/','/',@path);
-    $site->execute(path => $path,
-                   cgi => $cgi);
+    $site->execute(
+        path    => $path,
+    );
 }
 
 ##
@@ -65,6 +67,7 @@ try {
 #
 otherwise {
     my $e=shift;
+    my $cgi=new CGI;
     print $cgi->header(-status => "500 System Error"),
           $cgi->start_html("System error"),
           $cgi->h1("System error"),

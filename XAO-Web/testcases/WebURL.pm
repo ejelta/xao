@@ -1,6 +1,5 @@
 package testcases::WebURL;
 use strict;
-use CGI;
 use XAO::Utils;
 use XAO::Web;
 
@@ -32,12 +31,12 @@ sub test_all {
     $ENV{SERVER_PROTOCOL}='HTTP/1.1';
     $ENV{SERVER_SOFTWARE}='Apache/1.3.26 (Unix)';
 
-    my $cgi=CGI->new;
-
     my $site=XAO::Web->new(sitename => 'test');
     $self->assert(ref($site),
                   "Can't load Web object");
     $site->set_current;
+
+    my $cgi=XAO::Objects->new(objname => 'CGI');
 
     my %matrix=(
         t1 => {

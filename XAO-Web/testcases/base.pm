@@ -28,13 +28,28 @@ sub set_up {
                    set_current => 1);
     $config->init();
 
-    my $cgi=CGI->new('foo=bar&test=1');
+    my $cgi=XAO::Objects->new(
+        objname => 'CGI',
+        query   => 'foo=bar&ucode=%D1%82%D0%B5%D1%81%D1%82&bytes=%01%02%03%04&test=1',
+    );
+
+    if(my $charset=$config->get('charset')) {
+        if($cgi->can('set_param_charset')) {
+            $cgi->set_param_charset($charset);
+        }
+        else {
+            eprint "CGI object we have does not support set_param_charset";
+        }
+        $config->header_args(
+            -Charset   => $charset,
+        );
+    }
 
     $config->embedded('web')->enable_special_access();
     $config->cgi($cgi);
     $config->embedded('web')->disable_special_access();
 
-    $self->{siteconfig}=$config;
+    $self->{'siteconfig'}=$config;
 
     push @INC,$root;
 }

@@ -8,6 +8,75 @@ use XAO::Errors qw(XAO::DO::Web::Page XAO::DO::Web::MyPage);
 
 use base qw(testcases::base);
 
+###############################################################################
+
+sub test_cgi_param_charsets {
+    my $self=shift;
+
+    my $page=XAO::Objects->new(objname => 'Web::Page');
+    $self->assert(ref($page),
+                  "Can't load Page object");
+
+    my $cgi=$page->cgi;
+    $self->assert(ref($cgi),
+                  "Can't get page->cgi");
+
+    $self->assert($cgi->isa('XAO::DO::CGI'),
+                  "Expected CGI to be XAO::DO::CGI, got ".ref($cgi));
+
+    $self->assert($cgi->get_param_charset eq 'UTF-8',
+                  "Expected cgi->get_param_charset to return 'UTF-8', got '".($cgi->get_param_charset || '<UNDEF>')."'");
+
+    my $ucode=$cgi->param('ucode');
+    $self->assert($ucode ne '',
+                  "Expected to have a ucode param from base.pm");
+
+    $self->assert(Encode::is_utf8($ucode),
+                  "Expected ucode to be perl UTF-8");
+
+    my %tests=(
+        t1  => {
+            name        => 'ucode',
+            expect      => 'unicode',
+        },
+        t2  => {
+            name        => 'foo',
+            expect      => 'unicode',
+        },
+        t3  => {
+            name        => 'ucode',
+            expect      => 'data',
+            no_charset  => 1,
+        },
+        t4  => {
+            name        => 'foo',
+            expect      => 'data',
+            no_charset  => 1,
+        },
+    );
+
+    foreach my $tname (keys %tests) {
+        my $test=$tests{$tname};
+        my $template="<\%Unicode name='$test->{name}'%>";
+
+        my $got;
+        if($test->{'no_charset'}) {
+            my $c=$page->cgi->set_param_charset(undef);
+            $got=$page->expand(template => $template);
+            $page->cgi->set_param_charset($c);
+        }
+        else {
+            $got=$page->expand(template => $template);
+        }
+
+        my $expect=$test->{'expect'};
+        $self->assert($got eq $expect,
+                      "Test $tname - expected '$expect', got '$got'");
+    }
+}
+
+###############################################################################
+
 sub test_pass {
     my $self=shift;
 
@@ -253,4 +322,5 @@ sub test_cache {
                   "Wrong value from cache, expected 123, got $got");
 }
 
+###############################################################################
 1;

@@ -392,6 +392,7 @@ from Page unless overwritten) are:
 ###############################################################################
 package XAO::DO::Web::Page;
 use strict;
+use Encode;
 use XAO::Utils;
 use XAO::Cache;
 use XAO::Templates;
@@ -403,7 +404,7 @@ use Error qw(:try);
 use base XAO::Objects->load(objname => 'Atom');
 
 use vars qw($VERSION);
-$VERSION=(0+sprintf('%u.%03u',(q$Id: Page.pm,v 2.4 2006/05/20 00:08:10 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
+$VERSION=(0+sprintf('%u.%03u',(q$Id: Page.pm,v 2.5 2006/07/04 02:32:52 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
 
 ##
 # Prototypes
@@ -1094,6 +1095,26 @@ sub pageurl ($;%) {
     $uri="/".$uri unless substr($uri,0,1) eq '/';
 
     return $url.$uri;
+}
+
+###############################################################################
+
+=item decode_charset ($) {
+
+If there is 'charset' defined in the site configuration then decodes the
+argument using that charset. Otherwise returns the string unchanged.
+
+=cut
+
+sub decode_charset ($$) {
+    my ($self,$text)=@_;
+    return $text if Encode::is_utf8($text);
+    if(my $charset=$self->siteconfig->get('charset')) {
+        return Encode::decode($charset,$text);
+    }
+    else {
+        return $text;
+    }
 }
 
 ###############################################################################
