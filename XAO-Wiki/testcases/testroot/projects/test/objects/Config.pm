@@ -8,10 +8,7 @@ use base XAO::Objects->load(objname => 'Config', baseobj => 1);
 sub init {
     my $self=shift;
 
-    my $hash=XAO::SimpleHash->new();
-    $hash->put(base_url => 'http://xao.com');
-
-    my $webconfig=XAO::Objects->new(objname => 'Web::Config');
+    $self->embedded('hash')->put(base_url => 'http://xao.com');
 
     my %d;
     open(F,'.config') ||
@@ -33,9 +30,7 @@ sub init {
     );
 
     $self->embed(
-        web => $webconfig,
         fs => $fsconfig,
-        hash => $hash,
     );
 }
 

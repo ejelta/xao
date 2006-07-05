@@ -2,159 +2,12 @@ package testcases::WikiParser;
 use strict;
 use XAO::Utils;
 use XAO::Objects;
-use Data::Dumper;
 
-use base qw(testcases::base);
-
-sub run_tests ($$$);
+use base qw(XAO::testcases::Web::base);
 
 ###############################################################################
 
-sub test_override {
-    my $self=shift;
-
-    my $wiki=XAO::Objects->new(objname => 'Wiki::Parser::Test');
-    $self->assert($wiki->isa('XAO::DO::Wiki::Parser'),
-                  "Expected Wiki::Parser::Test to be based on Wiki::Parser");
-
-    my %tests=(
-        t001        => {
-            template    => "blah {{fubar}} blah",
-            expect      => [
-                {   type        => 'fubar',
-                    content     => '',
-                },
-            ],
-        },
-    ###     t002        => {
-    ###         template    => "blah}} {vals|\na=1|    b=test}}}",
-    ###         expect      => [
-    ###             {   type        => 'vals',
-    ###                 values      => {
-    ###                     a           => '1',
-    ###                     b           => 'test',
-    ###                 },
-    ###             },
-    ###         ],
-    ###         expect_not => [
-    ###             {   type        => 'curly',
-    ###             },
-    ###         ],
-    ###     },
-    );
-
-    $self->run_tests($wiki,\%tests);
-}
-
-###############################################################################
-
-sub test_isbndb_original {
-    my $self=shift;
-
-    my $wiki=XAO::Objects->new(objname => 'Wiki::Parser');
-    $self->assert($wiki->isa('XAO::DO::Wiki::Parser'),
-                  "Expected Wiki::Parser::Test to be based on Wiki::Parser");
-
-    my %tests=(
-        t001        => {
-            template    => "blah\n==some header==\nafter",
-            expect      => [
-                {   type        => 'header',
-                    content     => 'some header',
-                },
-            ],
-        },
-        t002        => {
-            template    => "blah\n==  some header  ==\nafter",
-            expect      => [
-                {   type        => 'header',
-                    content     => 'some header',
-                },
-            ],
-        },
-        t003        => {
-            template    => "blah\n===some header==\nafter",
-            expect_not  => [
-                {   type        => 'header',
-                    content     => 'some header',
-                },
-            ],
-        },
-        #
-        # Strange, but this is how Wikipedia parses it, so keeping ourselves compatible
-        #
-        t004        => {
-            template    => "blah\n==some header== xxx\nafter",
-            expect      => [
-                {   type        => 'header',
-                    content     => 'some header',
-                },
-            ],
-        },
-        t010        => {
-            template    => "blah\n===    some   subheader===  \nafter",
-            expect      => [
-                {   type        => 'header',
-                    level       => 3,
-                    content     => 'some   subheader',
-                },
-            ],
-        },
-        t011        => {
-            template    => "blah\nxxx ===    some   subheader===  \nafter",
-            expect_not      => [
-                {   type        => 'subheader',
-                    content     => 'some   subheader',
-                },
-            ],
-        },
-        t012        => {
-            template    => "\x{263a}",
-            expect      => [
-                {   type        => 'text',
-                    content     => "<p>\x{263a}\n</p>\n",
-                },
-            ],
-        },
-        t013        => {
-            template    => "Bold smiley -- '''\x{263a}'''",
-            expect      => [
-                {   type        => 'text',
-                    content     => "<p>Bold smiley -- <b>\x{263a}</b>\n</p>\n",
-                },
-            ],
-        },
-        t020        => {
-            template    => '{{}}',
-            expect_not  => [
-                {   type        => 'curly',
-                },
-            ],
-        },
-        t021        => {
-            template    => '{{fubar}}',
-            expect      => [
-                {   type        => 'curly',
-                    opcode      => 'fubar',
-                    content     => '',
-                },
-            ],
-        },
-        t022        => {
-            template    => "{{\n values\n| some=thing\n| other=that\n}}",
-            expect      => [
-                {   type        => 'curly',
-                    opcode      => 'values',
-                    content     => '| some=thing | other=that',
-                },
-            ],
-        }
-    );
-
-    $self->run_tests($wiki,\%tests);
-}
-
-###############################################################################
+# Low level parser tests for XAO::WikiParser
 
 sub test_parse {
     my $self=shift;
@@ -166,6 +19,10 @@ sub test_parse {
                      "skipping XAO::PageSupport::parse tests\n";
         return;
     }
+
+    eval 'use XAO::WikiParser';
+    $self->assert(!$@,
+           "Failed to load XAO::WikiParser ($@)");
 
     my %matrix=(
         '' => [
@@ -334,9 +191,8 @@ sub test_parse {
         
     );
 
-    my $wiki=XAO::Objects->new(objname => 'Wiki::Parser');
     foreach my $template (keys %matrix) {
-        my $parsed=$wiki->parse($template);
+        my $parsed=XAO::WikiParser::parse($template);
         my $expect=$matrix{$template};
         my $rc=ref($expect) ? Compare($expect,$parsed) : !ref($parsed);
         $rc ||
@@ -344,73 +200,6 @@ sub test_parse {
                    "========== Got:",Dumper($parsed);
         $self->assert($rc,
                       "Wrong result for '$template'");
-    }
-}
-
-###############################################################################
-
-sub run_tests ($$$) {
-    my ($self,$wiki,$tests)=@_;
-
-    eval 'use Data::Compare';
-    if($@) {
-        print STDERR "\n" .
-                     "Perl extension Data::Compare is not available, skipping tests\n" .
-        return;
-    }
-
-    ##
-    # For each test checking that we get _at least_ the blocks listed in
-    # 'expect' in the same order. There may be other blocks in parser
-    # response too.
-    #
-    foreach my $tid (sort keys %$tests) {
-        my $tdata=$tests->{$tid};
-        my $got=$wiki->parse($tdata->{'template'});
-        my $got_pos=0;
-        my $expect=$tdata->{'expect'} || [ ];
-        for(my $i=0; $i<@$expect; ++$i) {
-            my $eblock=$expect->[$i];
-            my $found;
-            for(my $j=$got_pos; $j<@$got; ++$j) {
-                $found=1;
-                foreach my $k (keys %$eblock) {
-                    if(!defined $got->[$j]->{$k} || $got->[$j]->{$k} ne $eblock->{$k}) {
-                        $found=0;
-                        last;
-                    }
-                }
-                if($found) {
-                    $got_pos=$j;
-                    last;
-                }
-            }
-            if(!$found) {
-                print STDERR Dumper($got);
-                $self->assert($found,
-                              "Can't find expected block (#=$i, type='$eblock->{'type'}', content='$eblock->{'content'}') for test $tid");
-            }
-        }
-
-        my $exnot=$tdata->{'expect_not'} || [ ];
-        for(my $i=0; $i<@$exnot; ++$i) {
-            my $eblock=$exnot->[$i];
-            my $found;
-            for(my $j=0; $j<@$got; ++$j) {
-                $found=1;
-                foreach my $k (keys %$eblock) {
-                    if(!defined $got->[$j]->{$k} || $got->[$j]->{$k} ne $eblock->{$k}) {
-                        $found=0;
-                        last;
-                    }
-                }
-                if($found) {
-                    print STDERR Dumper($got);
-                    $self->assert(!$found,
-                                  "Found unexpected block (#=$i, type='$eblock->{'type'}', content='$eblock->{'content'}') for test $tid");
-                }
-            }
-        }
     }
 }
 
