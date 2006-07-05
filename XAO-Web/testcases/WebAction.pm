@@ -4,7 +4,7 @@ use XAO::Utils;
 use XAO::Errors qw(XAO::DO::Web::MyAction);
 use Error qw(:try);
 
-use base qw(testcases::base);
+use base qw(XAO::testcases::Web::base);
 
 sub test_all {
     my $self=shift;

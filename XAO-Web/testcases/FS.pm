@@ -2,7 +2,7 @@ package testcases::FS;
 use strict;
 use XAO::Objects;
 
-use base qw(testcases::base);
+use base qw(XAO::testcases::Web::base);
 
 sub test_everything {
     my $self=shift;

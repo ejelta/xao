@@ -32,10 +32,7 @@ my %data = (
 sub init {
     my $self=shift;
 
-    my $hash=XAO::SimpleHash->new();
-    $hash->fill(\%data);
-
-    my $webconfig=XAO::Objects->new(objname => 'Web::Config');
+    $self->embedded('hash')->fill(\%data);
 
     my %d;
     open(F,'.config') ||
@@ -57,10 +54,10 @@ sub init {
     );
 
     $self->embed(
-        web => $webconfig,
         fs => $fsconfig,
-        hash => $hash,
     );
+
+    return $self->SUPER::init();
 }
 
 1;

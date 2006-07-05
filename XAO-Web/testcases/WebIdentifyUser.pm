@@ -7,7 +7,7 @@ use Error qw(:try);
 
 use Data::Dumper;
 
-use base qw(testcases::base);
+use base qw(XAO::testcases::Web::base);
 
 ###############################################################################
 

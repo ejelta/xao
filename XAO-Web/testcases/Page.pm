@@ -6,7 +6,7 @@ use XAO::Utils;
 use Error qw(:try);
 use XAO::Errors qw(XAO::DO::Web::Page XAO::DO::Web::MyPage);
 
-use base qw(testcases::base);
+use base qw(XAO::testcases::Web::base);
 
 ###############################################################################
 

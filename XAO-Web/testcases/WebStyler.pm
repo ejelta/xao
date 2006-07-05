@@ -4,7 +4,7 @@ use CGI;
 use XAO::Utils;
 use XAO::Web;
 
-use base qw(testcases::base);
+use base qw(XAO::testcases::Web::base);
 
 ###############################################################################
 

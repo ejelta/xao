@@ -3,7 +3,7 @@ use strict;
 use XAO::Utils;
 use XAO::Projects;
 
-use base qw(testcases::base);
+use base qw(XAO::testcases::Web::base);
 
 sub test_all {
     my $self=shift;

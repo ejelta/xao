@@ -1,8 +1,26 @@
+=head1 NAME
+
+XAO::DO::CGI - CGI interface for XAO::Web
+
+=head1 DESCRIPTION
+
+This is an extension of the standard CGI package that overrides its param()
+method. If the current site has a 'charset' parameter in siteconfig then
+parameters received from CGI are decoded from that charset into Perl
+native unicode strings.
+
+=over
+
+=cut
+
+###############################################################################
 package XAO::DO::CGI;
 use strict;
 use Encode;
 use XAO::Utils;
 use XAO::Objects;
+use CGI;
+
 use base qw(CGI);
 
 ###############################################################################
@@ -11,15 +29,18 @@ sub new ($%) {
     my $proto=shift;
     my $args=get_args(\@_);
 
+    my $cgi;
     if($args->{'query'}) {
-        return $proto->SUPER::new($args->{'query'});
+        $cgi=CGI->new($args->{'query'});
     }
     elsif($args->{'no_cgi'}) {
-        return $proto->SUPER::new('foo=bar');
+        $cgi=CGI->new('foo=bar');
     }
     else {
-        return $proto->SUPER::new();
+        $cgi=CGI->new();
     }
+
+    bless $cgi,ref($proto) || $proto;
 }
 
 ###############################################################################
@@ -62,3 +83,11 @@ sub param ($;$) {
 
 ###############################################################################
 1;
+__END__
+
+=over
+
+=head1 AUTHORS
+
+Copyright (c) 2006 Ejelta LLC
+Andrew Maltsev, am@ejelta.com

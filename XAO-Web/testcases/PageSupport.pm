@@ -2,7 +2,7 @@ package testcases::PageSupport;
 use strict;
 use Data::Dumper;
 use XAO::Utils;
-use base qw(testcases::base);
+use base qw(XAO::testcases::Web::base);
 
 use XAO::PageSupport;
 

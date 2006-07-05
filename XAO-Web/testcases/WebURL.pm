@@ -3,7 +3,7 @@ use strict;
 use XAO::Utils;
 use XAO::Web;
 
-use base qw(testcases::base);
+use base qw(XAO::testcases::Web::base);
 
 ###############################################################################
 
@@ -31,10 +31,9 @@ sub test_all {
     $ENV{SERVER_PROTOCOL}='HTTP/1.1';
     $ENV{SERVER_SOFTWARE}='Apache/1.3.26 (Unix)';
 
-    my $site=XAO::Web->new(sitename => 'test');
+    my $site=$self->web;
     $self->assert(ref($site),
                   "Can't load Web object");
-    $site->set_current;
 
     my $cgi=XAO::Objects->new(objname => 'CGI');
 

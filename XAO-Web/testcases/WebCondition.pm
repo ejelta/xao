@@ -3,7 +3,7 @@ use strict;
 use XAO::Projects;
 use CGI::Cookie;
 
-use base qw(testcases::base);
+use base qw(XAO::testcases::Web::base);
 
 sub test_all {
     my $self=shift;
