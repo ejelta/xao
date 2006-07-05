@@ -89,7 +89,7 @@ reduced -- as the limit gets applied after compression.
 
 =cut
 
-sub data_structure ($) {
+sub data_structure ($;$$) {
     my ($self,$max_orderings,$max_kwdata_length)=@_;
 
     if(!$max_orderings) {
