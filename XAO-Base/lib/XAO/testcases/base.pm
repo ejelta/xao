@@ -1,3 +1,15 @@
+=head1 NAME
+
+XAO::testcases::base - base class for easier project testing
+
+=head1 DESCRIPTION
+
+This class extends Test::Unit::TestCase with a couple of methods useful
+for project testing.
+
+=cut
+
+###############################################################################
 package XAO::testcases::base;
 use strict;
 use IO::File;
@@ -20,6 +32,12 @@ sub set_up {
     $root.='/testcases/testroot';
     XAO::Base::set_root($root);
 
+    push @INC,$root;
+}
+
+sub set_up_project {
+    my $self=shift;
+
     my $config=XAO::Objects->new(
         objname     => 'Config',
         sitename    => 'test',
@@ -34,8 +52,6 @@ sub set_up {
     $config->init();
 
     $self->{'siteconfig'}=$config;
-
-    push @INC,$root;
 }
 
 sub tear_down {
@@ -94,3 +110,9 @@ sub get_stdout ($) {
 }
 
 1;
+__END__
+
+=head1 AUTHORS
+
+Copyright (c) 2006 Ejelta LLC
+Andrew Maltsev, am@ejelta.com
