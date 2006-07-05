@@ -2,7 +2,6 @@ CHANGES
 LICENSE
 MANIFEST
 MANIFEST.SKIP
-META.yml
 README
 Makefile.PL
 Base.pm
@@ -16,6 +15,7 @@ lib/XAO/Projects.pm
 lib/XAO/SimpleHash.pm
 lib/XAO/TestUtils.pm
 lib/XAO/Utils.pm
+lib/XAO/testcases/base.pm
  ------------------------------------------- Dynamic Objects
 lib/XAO/DO/Atom.pm
 lib/XAO/DO/Config.pm
