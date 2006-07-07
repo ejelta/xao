@@ -110,7 +110,7 @@ sub parse ($$) {
         $content=$args->{'content'};
     }
     else {
-        ($content)=$self->wiki_retrieve($args,{
+        $content=$self->retrieve($args,{
             fields  => 'content',
         });
     }
@@ -133,20 +133,17 @@ sub store ($%) {
     $self->siteconfig->odb->transact_active ||
         throw $self "wiki_edit_store - expected to run inside a transaction";
 
-    my $wdesc=$self->wiki_descriptor($args);
+    my $member_id=$args->{'edit_member_id'} || throw $self "store - no edit_member_id";
 
-    my $member_id=$args->{'member_id'} || throw $self "wiki_edit_store - no member_id";
-
-    my $h=$self->siteconfig->helper('Helper::Common');
-
-    my $content=$h->utf8_decode($form->field_desc('content')->{'value'});
-    my $edit_comment=$h->utf8_decode($form->field_desc('edit_comment')->{'value'});
+    my $content=$args->{'content'} || '';
+    my $edit_comment=$args->{'edit_comment'};
 
     my $wiki_id=$args->{'wiki_id'};
 
-    my $wiki_list=$self->odb->fetch('/Wiki');
+    my $wiki_list=$args->{'wiki_list'} || $self->siteconfig->odb->fetch('/Wiki');
+
     my $wiki_obj;
-    my $now=$args->{'now'} || time;
+    my $edit_time=$args->{'edit_time'} || time;
     if($wiki_id) {
         $wiki_obj=$wiki_list->get($wiki_id);
 
@@ -170,17 +167,16 @@ sub store ($%) {
     else {
         $wiki_obj=$wiki_list->get_new;
         $wiki_obj->put(
-            create_time     => $now,
+            create_time     => $edit_time,
             create_member_id=> $member_id,
         );
     }
 
     $wiki_obj->put(
-        edit_time       => $now,
+        edit_time       => $edit_time,
         edit_member_id  => $member_id,
         edit_comment    => $edit_comment,
         content         => $content,
-        type            => $wdesc->{'type'},
     );
 
     if(!$wiki_obj->container_key) {
@@ -188,10 +184,72 @@ sub store ($%) {
     }
 
     return $wiki_id;
+}
 
+###############################################################################
 
+=item retrieve
 
+Retrieves data from the existing Wiki, either main record or a specific
+revision if a revision_id is given. If fields array ref is given then
+returns a list of fields in the specified order.
 
+=cut
+
+sub retrieve ($%) {
+    my $self=shift;
+    my $args=get_args(\@_);
+
+    my $wiki_id=$args->{'wiki_id'} ||
+        throw $self "retrieve - no wiki_id given";
+
+    my $wiki_list=$args->{'wiki_list'} || $self->siteconfig->odb->fetch('/Wiki');
+
+    my $wiki_obj=$wiki_list->get($wiki_id);
+
+    if(my $revision_id=$args->{'revision_id'}) {
+        $wiki_obj=$wiki_obj->get('Revisions')->get($revision_id);
+    }
+
+    my $fields=$args->{'fields'} || [ 'content' ];
+    if(!ref($fields)) {
+        $fields=[ split(/\W/,$fields) ];
+    }
+
+    return $wiki_obj->get(@$fields);
+}
+
+###############################################################################
+
+=item revisions
+
+Returns an array or arrays with the data about revisions. Takes a
+wiki_id and an optional list of fields (default is to return revision_id
+only). An optional 'condition' and 'options' arguments are passed into
+the search if given.
+
+=cut
+
+sub revisions ($%) {
+    my $self=shift;
+    my $args=get_args(\@_);
+
+    my $wiki_id=$args->{'wiki_id'} ||
+        throw $self "revisions - no wiki_id given";
+
+    my $wiki_list=$args->{'wiki_list'} || $self->siteconfig->odb->fetch('/Wiki');
+
+    my $rev_list=$wiki_list->get($wiki_id)->get('Revisions');
+
+    my $fields=$args->{'fields'} || [ 'revision_id' ];
+    if(!ref($fields)) {
+        $fields=[ split(/\W/,$fields) ];
+    }
+
+    return $rev_list->search(
+        $args->{'condition'} ? (@{$args->{'condition'}}) : (),
+        merge_refs($args->{'options'},{ result => $fields }),
+    );
 }
 
 ###############################################################################

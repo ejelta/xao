@@ -58,25 +58,30 @@ sub test_storage {
 Some text with a [[link]].
 EOT
 
-    $odb->transact_begin;
     my $now=time;
+    sleep 1;        # to see if the store method takes it or assigns its own
+
     my $member_id='foo';
+    my $comment='Initial Comment';
+
+    $odb->transact_begin;
     my $wiki_id=$wiki->store(
         content         => $content,
+        edit_comment    => $comment,
         edit_member_id  => $member_id,
         edit_time       => $now,
     );
     $odb->transact_commit if $odb->transact_active;
     $self->assert($wiki_id,
-                  "Failed to store new wiki content");
+                  "Failed to store original wiki content");
 
     my $wiki_list=$odb->fetch('/Wiki');
     $self->assert($wiki_list->exists($wiki_id),
                   "No record in the database after successsful store ($wiki_id)");
 
-    my ($db_content,$db_edit_time,$db_member_id)=$wiki->retrieve(
+    my ($db_content,$db_edit_time,$db_member_id,$db_comment,$db_create_time,$db_create_member_id)=$wiki->retrieve(
         wiki_id     => $wiki_id,
-        fields      => [ qw(content edit_time edit_member_id) ],
+        fields      => [ qw(content edit_time edit_member_id edit_comment create_time create_member_id) ],
     );
     $self->assert($db_content,
                   "Got no content from the database (wiki_id=$wiki_id)");
@@ -88,8 +93,115 @@ EOT
                   "Edit_time in the database ($db_edit_time) differs from stored ($now)");
     $self->assert($db_member_id,
                   "Got no edit_member_id from the database (wiki_id=$wiki_id)");
-    $self->assert($db_edit_time eq $now,
+    $self->assert($db_member_id eq $member_id,
                   "Edit_member_id in the database ($db_member_id) differs from stored ($member_id)");
+    $self->assert($db_comment eq $comment,
+                  "Edit_comment in the database ($db_comment) differs from stored ($comment)");
+    $self->assert($db_create_time,
+                  "Got no edit_time from the database (wiki_id=$wiki_id)");
+    $self->assert($db_create_time eq $now,
+                  "Edit_time in the database ($db_create_time) differs from stored ($now)");
+    $self->assert($db_create_member_id,
+                  "Got no create_member_id from the database (wiki_id=$wiki_id)");
+    $self->assert($db_create_member_id eq $member_id,
+                  "Create_member_id in the database ($db_create_member_id) differs from stored ($member_id)");
+
+    my $revdata=$wiki->revisions(
+        wiki_id     => $wiki_id,
+    );
+    $self->assert($revdata && ref($revdata) eq 'ARRAY',
+                  "Revisions() method returned not an array");
+    $self->assert(@$revdata == 0,
+                  "Revisions() list is not empty after the first store()");
+
+    $odb->transact_begin;
+    my $new_wiki_id=$wiki->store(
+        wiki_id         => $wiki_id,
+        content         => $content,
+        edit_comment    => 'New Comment',
+        edit_time       => $now,
+        edit_member_id  => $member_id,
+    );
+    $odb->transact_commit;
+
+    $self->assert($new_wiki_id eq $wiki_id,
+                  "Overwriting storage returned a wrong wiki_id ($new_wiki_id)");
+    $revdata=$wiki->revisions(
+        wiki_id     => $wiki_id,
+    );
+    $self->assert(@$revdata == 0,
+                  "Revisions() list is not empty after storing identical content");
+
+    my $new_content='New Content';
+    my $new_member_id='bar';
+    my $new_now=time;
+    my $new_comment='Very New Comment';
+
+    $odb->transact_begin;
+    $new_wiki_id=$wiki->store(
+        wiki_id         => $wiki_id,
+        content         => $new_content,
+        edit_comment    => $new_comment,
+        edit_time       => $new_now,
+        edit_member_id  => $new_member_id,
+    );
+    $odb->transact_commit;
+
+    $self->assert($new_wiki_id eq $wiki_id,
+                  "Overwriting storage returned a wrong wiki_id ($new_wiki_id)");
+
+    ($db_content,$db_edit_time,$db_member_id,$db_comment)=$wiki->retrieve(
+        wiki_id     => $wiki_id,
+        fields      => [ qw(content edit_time edit_member_id edit_comment) ],
+    );
+
+    $self->assert($db_content,
+                  "Got no content from the database (wiki_id=$wiki_id)");
+    $self->assert($db_content eq $new_content,
+                  "Content in the database differs from stored");
+    $self->assert($db_edit_time,
+                  "Got no edit_time from the database (wiki_id=$wiki_id)");
+    $self->assert($db_edit_time eq $new_now,
+                  "Edit_time in the database ($db_edit_time) differs from stored ($new_now)");
+    $self->assert($db_member_id,
+                  "Got no edit_member_id from the database (wiki_id=$wiki_id)");
+    $self->assert($db_member_id eq $new_member_id,
+                  "Edit_member_id in the database ($db_member_id) differs from stored ($new_member_id)");
+    $self->assert($db_comment eq $new_comment,
+                  "Edit_comment in the database ($db_comment) differs from stored ($new_comment)");
+
+    my $revdata=$wiki->revisions(
+        wiki_id     => $wiki_id,
+        fields      => 'revision_id,content',
+    );
+    $self->assert($revdata && ref($revdata) eq 'ARRAY',
+                  "Revisions() method returned not an array");
+    $self->assert($revdata->[0] && ref($revdata->[0]) eq 'ARRAY',
+                  "Revisions() method returned not an array of arrays");
+    $self->assert(@$revdata == 1,
+                  "Revisions() list does not contain one element after override (".scalar(@$revdata).")");
+    $self->assert($revdata->[0]->[1] eq $content,
+                  "Returned revision content differs from stored");
+
+    ($db_content,$db_edit_time,$db_member_id,$db_comment)=$wiki->retrieve(
+        wiki_id     => $wiki_id,
+        revision_id => $revdata->[0]->[0],
+        fields      => [ qw(content edit_time edit_member_id edit_comment) ],
+    );
+    $self->assert($db_content,
+                  "Got no content from the database (wiki_id=$wiki_id)");
+    $self->assert($db_content eq $content,
+                  "Content in the database differs from stored");
+    $self->assert($db_edit_time,
+                  "Got no edit_time from the database (wiki_id=$wiki_id)");
+    $self->assert($db_edit_time eq $now,
+                  "Edit_time in the database ($db_edit_time) differs from stored ($now)");
+    $self->assert($db_member_id,
+                  "Got no edit_member_id from the database (wiki_id=$wiki_id)");
+    $self->assert($db_member_id eq $member_id,
+                  "Edit_member_id in the database ($db_member_id) differs from stored ($member_id)");
+    $self->assert($db_comment eq $comment,
+                  "Edit_comment in the database ($db_comment) differs from stored ($comment)");
 }
 
 ### ###############################################################################
