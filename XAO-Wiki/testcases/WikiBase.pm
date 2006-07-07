@@ -58,8 +58,7 @@ sub test_storage {
 Some text with a [[link]].
 EOT
 
-    my $now=time;
-    sleep 1;        # to see if the store method takes it or assigns its own
+    my $now=time-2;     # to see if the store method takes it or assigns its own
 
     my $member_id='foo';
     my $comment='Initial Comment';
@@ -170,7 +169,7 @@ EOT
     $self->assert($db_comment eq $new_comment,
                   "Edit_comment in the database ($db_comment) differs from stored ($new_comment)");
 
-    my $revdata=$wiki->revisions(
+    $revdata=$wiki->revisions(
         wiki_id     => $wiki_id,
         fields      => 'revision_id,content',
     );
