@@ -18,12 +18,12 @@ sub parse ($%) {
     my $data=$rc->{'data'};
 
     foreach my $wd (@$data) {
-        if($wd->{'type' eq 'curly'} && $wd->{'opcode'} eq 'fubar') {
+        if($wd->{'type'} eq 'curly' && $wd->{'opcode'} eq 'fubar') {
             $wd->{'type'}='fubar';
         }
     }
 
-    return $data;
+    return $rc;
 }
 
 ###############################################################################

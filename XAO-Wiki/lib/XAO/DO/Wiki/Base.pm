@@ -188,6 +188,22 @@ sub store ($%) {
 
 ###############################################################################
 
+=item render_html
+
+Renders wiki into HTML. Accepts either a pre-parsed 'data' block or
+'content' or 'wiki_id'/'revision_id'.
+
+=cut
+
+sub render_html ($%) {
+    my $self=shift;
+    my $args=get_args(\@_);
+
+    return '[[[TODO]]]';
+}
+
+###############################################################################
+
 =item retrieve
 
 Retrieves data from the existing Wiki, either main record or a specific
