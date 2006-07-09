@@ -72,12 +72,12 @@ sub param ($;$) {
 
     if(wantarray) {
         return map {
-            Encode::decode($charset,$_)
+            ref($_) ? $_ : Encode::decode($charset,$_)
         } $self->SUPER::param(@_);
     }
     else {
         my $value=$self->SUPER::param(@_);
-        return Encode::decode($charset,$value);
+        return ref($value) ? $value : Encode::decode($charset,$value);
     }
 }
 
