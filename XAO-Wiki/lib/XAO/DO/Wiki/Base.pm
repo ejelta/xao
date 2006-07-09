@@ -1,6 +1,6 @@
 package XAO::DO::Wiki::Base;
 use strict;
-use XAO::Utils;
+use XAO::Utils qw(:args :debug :html);
 use XAO::WikiParser;
 use XAO::Objects;
 use base XAO::Objects->load(objname => 'Atom');
@@ -105,23 +105,109 @@ sub parse ($$) {
     my $self=shift;
     my $args=get_args(\@_);
     
+    ##
+    # Getting the content
+    #
     my $content;
-    if(defined $args->{'content'}) {
+    if($args->{'content_clipboard_uri'}) {
+        $content=$self->clipboard->get($args->{'content_clipboard_uri'});
+    }
+    elsif(defined $args->{'content'}) {
         $content=$args->{'content'};
     }
     else {
         $content=$self->retrieve($args,{
-            fields  => 'content',
+            fields  => $args->{'fields'} || [ 'content' ],
         });
     }
 
-    my $data=XAO::WikiParser::parse($content);
+    ##
+    # Core parser
+    #
+    my $elements=XAO::WikiParser::parse($content || '');
 
+    ##
+    # Adding a params block as the zeroth element to make life easier
+    # for derived parsers.
+    #
+    $self->parse_params_hash(
+        elements    => $elements,
+    );
+
+    ##
+    # TODO: This should be integrated into the core parser
+    #
+    foreach my $elt (@$elements) {
+        if($elt->{'type'} eq 'link') {
+            my $content=$elt->{'content'} || '';
+            my $link;
+            my $label;
+            if($content=~/^\s*(.*?)\s*(?:\|\s*(.*?)\s*)?$/s) {
+                $link=$1;
+                $label=$2 || $1;
+            }
+            else {  # should not happen
+                $link=$label=$content;
+            }
+            $elt->{'link'}=$link;
+            $elt->{'label'}=$label;
+        }
+    }
+
+    ##
+    # Default parser never returns any errors
+    #
     return {
         error       => undef,
         errstr      => '',
-        data        => $data,
+        elements    => $elements,
     };
+}
+
+###############################################################################
+
+sub parse_params_hash ($%) {
+    my $self=shift;
+    my $args=get_args(\@_);
+
+    my $elements=$args->{'elements'} || throw $self "parse_params_hash - no 'elements'";
+
+    my $pblock=$elements->[0];
+    if($pblock->{'type'} ne 'params') {
+        $pblock={
+            type        => 'params',
+            params      => { },
+        };
+        unshift(@$elements,$pblock);
+    }
+
+    return $pblock->{'params'};
+}
+
+###############################################################################
+
+=item parse_params_update
+
+Merges given params into the zeroth block of the parsed results, which
+is used for storing various special data. For instance a place puts
+geographic coordinates in there to be later taken out and stored into the
+database.
+
+=cut
+
+sub parse_params_update ($%) {
+    my $self=shift;
+    my $args=get_args(\@_);
+
+    my $phash=$self->parse_params_hash($args);
+
+    my $params=$args->{'params'};
+
+    return $phash unless $params;
+
+    @$phash{keys %$params}=values %$params;
+
+    return $phash;
 }
 
 ###############################################################################
@@ -190,7 +276,7 @@ sub store ($%) {
 
 =item render_html
 
-Renders wiki into HTML. Accepts either a pre-parsed 'data' block or
+Renders wiki into HTML. Accepts either a pre-parsed 'elements' block or
 'content' or 'wiki_id'/'revision_id'.
 
 =cut
@@ -199,7 +285,174 @@ sub render_html ($%) {
     my $self=shift;
     my $args=get_args(\@_);
 
-    return '[[[TODO]]]';
+    my $page=XAO::Objects->new(objname => 'Web::Page');
+
+    ##
+    # Parsing or getting pre-parsed elements
+    #
+    my $elements;
+    if($args->{'elements_clipboard_uri'}) {
+        $elements=$self->clipboard->get($args->{'elements_clipboard_uri'}) ||
+            throw $self "render_html - nothing in the clipboard at '$args->{'elements_clipboard_uri'}'";
+    }
+    else {
+        my $rc=$self->parse($args);
+        if($rc->{'error'}) {
+            return $page->expand(
+                path        => '/bits/wiki/html/error-parsing',
+                ERRSTR      => $rc->{'errstr'} || 'Wiki parsing error',
+            );
+        }
+        $elements=$rc->{'elements'};
+    }
+
+    ##
+    # If so asked passing along data parameters accumulated in parsing
+    #
+    if($args->{'params'}) {
+        my $phash=$self->parse_params_hash(elements => $elements);
+        @{$args->{'params'}}{map { uc } keys %$phash}=values %$phash;
+    }
+
+    ##
+    # Rendering
+    #
+    my $html='';
+    my $methods_map=$self->render_html_methods_map($args);
+    foreach my $elt (@$elements) {
+        my $type=$elt->{'type'} || 'unknown';
+        my $method=$methods_map->{$type};
+        if(!defined $method) {
+            dprint "No method to render type='$type'";
+            next;
+        }
+        elsif($method eq 'IGNORE') {
+            next;
+        }
+        elsif(!ref($method)) {
+            my $code=$self->can($method);
+            if($code) {
+                $html.=$code->($self,$args,{
+                    element     => $elt,
+                    page        => $page,
+                });
+            }
+            else {
+                dprint "No support for method '$method' in '".ref($self)." (required for type '$type')";
+            }
+            next;
+        }
+        elsif(ref($method) eq 'CODE') {
+            $html.=$method->($self,$args,{
+                element     => $elt,
+                page        => $page,
+            });
+        }
+        else {
+            throw $self "render_html - don't know what to do with method '$method', type '$type'";
+        }
+    }
+
+    return $html;
+}
+
+###############################################################################
+
+sub render_html_methods_map ($%) {
+    my $self=shift;
+    my $args=get_args(\@_);
+    return {
+        curly       => 'IGNORE',
+        params      => 'IGNORE',
+        #
+        header      => 'render_html_header',
+        link        => 'render_html_link',
+        text        => 'render_html_text',
+    };
+}
+
+###############################################################################
+
+sub render_html_header ($%) {
+    my $self=shift;
+    my $args=get_args(\@_);
+
+    my $element=$args->{'element'} ||
+        throw $self "render_html_header - no 'element'";
+
+    my $level=$element->{'level'} ||
+        throw $self "render_html_header - no 'level' in the element";
+
+    return $args->{'page'}->expand($args,{
+        path        => '/bits/wiki/html/header',
+        LEVEL       => $level,
+        TAG         => sprintf('H%u',$level),
+        CONTENT     => $element->{'content'} || '',
+    });
+}
+
+###############################################################################
+
+=item render_html_link
+
+Renders a link into HTML. By default supports only http:// links. The
+typical override is structured like this:
+
+ sub render_html_link ($%) {
+    my $self=shift;
+    my $args=get_args(\@_);
+
+    my $element=$args->{'element'} ||
+        throw $self "render_html_link - no 'element'";
+
+    my $link=$element->{'link'} || '';
+
+    if($link =~ /some condition/) {
+        ...
+    }
+    else {
+        return $self->SUPER::render_html_link($args);
+    }
+ }
+
+=cut
+
+sub render_html_link ($%) {
+    my $self=shift;
+    my $args=get_args(\@_);
+
+    my $element=$args->{'element'} ||
+        throw $self "render_html_link - no 'element'";
+
+    my $link=$element->{'link'} || '';
+
+    if($link=~/^https?:\/\//i) {
+        return $args->{'page'}->expand($args,{
+            path        => '/bits/wiki/html/link-http',
+            URL         => $link,
+            LABEL       => $element->{'label'},
+        });
+    }
+    else {
+        eprint ref($self)."render_html_link - unsupported link ($link)";
+        return $args->{'page'}->expand($args,{
+            path        => '/bits/wiki/html/link-unsupported',
+            URL         => $link,
+            LABEL       => $element->{'label'},
+        });
+    }
+}
+
+###############################################################################
+
+sub render_html_text ($%) {
+    my $self=shift;
+    my $args=get_args(\@_);
+
+    my $element=$args->{'element'} ||
+        throw $self "render_html_header - no 'element'";
+
+    return $element->{'content'};
 }
 
 ###############################################################################
@@ -223,16 +476,30 @@ sub retrieve ($%) {
 
     my $wiki_obj=$wiki_list->get($wiki_id);
 
-    if(my $revision_id=$args->{'revision_id'}) {
+    my $revision_id=$args->{'revision_id'};
+    if($revision_id) {
         $wiki_obj=$wiki_obj->get('Revisions')->get($revision_id);
     }
 
     my $fields=$args->{'fields'} || [ 'content' ];
     if(!ref($fields)) {
-        $fields=[ split(/\W/,$fields) ];
+        if($fields eq '*') {
+            $fields=[ qw(content edit_time edit_member_id edit_comment) ];
+        }
+        else {
+            $fields=[ split(/\W/,$fields) ];
+        }
     }
 
-    return $wiki_obj->get(@$fields);
+    my @values=$wiki_obj->get(@$fields);
+
+    if(my $params=$args->{'params'}) {
+        $params->{'WIKI_ID'}=$wiki_id;
+        $params->{'REVISION_ID'}=$revision_id || '';
+        @$params{map { uc } @$fields}=@values;
+    }
+
+    return wantarray ? @values : $values[0];
 }
 
 ###############################################################################

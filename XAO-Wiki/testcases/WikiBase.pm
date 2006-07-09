@@ -6,30 +6,62 @@ use Data::Dumper;
 
 use base qw(XAO::testcases::Web::base);
 
-### sub test_interface {
-###     my $self=shift;
-### 
-###     my $wiki=XAO::Objects->new(objname => 'Wiki::Base');
-###     $self->assert($wiki && ref $wiki,
-###                   "Can't get Wiki::Base object");
-### 
-###     my @public_methods=qw(
-###         data_structure
-###         build_structure
-###         parse
-###         store
-###         retrieve
-###         render_html
-###     );
-### 
-###     foreach my $method (@public_methods) {
-###         dprint $method;
-###         my $mcode=$wiki->can($method);
-###         $self->assert($mcode && ref($mcode) eq 'CODE',
-###                       "Expected Wiki::Base to have '$method' method");
-###     }
-### }
+###############################################################################
 
+sub test_interface {
+    my $self=shift;
+
+    my $wiki=XAO::Objects->new(objname => 'Wiki::Base');
+    $self->assert($wiki && ref $wiki,
+                  "Can't get Wiki::Base object");
+
+    my @public_methods=qw(
+        build_structure
+        data_structure
+        parse
+        parse_params_update
+        render_html
+        render_html_header
+        render_html_link
+        render_html_methods_map
+        render_html_text
+        retrieve
+        revisions
+        store
+    );
+
+    foreach my $method (@public_methods) {
+        my $mcode=$wiki->can($method);
+        $self->assert($mcode && ref($mcode) eq 'CODE',
+                      "Expected Wiki::Base to have '$method' method");
+    }
+}
+
+###############################################################################
+
+sub test_render_html {
+    my $self=shift;
+
+    my $content=<<'EOT';
+= Header 1 =
+Some text with a {{curly}} in it
+== Header 2 ==
+Some other text, first paragraph.
+
+Second paragraph with a [[link]] in it.
+EOT
+
+    my $wiki=XAO::Objects->new(objname => 'Wiki::Render1');
+
+    my $html=$wiki->render_html(
+        content     => $content,
+    );
+
+    my $expect='<HEADER-1><CURLY><HEADER-2><LINK>';
+    $self->assert($html eq $expect,
+                  "Wiki::Render1 - expected '$expect', got '$html'");
+}
+ 
 ###############################################################################
 
 sub test_storage {
@@ -306,6 +338,24 @@ sub test_parse {
                 },
             ],
         },
+        t023        => {
+            template    => "[[link | label]] some text",
+            expect      => [
+                {   type        => 'link',
+                    link        => 'link',
+                    label       => 'label',
+                },
+            ],
+        },
+        t024        => {
+            template    => "some text [[ multi-word link ]]",
+            expect      => [
+                {   type        => 'link',
+                    link        => 'multi-word link',
+                    label       => 'multi-word link',
+                },
+            ],
+        },
         #
         t030        => {
             template    => "blah {{fubar}} blah",
@@ -348,7 +398,7 @@ sub run_parse_tests ($$$) {
         $self->assert(!$rc->{'errstr'},
                       "Got no error, but an unexpected error message ($rc->{'errstr'}) for test $tid");
 
-        my $got=$rc->{'data'};
+        my $got=$rc->{'elements'};
 
         my $got_pos=0;
         my $expect=$tdata->{'expect'} || [ ];

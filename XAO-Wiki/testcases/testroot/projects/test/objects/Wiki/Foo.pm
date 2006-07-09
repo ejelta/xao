@@ -15,9 +15,9 @@ sub parse ($%) {
 
     return $rc if $rc->{'error'};
 
-    my $data=$rc->{'data'};
+    my $elements=$rc->{'elements'};
 
-    foreach my $wd (@$data) {
+    foreach my $wd (@$elements) {
         if($wd->{'type'} eq 'curly' && $wd->{'opcode'} eq 'fubar') {
             $wd->{'type'}='fubar';
         }

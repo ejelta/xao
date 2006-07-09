@@ -1,6 +1,5 @@
 MANIFEST
 MANIFEST.SKIP
-META.yml
 Makefile.PL
 README
 Wiki.pm
@@ -13,10 +12,16 @@ WikiParser/wparser/s_string.h
 WikiParser/wparser/testparser.c
 WikiParser/wparser/wparser.c
 WikiParser/wparser/wparser.h
-lib/XAO/DO/Wiki/Parser.pm
+lib/XAO/DO/Data/Wiki.pm
+lib/XAO/DO/Data/WikiRevision.pm
+lib/XAO/DO/Wiki/Base.pm
+templates/bits/wiki/html/error-parsing
+templates/bits/wiki/html/header
+templates/bits/wiki/html/link-html
+templates/bits/wiki/html/link-unsupported
 test.pl
+testcases/WikiBase.pm
 testcases/WikiParser.pm
-testcases/base.pm
 testcases/testroot/projects/test/objects/Config.pm
-testcases/testroot/projects/test/objects/Wiki/Parser/Test.pm
-META.yml                                 Module meta-data (added by MakeMaker)
+testcases/testroot/projects/test/objects/Wiki/Foo.pm
+testcases/testroot/projects/test/objects/Wiki/Render1.pm

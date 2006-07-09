@@ -96,11 +96,11 @@ config::	README
 README:	Wiki.pm
 	pod2text -w76 Wiki.pm > README
 
-##install::
-##	[ -d $homedir ] || mkdir $homedir && chmod 755 $homedir
-##	\@\$(PERL) -Mblib \\
-##	           -MXAO::PluginUtils=install_templates \\
-##	           -e'install_templates("MANIFEST")'
+install::
+	[ -d $homedir ] || mkdir $homedir && chmod 755 $homedir
+	\@\$(PERL) -Mblib \\
+	           -MXAO::PluginUtils=install_templates \\
+	           -e'install_templates("MANIFEST")'
 
 EOT
 }
