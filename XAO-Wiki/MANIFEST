@@ -17,7 +17,7 @@ lib/XAO/DO/Data/WikiRevision.pm
 lib/XAO/DO/Wiki/Base.pm
 templates/bits/wiki/html/error-parsing
 templates/bits/wiki/html/header
-templates/bits/wiki/html/link-html
+templates/bits/wiki/html/link-http
 templates/bits/wiki/html/link-unsupported
 test.pl
 testcases/WikiBase.pm

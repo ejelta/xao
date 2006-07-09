@@ -112,6 +112,9 @@ sub parse ($$) {
     if($args->{'content_clipboard_uri'}) {
         $content=$self->clipboard->get($args->{'content_clipboard_uri'});
     }
+    elsif($args->{'content_param'}) {
+        $content=$self->siteconfig->cgi->param($args->{'content_param'});
+    }
     elsif(defined $args->{'content'}) {
         $content=$args->{'content'};
     }
@@ -144,10 +147,11 @@ sub parse ($$) {
             my $label;
             if($content=~/^\s*(.*?)\s*(?:\|\s*(.*?)\s*)?$/s) {
                 $link=$1;
-                $label=$2 || $1;
+                $label=(defined $2 ? $2 : '');
             }
             else {  # should not happen
-                $link=$label=$content;
+                $link=$content;
+                $label='';
             }
             $elt->{'link'}=$link;
             $elt->{'label'}=$label;
@@ -430,7 +434,7 @@ sub render_html_link ($%) {
         return $args->{'page'}->expand($args,{
             path        => '/bits/wiki/html/link-http',
             URL         => $link,
-            LABEL       => $element->{'label'},
+            LABEL       => $element->{'label'} || $link,
         });
     }
     else {
@@ -438,7 +442,7 @@ sub render_html_link ($%) {
         return $args->{'page'}->expand($args,{
             path        => '/bits/wiki/html/link-unsupported',
             URL         => $link,
-            LABEL       => $element->{'label'},
+            LABEL       => $element->{'label'} || $link,
         });
     }
 }

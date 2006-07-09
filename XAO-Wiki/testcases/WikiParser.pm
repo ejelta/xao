@@ -2,8 +2,9 @@ package testcases::WikiParser;
 use strict;
 use XAO::Utils;
 use XAO::Objects;
-
 use base qw(XAO::testcases::Web::base);
+
+use Data::Dumper;
 
 ###############################################################################
 
@@ -188,7 +189,18 @@ sub test_parse {
                 content =>  "<p>In common tags like &lt;abc&gt; is forbidden\n</p>\n",
             },
         ],
-        
+        # TODO: see http://ejelta.updatelog.com/projects/469520/todos/list/976132
+        #"Some [[multi-line\n|link\n]] text." => [
+        #    {   type    => 'text',
+        #        content => '<p>Some ',
+        #    },
+        #    {   type    => 'link',
+        #        content => "multi-line\n|link",
+        #    },
+        #    {   type    => 'text',
+        #        content => " text.</p>\n",
+        #    }
+        #],
     );
 
     foreach my $template (keys %matrix) {

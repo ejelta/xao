@@ -352,7 +352,16 @@ sub test_parse {
             expect      => [
                 {   type        => 'link',
                     link        => 'multi-word link',
-                    label       => 'multi-word link',
+                    label       => '',
+                },
+            ],
+        },
+        t025        => {
+            template    => "some text [[ multi-word link | comment1 | comment2]] postfix",
+            expect      => [
+                {   type        => 'link',
+                    link        => 'multi-word link',
+                    label       => 'comment1 | comment2',
                 },
             ],
         },
