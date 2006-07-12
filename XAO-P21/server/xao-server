@@ -9,7 +9,7 @@ use File::Copy;
 
 use vars qw($VERSION $REVISION);
 $VERSION='0.05';
-$REVISION='$Id: xao-server,v 1.13 2006/04/07 22:20:01 am Exp $';
+$REVISION='$Id: xao-server,v 1.14 2006/07/12 20:28:12 am Exp $';
 
 sub chld_handler ();
 sub pipe_handler ();
@@ -311,6 +311,18 @@ first argument then all customers list is returned.
                 }
                 close($in);
             }
+        }
+
+=head1 edi_fetch
+
+=cut
+
+	elsif ($opcode eq "edi_fetch") {
+            my $in=open_stream('edi_fetch',$args[0]);
+            while(<$in>) {
+                printsock $_;
+            }
+            close($in);
         }
 
 =head1 order

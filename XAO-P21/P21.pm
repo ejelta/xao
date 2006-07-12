@@ -98,7 +98,7 @@ sub call {
     my $socket=$self->{Socket};
 
     my $flag=0;
-    local $SIG{PIPE} = sub { $flag = 1 };
+    local $SIG{'PIPE'} = sub { $flag = 1 };
     print $socket join("\t", map { defined($_) ? $_ : '' } @params), "\n";
     unless ($flag) {
         my $result;
@@ -110,11 +110,11 @@ sub call {
             return $result if /^\.$/;
             $result = $callback->($build->($_));
         }
-        delete $self->{Socket};
+        delete $self->{'Socket'};
         throw XAO::E::P21 "call - unexpected eof reading from socket";
     }
 
-    delete $self->{Socket};
+    delete $self->{'Socket'};
     throw XAO::E::P21 "call - SIGPIPE writing to socket";
 }
 
@@ -290,6 +290,36 @@ sub cust_item {
     };
 
     $self->call($build,$callback,'cust_item');
+}
+
+###############################################################################
+
+=item edi_fetch
+
+Fetches an EDI document form the server:
+
+    my $res=$cl->edi_fetch(doc_number => 1234567);
+
+Returns array of lines with the content of the document.
+
+=cut
+
+sub edi_fetch {
+    my $self=shift;
+    my $args=get_args(\@_);
+
+    my $doc_number=$args->{'doc_number'} ||
+        throw XAO::E::P21 "edi_fetch - no 'doc_number' given";
+
+    my $build=sub {
+        my $str=shift;
+        return $str;
+    };
+
+    return $self->call($build,
+                       $args->{'callback'},
+                       'edi_fetch',
+                       $doc_number);
 }
 
 ###############################################################################
@@ -758,7 +788,7 @@ sub view_order_details {
 
 ###############################################################################
 
-=item match
+=item find_match
 
 Finds matches of order numbers for reference numbers.  Returns hash with keys:
 refnum (customer reference number), file (OS filename), order (P21 order
