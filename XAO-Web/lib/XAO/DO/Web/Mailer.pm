@@ -91,7 +91,7 @@ use XAO::Objects;
 use base XAO::Objects->load(objname => 'Web::Page');
 
 use vars qw($VERSION);
-$VERSION=(0+sprintf('%u.%03u',(q$Id: Mailer.pm,v 2.5 2006/04/07 20:54:19 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
+$VERSION=(0+sprintf('%u.%03u',(q$Id: Mailer.pm,v 2.6 2006/07/17 18:49:56 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
 
 sub display ($;%) {
     my $self=shift;
@@ -103,9 +103,14 @@ sub display ($;%) {
            $self->get_to($args) ||
            throw $self "display - no 'to' given";
 
+    my $cc=$args->{'cc'};
+    my $bcc=$args->{'bcc'};
+
     if($config->{'override_to'}) {
         dprint ref($self)."::display - overriding '$to' with '$config->{override_to}'";
         $to=$config->{'override_to'};
+        $cc='';
+        $bcc='';
     }
 
     my $from=$args->{'from'};
@@ -183,8 +188,6 @@ sub display ($;%) {
             Data        => $html,
             Type        => 'text/html',
             Encoding    => $encoding,
-            Datestamp   => 0,
-            Date        => $args->{'date'} || undef,
         );
     }
     elsif($text && !$html) {
@@ -195,8 +198,6 @@ sub display ($;%) {
             Subject     => $subject,
             Data        => $text,
             Encoding    => $encoding,
-            Datestamp   => 0,
-            Date        => $args->{'date'} || undef,
         );
     }
     elsif($text && $html) {
@@ -206,8 +207,6 @@ sub display ($;%) {
             To          => $to,
             Subject     => $subject,
             Type        => 'multipart/alternative',
-            Datestamp   => 0,
-            Date        => $args->{'date'} || undef,
         );
         $mailer->attach(
             Type        => 'text/plain',
@@ -223,8 +222,10 @@ sub display ($;%) {
     else {
         throw $self "display - no text for either html or text part";
     }
-    $mailer->add(Cc => $args->{'cc'}) if $args->{'cc'};
-    $mailer->add(Bcc => $args->{'bcc'}) if $args->{'bcc'};
+
+    $mailer->add(Date => $args->{'date'}) if $args->{'date'};
+    $mailer->add(Cc => $cc) if $cc;
+    $mailer->add(Bcc => $bcc) if $bcc;
 
     ##
     # Adding attachments if any
