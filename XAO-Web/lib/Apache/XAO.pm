@@ -96,7 +96,7 @@ use XAO::Web;
 ###############################################################################
 
 use vars qw($VERSION);
-$VERSION=(0+sprintf('%u.%03u',(q$Id: XAO.pm,v 2.5 2006/04/21 00:39:27 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
+$VERSION=(0+sprintf('%u.%03u',(q$Id: XAO.pm,v 2.6 2006/07/30 06:47:35 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
 
 use vars qw($MP2);
 
@@ -109,6 +109,7 @@ BEGIN {
         require Apache2::ServerUtil;
         require Apache2::Log;
         require Apache2::RequestRec;
+        require Apache2::RequestUtil;
         require Apache2::RequestIO;
         $MP2=2;
     };
@@ -122,6 +123,7 @@ BEGIN {
             require Apache::ServerUtil;
             require Apache::Log;
             require Apache::RequestRec;
+            require Apache::RequestUtil;
             require Apache::RequestIO;
             $MP2=1;
         };
