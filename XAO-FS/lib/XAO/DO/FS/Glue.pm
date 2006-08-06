@@ -50,7 +50,7 @@ use XAO::Objects;
 use base XAO::Objects->load(objname => 'Atom');
 
 use vars qw($VERSION);
-$VERSION=(0+sprintf('%u.%03u',(q$Id: Glue.pm,v 2.12 2006/07/04 06:06:57 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
+$VERSION=(0+sprintf('%u.%03u',(q$Id: Glue.pm,v 2.13 2006/08/06 02:22:23 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
 
 ###############################################################################
 
@@ -1210,6 +1210,7 @@ sub _build_search_query ($%) {
     my @result_fields;
     my @result_descs;
     my $groupby_pos;
+    my $no_distinct;
     if($options) {
         foreach my $option (keys %$options) {
             if(lc($option) eq 'distinct') {
@@ -1222,6 +1223,9 @@ sub _build_search_query ($%) {
                     $return_fields{$sqlfn}=1;
                     push(@distinct,$sqlfn);
                 }
+            }
+            elsif(lc($option) eq 'no_distinct') {
+                $no_distinct=1;
             }
             elsif(lc($option) eq 'result') {
                 my $list=$options->{$option};
@@ -1319,6 +1323,7 @@ sub _build_search_query ($%) {
             }
         }
     }
+    $no_distinct=undef if @distinct;
 
     ##
     # If post processing is required then adding everything to the list
@@ -1472,6 +1477,9 @@ sub _build_search_query ($%) {
     #
     if(@distinct) {
         $sql.=' GROUP BY ' . join(',',@distinct);
+    }
+    elsif($no_distinct) {
+        #
     }
     elsif(scalar(keys %$c_names)>1) {
         $sql.=' GROUP BY ' . $fields_list[$groupby_pos];
