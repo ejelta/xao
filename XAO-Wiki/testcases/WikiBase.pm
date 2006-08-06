@@ -374,6 +374,42 @@ sub test_parse {
                 },
             ],
         },
+        t031        => {
+            template    => "{{first}}{{last}}",
+            expect      => [
+                {   type        => 'curly',
+                    opcode      => 'first',
+                },
+                {   type        => 'curly',
+                    opcode      => 'last',
+                },
+            ],
+        },
+        t032        => {
+            template    => "{{last}}{{first}}",
+            expect      => [
+                {   type        => 'curly',
+                    opcode      => 'first',
+                },
+                {   type        => 'curly',
+                    opcode      => 'last',
+                },
+            ],
+        },
+        t033        => {
+            template    => "{{last}}{{verylast}}{{first}}",
+            expect      => [
+                {   type        => 'curly',
+                    opcode      => 'first',
+                },
+                {   type        => 'curly',
+                    opcode      => 'last',
+                },
+                {   type        => 'curly',
+                    opcode      => 'verylast',
+                },
+            ],
+        },
     );
 
     $self->run_parse_tests($wiki,\%tests);

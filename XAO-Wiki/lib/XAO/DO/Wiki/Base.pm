@@ -170,6 +170,50 @@ sub parse ($$) {
 
 ###############################################################################
 
+=item parse_move_elt
+
+Moves the element in the parsed results according to its weight. If the
+weight is negative then it's pushing it towards the end of the list. If
+it's positive -- towards the beginning. Zero has the largest positive
+weight and -1 has the largest negative.
+
+In the absense of other pushed elements only the sign of the weight
+matters, -1 and -999 both will end up in the end of the elements list.
+
+To avoid messing up the order while the list is being scanned the actual
+moving is done parse_move_finalize().
+
+=cut
+
+sub parse_move_elt ($$$$) {
+    my ($self,$elements,$pos,$weight)=@_;
+    $elements->[$pos]->{'_weight'}=$weight;
+}
+
+sub parse_move_finalize ($$$$) {
+    my ($self,$elements)=@_;
+
+    my @head;
+    my @tail;
+    for(my $i=1; $i<@$elements; ++$i) {
+        my $w=$elements->[$i]->{'_weight'};
+        if(defined $w) {
+            if($w<0) {
+                push(@tail,splice(@$elements,$i,1));
+            }
+            else {
+                push(@head,splice(@$elements,$i,1));
+            }
+            --$i;
+        }
+    }
+
+    splice(@$elements,1,0,sort { $a->{'_weight'} <=> $b->{'_weight'} } @head) if @head;
+    push(@$elements,sort { $a->{'_weight'} <=> $b->{'_weight'} } @tail) if @tail;
+}
+
+###############################################################################
+
 sub parse_params_hash ($%) {
     my $self=shift;
     my $args=get_args(\@_);
@@ -177,7 +221,7 @@ sub parse_params_hash ($%) {
     my $elements=$args->{'elements'} || throw $self "parse_params_hash - no 'elements'";
 
     my $pblock=$elements->[0];
-    if($pblock->{'type'} ne 'params') {
+    if(!$pblock || $pblock->{'type'} ne 'params') {
         $pblock={
             type        => 'params',
             params      => { },

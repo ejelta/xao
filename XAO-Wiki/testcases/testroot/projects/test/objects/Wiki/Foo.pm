@@ -17,11 +17,23 @@ sub parse ($%) {
 
     my $elements=$rc->{'elements'};
 
-    foreach my $wd (@$elements) {
-        if($wd->{'type'} eq 'curly' && $wd->{'opcode'} eq 'fubar') {
-            $wd->{'type'}='fubar';
+    for(my $i=1; $i<@$elements; ++$i) {
+        my $elt=$elements->[$i];
+        if($elt->{'type'} eq 'curly' && $elt->{'opcode'} eq 'fubar') {
+            $elt->{'type'}='fubar';
+        }
+        elsif($elt->{'type'} eq 'curly' && $elt->{'opcode'} eq 'last') {
+            $self->parse_move_elt($elements,$i,-2);
+        }
+        elsif($elt->{'type'} eq 'curly' && $elt->{'opcode'} eq 'verylast') {
+            $self->parse_move_elt($elements,$i,-1);
+        }
+        elsif($elt->{'type'} eq 'curly' && $elt->{'opcode'} eq 'first') {
+            $self->parse_move_elt($elements,$i,0);
         }
     }
+
+    $self->parse_move_finalize($elements);
 
     return $rc;
 }
