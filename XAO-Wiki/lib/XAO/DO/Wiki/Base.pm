@@ -381,6 +381,7 @@ sub render_html ($%) {
             my $code=$self->can($method);
             if($code) {
                 $html.=$code->($self,$args,{
+                    elements    => $elements,
                     element     => $elt,
                     page        => $page,
                 });
@@ -392,6 +393,7 @@ sub render_html ($%) {
         }
         elsif(ref($method) eq 'CODE') {
             $html.=$method->($self,$args,{
+                elements    => $elements,
                 element     => $elt,
                 page        => $page,
             });
