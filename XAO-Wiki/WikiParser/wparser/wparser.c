@@ -532,20 +532,27 @@ return cp2-str;
 
 int tag_nowrap_process(char *str, struct wpstate *state, string &s)
 {
-char *cp,*cp2;
+char *cp,*cp2,*end;
 cp=str;
-cp2=cp+1;
-while((*cp2!='\n')&&(*cp2)) cp2++;
+for(cp2=cp+1;*cp2;cp2++) {
+    if((*cp2=='\n')&&(cp2[1]!=' ')) break;
+}
 if(*cp2=='\n') *cp2++=0;
+end=cp2;
 s+=paragraph_stop(state);
 cp++;	//skip 1st ' '
 if(*cp) // have something after ' '
  {
    s+=tag_nowrap_start;
-   s+=line_process(cp,state);
+   while((cp2=strstr(cp,"\n "))!=NULL) {
+        cp2[1]=0;
+        s+=line_process(cp,state);
+        cp=cp2+2;
+   }
+   if(*cp) s+=line_process(cp,state);
    s+=tag_nowrap_stop;
  }
-return cp2-str;
+return end-str;
 }
 
 
