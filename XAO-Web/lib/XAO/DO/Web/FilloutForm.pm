@@ -64,7 +64,7 @@ use XAO::Errors qw(XAO::DO::Web::FilloutForm);
 use base XAO::Objects->load(objname => 'Web::Page');
 
 use vars qw($VERSION);
-$VERSION=(0+sprintf('%u.%03u',(q$Id: FilloutForm.pm,v 2.26 2006/06/09 22:37:19 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
+$VERSION=(0+sprintf('%u.%03u',(q$Id: FilloutForm.pm,v 2.27 2006/08/30 18:45:44 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
 
 sub setup ($%);
 sub field_desc ($$;$);
@@ -1162,7 +1162,6 @@ sub us_continental_states_list () {
         next if $st =~ /^HI/;
         next if $st =~ /^MH/;
         next if $st =~ /^MP/;
-        next if $st =~ /^RI/;
         next if $st =~ /^VI/;
         push(@list,$st);
     }
