@@ -44,13 +44,14 @@ own later.
 ###############################################################################
 package XAO::DO::FS::Glue;
 use strict;
+use Encode;
 use XAO::Utils;
 use XAO::Objects;
 
 use base XAO::Objects->load(objname => 'Atom');
 
 use vars qw($VERSION);
-$VERSION=(0+sprintf('%u.%03u',(q$Id: Glue.pm,v 2.13 2006/08/06 02:22:23 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
+$VERSION=(0+sprintf('%u.%03u',(q$Id: Glue.pm,v 2.14 2006/09/05 20:11:25 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
 
 ###############################################################################
 
