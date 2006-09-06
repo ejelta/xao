@@ -433,7 +433,7 @@ sub custinfo {
         @row{qw(bill_to_name cust_code bill_to_addr1 bill_to_addr2
                 bill_to_addr3 bill_to_city bill_to_state bill_to_zip
                 telephone aux_fax email_address slm_number first_sale
-                stax_exemp default_loc)}=
+                stax_exemp default_loc sales_loc source_loc)}=
             split('\t',$_[0]);
         return \%row;
     };

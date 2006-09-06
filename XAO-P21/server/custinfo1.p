@@ -18,36 +18,35 @@ IF AVAILABLE p21.customer THEN DO:
 
     IF AVAILABLE p21.cust_aux THEN DO:
         PUT UNFORMATTED
-            p21.customer.bill_to_name
-            d_d
-            p21.customer.cust_code
-            d_d
-            p21.customer.bill_to_addr1
-            d_d
-            p21.customer.bill_to_addr2
-            d_d
-            p21.customer.bill_to_addr3
-            d_d
-            p21.customer.bill_to_city
-            d_d
-            p21.customer.bill_to_state
-            d_d
-            p21.customer.bill_to_zip
-            d_d
-            p21.customer.telephone
-            d_d
-            p21.cust_aux.aux_fax
-            d_d
-            p21.cust_aux.email_address
-            d_d
-            p21.customer.slm_number
-            d_d
-            p21.customer.first_sale
-            d_d
-            p21.customer.stax_exemp
-            d_d
-            p21.customer.default_loc
-            "\n"
+            p21.customer.bill_to_name		d_d
+            p21.customer.cust_code		d_d
+            p21.customer.bill_to_addr1		d_d
+            p21.customer.bill_to_addr2		d_d
+            p21.customer.bill_to_addr3		d_d
+            p21.customer.bill_to_city		d_d
+            p21.customer.bill_to_state		d_d
+            p21.customer.bill_to_zip		d_d
+            p21.customer.telephone		d_d
+            p21.cust_aux.aux_fax		d_d
+            p21.cust_aux.email_address		d_d
+            p21.customer.slm_number		d_d
+            p21.customer.first_sale		d_d
+            p21.customer.stax_exemp		d_d
+            p21.customer.default_loc		d_d
         .
+
+        FIND FIRST p21.cust_ctrl WHERE p21.cust_ctrl.cust_code = v_custcode
+                                 SHARE-LOCK NO-ERROR.
+
+        IF AVAILABLE p21.cust_ctrl THEN
+            PUT UNFORMATTED
+                p21.cust_ctrl.sales_loc		d_d
+                p21.cust_ctrl.source_loc        skip
+            .
+        ELSE
+            PUT UNFORMATTED
+                ?                               d_d
+                ?                               skip
+            .
     END.
 END.
