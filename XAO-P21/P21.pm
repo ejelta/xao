@@ -434,7 +434,7 @@ sub custinfo {
                 bill_to_addr3 bill_to_city bill_to_state bill_to_zip
                 telephone aux_fax email_address slm_number first_sale
                 stax_exemp default_loc sales_loc source_loc)}=
-            split('\t',$_[0]);
+            map { $_ eq '?' ? undef : $_ } split('\t',$_[0]);
         return \%row;
     };
 
