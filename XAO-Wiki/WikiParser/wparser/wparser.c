@@ -280,6 +280,7 @@ int tag_hr_process(char *str, struct wpstate *state, string &s)
 {
 char *cp,*cp2;
 s+=paragraph_stop(state);
+s+=lists_stop(state);
 s+=tag_hr;
 cp=str;
 while(*cp=='-') cp++;
@@ -317,6 +318,7 @@ while((*cp2!='\n')&&(*cp2))
 if(etag&&(etag-cp>nchars)) //not ========
  {
    s+=paragraph_stop(state);
+   s+=lists_stop(state);
    *etag=0;
    switch(nchars)
    {
