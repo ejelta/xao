@@ -410,6 +410,14 @@ sub test_parse {
                 },
             ],
         },
+        t034        => {
+            template    => "#abc\n#bcd\n#cde\n\n---\n\nsome paragraph...\n",
+            expect      => [
+                {   type        => 'text',
+                    content     => qr/<\/OL>.*<HR\/?>/,
+                },
+            ],
+        },
     );
 
     $self->run_parse_tests($wiki,\%tests);
@@ -453,10 +461,16 @@ sub run_parse_tests ($$$) {
             for(my $j=$got_pos; $j<@$got; ++$j) {
                 $found=1;
                 foreach my $k (keys %$eblock) {
-                    if(!defined $got->[$j]->{$k} || $got->[$j]->{$k} ne $eblock->{$k}) {
+                    if(!defined $got->[$j]->{$k}) {
                         $found=0;
-                        last;
                     }
+                    elsif(ref($eblock->{$k}) eq 'Regexp' && $got->[$j]->{$k} !~ $eblock->{$k}) {
+                        $found=0;
+                    }
+                    elsif($got->[$j]->{$k} ne $eblock->{$k}) {
+                        $found=0;
+                    }
+                    last unless $found;
                 }
                 if($found) {
                     $got_pos=$j;
