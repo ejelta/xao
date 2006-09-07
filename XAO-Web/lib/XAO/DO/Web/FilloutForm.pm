@@ -64,7 +64,7 @@ use XAO::Errors qw(XAO::DO::Web::FilloutForm);
 use base XAO::Objects->load(objname => 'Web::Page');
 
 use vars qw($VERSION);
-$VERSION=(0+sprintf('%u.%03u',(q$Id: FilloutForm.pm,v 2.27 2006/08/30 18:45:44 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
+$VERSION=(0+sprintf('%u.%03u',(q$Id: FilloutForm.pm,v 2.28 2006/09/07 00:19:01 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
 
 sub setup ($%);
 sub field_desc ($$;$);
@@ -98,8 +98,8 @@ sub new ($%) {
     ##
     # Setting up fields if required
     #
-    $self->setup_fields(fields => $args->{fields},
-                        values => $args->{values}) if $args->{fields};
+    $self->setup_fields(fields => $args->{'fields'},
+                        values => $args->{'values'}) if $args->{'fields'};
 
     ##
     # Done
@@ -133,8 +133,8 @@ sub setup ($%) {
     ##
     # Fields and values
     #
-    $self->setup_fields(fields => $args->{fields},
-                        values => $args->{values});
+    $self->setup_fields(fields => $args->{'fields'},
+                        values => $args->{'values'});
 
     ##
     # Handlers and special data:
@@ -143,9 +143,9 @@ sub setup ($%) {
     #
     my @names=qw(extra_data submit_name form_ok pre_check_form check_form keep_form);
     @{$self}{@names}=@{$args}{@names};
-    my $values=$args->{values} || {};
-    foreach my $fdata (@{$self->{fields}}) {
-        $fdata->{value}=$values->{$fdata->{name}};
+    my $values=$args->{'values'} || {};
+    foreach my $fdata (@{$self->{'fields'}}) {
+        $fdata->{'value'}=$values->{$fdata->{'name'}};
     }
 }
 
@@ -161,10 +161,10 @@ could be persistent and we do not want original data to be modified.
 sub setup_fields ($%) {
     my $self=shift;
     my $args=get_args(\@_);
-    my $fields=$args->{fields};
+    my $fields=$args->{'fields'};
     return unless $fields && ref($fields);
 
-    my $values=$args->{values};
+    my $values=$args->{'values'};
     my @copy;
     foreach my $fdata (ref($fields) eq 'ARRAY' ? @{$fields}
                                                : keys %{$fields}) {
@@ -172,19 +172,19 @@ sub setup_fields ($%) {
         if(! ref($fdata)) {
             $name=$fdata;
             $fdata=$fields->{$name};
-            $fdata->{name}=$name;
+            $fdata->{'name'}=$name;
         }
         else {
-            $name=$fdata->{name};
+            $name=$fdata->{'name'};
         }
 
         my %cd;
         @cd{keys %{$fdata}}=values %{$fdata};
-        $cd{value}=$values->{$name} if $values && $values->{$name};
+        $cd{'value'}=$values->{$name} if $values && $values->{$name};
         push(@copy,\%cd);
     }
 
-    $self->{fields}=\@copy;
+    $self->{'fields'}=\@copy;
 }
 
 ###############################################################################
@@ -199,7 +199,7 @@ sub display ($;%) {
     my $self=shift;
     my $args=get_args(\@_);
     my $cgi=$self->cgi;
-    my $fields=$self->{fields};
+    my $fields=$self->{'fields'};
     $fields || throw XAO::E::DO::Web::FilloutForm
                      "display - has not set fields for FilloutForm";
     my $phase=$self->{'phase'}=$args->{'phase'};
@@ -212,10 +212,10 @@ sub display ($;%) {
     if(ref($fields) eq 'HASH') {
         my @newf;
         foreach my $name (keys %{$fields}) {
-            $fields->{$name}->{name}=$name;
+            $fields->{$name}->{'name'}=$name;
             push @newf,$fields->{$name};
         }
-        $self->{fields}=$fields=\@newf;
+        $self->{'fields'}=$fields=\@newf;
     }
 
     # Pre-checking form with external overridable function.
@@ -282,11 +282,11 @@ sub display ($;%) {
         if(!length($value) && $fdata->{'required'}) {
             $newerr=$self->Tx('Required field!');
         }
-        elsif($fdata->{maxlength} && length($value) > $fdata->{maxlength}) {
+        elsif($fdata->{'maxlength'} && length($value) > $fdata->{'maxlength'}) {
             $newerr=$self->Tx('Value is too long!');
         }
-        elsif($fdata->{minlength} && length($value) &&
-              length($value) < $fdata->{minlength}) {
+        elsif($fdata->{'minlength'} && length($value) &&
+              length($value) < $fdata->{'minlength'}) {
             $newerr=$self->Tx("Value is too short!");
         }
         elsif($style eq 'text') {
@@ -306,7 +306,7 @@ sub display ($;%) {
             }
         }
         elsif($style eq 'usphone') {
-            $fdata->{maxlength}=15 unless $fdata->{maxlength};
+            $fdata->{'maxlength'}=15 unless $fdata->{'maxlength'};
             if(length($value)) {
                 $value =~ s/\D//g;
                 if(length($value) == 7) {
@@ -326,7 +326,7 @@ sub display ($;%) {
             }
         }
         elsif($style eq 'phone') {      # +99 (123) 456-78-90 x 123
-            $fdata->{maxlength}=30 unless $fdata->{maxlength};
+            $fdata->{'maxlength'}=30 unless $fdata->{'maxlength'};
             if(length($value)) {
                 my ($p,$e)=split(/[a-zA-Z]+/,$value);
 
@@ -354,13 +354,13 @@ sub display ($;%) {
             if(length($value)) {
                 if($value =~ /^[\d,']+$/) {
                     $value=~s/[,']+//g;
-                    if(defined($fdata->{minvalue}) && $value<$fdata->{minvalue}) {
+                    if(defined($fdata->{'minvalue'}) && $value<$fdata->{'minvalue'}) {
                         $newerr=$self->Tx("Value is less than {{min}}",
-                                            { min => $fdata->{minvalue} });
+                                            { min => $fdata->{'minvalue'} });
                     }
-                    if(defined($fdata->{maxvalue}) && $value>$fdata->{maxvalue}) {
+                    if(defined($fdata->{'maxvalue'}) && $value>$fdata->{'maxvalue'}) {
                         $newerr=$self->Tx("Value is greater than {{max}}",
-                                            { max => $fdata->{maxvalue} });
+                                            { max => $fdata->{'maxvalue'} });
                     }
                 }
                 else {
@@ -374,7 +374,7 @@ sub display ($;%) {
                     $value=~s/[,']+//g;
                     if(defined($fdata->{'minvalue'}) && $value<$fdata->{'minvalue'}) {
                         $newerr=$self->Tx("Value is less than {{min}}",
-                                            { min => $fdata->{minvalue} });
+                                            { min => $fdata->{'minvalue'} });
                     }
                     if(defined($fdata->{'maxvalue'}) && $value>$fdata->{'maxvalue'}) {
                         $newerr=$self->Tx("Value is greater than {{max}}",
@@ -429,7 +429,7 @@ sub display ($;%) {
         }  
         elsif($style eq 'ccnum') {
             if(length($value)) {
-                my $type=$fdata->{pair} ? $cgi->param($fdata->{pair}) : '';
+                my $type=$fdata->{'pair'} ? $cgi->param($fdata->{'pair'}) : '';
                 $newerr=$self->cc_validate(type => $type, number => $value, validated => \$value);
             }
         }
@@ -442,9 +442,9 @@ sub display ($;%) {
             }
         }
         elsif($style eq 'year') {
-            if($fdata->{minyear} && $fdata->{maxyear}) {
-                my $minyear=$self->calculate_year($fdata->{minyear});
-                my $maxyear=$self->calculate_year($fdata->{maxyear});
+            if($fdata->{'minyear'} && $fdata->{'maxyear'}) {
+                my $minyear=$self->calculate_year($fdata->{'minyear'});
+                my $maxyear=$self->calculate_year($fdata->{'maxyear'});
                 if(length($value)) {
                     $value=$self->calculate_year($value);
                     if($value<$minyear) {
@@ -512,7 +512,7 @@ sub display ($;%) {
 
         # Generating HTML for some field styles.
         #
-        my $param=$fdata->{param} || uc($name);
+        my $param=$fdata->{'param'} || uc($name);
         if($style eq 'country') {
             my @cl=$self->countries_list();
             my $html='';
@@ -520,7 +520,7 @@ sub display ($;%) {
                 my $sel=(lc($c) eq lc($value)) ? " SELECTED" : "";
                 $html.="<OPTION$sel>".t2ht($c)."</OPTION>\n";
             }
-            $fdata->{html}=qq(<SELECT NAME=$name><OPTION VALUE="">Select Country</OPTION>$html</SELECT>);
+            $fdata->{'html'}=qq(<SELECT NAME=$name><OPTION VALUE="">Select Country</OPTION>$html</SELECT>);
         }
         elsif($style eq 'usstate' || $style eq 'uscontst') {
             my @cl=$style eq 'usstate' ? $self->us_states_list()
@@ -535,7 +535,7 @@ sub display ($;%) {
                        "</OPTION>\n";
             }
             $formparams{"$param.HTML_OPTIONS"}=$html;
-            $fdata->{html}=qq(<SELECT NAME=$name><OPTION VALUE="">Select State</OPTION>$html</SELECT>);
+            $fdata->{'html'}=qq(<SELECT NAME=$name><OPTION VALUE="">Select State</OPTION>$html</SELECT>);
         }
         elsif($style eq 'cctype') {
             my @cl=$self->cc_list();
@@ -544,7 +544,7 @@ sub display ($;%) {
                 my $sel=(lc($c) eq lc($value)) ? " SELECTED" : "";
                 $html.="<OPTION$sel>".t2ht($c)."</OPTION>\n";
             }
-            $fdata->{html}=qq(<SELECT NAME=$name><OPTION VALUE="">Select Card Type</OPTION>$html</SELECT>);
+            $fdata->{'html'}=qq(<SELECT NAME=$name><OPTION VALUE="">Select Card Type</OPTION>$html</SELECT>);
         }  
         elsif($style eq 'month') {
             my @cl=qw(January February March April May June July
@@ -554,11 +554,11 @@ sub display ($;%) {
                 my $sel=($value && $value == $i+1) ? " SELECTED" : "";
                 $html.=sprintf("<OPTION VALUE=\"%02u\"$sel>%02u - %s</OPTION>\n",$i+1,$i+1,$cl[$i]);
             }
-            $fdata->{html}=qq(<SELECT NAME=$name><OPTION VALUE="">Select Month</OPTION>$html</SELECT>);
+            $fdata->{'html'}=qq(<SELECT NAME=$name><OPTION VALUE="">Select Month</OPTION>$html</SELECT>);
         }
-        elsif($style eq 'year' && !$fdata->{maxlength} && $fdata->{minyear} && $fdata->{maxyear}) {
-            my $minyear=$self->calculate_year($fdata->{minyear});
-            my $maxyear=$self->calculate_year($fdata->{maxyear});
+        elsif($style eq 'year' && !$fdata->{'maxlength'} && $fdata->{'minyear'} && $fdata->{'maxyear'}) {
+            my $minyear=$self->calculate_year($fdata->{'minyear'});
+            my $maxyear=$self->calculate_year($fdata->{'maxyear'});
             my $html='';
             for(my $i=$minyear; $i<=$maxyear; $i++) {
                 my $sel=($value && $value == $i) ? " SELECTED" : "";
@@ -624,7 +624,7 @@ sub display ($;%) {
             # prompt -- use ('' => undef) as an indicator of that.
             #
             $formparams{"$param.HTML_OPTIONS"}=$html;
-            $fdata->{html}='<SELECT NAME="' . t2hf($name) . '">' .
+            $fdata->{'html'}='<SELECT NAME="' . t2hf($name) . '">' .
                            ($has_empty ? '' : '<OPTION VALUE="">Please select</OPTION>') .
                            $html .
                            '</SELECT>';
@@ -637,8 +637,8 @@ sub display ($;%) {
                 path    => '/bits/fillout-form/html-text',
                 NAME    => $name,
                 VALUE   => defined($value) ? $value : '',
-                MAXLENGTH => $fdata->{maxlength} || 100,
-                SIZE    => $fdata->{size} || 30,
+                MAXLENGTH => $fdata->{'maxlength'} || 100,
+                SIZE    => $fdata->{'size'} || 30,
             );
         }
         elsif($style eq 'textarea') {
@@ -838,7 +838,7 @@ sub form_ok ($%) {
     my $self=shift;
     if($self->{'form_ok'}) {
         my $na=merge_refs(get_args(\@_),{
-            extra_data  => $self->{extra_data},
+            extra_data  => $self->{'extra_data'},
         });
         return &{$self->{'form_ok'}}($self,$na);
     }
@@ -851,10 +851,10 @@ sub form_ok ($%) {
 #
 sub check_form ($%) {
     my $self=shift;
-    if($self->{check_form}) {
+    if($self->{'check_form'}) {
         my %na=%{get_args(\@_)};
-        $na{extra_data}=$self->{extra_data};
-        return &{$self->{check_form}}($self,\%na);
+        $na{'extra_data'}=$self->{'extra_data'};
+        return &{$self->{'check_form'}}($self,\%na);
     }
     '';
 }
@@ -866,16 +866,16 @@ sub check_form ($%) {
 Pre-checking form. May be used if some values are calculated or copied
 from another and should be checked later.
 
-Should stuff generated values into {newvalue} parameter.
+Should stuff generated values into {'newvalue'} parameter.
 
 =cut
 
 sub pre_check_form ($%) {
     my $self=shift;
-    if($self->{pre_check_form}) {
+    if($self->{'pre_check_form'}) {
         my $na=get_args(\@_);
-        $na->{extra_data}=$self->{extra_data};
-        return &{$self->{pre_check_form}}($self,$na);
+        $na->{'extra_data'}=$self->{'extra_data'};
+        return &{$self->{'pre_check_form'}}($self,$na);
     }
 }
 
@@ -1301,6 +1301,7 @@ sub cc_validate ($%) {
         $sum += (($weight < 10) ? $weight : ($weight - 9));
     }
     if(substr($number,-1) ne (10-$sum%10)%10) {
+        ### dprint "have ".substr($number,-1)." want ".(10-$sum%10)%10;
         return $self->Tx('Invalid number!');
     }
 
@@ -1309,24 +1310,33 @@ sub cc_validate ($%) {
     #
     my $typecode;
     my $realtype='';
-    if($number =~ /^37/) {
+    my $reqlen;
+    if($number =~ /^(?:34|37)/) {
         $realtype='american express';
         $typecode='AE';
+        $reqlen=[15];
     }
     elsif($number =~ /^4/) {
         $realtype='visa';
         $typecode='VI';
+        $reqlen=[13,16];
     }
     elsif($number =~ /^5/) {
         $realtype='master\s?card';
         $typecode='MC';
+        $reqlen=[16];
     }
     elsif($number =~ /^6/) {
         $realtype='discover';
         $typecode='DC';
+        $reqlen=[16];
     }
     else {
         return $self->Tx('Unknown card type!');
+    }
+    if($reqlen) {
+        scalar(grep { length($number)==$_ } @$reqlen) ||
+            return $self->Tx('Invalid number length!');
     }
 
     ##
@@ -1372,7 +1382,7 @@ sub calculate_year ($$) {
 #
 sub form_phase ($) {
     my $self=shift;
-    return $self->{phase} || 1;
+    return $self->{'phase'} || 1;
 }
 
 ###############################################################################
