@@ -414,7 +414,7 @@ sub test_parse {
             template    => "#abc\n#bcd\n#cde\n\n---\n\nsome paragraph...\n",
             expect      => [
                 {   type        => 'text',
-                    content     => qr/<\/OL>.*<HR\/?>/,
+                    content     => qr/<\/OL>.*<HR/si,
                 },
             ],
         },
@@ -464,8 +464,10 @@ sub run_parse_tests ($$$) {
                     if(!defined $got->[$j]->{$k}) {
                         $found=0;
                     }
-                    elsif(ref($eblock->{$k}) eq 'Regexp' && $got->[$j]->{$k} !~ $eblock->{$k}) {
-                        $found=0;
+                    elsif(ref($eblock->{$k}) eq 'Regexp') {
+                        if($got->[$j]->{$k} !~ $eblock->{$k}) {
+                            $found=0;
+                        }
                     }
                     elsif($got->[$j]->{$k} ne $eblock->{$k}) {
                         $found=0;
