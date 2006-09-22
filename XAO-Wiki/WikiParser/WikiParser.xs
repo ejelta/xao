@@ -9,9 +9,10 @@ MODULE = XAO::WikiParser   PACKAGE = XAO::WikiParser
 
 SV *
 parse(text)
-        unsigned int text_length=0;
+        STRLEN text_length=0;
         char *text=SvPV(ST(0),text_length);
         bool text_is_utf8=SvUTF8(ST(0));
+    PROTOTYPE: $
     CODE:
         string str(text,text_length);
 
