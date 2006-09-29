@@ -9,7 +9,7 @@ use File::Copy;
 
 use vars qw($VERSION $REVISION);
 $VERSION='0.05';
-$REVISION='$Id: xao-server,v 1.14 2006/07/12 20:28:12 am Exp $';
+$REVISION='$Id: xao-server,v 1.15 2006/09/29 00:31:36 am Exp $';
 
 sub chld_handler ();
 sub pipe_handler ();
@@ -498,6 +498,21 @@ that monitor can see that the server is alive.
 =cut
         elsif($opcode eq 'ping') {
             printsock "PONG\n";
+        }
+
+=head1 isalive
+
+Checks if some of the P21 data tables are available and shows their names
+separated by forward slashes.
+
+=cut  
+
+        elsif ($opcode eq "isalive") {
+            my $in = open_stream "isalive";
+            while(<$in>) {
+                printsock $_;
+            }
+            close($in);
         }
 
 =head1 quit

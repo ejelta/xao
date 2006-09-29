@@ -806,6 +806,22 @@ sub find_match {
 
 ###############################################################################
 
+=item isalive
+
+Checks if P21 system is ready and connected to its database -- tables
+are available.
+
+=cut
+
+sub isalive {
+    my $self=shift;
+    my $response='';
+    $self->call(sub { $response.=$_[0] }, undef, 'isalive');
+    return $response eq 'catalog/customer/order/wbw_head/' ? $response : undef;
+}
+
+###############################################################################
+
 =item show_spool
 
 Shows contents of order spool directory, one filename per line.
