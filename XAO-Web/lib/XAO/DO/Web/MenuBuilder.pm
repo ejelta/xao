@@ -49,7 +49,7 @@ use XAO::Templates;
 use base XAO::Objects->load(objname => 'Web::Page');
 
 use vars qw($VERSION);
-$VERSION=(0+sprintf('%u.%03u',(q$Id: MenuBuilder.pm,v 2.1 2005/01/14 01:39:57 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
+$VERSION=(0+sprintf('%u.%03u',(q$Id: MenuBuilder.pm,v 2.2 2006/09/30 03:08:07 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
 
 ###############################################################################
 
@@ -60,7 +60,7 @@ sub display ($;%) {
     ##
     # Base directory is required!
     #
-    my $base=$args->{base} ||
+    my $base=$args->{'base'} ||
         throw $self "display - no `base' defined";
 
     ##
@@ -69,6 +69,7 @@ sub display ($;%) {
     my %items;
     foreach my $item (keys %{$args}) {
         next unless $item =~ /^item.(\w+)$/;
+        next unless $args->{$item};
         $items{$1}=$args->{$item};
     }
 
@@ -76,12 +77,12 @@ sub display ($;%) {
     # Now buiding the list of grayed out items
     #
     my %grayed;
-    if($args->{grayed}) {
-        if($args->{grayed} eq '*') {
+    if($args->{'grayed'}) {
+        if($args->{'grayed'} eq '*') {
             %grayed=map { $_ => 1 } values %items;
         }
         else {
-            %grayed=map { $_ => 1 } split(/[,;\s]+/,$args->{grayed});
+            %grayed=map { $_ => 1 } split(/[,;\s]+/,$args->{'grayed'});
         }
     }
     else {
@@ -115,17 +116,17 @@ sub display ($;%) {
         my $subpath;
         if($grayed{$name}) {
             $subpath='grayed';
-            $params{GRAYED}=1;
+            $params{'GRAYED'}=1;
         }
-        elsif(defined($args->{active}) && $name eq $args->{active}) {
+        elsif(defined($args->{'active'}) && $name eq $args->{'active'}) {
             $subpath='active';
-            $params{ACTIVE}=1;
+            $params{'ACTIVE'}=1;
         }
         else {
             $subpath='normal';
-            $params{NORMAL}=1;
+            $params{'NORMAL'}=1;
         }
-        $params{path}="$base/item-$name-$subpath";
+        $params{'path'}="$base/item-$name-$subpath";
 
         $page->display($args,\%params);
     }
