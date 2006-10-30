@@ -314,19 +314,24 @@ sub execute ($%) {
             -cache_control  => 'no-cache',
         );
 
-        my $path="/internal-error/index.html";
+        my $edata=$self->clipboard->get('/internal_error') || { };
+
+        my $path=$edata->{'display_path'} || '/internal-error/index.html';
         my $pd=$self->analyze($path);
+
         if($pd && $pd->{'type'} eq 'xaoweb' && $pd->{'objname'} ne 'Default') {
             eprint "$e";
 
-            $self->clipboard->put("internal_error" => {
-                error       => $e,
-                path        => $args->{path},
-                pagedesc    => $self->clipboard->get('pagedesc'),
-            });
+            $edata->{'message'}||=$e->text;
+            $edata->{'code'}||='UNKNOWN';
+            $edata->{'path'}||=$args->{'path'};
+            $edata->{'pagedesc'}||=$self->clipboard->get('pagedesc');
+
+            $self->clipboard->put(internal_error => $edata);
 
             ($pagetext,$header)=$self->expand($args,{
                 path        => $path,
+                template    => undef,
                 pagedesc    => $pd,
             });
         }
