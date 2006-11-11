@@ -31,7 +31,7 @@ use XAO::Objects;
 use base XAO::Objects->load(objname => 'FS::Glue::SQL_DBI');
 
 use vars qw($VERSION);
-$VERSION=(0+sprintf('%u.%03u',(q$Id: MySQL_DBI.pm,v 2.7 2006/06/15 06:02:21 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
+$VERSION=(0+sprintf('%u.%03u',(q$Id: MySQL_DBI.pm,v 2.8 2006/11/11 05:01:57 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
 
 ###############################################################################
 
@@ -617,14 +617,14 @@ sub load_structure ($) {
     # Checking table types.
     #
     my $sth=$self->sql_execute("SHOW TABLE STATUS");
-    my %table_status;
+    my %table_types;
     my %type_counts;
     my $table_count=0;
     while(my $row=$self->sql_fetch_row($sth)) {
         my ($name,$type,$row_format,$rows)=@$row;
         $type=lc($type);
         $type_counts{$type}++;
-        $table_status{$name}=$type;
+        $table_types{$name}=$type;
         $table_count++;
         # dprint "Table '$name', type=$type, row_format=$row_format, rows=$rows";
     }
@@ -632,8 +632,8 @@ sub load_structure ($) {
         my $table_type=$self->{'table_type'};
         if($table_type eq 'innodb' || $table_type eq 'myisam') {
             my $warning_shown;
-            foreach my $table_name (keys %table_status) {
-                next if $table_status{$table_name} eq $table_type;
+            foreach my $table_name (keys %table_types) {
+                next if $table_types{$table_name} eq $table_type;
 
                 my $debug_status=XAO::Utils::get_debug();
                 XAO::Utils::set_debug(1);
@@ -646,7 +646,7 @@ sub load_structure ($) {
                     $warning_shown=1;
                 }
 
-                dprint "...table '$table_name' type from '$table_status{$table_name}' to '$table_type'";
+                dprint "...table '$table_name' type from '$table_types{$table_name}' to '$table_type'";
                 $self->sql_do("ALTER TABLE $table_name TYPE=$table_type");
 
                 XAO::Utils::set_debug($debug_status);
@@ -665,7 +665,7 @@ sub load_structure ($) {
     else {
         $self->{'table_type'}='mixed';
         eprint "You have mixed table types in the database (" .
-               join(',',map { $_ . '=' . $table_status{$_} } sort keys %table_status) . 
+               join(',',map { $_ . '=' . $table_types{$_} } sort keys %table_types) . 
                ")";
     }
 
@@ -698,6 +698,7 @@ sub load_structure ($) {
     my %fields;
     my %tkeys;
     my %ckeys;
+    my %tbdesc;
     $sth=$self->sql_execute("SELECT unique_id,table_name_,field_name_," .
                                    "type_,refers_,key_format_," .
                                    "index_,default_,charset_," .
@@ -707,6 +708,25 @@ sub load_structure ($) {
     while(my $row=$self->sql_fetch_row($sth)) {
         my ($uid,$table,$field,$type,$refers,$key_format,
             $index,$default,$charset,$maxlength,$minvalue,$maxvalue)=@$row;
+
+        ##
+        # Getting table description from the database. Comparing default
+        # values later. If they contain spaces the database is probably
+        # a badly converted 4.1 to 5.0, needs some rebuilding.
+        #
+        if(!$tbdesc{$table}) {
+            my $tbsth=$self->sql_execute("DESC $table");
+            while(my $tbrow=$self->sql_fetch_row($tbsth)) {
+                my ($tb_field,$tb_type,$tb_null,$tb_key,$tb_default)=@$tbrow;
+                $tbdesc{$table}->{$tb_field}={
+                    type        => $tb_type,
+                    null        => $tb_null,
+                    key         => $tb_key,
+                    default     => $tb_default,
+                };
+            }
+        }
+
         my $data;
         if($type eq 'list') {
             $refers || $self->throw("load_structure - no class name at Global_Fields($table,$field,..)");
@@ -770,6 +790,141 @@ sub load_structure ($) {
         $fields{$table}->{$field}=$data;
     }
     $self->sql_finish($sth);
+
+    ##
+    # Checking if this is a 4.1 database running in a 5.0 engine. In
+    # this situation all our text & binary fields will get unstripped
+    # (and unstrippable!) spaces in the end.
+    #
+    my $need_50_upgrade=$ENV{'XAO_MYSQL_50_UPGRADE'};
+    if(!$need_50_upgrade && !$ENV{'XAO_MYSQL_50_SKIP_UPGRADE'}) {
+        TABLE_LOOP:
+        foreach my $table (keys %fields) {
+            my $flist=$fields{$table};
+            foreach my $fname (keys %$flist) {
+                next if $flist->{$fname}->{'type'} eq 'list';
+
+                my $tbdata=$tbdesc{$table}->{$fname.'_'} ||
+                    throw $self "load_structure - no table definition for $fname in $table (how could it be?)";
+                if($tbdata->{'default'} =~ /^\s+$/) {
+                    if($tbdata->{'default'} eq $flist->{$fname}->{'default'}) {
+                        eprint "Very suspicious spaces in field defaults, is it a 4.1 database running in 5.0 engine?";
+                        eprint "Set XAO_MYSQL_50_UPGRADE if you want to force an upgrade";
+                        next;
+                    }
+                    else {
+                        $need_50_upgrade=1;
+                        last TABLE_LOOP;
+                    }
+                }
+            }
+        }
+    }
+    if($need_50_upgrade) {
+        my $debug_status=XAO::Utils::get_debug();
+        XAO::Utils::set_debug(1);
+        dprint "This database seems to be a 4.1 MySQL database running in a 5.0 MySQL engine.";
+        dprint "Difference in treating trailing spaces will prevent the database from working properly.";
+        dprint "If you believe this to be incorrect please set XAO_MYSQL_50_SKIP_UPGRADE env. variable.";
+        dprint "**";
+        dprint "** A fully automatic upgrade will be attempted in 10 seconds, interrupt to abort.";
+        dprint "** It MAY BE dangerous, a restore from a textual backup made in 4.1 is always better!";
+        dprint "**";
+        ###########sleep 10;
+
+        dprint "Converting BINARY fields to VARBINARY as this is the only way to store unpadded";
+        dprint "strings of varying length";
+        dprint "-";
+        foreach my $table (keys %tbdesc) {
+            my $tbdata=$tbdesc{$table};
+            my $sql='';
+            my @def;
+            foreach my $fname (keys %$tbdata) {
+                next unless defined($tbdata->{$fname}->{'default'}) && $tbdata->{$fname}->{'default'}=~/^\s+$/;
+
+                my $fdata=$fields{$table}->{substr($fname,0,-1)} || 
+                    throw $self "load_structure - can't find field description $table/$fname";
+
+                my $charset;
+                my $maxlength;
+                my $default;
+                if($fdata->{'type'} eq 'blob') {
+                    $charset='binary';
+                    $maxlength=$fdata->{'maxlength'};
+                    $default=$fdata->{'default'};
+next;
+                }
+                elsif($fdata->{'type'} eq 'text') {
+                    $charset=$fdata->{'charset'} || throw $self "load_structure - no charset in '$fname'";
+                    $maxlength=$fdata->{'maxlength'};
+                    $default=$fdata->{'default'};
+next;
+                }
+                elsif($fdata->{'type'} eq 'key') {
+                    $charset=$fdata->{'key_charset'} || throw $self "load_structure - no key_charset in '$fname'";
+                    $maxlength=$fdata->{'key_length'};
+                    $default='';
+                }
+                else {
+                    next;   # nothing to do for other types
+                }
+                dprint "fname=$fname, charset=$charset, ml=$maxlength, def=$default";
+
+                ##
+                # Converting all strings, not just BINARY columns to update the DEFAULT value
+                #
+                my $tdef=$self->text_field_definition($charset,$maxlength);
+                $sql.=', ' if $sql;
+                $sql.="CHANGE $fname $fname $tdef";
+                push(@def,$default);
+            }
+            if($sql) {
+                $sql="ALTER TABLE $table $sql";
+                dprint "Executing: $sql";
+                <STDIN>;
+                $self->sql_do($sql,@def);
+            }
+        }
+        dprint "-";
+
+        #my @uptables=('Global_Fields','Global_Classes',keys %tbdesc);
+        #dprint "Upgrading tables to the new binary format.";
+        #dprint "The following tables will be upgraded:";
+        #dprint join(',',@uptables);
+        #dprint "-";
+        #foreach my $table (@uptables) {
+        #    my $sql="ALTER TABLE $table TYPE=$table_types{$table}";
+        #    dprint "Executing: $sql";
+        #    $self->sql_do($sql);
+        #}
+        #dprint "-";
+
+        dprint "Trimming trailing spaces on all text & binary fields.";
+        dprint "Since spaces were always trimmed in MySQL up to 4.1 supposedly it is safe.";
+        foreach my $table (keys %tbdesc) {
+            my $tbdata=$tbdesc{$table};
+            foreach my $fname (keys %$tbdata) {
+                next unless defined($tbdata->{$fname}->{'default'}) && $tbdata->{$fname}->{'default'}=~/^\s+$/;
+
+                my $fdata=$fields{$table}->{substr($fname,0,-1)} || 
+                    throw $self "load_structure - can't find field description $table/$fname";
+
+                my $sql;
+                if($ENV{'XAO_MYSQL_50_BROKEN_BINARY'}) {
+                    $sql="UPDATE $table SET $fname=LEFT($fname,LENGTH(RTRIM(REPLACE($fname,'\0',' '))))";
+                }
+                else {
+                    $sql="UPDATE $table SET $fname=RTRIM($fname)";
+                }
+                dprint "Executing: $sql";
+                <STDIN>;
+                $self->sql_do($sql);
+            }
+        }
+        dprint "-";
+
+        XAO::Utils::set_debug($debug_status);
+    }
 
     ##
     # Checking that we have a charset for every text field. Altering
@@ -1139,7 +1294,7 @@ sub text_field_definition ($$$) {
             $def="BLOB";
         } elsif($maxlength<16777215) {
             $def="MEDIUMBLOB";
-        } elsif($maxlength<4294967295) {
+        } else {
             $def="LONGBLOB";
         }
     }
@@ -1150,7 +1305,7 @@ sub text_field_definition ($$$) {
             $def="TEXT";
         } elsif($maxlength<16777215) {
             $def="MEDIUMTEXT";
-        } elsif($maxlength<4294967295) {
+        } else {
             $def="LONGTEXT";
         }
         $def.=" CHARACTER SET '$charset'";
