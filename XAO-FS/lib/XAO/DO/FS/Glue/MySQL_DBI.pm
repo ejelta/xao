@@ -31,7 +31,7 @@ use XAO::Objects;
 use base XAO::Objects->load(objname => 'FS::Glue::SQL_DBI');
 
 use vars qw($VERSION);
-$VERSION=(0+sprintf('%u.%03u',(q$Id: MySQL_DBI.pm,v 2.8 2006/11/11 05:01:57 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
+$VERSION=(0+sprintf('%u.%03u',(q$Id: MySQL_DBI.pm,v 2.9 2006/11/13 20:52:19 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
 
 ###############################################################################
 
@@ -806,7 +806,7 @@ sub load_structure ($) {
 
                 my $tbdata=$tbdesc{$table}->{$fname.'_'} ||
                     throw $self "load_structure - no table definition for $fname in $table (how could it be?)";
-                if($tbdata->{'default'} =~ /^\s+$/) {
+                if(defined($tbdata->{'default'}) && $tbdata->{'default'} =~ /^\s+$/) {
                     if($tbdata->{'default'} eq $flist->{$fname}->{'default'}) {
                         eprint "Very suspicious spaces in field defaults, is it a 4.1 database running in 5.0 engine?";
                         eprint "Set XAO_MYSQL_50_UPGRADE if you want to force an upgrade";
@@ -830,7 +830,7 @@ sub load_structure ($) {
         dprint "** A fully automatic upgrade will be attempted in 10 seconds, interrupt to abort.";
         dprint "** It MAY BE dangerous, a restore from a textual backup made in 4.1 is always better!";
         dprint "**";
-        ###########sleep 10;
+        sleep 10;
 
         dprint "Converting BINARY fields to VARBINARY as this is the only way to store unpadded";
         dprint "strings of varying length";
@@ -852,13 +852,11 @@ sub load_structure ($) {
                     $charset='binary';
                     $maxlength=$fdata->{'maxlength'};
                     $default=$fdata->{'default'};
-next;
                 }
                 elsif($fdata->{'type'} eq 'text') {
                     $charset=$fdata->{'charset'} || throw $self "load_structure - no charset in '$fname'";
                     $maxlength=$fdata->{'maxlength'};
                     $default=$fdata->{'default'};
-next;
                 }
                 elsif($fdata->{'type'} eq 'key') {
                     $charset=$fdata->{'key_charset'} || throw $self "load_structure - no key_charset in '$fname'";
@@ -868,7 +866,7 @@ next;
                 else {
                     next;   # nothing to do for other types
                 }
-                dprint "fname=$fname, charset=$charset, ml=$maxlength, def=$default";
+                ### dprint "fname=$fname, charset=$charset, ml=$maxlength, def=$default";
 
                 ##
                 # Converting all strings, not just BINARY columns to update the DEFAULT value
@@ -881,23 +879,22 @@ next;
             if($sql) {
                 $sql="ALTER TABLE $table $sql";
                 dprint "Executing: $sql";
-                <STDIN>;
                 $self->sql_do($sql,@def);
             }
         }
         dprint "-";
 
-        #my @uptables=('Global_Fields','Global_Classes',keys %tbdesc);
-        #dprint "Upgrading tables to the new binary format.";
-        #dprint "The following tables will be upgraded:";
-        #dprint join(',',@uptables);
-        #dprint "-";
-        #foreach my $table (@uptables) {
-        #    my $sql="ALTER TABLE $table TYPE=$table_types{$table}";
-        #    dprint "Executing: $sql";
-        #    $self->sql_do($sql);
-        #}
-        #dprint "-";
+        my @uptables=('Global_Fields','Global_Classes',keys %tbdesc);
+        dprint "Upgrading tables to the new binary format.";
+        dprint "The following tables will be upgraded:";
+        dprint join(',',@uptables);
+        dprint "-";
+        foreach my $table (@uptables) {
+            my $sql="ALTER TABLE $table TYPE=$table_types{$table}";
+            dprint "Executing: $sql";
+            $self->sql_do($sql);
+        }
+        dprint "-";
 
         dprint "Trimming trailing spaces on all text & binary fields.";
         dprint "Since spaces were always trimmed in MySQL up to 4.1 supposedly it is safe.";
@@ -917,7 +914,6 @@ next;
                     $sql="UPDATE $table SET $fname=RTRIM($fname)";
                 }
                 dprint "Executing: $sql";
-                <STDIN>;
                 $self->sql_do($sql);
             }
         }
