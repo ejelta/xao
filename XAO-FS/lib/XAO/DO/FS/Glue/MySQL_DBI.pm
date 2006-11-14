@@ -31,7 +31,7 @@ use XAO::Objects;
 use base XAO::Objects->load(objname => 'FS::Glue::SQL_DBI');
 
 use vars qw($VERSION);
-$VERSION=(0+sprintf('%u.%03u',(q$Id: MySQL_DBI.pm,v 2.9 2006/11/13 20:52:19 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
+$VERSION=(0+sprintf('%u.%03u',(q$Id: MySQL_DBI.pm,v 2.10 2006/11/14 00:57:43 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
 
 ###############################################################################
 
@@ -807,7 +807,7 @@ sub load_structure ($) {
                 my $tbdata=$tbdesc{$table}->{$fname.'_'} ||
                     throw $self "load_structure - no table definition for $fname in $table (how could it be?)";
                 if(defined($tbdata->{'default'}) && $tbdata->{'default'} =~ /^\s+$/) {
-                    if($tbdata->{'default'} eq $flist->{$fname}->{'default'}) {
+                    if(defined($flist->{$fname}->{'default'}) && $tbdata->{'default'} eq $flist->{$fname}->{'default'}) {
                         eprint "Very suspicious spaces in field defaults, is it a 4.1 database running in 5.0 engine?";
                         eprint "Set XAO_MYSQL_50_UPGRADE if you want to force an upgrade";
                         next;
@@ -827,23 +827,27 @@ sub load_structure ($) {
         dprint "Difference in treating trailing spaces will prevent the database from working properly.";
         dprint "If you believe this to be incorrect please set XAO_MYSQL_50_SKIP_UPGRADE env. variable.";
         dprint "**";
-        dprint "** A fully automatic upgrade will be attempted in 10 seconds, interrupt to abort.";
+        dprint "** A fully automatic upgrade will be attempted in 15 seconds, interrupt to abort.";
         dprint "** It MAY BE dangerous, a restore from a textual backup made in 4.1 is always better!";
+        dprint "** The update may take a long time and it's better to let it run all the way through";
+        dprint "** once it is started";
         dprint "**";
-        sleep 10;
+        sleep 15;
 
         dprint "Converting BINARY fields to VARBINARY as this is the only way to store unpadded";
         dprint "strings of varying length";
         dprint "-";
+        my %to_convert;
         foreach my $table (keys %tbdesc) {
             my $tbdata=$tbdesc{$table};
             my $sql='';
             my @def;
             foreach my $fname (keys %$tbdata) {
-                next unless defined($tbdata->{$fname}->{'default'}) && $tbdata->{$fname}->{'default'}=~/^\s+$/;
+                next if $fname eq 'unique_id';
 
-                my $fdata=$fields{$table}->{substr($fname,0,-1)} || 
-                    throw $self "load_structure - can't find field description $table/$fname";
+                my $sfname=substr($fname,0,-1);
+                my $fdata=$fields{$table}->{$sfname} || 
+                    throw $self "load_structure - can't find field description $table/$fname/$sfname";
 
                 my $charset;
                 my $maxlength;
@@ -875,37 +879,38 @@ sub load_structure ($) {
                 $sql.=', ' if $sql;
                 $sql.="CHANGE $fname $fname $tdef";
                 push(@def,$default);
+
+                $to_convert{$table}->{$fname}=1;
             }
             if($sql) {
                 $sql="ALTER TABLE $table $sql";
-                dprint "Executing: $sql";
+                dprint "-- $sql";
                 $self->sql_do($sql,@def);
             }
         }
         dprint "-";
 
-        my @uptables=('Global_Fields','Global_Classes',keys %tbdesc);
-        dprint "Upgrading tables to the new binary format.";
-        dprint "The following tables will be upgraded:";
-        dprint join(',',@uptables);
-        dprint "-";
-        foreach my $table (@uptables) {
-            my $sql="ALTER TABLE $table TYPE=$table_types{$table}";
-            dprint "Executing: $sql";
-            $self->sql_do($sql);
+        if(!$ENV{'XAO_MYSQL_50_SKIP_TABLE_TYPE'}) {
+            my @uptables=('Global_Fields','Global_Classes',keys %tbdesc);
+            dprint "Upgrading tables to the new binary format.";
+            dprint "The following tables will be upgraded:";
+            dprint join(',',@uptables);
+            dprint "-";
+            foreach my $table (@uptables) {
+                my $sql="ALTER TABLE $table TYPE=$table_types{$table}";
+                dprint "-- $sql";
+                $self->sql_do($sql);
+            }
+            dprint "-";
         }
-        dprint "-";
 
         dprint "Trimming trailing spaces on all text & binary fields.";
         dprint "Since spaces were always trimmed in MySQL up to 4.1 supposedly it is safe.";
-        foreach my $table (keys %tbdesc) {
+        dprint "Use XAO_MYSQL_50_BROKEN_BINARY=1 if some fields got zero-padded (unsafe).";
+        dprint "-";
+        foreach my $table (keys %to_convert) {
             my $tbdata=$tbdesc{$table};
-            foreach my $fname (keys %$tbdata) {
-                next unless defined($tbdata->{$fname}->{'default'}) && $tbdata->{$fname}->{'default'}=~/^\s+$/;
-
-                my $fdata=$fields{$table}->{substr($fname,0,-1)} || 
-                    throw $self "load_structure - can't find field description $table/$fname";
-
+            foreach my $fname (keys %{$to_convert{$table}}) {
                 my $sql;
                 if($ENV{'XAO_MYSQL_50_BROKEN_BINARY'}) {
                     $sql="UPDATE $table SET $fname=LEFT($fname,LENGTH(RTRIM(REPLACE($fname,'\0',' '))))";
@@ -913,11 +918,12 @@ sub load_structure ($) {
                 else {
                     $sql="UPDATE $table SET $fname=RTRIM($fname)";
                 }
-                dprint "Executing: $sql";
+                dprint "-- $sql";
                 $self->sql_do($sql);
             }
         }
         dprint "-";
+        dprint "All done";
 
         XAO::Utils::set_debug($debug_status);
     }
