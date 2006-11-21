@@ -8,6 +8,67 @@ use base qw(XAO::testcases::FS::base);
 
 ###############################################################################
 
+sub test_mixed_case {
+    my $self=shift;
+
+    my $odb=$self->get_odb();
+
+    my $custlist=$odb->fetch('/Customers');
+
+    my $customer=$custlist->get_new();
+
+    $self->assert(ref($customer),
+                  "Can't create Customer");
+
+    $customer->add_placeholder(
+        name        => 'MixedCase',
+        type        => 'text',
+        charset     => 'utf8',  # required for case-ign. collation
+        maxlength   => 100,
+        index       => 1,
+    );
+
+    $customer->add_placeholder(
+        name        => 'lowFirst',
+        type        => 'text',
+        charset     => 'latin1',
+        maxlength   => 1000,
+    );
+
+    $customer->put(
+        MixedCase       => 'mixed1',
+        lowFirst        => 'lc1',
+    );
+    $custlist->put(mct1 => $customer);
+    $customer->put(
+        MixedCase       => 'mixed2 with more',
+        lowFirst        => 'lc2',
+    );
+    $custlist->put(mct2 => $customer);
+
+    my $sr=$custlist->search('MixedCase','eq','mixed1');
+    $self->assert(@$sr==1,
+                  "Expected 1 result for mixed1");
+    $self->assert($sr->[0] eq 'mct1',
+                  "Expected to find 'mct1' for 'mixed1'");
+
+    $sr=$custlist->search('MixedCase','sw','mixed');
+    $self->assert(@$sr==2,
+                  "Expected 2 results for mixed1");
+
+    $sr=$custlist->search('lowFirst','eq','lc2');
+    $self->assert(@$sr==1,
+                  "Expected 1 result for lowFirst=lc2");
+    $self->assert($sr->[0] eq 'mct2',
+                  "Expected to find 'mct2' for 'lc2'");
+
+    $sr=$custlist->search(['lowFirst','eq','lc2'],'and',['MixedCase','eq','mixed1']);
+    $self->assert(@$sr==0,
+                  "Expected NO result for [lowFirst=lc2] and [MixedCase=mixed1]");
+}
+
+###############################################################################
+
 # Testing how returning multiple fields works -- 'result' option in search
 
 sub test_result_option {
@@ -744,6 +805,8 @@ sub test_real_deep {
                       "Test '$test_id' is wrong: got='$got', expect='$expect'");
     }
 }
+
+###############################################################################
 
 sub test_search {
     my $self=shift;
