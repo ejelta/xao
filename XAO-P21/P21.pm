@@ -569,6 +569,13 @@ sub order {
             }
         }
 
+        if(length(uc($l->{'customer'}))>6) {
+            eprint "Order $l->{'reference_number'} has cust-code longer than 6 chars '$l->{'customer'}'";
+            return {
+                error => 'Data format error',
+            };
+        }
+
         for(@{$l}{qw(customer name address1 address2 city state inst1 inst2)}) {
             s/\//-/g;
         }
@@ -618,7 +625,7 @@ sub order {
         ));
     }
 
-    $self->call($constr,$callback, 'order_entry', @order_array);
+    return $self->call($constr,$callback, 'order_entry', @order_array);
 }
 
 ###############################################################################
