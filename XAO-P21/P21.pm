@@ -569,6 +569,10 @@ sub order {
             }
         }
 
+        for(@{$l}{qw(customer name address1 address2 city state inst1 inst2)}) {
+            s/\//-/g;
+        }
+
         push(@order_array,(
             substr(uc($l->{'reference_number'}),0,30),  #  1 |  1
             substr(uc($l->{'customer'}),0,6),           #  2 |  2
