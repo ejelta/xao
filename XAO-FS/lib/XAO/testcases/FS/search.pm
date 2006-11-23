@@ -684,7 +684,7 @@ sub test_real_deep {
                 'and',
                 [ 'C/desc', 'sw', 'qwerty' ],
                 { index => '/X/name',
-                  orderby => [ descend => '/X/A/B/name' ],
+                  orderby => '-/X/A/B/name',
                 }
             ],
             uri     => '/X/a217/A/a218/B',
