@@ -31,7 +31,7 @@ use XAO::Objects;
 use base XAO::Objects->load(objname => 'FS::Glue::SQL_DBI');
 
 use vars qw($VERSION);
-$VERSION=(0+sprintf('%u.%03u',(q$Id: MySQL_DBI.pm,v 2.10 2006/11/14 00:57:43 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
+$VERSION=(0+sprintf('%u.%03u',(q$Id: MySQL_DBI.pm,v 2.11 2006/11/29 02:58:06 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
 
 ###############################################################################
 
@@ -802,10 +802,12 @@ sub load_structure ($) {
         foreach my $table (keys %fields) {
             my $flist=$fields{$table};
             foreach my $fname (keys %$flist) {
-                next if $flist->{$fname}->{'type'} eq 'list';
+                my $type=$flist->{$fname}->{'type'};
+                next if ($type eq 'list' || $type eq 'key' || $type eq 'connector');
 
                 my $tbdata=$tbdesc{$table}->{$fname.'_'} ||
                     throw $self "load_structure - no table definition for $fname in $table (how could it be?)";
+
                 if(defined($tbdata->{'default'}) && $tbdata->{'default'} =~ /^\s+$/) {
                     if(defined($flist->{$fname}->{'default'}) && $tbdata->{'default'} eq $flist->{$fname}->{'default'}) {
                         eprint "Very suspicious spaces in field defaults, is it a 4.1 database running in 5.0 engine?";
@@ -817,8 +819,13 @@ sub load_structure ($) {
                         last TABLE_LOOP;
                     }
                 }
+                elsif($flist->{$fname}->{'default'} =~ m/^\s{30}$/) {
+                    $need_50_upgrade=1;
+                    last TABLE_LOOP;
+                }
             }
         }
+
     }
     if($need_50_upgrade) {
         my $debug_status=XAO::Utils::get_debug();
@@ -834,10 +841,44 @@ sub load_structure ($) {
         dprint "**";
         sleep 15;
 
+        dprint "Converting meta-data (Global_Fields & Global_Classes) to new format";
+        dprint "-";
+        my %to_convert;
+        my %metatables=(
+            Global_Fields => [
+                ['table_name_','latin1',30,''],
+                ['field_name_','latin1',30,''],
+                ['type_','latin1',20,undef],
+                ['refers_','latin1',30,undef],
+                ['key_format_','latin1',100,undef],
+                ['charset_','latin1',30,undef],
+                ['default_','binary',30,undef],
+            ],
+            Global_Classes => [
+                ['class_name_','latin1',100,''],
+                ['table_name_','latin1',30,''],
+            ],
+        );
+        foreach my $table (keys %metatables) {
+            my $sql='';
+            my @def;
+            foreach my $fd (@{$metatables{$table}}) {
+                my ($fname,$charset,$maxlength,$default)=@$fd;
+                my $tdef=$self->text_field_definition($charset,$maxlength,defined $default ? undef : 1);
+                $sql.=', ' if $sql;
+                $sql.="CHANGE $fname $fname $tdef";
+                push(@def,$default) if defined $default;
+                $to_convert{$table}->{$fname}=1;
+            }
+            $sql="ALTER TABLE $table $sql";
+            dprint "-- $sql";
+            $self->sql_do($sql,@def);
+        }
+        dprint "-";
+
         dprint "Converting BINARY fields to VARBINARY as this is the only way to store unpadded";
         dprint "strings of varying length";
         dprint "-";
-        my %to_convert;
         foreach my $table (keys %tbdesc) {
             my $tbdata=$tbdesc{$table};
             my $sql='';
@@ -871,6 +912,16 @@ sub load_structure ($) {
                     next;   # nothing to do for other types
                 }
                 ### dprint "fname=$fname, charset=$charset, ml=$maxlength, def=$default";
+
+                ##
+                # Multiple spaces in defaults are probably there because
+                # the table is in the old format. Stripping them to the
+                # empty string.
+                #
+                if($default =~ /^\s+$/) {
+                    $default='';
+                    $fdata->{'default'}='';
+                }
 
                 ##
                 # Converting all strings, not just BINARY columns to update the DEFAULT value
@@ -909,7 +960,6 @@ sub load_structure ($) {
         dprint "Use XAO_MYSQL_50_BROKEN_BINARY=1 if some fields got zero-padded (unsafe).";
         dprint "-";
         foreach my $table (keys %to_convert) {
-            my $tbdata=$tbdesc{$table};
             foreach my $fname (keys %{$to_convert{$table}}) {
                 my $sql;
                 if($ENV{'XAO_MYSQL_50_BROKEN_BINARY'}) {
@@ -1285,8 +1335,8 @@ Note that the default needs to be substituted in later!
 
 =cut
 
-sub text_field_definition ($$$) {
-    my ($self,$charset,$maxlength)=@_;
+sub text_field_definition ($$$;$) {
+    my ($self,$charset,$maxlength,$null)=@_;
 
     my $def;
     if($charset eq 'binary') {
@@ -1313,7 +1363,7 @@ sub text_field_definition ($$$) {
         $def.=" CHARACTER SET '$charset'";
     }
 
-    return "$def NOT NULL DEFAULT ?";
+    return $null ? $def : "$def NOT NULL DEFAULT ?";
 }
 
 ###############################################################################
