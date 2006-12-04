@@ -576,7 +576,7 @@ sub order {
             };
         }
 
-        for(@{$l}{qw(customer name address1 address2 city state inst1 inst2)}) {
+        for(@{$l}{qw(customer po name address1 address2 city state inst1 inst2)}) {
             s/\//-/g;
         }
 
