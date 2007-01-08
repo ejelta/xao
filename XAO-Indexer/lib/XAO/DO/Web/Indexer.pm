@@ -20,6 +20,7 @@ XAO::DO::Web::Indexer -- XAO::Web interface for the indexer
    ignored.separator.template=', '
    ignored.path='/bits/common/indexer-ignored-row'
    ignored.footer.path='/bits/common/indexer-ignored-footer'
+   spelling.trigger='3'
    spelling.path='/bits/common/indexer-spelling'
  %>
 
@@ -36,7 +37,7 @@ use base XAO::Objects->load(objname => 'Web::Action');
 ###############################################################################
 
 use vars qw($VERSION);
-$VERSION=(0+sprintf('%u.%03u',(q$Id: Indexer.pm,v 1.2 2006/07/04 02:28:37 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
+$VERSION=(0+sprintf('%u.%03u',(q$Id: Indexer.pm,v 1.3 2007/01/08 07:08:57 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
 
 ###############################################################################
 
@@ -135,7 +136,8 @@ sub search ($%) {
             }
         }
 
-        if(@$obj_ids<3 && $args->{'spelling.path'} || $args->{'spelling.template'}) {
+        my $trigger=$args->{'spelling.trigger'} || 3;
+        if(@$obj_ids<$trigger && $args->{'spelling.path'} || $args->{'spelling.template'}) {
             $index_obj->suggest_alternative($orderby,$keywords,\%rcdata);
 
             my @alt_kw;
