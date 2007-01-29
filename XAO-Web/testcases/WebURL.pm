@@ -94,6 +94,10 @@ sub test_all {
             template => '<%URL secure%>',
             result => 'https://www.xao.com/WebURL.html',
         },
+        tf => {
+            template => '<%URL uri%>',
+            result => '/WebURL.html',
+        },
     );
 
     foreach my $test (keys %matrix) {

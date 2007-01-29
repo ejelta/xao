@@ -22,6 +22,7 @@ performed:
  <%URL base top secure%>    -- https://host.com
  <%URL base full secure%>   -- https://host.com/test.html
  <%URL secure%>             -- https://www.host.com/test.html
+ <%URL uri%>                -- /test.html
 
 If browser is at 'https://www.host.com/test.html' (secure protocol):
 
@@ -55,20 +56,20 @@ use XAO::Objects;
 use base XAO::Objects->load(objname => 'Web::Page');
 
 use vars qw($VERSION);
-$VERSION=(0+sprintf('%u.%03u',(q$Id: URL.pm,v 2.1 2005/01/14 01:39:57 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
+$VERSION=(0+sprintf('%u.%03u',(q$Id: URL.pm,v 2.2 2007/01/29 05:22:13 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
 
 sub display ($%) {
     my $self=shift;
     my $args=get_args(\@_);
 
-    my $active=$args->{base} ? 0 : 1;
-    my $full=$args->{top} ? 0 : 1;
+    my $active=$args->{'base'} ? 0 : 1;
+    my $full=$args->{'top'} ? 0 : 1;
 
     my $secure;
-    if($args->{secure}) {
+    if($args->{'secure'}) {
         $secure=1;
     }
-    elsif($args->{insecure}) {
+    elsif($args->{'insecure'}) {
         $secure=0;
     }
     else {
@@ -77,6 +78,10 @@ sub display ($%) {
 
     my $url=$full ? $self->pageurl(active => $active, secure => $secure) :
                     $self->base_url(active => $active, secure => $secure);
+
+    if($args->{'uri'}) {
+        $url=~s/^\w+:\/\/.*?\//\//;
+    }
 
     $self->textout($url);
 }
