@@ -83,10 +83,12 @@ sub call {
     ##
     # Fixing params, newlines are not acceptable in them
     #
-    foreach (@params) {
-        s/[\r\n]/ /sg;
-        s/^\s*(.*?)\s*$/$1/g;
-    }
+    my $command=join("\t",map {
+        my $s=defined($_) ? $_ : '';
+        $s=~s/[\t\r\n]+/ /sg;
+        $s=~s/^\s*(.*?)\s*$/$1/;
+        $s;
+    } @params);
 
     my $list;
     if(!$callback) {
@@ -99,7 +101,7 @@ sub call {
 
     my $flag=0;
     local $SIG{'PIPE'} = sub { $flag = 1 };
-    print $socket join("\t", map { defined($_) ? $_ : '' } @params), "\n";
+    print $socket $command."\n";
     unless ($flag) {
         my $result;
         while(<$socket>) {
