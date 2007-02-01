@@ -9,7 +9,7 @@ use File::Copy;
 
 use vars qw($VERSION $REVISION);
 $VERSION='0.05';
-$REVISION='$Id: xao-server,v 1.15 2006/09/29 00:31:36 am Exp $';
+$REVISION='$Id: xao-server,v 1.16 2007/02/01 19:51:53 am Exp $';
 
 sub chld_handler ();
 sub pipe_handler ();
@@ -378,7 +378,9 @@ Placing order into spool. Input data is:
                 rename("$fname~", $fname) or die "$!";
             };
             if($@) {
-                printsock "1\t$@\n";
+                my $err=$@;
+                chop($err) while $err=~/[\r\n\s]$/s;
+                printsock "1\t$err\n";
                 # unlink "$fname~" unless you_want_to_check_later;
             } else {
                 printsock "0\t$basename\n";
@@ -438,8 +440,9 @@ Output: price for one unit, multiplier.
         elsif ($opcode eq 'show_spool') {
             opendir DH, "$spooldir" or die $!;
             foreach (readdir DH) {
-                next unless /\..*\./;
-                printsock "$_\n" unless /^\./;
+                next if /^\./;
+                next unless /.+\..+/;
+                printsock "$_\n";
             }
             closedir DH;
         }
