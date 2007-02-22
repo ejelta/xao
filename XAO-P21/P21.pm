@@ -221,8 +221,8 @@ is provided it will return a reference to an array of hash references:
  col2_price     => column 1 price
  col3_price     => column 1 price
  catg_list      => category end point
- free           => "free" stock level, total at all divisions
- allocated      => "allocated" stock level, total at all divisions
+ stock_free     => "free" stock level, total at all divisions
+ stock_allocated=> "allocated" stock level, total at all divisions
  alt_units      => array of alternative units if any, each
                    one in NAME/SIZE format
 
@@ -239,27 +239,27 @@ sub catalog {
             $stock_free, $stock_allocated,
             @alt_units) = split /\t/, $_[0];
         return {
-            item_code   => $item_code,
-            prod_group  => $prod_group,
-            sales_group => $sales_group,
-            vend_number => $vend_number,
-            pkg_size    => $pkg_size,
-            sales_unit  => $sales_unit,
-            sku         => $sku,
-            desc1       => $desc1,
-            desc2       => $desc2,
-            upc         => $upc,
-            cat_page    => $cat_page,
-            purc_group  => $purc_group,
-            list_price  => $list_price,
-            std_cost    => $std_cost,
-            col1_price  => $col1_price,
-            col2_price  => $col2_price,
-            col3_price  => $col3_price,
-            catg_list	=> $catg_list,
-            free        => $stock_free,
-            allocated   => $stock_allocated,
-            alt_units   => \@alt_units,
+            item_code       => $item_code,
+            prod_group      => $prod_group,
+            sales_group     => $sales_group,
+            vend_number     => $vend_number,
+            pkg_size        => $pkg_size,
+            sales_unit      => $sales_unit,
+            sku             => $sku,
+            desc1           => $desc1,
+            desc2           => $desc2,
+            upc             => $upc,
+            cat_page        => $cat_page,
+            purc_group      => $purc_group,
+            list_price      => $list_price,
+            std_cost        => $std_cost,
+            col1_price      => $col1_price,
+            col2_price      => $col2_price,
+            col3_price      => $col3_price,
+            catg_list	    => $catg_list,
+            stock_free      => $stock_free,
+            stock_allocated => $stock_allocated,
+            alt_units       => \@alt_units,
         };
     }, $callback, 'catalog');
 }
