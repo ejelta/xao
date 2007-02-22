@@ -1,8 +1,29 @@
 DEF VAR d_d as char format "x(20)" NO-UNDO.
+DEF VAR v_free LIKE p21.item_status.free.
+DEF VAR v_allocated LIKE p21.item_status.allocated.
 
 d_d="\t".
 
 FOR EACH catalog NO-LOCK:
+    FIND FIRST p21.item WHERE item.item_code EQ catalog.item_code NO-LOCK NO-ERROR.
+    IF AVAILABLE(p21.item) THEN DO:
+        FIND FIRST p21.item_status WHERE item_status.item_rec = item.frecno
+                                   AND item_status.loc_id = 0
+                                   AND (item_status.allocated > 0 OR item_status.free > 0)
+                                   NO-LOCK NO-ERROR.
+        IF AVAILABLE(p21.item_status) THEN
+            ASSIGN
+                v_free=p21.item_status.free
+                v_allocated=p21.item_status.allocated
+            .
+        ELSE
+            ASSIGN
+                v_free=0
+                v_allocated=0
+            .
+        .
+    END.
+
     PUT UNFORMATTED
         catalog.item_code               d_d
         catalog.prod_group              d_d
@@ -21,7 +42,9 @@ FOR EACH catalog NO-LOCK:
         catalog.prices_col1_price       d_d
         catalog.prices_col2_price       d_d
         catalog.prices_col3_price       d_d
-        catalog.catg_list
+        catalog.catg_list               d_d
+        v_free                          d_d
+        v_allocated
     .
 
     FOR EACH item_unit_data WHERE item_unit_data.item_rec = catalog.frecno

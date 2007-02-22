@@ -9,12 +9,11 @@ use File::Copy;
 
 use vars qw($VERSION $REVISION);
 $VERSION='0.05';
-$REVISION='$Id: xao-server,v 1.16 2007/02/01 19:51:53 am Exp $';
+$REVISION='$Id: xao-server,v 1.17 2007/02/22 02:30:37 am Exp $';
 
 sub chld_handler ();
 sub pipe_handler ();
 sub dprint (@);
-sub open_query ($;@);
 sub open_stream ($;@);
 sub printsock (@);
 sub reopen_log ();
@@ -203,24 +202,21 @@ with "\t".
             close($in);
         }
 
-=head1 avail
+=head1 stock
 
-Returns availability info for each of given item code. The info contains lines with non-zero quantities only.  
+Returns stock availability info for the given item code. The locaction 0
+contains a summary of all actual location.
 
 =cut  
 
-        elsif ($opcode eq "avail") {
-            dprint "Unsupported (opcode=$opcode)";
-            #foreach my $code (@args) {
-            #    my $in = open_query 'stk_item', '?', $code;
-            #    while(<$in>) {
-            #        next if /^(OK)*\s*$/;
-            #        s/\t/ /g; s/\001/\t/g;
-            #        my ($location, $stock, @rest) = split /\t/;
-            #        printsock "$code\t$_" if ($stock);
-            #    }
-            #    close($in);
-            #}
+        elsif ($opcode eq 'stock') {
+            foreach my $item_code (@args) {
+                my $in=open_stream('stock',$item_code);
+                while(<$in>) {
+                    printsock $_;
+                }
+                close($in);
+            }
         }
 
 =head1 blanket
@@ -669,20 +665,6 @@ sub open_stream ($;@) {
              qq( -p "-p $p21dir/$script.p -b"|) || die $!;
     return *IN;  
 }
-
-#sub open_query ($;@) {
-#    $ENV{'PROCNAME'}=shift;
-#    my $envn=0; 
-#    foreach (@_) {
-#        $ENV{"P$envn"}=$_;
-#        ++$envn;
-#    }
-#    $ENV{ORIGIN}='P21';
-#    local *IN;
-#    open IN, qq(/usr/lpp/p21pro/bin/p21pro -S $systemunit -P p21/www/query/www.p -p -b|) ||
-#        die $!;
-#    return *IN;  
-#}
 
 sub reopen_log () {
     return unless $log_file;

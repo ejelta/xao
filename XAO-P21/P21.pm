@@ -160,40 +160,40 @@ sub items {
 
 ###############################################################################
 
-=item avail
+=item stock
 
-Returns availability info for each of given item code. The info contains
+Returns availability info for each of given item codes. The info contains
 lines with non-zero quantities only.
 
 Synopsis:
 
-XAO::P21->new->avail( customer => 'CUST_CODE',
-                      callback => sub { print $_[0], "\n" },
+XAO::P21->new->stock( callback => sub { print $_[0], "\n" },
                       item => '021200-82221' );
 
 or
 
-XAO::P21->new->avail( item => [ '021200-82221', '021200-082222' ] );
+XAO::P21->new->stock( item => [ '021200-82221', '021200-82222' ] );
 
 =cut  
 
-sub avail {
-    my ($self, %param) = @_;
-    my $item=$param{item};
-    $self->call( sub {
-        my ($code, $location, $stlev, $junk1, $unit,
-            $description, $junk2, $locn) = split /\t/, $_[0];
-        {
-            code        => $code,
-            location    => $location,
-            stock_level => $stlev,
-            unit        => $unit,
-            description => $description,
-            descript2   => $junk2,
-            location_code => $locn,
-        }
-        }, $param{callback}, 'avail', $param{customer} || '?',
-        ref($item) eq 'ARRAY' ? @$item : $item);
+sub stock {
+    my $self=shift;
+    my $args=get_args(\@_);
+
+    my $item=$args->{'item'};
+    return $self->call(
+        sub {
+            my ($item_code, $location, $stock_level)=split(/\t/,$_[0]);
+            return {
+                item_code   => $item_code,
+                location    => $location,
+                stock_level => $stock_level,
+            }
+        },
+        $args->{'callback'},
+        'stock',
+        ref($item) eq 'ARRAY' ? @$item : $item,
+    );
 }
 
 ###############################################################################
@@ -220,7 +220,9 @@ is provided it will return a reference to an array of hash references:
  col1_price     => column 1 price
  col2_price     => column 1 price
  col3_price     => column 1 price
- catg_list	=> category end point
+ catg_list      => category end point
+ free           => "free" stock level, total at all divisions
+ allocated      => "allocated" stock level, total at all divisions
  alt_units      => array of alternative units if any, each
                    one in NAME/SIZE format
 
@@ -234,6 +236,7 @@ sub catalog {
             $sku, $desc1, $desc2, $upc, $cat_page, $purc_group,
             $list_price, $std_cost,
             $col1_price, $col2_price, $col3_price, $catg_list,
+            $stock_free, $stock_allocated,
             @alt_units) = split /\t/, $_[0];
         return {
             item_code   => $item_code,
@@ -254,6 +257,8 @@ sub catalog {
             col2_price  => $col2_price,
             col3_price  => $col3_price,
             catg_list	=> $catg_list,
+            free        => $stock_free,
+            allocated   => $stock_allocated,
             alt_units   => \@alt_units,
         };
     }, $callback, 'catalog');
