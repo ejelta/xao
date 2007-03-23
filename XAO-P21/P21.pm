@@ -390,6 +390,71 @@ sub sell_schd {
 
 ###############################################################################
 
+=item custcreate
+
+Creates a customer in P21 with a pre-defined cust-code.
+
+=cut
+
+sub custcreate {
+    my $self=shift;
+    my $info=shift;
+
+    my $constr=sub {
+        my ($result, $info) = split /\t/, $_[0];
+        return { result => $result, info => $info };
+    };
+
+    my $callback=sub {
+        $_[0];
+    };
+
+    my $cust_code=$info->{'cust_code'} || throw XAO::E::P21 "custcreate - no 'cust_code' given";
+    $cust_code=~/^\w{3,6}$/ || throw XAO::E::P21 "custcreate - bad cust_code='$cust_code'";
+
+    # We convert the customer data into an array in the same order as
+    # expected by P21.
+    #
+    my @cust_array=map { s/[\t\r\n]+/ /g; $_ } (
+        $cust_code,                                 # 01 Customer Code         CHAR  6                                        
+        $info->{'bill_to_contact_title'} || '',     # 02 Bill-To Contact Title CHAR 26                                        
+        $info->{'bill_to_contact_name'} || '',      # 03 Bill-To Contact Name  CHAR 26                                        
+        $info->{'bill_to_name'} || '',              # 04 Bill-To Name          CHAR 30                                        
+        $info->{'bill_to_addr1'} || '',             # 05 Bill-To Address 1     CHAR 26                                        
+        $info->{'bill_to_addr2'} || '',             # 06 Bill-To Address 2     CHAR 26                                        
+        $info->{'bill_to_addr3'} || '',             # 07 Bill-To Address 3     CHAR 26                                        
+        $info->{'bill_to_city'} || '',              # 08 Bill-To City          CHAR 14                                        
+        $info->{'bill_to_state'} || '',             # 09 Bill-To State         CHAR  3                                        
+        $info->{'bill_to_zip'} || '',               # 10 Bill-To Zip           CHAR 10                                        
+        $info->{'bill_to_country'} || '',           # 11 Bill-To Country       CHAR 30                                        
+        $info->{'telephone'} || '',                 # 12 Bill-To Telephone     CHAR 30                                        
+        $info->{'aux_fax'} || '',                   # 13 Bill-To Fax           CHAR 30                                        
+        $info->{'email_address'} || '',             # 14 Bill-To Email         CHAR 48                                        
+        $info->{'ship_to_name'} || '',              # 15 Ship-To Name          CHAR 30                                        
+        $info->{'ship_to_addr1'} || '',             # 16 Ship-To Address 1     CHAR 26                                        
+        $info->{'ship_to_addr2'} || '',             # 17 Ship-To Address 2     CHAR 26                                        
+        $info->{'ship_to_addr3'} || '',             # 18 Ship-To Address 3     CHAR 26                                        
+        $info->{'ship_to_city'} || '',              # 19 Ship-To City          CHAR 14                                        
+        $info->{'ship_to_state'} || '',             # 20 Ship-To State         CHAR  3                                        
+        $info->{'ship_to_zip'} || '',               # 21 Ship-To Zip           CHAR 10                                        
+        $info->{'ship_to_country'} || '',           # 22 Ship-To Country       CHAR 30                                        
+        $info->{'invoice_batch_number'} || 0,       # 23 Invoice Batch Number   NUM 99  None.                                 
+        $info->{'packing_basis'} || 0,              # 24 Packing Basis          NUM 99  PART, IT-P, ORD, HOLD, IT-C, P-ORD, TAG
+        $info->{'stax_exemp_id'} || '',             # 25 State Tax Exempt ID   CHAR 12                                        
+        $info->{'stax_exemp'} || 0,                 # 26 State Tax Flag         NUM 99  SOME, NONE, ALL                       
+        $info->{'ship_to_contact_name'} || '',      # 27 Ship-To Contact Name  CHAR 26                                        
+        $info->{'ship_to_contact_title'} || '',     # 28 Ship-To Contact Title CHAR 26                                        
+        $info->{'ship_to_telephone'} || '',         # 29 Ship-To Phone         CHAR 30                                        
+        $info->{'ship_to_fax'} || '',               # 30 Ship-To Fax           CHAR 30                                        
+        $info->{'ship_to_email_address'} || '',     # 31 Ship-To E-mail        CHAR 48                                        
+        $info->{'shipment_transit_days'} || '',     # 32 Shipment Transit Days  NUM 99  None. 
+    );
+
+    return $self->call($constr,$callback,'custcreate',@cust_array);
+}
+
+###############################################################################
+
 =item custinfo
 
 Returns list with info about customers. Each entry in the list is a
@@ -459,6 +524,7 @@ Modifies customer data, according to custinfo.
 sub modcust {
     my $self=shift;
     my $args=get_args(\@_);
+    throw $self "modcust - not supported, has never been tested";
     print STDERR join(' ',(
                      $args->{cust_code},
                      $args->{bill_to_name},

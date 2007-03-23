@@ -9,7 +9,7 @@ use File::Copy;
 
 use vars qw($VERSION $REVISION);
 $VERSION='0.05';
-$REVISION='$Id: xao-server,v 1.17 2007/02/22 02:30:37 am Exp $';
+$REVISION='$Id: xao-server,v 1.18 2007/03/23 19:14:57 am Exp $';
 
 sub chld_handler ();
 sub pipe_handler ();
@@ -180,7 +180,7 @@ while(1) {
         ++$job_count;
         $0 = "$ServerName [slave, ct=$job_count, tm=".($now-$job_start)."s, cmd=$opcode]";
 
-	if($pid_file && $now-(stat($pid_file))[9] > 60) {
+        if($pid_file && $now-(stat($pid_file))[9] > 60) {
             utime $now,$now,$pid_file;
         }
 
@@ -309,11 +309,39 @@ first argument then all customers list is returned.
             }
         }
 
+=head1 custcreate
+
+Creates a customer with a predefined cust-code.
+
+=cut  
+
+        elsif ($opcode eq 'custcreate') {
+            my $basename = $args[0];
+            my $fname = "$spooldir/$basename.cust";
+            eval {
+                scalar(@args)==32 || die "Wrong number of arguments";
+
+                open(OUT,">$fname~") or die "$!";
+                print OUT '"'.join('","',map { s/"/""/g; $_ } @args).qq(",\n);
+                close(OUT) or die "$!";
+
+                rename("$fname~", $fname) or die "$!";
+            };
+            if($@) {
+                my $err=$@;
+                chop($err) while $err=~/[\r\n\s]$/s;
+                printsock "1\t$err\n";
+                # unlink "$fname~" unless you_want_to_check_later;
+            } else {
+                printsock "0\t$basename\n";
+            }
+        }
+
 =head1 edi_fetch
 
 =cut
 
-	elsif ($opcode eq "edi_fetch") {
+        elsif ($opcode eq "edi_fetch") {
             my $in=open_stream('edi_fetch',$args[0]);
             while(<$in>) {
                 printsock $_;
@@ -321,7 +349,7 @@ first argument then all customers list is returned.
             close($in);
         }
 
-=head1 order
+=head1 order_entry
 
 Placing order into spool. Input data is:
 
@@ -387,7 +415,7 @@ Placing order into spool. Input data is:
 
 =cut
 
-	elsif ($opcode eq "view_order_details") {
+        elsif ($opcode eq "view_order_details") {
             my $in=open_stream('ord_status',$args[0]);
             while(<$in>) {
                 s/\t/ /g;
@@ -449,8 +477,8 @@ Output: price for one unit, multiplier.
 
         elsif ($opcode eq 'cleanup_spool') {
             foreach my $file (@args) {
-            	next unless $file =~ /^\w+[\w\.-]*$/;
-            	move("$spooldir/$file","$spooldir/archive/$file");
+                next unless $file =~ /^\w+[\w\.-]*$/;
+                move("$spooldir/$file","$spooldir/archive/$file");
             }
         }
 
@@ -680,8 +708,8 @@ sub reopen_log () {
         print STDERR "===========================" .
                      " pid=$$ unit=$systemunit port=$tcpport" .
                      " time=".scalar(localtime)."\n";
-    	select STDERR;
-    	$|=1;
+        select STDERR;
+        $|=1;
     }
 }
 
