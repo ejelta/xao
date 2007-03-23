@@ -398,7 +398,7 @@ Creates a customer in P21 with a pre-defined cust-code.
 
 sub custcreate {
     my $self=shift;
-    my $info=shift;
+    my $info=get_args(\@_);
 
     my $constr=sub {
         my ($result, $info) = split /\t/, $_[0];
