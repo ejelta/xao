@@ -32,6 +32,11 @@ IF AVAILABLE p21.customer THEN DO:
             p21.customer.slm_number		d_d
             p21.customer.first_sale		d_d
             p21.customer.stax_exemp		d_d
+            p21.customer.stax_flag_disp		d_d
+            p21.customer.otax_exemp		d_d
+            p21.customer.otax_flag_disp		d_d
+            p21.customer.inv_batch		d_d
+            p21.customer.sic			d_d
             p21.customer.default_loc		d_d
         .
 
