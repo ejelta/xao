@@ -475,7 +475,14 @@ hash:
   first_sale    => date of first sale
   stax_exemp    => if non-empty then this customer has tax exempt
                    documents on file
+  stax_flag     => one of ALL/NONE/SOME
+  otax_exemp    => if non-empty then this customer has federal tax exemption
+  otax_flag     => one of ALL/NONE/SOME
+  inv_batch     => invoice batch number
+  sic           => SIC number
   default_loc   => default warehouse for the customer
+  sales_loc     => sales warehouse for the customer
+  source_loc    => source warehouse for the customer
 
 Default is to return complete list of all customers, be careful as it
 can take a lot of time to do so.
@@ -505,8 +512,10 @@ sub custinfo {
         @row{qw(bill_to_name cust_code bill_to_addr1 bill_to_addr2
                 bill_to_addr3 bill_to_city bill_to_state bill_to_zip
                 telephone aux_fax email_address slm_number first_sale
-                stax_exemp default_loc sales_loc source_loc)}=
-            map { $_ eq '?' ? undef : $_ } split('\t',$_[0]);
+                stax_exemp stax_flag otax_exemp otax_flag
+                inv_batch sic
+                default_loc sales_loc source_loc
+               )}=map { $_ eq '?' ? undef : $_ } split('\t',$_[0]);
         return \%row;
     };
 
