@@ -411,11 +411,12 @@ sub custcreate {
 
     my $cust_code=$info->{'cust_code'} || throw XAO::E::P21 "custcreate - no 'cust_code' given";
     $cust_code=~/^\w{3,6}$/ || throw XAO::E::P21 "custcreate - bad cust_code='$cust_code'";
+    $cust_code eq uc($cust_code) || throw XAO::E::P21 - "custcreate - cust_code ($cust_code) must be all-uppercase";
 
     # We convert the customer data into an array in the same order as
     # expected by P21.
     #
-    my @cust_array=map { s/[\t\r\n]+/ /g; $_ } (
+    my @cust_array=map { (my $a=$_)=~s/[\t\r\n]+/ /g; $a } (
         $cust_code,                                 # 01 Customer Code         CHAR  6                                        
         $info->{'bill_to_contact_title'} || '',     # 02 Bill-To Contact Title CHAR 26                                        
         $info->{'bill_to_contact_name'} || '',      # 03 Bill-To Contact Name  CHAR 26                                        
@@ -448,6 +449,7 @@ sub custcreate {
         $info->{'ship_to_fax'} || '',               # 30 Ship-To Fax           CHAR 30                                        
         $info->{'ship_to_email_address'} || '',     # 31 Ship-To E-mail        CHAR 48                                        
         $info->{'shipment_transit_days'} || '',     # 32 Shipment Transit Days  NUM 99  None. 
+        'KEEP',
     );
 
     return $self->call($constr,$callback,'custcreate',@cust_array);
