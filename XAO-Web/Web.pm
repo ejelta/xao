@@ -758,8 +758,10 @@ sub new ($%) {
         ##
         # Creating configuration.
         #
-        $siteconfig=XAO::Objects->new(sitename => $sitename,
-                                      objname => 'Config');
+        $siteconfig=XAO::Objects->new(
+            sitename => $sitename,
+            objname => 'Config',
+        );
 
         ##
         # Always embedding at least web config and a hash
@@ -776,9 +778,10 @@ sub new ($%) {
         ##
         # Creating an entry in in-memory projects repository
         #
-        XAO::Projects::create_project(name => $sitename,
-                                      object => $siteconfig,
-                                     );
+        XAO::Projects::create_project(
+            name        => $sitename,
+            object      => $siteconfig,
+        );
     }
 
     ##
@@ -791,10 +794,34 @@ sub new ($%) {
     # If we are given a CGI reference then putting it into the
     # configuration.
     #
-    if($args->{cgi}) {
+    if($args->{'cgi'}) {
         $siteconfig->embedded('web')->enable_special_access;
         $siteconfig->cgi($args->{cgi});
         $siteconfig->embedded('web')->disable_special_access;
+    }
+
+
+    ##
+    # This helps Mailer to be called outside of web context.
+    # TODO: Probably need some better initialization strategy, this does
+    # not feel as the Right Thing
+    #
+    my $url=$siteconfig->get('base_url');
+    if($url) {
+        $url=~/^http:/i ||
+            throw XAO::E::Web "new - bad base_url ($url) for sitename=$sitename";
+        my $nu=$url;
+        chop($nu) while $nu =~ /\/$/;
+        $siteconfig->put(base_url => $nu) if $nu ne $url;
+
+        $url=$siteconfig->get('base_url_secure');
+        if(!$url) {
+            $url=$siteconfig->get('base_url');
+            $url=~s/^http:/https:/i;
+        }
+        $nu=$url;
+        chop($nu) while $nu =~ /\/$/;
+        $siteconfig->put(base_url_secure => $nu);
     }
 
     ##
