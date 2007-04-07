@@ -421,6 +421,18 @@ sub custcreate {
     my $stax_flag=$info->{'stax_flag'} || ($info->{'stax_exemp'} ? 'NONE' : 'ALL');
     $stax_flag=$stax{uc($stax_flag)} if $stax{uc($stax_flag)};
 
+    my %pbasis=(
+        'PART'  => 1,
+        'IT-P'  => 2,       # Complete item before part
+        'ORD'   => 3,       # Whole order must be complete
+        'HOLD'  => 4,       # Hold item-do not ship
+        'IT-C'  => 5,       # Complete items only
+        'P-ORD' => 6,       # Ship 1 partial and 1 complete
+        'TAG'   => 7,
+    );
+    my $pack_basis=$args->{'pack_basis'} || 'PART';
+    $pack_basis=$pbasis{uc($pack_basis)} if $pbasis{uc($pack_basis)};
+
     # We convert the customer data into an array in the same order as
     # expected by P21.
     #
@@ -448,7 +460,7 @@ sub custcreate {
         $info->{'ship_to_zip'} || '',               # 21 Ship-To Zip           CHAR 10                                        
         $info->{'ship_to_country'} || '',           # 22 Ship-To Country       CHAR 30                                        
         $info->{'invoice_batch_number'} || 0,       # 23 Invoice Batch Number   NUM 99  None.                                 
-        $info->{'packing_basis'} || 0,              # 24 Packing Basis          NUM 99  PART, IT-P, ORD, HOLD, IT-C, P-ORD, TAG
+        $pack_basis,                                # 24 Packing Basis          NUM 99  PART=1, IT-P=2, ORD=3, HOLD=4, IT-C=5, P-ORD=6, TAG=7
         $info->{'stax_exemp'},                      # 25 State Tax Exempt ID   CHAR 12                                        
         $stax_flag,                                 # 26 State Tax Flag         NUM 99  SOME=1, NONE=2, ALL=3
         $info->{'ship_to_contact_name'} || '',      # 27 Ship-To Contact Name  CHAR 26                                        
