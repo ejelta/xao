@@ -430,7 +430,7 @@ sub custcreate {
         'P-ORD' => 6,       # Ship 1 partial and 1 complete
         'TAG'   => 7,
     );
-    my $pack_basis=$args->{'pack_basis'} || 'PART';
+    my $pack_basis=$info->{'pack_basis'} || 'PART';
     $pack_basis=$pbasis{uc($pack_basis)} if $pbasis{uc($pack_basis)};
 
     # We convert the customer data into an array in the same order as
