@@ -413,6 +413,14 @@ sub custcreate {
     $cust_code=~/^\w{3,6}$/ || throw XAO::E::P21 "custcreate - bad cust_code='$cust_code'";
     $cust_code eq uc($cust_code) || throw XAO::E::P21 - "custcreate - cust_code ($cust_code) must be all-uppercase";
 
+    my %stax=(
+        'SOME'  => 1,
+        'NONE'  => 2,
+        'ALL'   => 3,
+    );
+    my $stax_flag=$info->{'stax_flag'} || ($info->{'stax_exemp'} ? 'NONE' : 'ALL');
+    $stax_flag=$stax{uc($stax_flag)} if $stax{uc($stax_flag)};
+
     # We convert the customer data into an array in the same order as
     # expected by P21.
     #
@@ -441,8 +449,8 @@ sub custcreate {
         $info->{'ship_to_country'} || '',           # 22 Ship-To Country       CHAR 30                                        
         $info->{'invoice_batch_number'} || 0,       # 23 Invoice Batch Number   NUM 99  None.                                 
         $info->{'packing_basis'} || 0,              # 24 Packing Basis          NUM 99  PART, IT-P, ORD, HOLD, IT-C, P-ORD, TAG
-        $info->{'stax_exemp_id'} || '',             # 25 State Tax Exempt ID   CHAR 12                                        
-        $info->{'stax_exemp'} || 0,                 # 26 State Tax Flag         NUM 99  SOME, NONE, ALL                       
+        $info->{'stax_exemp'},                      # 25 State Tax Exempt ID   CHAR 12                                        
+        $stax_flag,                                 # 26 State Tax Flag         NUM 99  SOME=1, NONE=2, ALL=3
         $info->{'ship_to_contact_name'} || '',      # 27 Ship-To Contact Name  CHAR 26                                        
         $info->{'ship_to_contact_title'} || '',     # 28 Ship-To Contact Title CHAR 26                                        
         $info->{'ship_to_telephone'} || '',         # 29 Ship-To Phone         CHAR 30                                        
