@@ -502,6 +502,8 @@ hash:
   otax_flag     => one of ALL/NONE/SOME
   inv_batch     => invoice batch number
   sic           => SIC number
+  cred_type     => NO-L/HOLD/BAL/ORD/COD/PAY
+  frt_code      => P/B/T/C/X/I
   default_loc   => default warehouse for the customer
   sales_loc     => sales warehouse for the customer
   source_loc    => source warehouse for the customer
@@ -535,7 +537,7 @@ sub custinfo {
                 bill_to_addr3 bill_to_city bill_to_state bill_to_zip
                 telephone aux_fax email_address slm_number first_sale
                 stax_exemp stax_flag otax_exemp otax_flag
-                inv_batch sic
+                inv_batch sic cred_type frt_code
                 default_loc sales_loc source_loc
                )}=map { $_ eq '?' ? undef : $_ } split('\t',$_[0]);
         return \%row;
