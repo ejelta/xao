@@ -5,6 +5,11 @@ DEF VAR v_allocated LIKE p21.item_status.allocated.
 d_d="\t".
 
 FOR EACH catalog NO-LOCK:
+    ASSIGN
+        v_free=0
+        v_allocated=0
+    .
+
     FIND FIRST p21.item WHERE item.item_code EQ catalog.item_code NO-LOCK NO-ERROR.
     IF AVAILABLE(p21.item) THEN DO:
         FIND FIRST p21.item_status WHERE item_status.item_rec = item.frecno
@@ -15,11 +20,6 @@ FOR EACH catalog NO-LOCK:
             ASSIGN
                 v_free=p21.item_status.free
                 v_allocated=p21.item_status.allocated
-            .
-        ELSE
-            ASSIGN
-                v_free=0
-                v_allocated=0
             .
         .
     END.
