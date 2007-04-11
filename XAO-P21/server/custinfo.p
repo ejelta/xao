@@ -41,6 +41,8 @@ FOR EACH p21.customer:
         p21.customer.otax_flag_disp	d_d
         p21.customer.inv_batch		d_d
         p21.customer.sic		d_d
+        p21.customer.frt_code_disp      d_d
+        p21.customer.cred_type_disp     d_d
         p21.customer.default_loc	d_d
     .
 
