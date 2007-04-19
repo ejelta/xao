@@ -419,7 +419,7 @@ sub custcreate {
         3       => 'ALL',
     );
     my $stax_flag=$info->{'stax_flag'} || ($info->{'stax_exemp'} ? 'NONE' : 'ALL');
-    $stax_flag=$stax{uc($stax_flag)} if $stax{uc($stax_flag)};
+    $stax_flag=$stax{$stax_flag} if $stax{$stax_flag};
 
     my %pbasis=(
         1       => 'PART',
@@ -431,7 +431,7 @@ sub custcreate {
         7       => 'TAG',
     );
     my $pack_basis=$info->{'pack_basis'} || 'PART';
-    $pack_basis=$pbasis{uc($pack_basis)} if $pbasis{uc($pack_basis)};
+    $pack_basis=$pbasis{$pack_basis} if $pbasis{$pack_basis};
 
     # We convert the customer data into an array in the same order as
     # expected by P21.
