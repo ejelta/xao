@@ -414,21 +414,21 @@ sub custcreate {
     $cust_code eq uc($cust_code) || throw XAO::E::P21 - "custcreate - cust_code ($cust_code) must be all-uppercase";
 
     my %stax=(
-        'SOME'  => 1,
-        'NONE'  => 2,
-        'ALL'   => 3,
+        1       => 'SOME',
+        2       => 'NONE',
+        3       => 'ALL',
     );
     my $stax_flag=$info->{'stax_flag'} || ($info->{'stax_exemp'} ? 'NONE' : 'ALL');
     $stax_flag=$stax{uc($stax_flag)} if $stax{uc($stax_flag)};
 
     my %pbasis=(
-        'PART'  => 1,
-        'IT-P'  => 2,       # Complete item before part
-        'ORD'   => 3,       # Whole order must be complete
-        'HOLD'  => 4,       # Hold item-do not ship
-        'IT-C'  => 5,       # Complete items only
-        'P-ORD' => 6,       # Ship 1 partial and 1 complete
-        'TAG'   => 7,
+        1       => 'PART',
+        2       => 'IT-P',       # Complete item before part
+        3       => 'ORD',        # Whole order must be complete
+        4       => 'HOLD',       # Hold item-do not ship
+        5       => 'IT-C',       # Complete items only
+        6       => 'P-ORD',      # Ship 1 partial and 1 complete
+        7       => 'TAG',
     );
     my $pack_basis=$info->{'pack_basis'} || 'PART';
     $pack_basis=$pbasis{uc($pack_basis)} if $pbasis{uc($pack_basis)};
