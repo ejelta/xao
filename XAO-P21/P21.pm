@@ -436,7 +436,7 @@ sub custcreate {
     # We convert the customer data into an array in the same order as
     # expected by P21.
     #
-    my @cust_array=map { (my $a=$_)=~s/[\t\r\n]+/ /g; $a } (
+    my @cust_array=map { (my $a=$_)=~s/[\t\r\n]+/ /g; uc($a); } (
         $cust_code,                                 # 01 Customer Code         CHAR  6                                        
         $info->{'bill_to_contact_title'} || '',     # 02 Bill-To Contact Title CHAR 26                                        
         $info->{'bill_to_contact_name'} || '',      # 03 Bill-To Contact Name  CHAR 26                                        
