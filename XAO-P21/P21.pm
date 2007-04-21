@@ -891,6 +891,11 @@ sub view_order_details {
             @line{qw(type line_number inv_date ship_number ship_line ship_qty
                     )}=@arr;
         }
+        elsif($arr[0] eq 'NOINFO') {
+            @arr==2 ||
+                throw XAO::E::P21 "view_order_details - wrong NOINFO ($str)";
+            @line{qw(type ord_number)}=@arr;
+        }
         else {
             throw XAO::E::P21 "view_order_details - unknown type=$arr[0] ($str)";
         }
