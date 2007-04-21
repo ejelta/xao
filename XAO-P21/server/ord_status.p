@@ -168,7 +168,8 @@ DO TRANSACTION:
                 blanket.release_allo_qty[i]	d_d
                 blanket.release_canc_qty[i]	d_d
                 blanket.release_comp_flag[i]	d_d
-                blanket.release_disp[i]		skip
+                blanket.release_disp[i]         d_d
+                blanket.release_rel_date[i]     skip
             .
             i=(i + 1).
         END.
