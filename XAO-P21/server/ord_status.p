@@ -1,5 +1,6 @@
 DEF VAR d_d AS CHAR FORMAT "x(20)" NO-UNDO.
-DEF VAR onum AS INTEGER NO-UNDO.
+DEF VAR onum LIKE p21.order.ord_number NO-UNDO.
+DEF VAR cinfo AS INTEGER NO-UNDO.
 DEF VAR i AS INTEGER NO-UNDO.
 DEF VAR rdate AS DATE INIT ? NO-UNDO.
 DEF VAR sflag LIKE p21.order.suspend_flag NO-UNDO.
@@ -17,10 +18,12 @@ ASSIGN onum=INTEGER(OS-GETENV("P0")).
  * the order. Lock up if we have to wait.
 */
 DO TRANSACTION:
+    ASSIGN cinfo=0.
 
     /* Records in p21.order allow us to look into the fresh orders, not invoiced yet
     */
     FOR FIRST p21.order WHERE p21.order.ord_number = onum SHARE-LOCK:
+        ASSIGN cinfo=(cinfo + 1).
         ASSIGN rdate=p21.order.req_date.
         ASSIGN sflag=p21.order.suspend_flag.
 
@@ -40,7 +43,8 @@ DO TRANSACTION:
     /* General line item information and statuses.
     */
     FOR EACH p21.ord_line WHERE ord_line.ord_number = onum SHARE-LOCK:
-	ASSIGN c_price=ord_line.ut_price * ord_line.multiplier.
+        ASSIGN cinfo=(cinfo + 1).
+	ASSIGN c_price=(ord_line.ut_price * ord_line.multiplier).
         PUT UNFORMATTED
             "LINE"                          d_d
             ord_line.line_number            d_d
@@ -87,7 +91,7 @@ DO TRANSACTION:
 
     /* And now shipping information and invoices
     */
-    FOR EACH wbw_head WHERE wbw_head.ord_number = onum SHARE-LOCK:
+    FOR EACH wbw_head WHERE wbw_head.ord_number = INTEGER(onum) SHARE-LOCK:
         PUT UNFORMATTED
             "INVOICE"                       d_d
             wbw_head.ship_number            d_d
@@ -110,11 +114,12 @@ DO TRANSACTION:
             wbw_head.cust_po                d_d
             wbw_head.sales_loc              skip
         .
+        cinfo=(cinfo + 1).
     END.
 
     /* And finally content of each invoice
     */
-    FOR EACH wbw_line WHERE wbw_line.ord_number = onum SHARE-LOCK:
+    FOR EACH wbw_line WHERE wbw_line.ord_number = INTEGER(onum) SHARE-LOCK:
         PUT UNFORMATTED
             "ITEM"                          d_d
             wbw_line.ship_number            d_d
@@ -123,6 +128,7 @@ DO TRANSACTION:
             wbw_line.line_number            d_d
             wbw_line.part_number            skip
         .
+        cinfo=(cinfo + 1).
     END.
 
     /* Showing shippers information useful for orders that were not invoiced yet
@@ -142,6 +148,7 @@ DO TRANSACTION:
             .
             i=(i + 1).
         END.
+        cinfo=(cinfo + 1).
     END.
 
     /* Blanket order data
@@ -161,12 +168,17 @@ DO TRANSACTION:
                 blanket.release_allo_qty[i]	d_d
                 blanket.release_canc_qty[i]	d_d
                 blanket.release_comp_flag[i]	d_d
-                blanket.release_disp[i]		d_d
-                blanket.release_rel_date[i]	skip
+                blanket.release_disp[i]		skip
             .
             i=(i + 1).
         END.
+        cinfo=(cinfo + 1).
     END.
+
+    IF cinfo = 0 THEN
+        PUT UNFORMATTED
+            "NOINFO" d_d onum skip
+        .
 
 /* End transaction
 */
