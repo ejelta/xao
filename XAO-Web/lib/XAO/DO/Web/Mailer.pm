@@ -91,7 +91,7 @@ use XAO::Objects;
 use base XAO::Objects->load(objname => 'Web::Page');
 
 use vars qw($VERSION);
-$VERSION=(0+sprintf('%u.%03u',(q$Id: Mailer.pm,v 2.6 2006/07/17 18:49:56 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
+$VERSION=(0+sprintf('%u.%03u',(q$Id: Mailer.pm,v 2.7 2007/05/01 23:10:16 enn Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
 
 sub display ($;%) {
     my $self=shift;
@@ -206,18 +206,24 @@ sub display ($;%) {
             FromSender  => $from,
             To          => $to,
             Subject     => $subject,
-            Type        => 'multipart/alternative',
+            Type        => 'multipart/mixed',
         );
-        $mailer->attach(
+	my $alt_part=MIME::Lite->new(
+	    Type        => 'multipart/alternative',
+	);
+	$alt_part->delete('X-Mailer');
+	$alt_part->delete('Date');
+        $alt_part->attach(
             Type        => 'text/plain',
             Data        => $text,
             Encoding    => $encoding,
         );
-        $mailer->attach(
+        $alt_part->attach(
             Type        => 'text/html',
             Data        => $html,
             Encoding    => $encoding,
         );
+	$mailer->attach($alt_part);
     }
     else {
         throw $self "display - no text for either html or text part";
