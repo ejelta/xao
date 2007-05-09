@@ -39,7 +39,7 @@ sub merge_refs (@);
 sub fround ($$);
 
 use vars qw($VERSION);
-$VERSION=(0+sprintf('%u.%03u',(q$Id: Utils.pm,v 2.3 2006/03/24 21:47:04 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
+$VERSION=(0+sprintf('%u.%03u',(q$Id: Utils.pm,v 2.4 2007/05/09 20:01:28 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
 
 ###############################################################################
 # Export control
@@ -191,6 +191,17 @@ use vars qw($debug_flag $logprint_handler);
 
 ###############################################################################
 
+sub logprint ($) {
+    if($logprint_handler) {
+        &{$logprint_handler}($_[0]);
+    }
+    else {
+        print STDERR $_[0]."\n";
+    }
+}
+
+###############################################################################
+
 =item dprint (@)
 
 Prints all arguments just like normal "print" does but 1) it prints
@@ -215,7 +226,7 @@ debugging for all sites at once.
 
 sub dprint (@) {
     return unless $debug_flag;
-    my $str=join("",map { defined($_) ? $_ : "<UNDEF>" } @_);
+    my $str=join('',map { defined($_) ? $_ : '<UNDEF>' } @_);
     chomp $str;
     logprint($str);
 }
@@ -231,20 +242,9 @@ reporting minor problems to the server log.
 =cut
 
 sub eprint (@) {
-    my $str=join("",map { defined($_) ? $_ : "<UNDEF>" } @_);
+    my $str=join('',map { defined($_) ? $_ : '<UNDEF>' } @_);
     chomp $str;
-    logprint("*ERROR: ",$str);
-}
-
-###############################################################################
-
-sub logprint (@) {
-    if($logprint_handler) {
-        &{$logprint_handler}(join('',@_));
-    }
-    else {
-        print STDERR @_,"\n";
-    }
+    logprint('*ERROR: '.$str);
 }
 
 ###############################################################################
