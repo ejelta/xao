@@ -1,5 +1,6 @@
 package XAO::P21;
 use strict;
+use Encode;
 use IO::Socket::INET;
 use XAO::Errors qw(XAO::P21);
 use XAO::Utils;
@@ -85,7 +86,8 @@ sub call {
     #
     my $command=join("\t",map {
         my $s=defined($_) ? $_ : '';
-        $s=~s/[\t\r\n]+/ /sg;
+        $s=Encode::encode('iso-8859-1',$s) if Encode::is_utf8($s);
+        $s=~s/[\x00-\x1f\x7f-\xff]+/ /sg;
         $s=~s/^\s*(.*?)\s*$/$1/;
         $s;
     } @params);
