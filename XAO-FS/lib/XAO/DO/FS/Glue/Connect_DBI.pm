@@ -1,6 +1,6 @@
 =head1 NAME
 
-XAO::DO::FS::Glue::SQL_DBI - DBI/DBD base for XAO::FS drivers
+XAO::DO::FS::Glue::Connect_DBI - DBI/DBD base for XAO::FS drivers
 
 =head1 SYNOPSIS
 
@@ -28,16 +28,16 @@ be based on DBI/DBD foundation.
 =cut
 
 ###############################################################################
-package XAO::DO::FS::Glue::SQL_DBI;
+package XAO::DO::FS::Glue::Connect_DBI;
 use strict;
 use XAO::Objects;
 use XAO::Utils;
 use DBI;
 
-use base XAO::Objects->load(objname => 'Atom');
+use base XAO::Objects->load(objname => 'FS::Glue::Connect_SQL');
 
 use vars qw($VERSION);
-$VERSION=(0+sprintf('%u.%03u',(q$Id: SQL_DBI.pm,v 2.3 2006/05/03 07:55:47 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
+$VERSION=(0+sprintf('%u.%03u',(q$Id: Connect_DBI.pm,v 2.1 2007/05/09 21:03:09 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
 
 ###############################################################################
 
@@ -55,10 +55,10 @@ sub sql_connect ($%) {
     my $self=shift;
     my $args=get_args(\@_);
 
-    my $dsn=$args->{dsn} ||
+    my $dsn=$args->{'dsn'} ||
         throw $self "sql_connect - no 'dsn' given";
 
-    $self->{sql}=DBI->connect($dsn,$args->{user},$args->{password}) ||
+    $self->{'sql'}=DBI->connect($dsn,$args->{'user'},$args->{'password'}) ||
         throw $self "sql_connect - can't connect to dsn='$dsn'";
 }
 
@@ -69,10 +69,6 @@ sub sql_connect ($%) {
 Returns true if the database connection is currently established.
 
 =cut
-
-sub sql_connected ($) {
-    return shift->{sql} ? 1 : 0;
-}
 
 ###############################################################################
 
@@ -85,7 +81,7 @@ Closes connection to the database.
 sub sql_disconnect ($) {
     my $self=shift;
 
-    $self->{'sql'}->disconnect if $self->{sql};
+    $self->{'sql'}->disconnect if $self->{'sql'};
 }
 
 ###############################################################################
@@ -239,13 +235,6 @@ There is no need to call sql_finish() after sql_first_row().
 
 =cut
 
-sub sql_first_row ($$) {
-    my ($self,$qr)=@_;
-    my $row=$self->sql_fetch_row($qr);
-    $self->sql_finish($qr);
-    return $row;
-}
-
 ###############################################################################
 
 =item sql_prepare ($)
@@ -262,7 +251,7 @@ sub sql_prepare ($$) {
     my ($self,$query)=@_;
     ### dprint "SQL_PREPARE: $query";
     return $self->{'sql'}->prepare($query) ||
-        throw $self "sql_prepare - SQL error: ".$self->{sql}->errstr;
+        throw $self "sql_prepare - SQL error: ".$self->{'sql'}->errstr;
 }
 
 ###############################################################################

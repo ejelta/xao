@@ -27,8 +27,11 @@ lib/XAO/DO/Data/Product.pm
 lib/XAO/DO/FS/Collection.pm
 lib/XAO/DO/FS/Config.pm
 lib/XAO/DO/FS/Global.pm
+lib/XAO/DO/FS/Glue/Base.pm
+lib/XAO/DO/FS/Glue/Base_MySQL.pm
+lib/XAO/DO/FS/Glue/Connect_SQL.pm
+lib/XAO/DO/FS/Glue/Connect_DBI.pm
 lib/XAO/DO/FS/Glue/MySQL_DBI.pm
-lib/XAO/DO/FS/Glue/SQL_DBI.pm
 lib/XAO/DO/FS/Glue.pm
 lib/XAO/DO/FS/Hash.pm
 lib/XAO/DO/FS/List.pm
