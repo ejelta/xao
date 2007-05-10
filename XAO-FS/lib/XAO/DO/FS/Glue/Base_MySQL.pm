@@ -27,7 +27,7 @@ use XAO::Objects;
 use base XAO::Objects->load(objname => 'FS::Glue::Base');
 
 use vars qw($VERSION);
-$VERSION=(0+sprintf('%u.%03u',(q$Id: Base_MySQL.pm,v 2.2 2007/05/10 05:52:19 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
+$VERSION=(0+sprintf('%u.%03u',(q$Id: Base_MySQL.pm,v 2.3 2007/05/10 23:27:12 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
 
 ###############################################################################
 
@@ -159,19 +159,20 @@ sub add_field_integer ($$$$$) {
 
     $sql="ALTER TABLE $table ADD $name $sql";
 
-    $self->connector->sql_do($sql);
+    my $cn=$self->connector;
+    $cn->sql_do($sql);
 
     if(($index || $unique) && (!$unique || !$connected)) {
         my $usql=$unique ? " UNIQUE" : "";
         $sql="ALTER TABLE $table ADD$usql INDEX fsi__$name ($name)";
         #dprint ">>>$sql<<<";
-        $self->connector->sql_do($sql);
+        $cn->sql_do($sql);
     }
 
     if($unique && $connected) {
         $sql="ALTER TABLE $table ADD UNIQUE INDEX fsu__$name (parent_unique_id_,$name)";
         #dprint ">>>$sql<<<";
-        $self->connector->sql_do($sql);
+        $cn->sql_do($sql);
     }
 }
 
@@ -198,19 +199,20 @@ sub add_field_real ($$$;$$) {
 
     my $sql="ALTER TABLE $table ADD $name DOUBLE NOT NULL DEFAULT $default";
 
-    $self->connector->sql_do($sql);
+    my $cn=$self->connector;
+    $cn->sql_do($sql);
 
     if(($index || $unique) && (!$unique || !$connected)) {
         my $usql=$unique ? " UNIQUE" : "";
         $sql="ALTER TABLE $table ADD$usql INDEX fsi__$name ($name)";
         #dprint ">>>$sql<<<";
-        $self->connector->sql_do($sql);
+        $cn->sql_do($sql);
     }
 
     if($unique && $connected) {
         $sql="ALTER TABLE $table ADD UNIQUE INDEX fsu__$name (parent_unique_id_,$name)";
         #dprint ">>>$sql<<<";
-        $self->connector->sql_do($sql);
+        $cn->sql_do($sql);
     }
 }
 
@@ -245,7 +247,8 @@ sub add_field_text ($$$$$$) {
 
     my $def=$self->text_field_definition($charset,$maxlength);
 
-    $self->connector->sql_do("ALTER TABLE $table ADD $name $def",$default);
+    my $cn=$self->connector;
+    $cn->sql_do("ALTER TABLE $table ADD $name $def",$default);
 
     !$unique || $maxlength<=255 ||
         throw $self "add_field_text - property is too long to make it unique ($maxlength)";
@@ -256,13 +259,13 @@ sub add_field_text ($$$$$$) {
         my $usql=$unique ? " UNIQUE" : "";
         my $sql="ALTER TABLE $table ADD$usql INDEX fsi__$name ($name)";
         ### dprint ">>>$sql<<<";
-        $self->connector->sql_do($sql);
+        $cn->sql_do($sql);
     }
 
     if($unique && $connected) {
         my $sql="ALTER TABLE $table ADD UNIQUE INDEX fsu__$name (parent_unique_id_,$name)";
         ### dprint ">>>$sql<<<";
-        $self->connector->sql_do($sql);
+        $cn->sql_do($sql);
     }
 }
 
@@ -419,19 +422,20 @@ sub drop_field ($$$$$$) {
 
     $name.='_';
 
+    my $cn=$self->connector;
     if($index && (!$unique || !$connected)) {
         my $sql="ALTER TABLE $table DROP INDEX fsi__$name";
         # dprint ">>>$sql<<<";
-        $self->connector->sql_do($sql);
+        $cn->sql_do($sql);
     }
 
     if($unique && $connected) {
         my $sql="ALTER TABLE $table DROP INDEX fsu__$name";
         # dprint ">>>$sql<<<";
-        $self->connector->sql_do($sql);
+        $cn->sql_do($sql);
     }
 
-    $self->connector->sql_do("ALTER TABLE $table DROP $name");
+    $cn->sql_do("ALTER TABLE $table DROP $name");
 }
 
 ###############################################################################
@@ -470,14 +474,16 @@ sub increment_key_seq ($$) {
     my $self=shift;
     my $uid=shift;
 
-    $self->connector->sql_do('UPDATE Global_Fields SET key_seq_=key_seq_+1 WHERE unique_id=?',$uid);
+    my $cn=$self->connector;
 
-    my $sth=$self->connector->sql_execute('SELECT key_seq_ FROM Global_Fields WHERE unique_id=?',$uid);
-    my $seq=$self->connector->sql_first_row($sth)->[0];
+    $cn->sql_do('UPDATE Global_Fields SET key_seq_=key_seq_+1 WHERE unique_id=?',$uid);
+
+    my $sth=$cn->sql_execute('SELECT key_seq_ FROM Global_Fields WHERE unique_id=?',$uid);
+    my $seq=$cn->sql_first_row($sth)->[0];
     if($seq==1) {
-        $self->connector->sql_do('UPDATE Global_Fields SET key_seq_=key_seq_+1 WHERE unique_id=?',$uid);
-        $sth=$self->connector->sql_execute('SELECT key_seq_ FROM Global_Fields WHERE unique_id=?',$uid);
-        $seq=$self->connector->sql_first_row($sth)->[0];
+        $cn->sql_do('UPDATE Global_Fields SET key_seq_=key_seq_+1 WHERE unique_id=?',$uid);
+        $sth=$cn->sql_execute('SELECT key_seq_ FROM Global_Fields WHERE unique_id=?',$uid);
+        $seq=$cn->sql_first_row($sth)->[0];
     }
 
     return $seq-1;
@@ -499,14 +505,15 @@ sub initialize_database ($) {
         throw $self "initialize_database - modifying structure in transaction scope is not supported";
     }
 
-    my $sth=$self->connector->sql_execute('SHOW TABLE STATUS');
+    my $cn=$self->connector;
+    my $sth=$cn->sql_execute('SHOW TABLE STATUS');
     my $table_type=$self->{'table_type'};
     while(my $row=$self->connector->sql_fetch_row($sth)) {
         my ($name,$type)=@$row;
         $table_type||=lc($type);
-        $self->connector->sql_do("DROP TABLE $name");
+        $cn->sql_do("DROP TABLE $name");
     }
-    $self->connector->sql_finish($sth);
+    $cn->sql_finish($sth);
 
     my @initseq=(
         <<'END_OF_SQL',
@@ -558,7 +565,7 @@ END_OF_SQL
 
     foreach my $sql (@initseq) {
         $sql.=" TYPE=$table_type" if $table_type && $sql =~ /^CREATE/;
-        $self->connector->sql_do($sql);
+        $cn->sql_do($sql);
     }
 }
 
@@ -578,16 +585,18 @@ sub list_keys ($$$$$) {
     $key.='_' unless $key eq 'unique_id';
     $conn_name.='_' if $conn_name;
 
+    my $cn=$self->connector;
+
     my $sth;
     if($conn_name) {
-        $sth=$self->connector->sql_execute("SELECT $key FROM $table WHERE $conn_name=?",
+        $sth=$cn->sql_execute("SELECT $key FROM $table WHERE $conn_name=?",
                                 $conn_value);
     }
     else {
-        $sth=$self->connector->sql_execute("SELECT $key FROM $table");
+        $sth=$cn->sql_execute("SELECT $key FROM $table");
     }
 
-    return $self->connector->sql_first_column($sth);
+    return $cn->sql_first_column($sth);
 }
 
 ###############################################################################
@@ -614,11 +623,12 @@ sub load_structure ($) {
     ##
     # Checking table types.
     #
-    my $sth=$self->connector->sql_execute("SHOW TABLE STATUS");
+    my $cn=$self->connector;
+    my $sth=$cn->sql_execute("SHOW TABLE STATUS");
     my %table_types;
     my %type_counts;
     my $table_count=0;
-    while(my $row=$self->connector->sql_fetch_row($sth)) {
+    while(my $row=$cn->sql_fetch_row($sth)) {
         my ($name,$type,$row_format,$rows)=@$row;
         $type=lc($type);
         $type_counts{$type}++;
@@ -645,7 +655,7 @@ sub load_structure ($) {
                 }
 
                 dprint "...table '$table_name' type from '$table_types{$table_name}' to '$table_type'";
-                $self->connector->sql_do("ALTER TABLE $table_name TYPE=$table_type");
+                $cn->sql_do("ALTER TABLE $table_name TYPE=$table_type");
 
                 XAO::Utils::set_debug($debug_status);
             }
@@ -671,15 +681,15 @@ sub load_structure ($) {
     # Checking if Global_Fields table has key_format_ and key_seq_
     # fields. Adding them if it does not.
     #
-    $sth=$self->connector->sql_execute("DESC Global_Fields");
-    my $flist=$self->connector->sql_first_column($sth);
+    $sth=$cn->sql_execute("DESC Global_Fields");
+    my $flist=$cn->sql_first_column($sth);
     if(! grep { $_ eq 'key_format_' } @$flist) {
         dprint "Old database detected, adding Global_Fields.key_format_";
-        $self->connector->sql_do('ALTER TABLE Global_Fields ADD key_format_ CHAR(100) CHARACTER SET latin1 DEFAULT NULL');
+        $cn->sql_do('ALTER TABLE Global_Fields ADD key_format_ CHAR(100) CHARACTER SET latin1 DEFAULT NULL');
     }
     if(! grep { $_ eq 'key_seq_' } @$flist) {
         dprint "Old database detected, adding Global_Fields.key_seq_";
-        $self->connector->sql_do('ALTER TABLE Global_Fields ADD key_seq_ INT UNSIGNED DEFAULT NULL');
+        $cn->sql_do('ALTER TABLE Global_Fields ADD key_seq_ INT UNSIGNED DEFAULT NULL');
     }
 
     ##
@@ -687,7 +697,7 @@ sub load_structure ($) {
     #
     if(! grep { $_ eq 'charset_' } @$flist) {
         dprint "Old database detected, adding Global_Fields.charset_";
-        $self->connector->sql_do(q{ALTER TABLE Global_Fields ADD charset_ CHAR(30) CHARACTER SET latin1 DEFAULT NULL});
+        $cn->sql_do(q{ALTER TABLE Global_Fields ADD charset_ CHAR(30) CHARACTER SET latin1 DEFAULT NULL});
     }
     
     ##
@@ -697,14 +707,14 @@ sub load_structure ($) {
     my %tkeys;
     my %ckeys;
     my %tbdesc;
-    $sth=$self->connector->sql_execute(
+    $sth=$cn->sql_execute(
         "SELECT unique_id,table_name_,field_name_," .
                "type_,refers_,key_format_," .
                "index_,default_,charset_," .
                "maxlength_,minvalue_,maxvalue_" .
          " FROM Global_Fields");
 
-    while(my $row=$self->connector->sql_fetch_row($sth)) {
+    while(my $row=$cn->sql_fetch_row($sth)) {
         my ($uid,$table,$field,$type,$refers,$key_format,
             $index,$default,$charset,$maxlength,$minvalue,$maxvalue)=@$row;
 
@@ -714,8 +724,8 @@ sub load_structure ($) {
         # a badly converted 4.1 to 5.0, needs some rebuilding.
         #
         if(!$tbdesc{$table}) {
-            my $tbsth=$self->connector->sql_execute("DESC $table");
-            while(my $tbrow=$self->connector->sql_fetch_row($tbsth)) {
+            my $tbsth=$cn->sql_execute("DESC $table");
+            while(my $tbrow=$cn->sql_fetch_row($tbsth)) {
                 my ($tb_field,$tb_type,$tb_null,$tb_key,$tb_default)=@$tbrow;
                 $tbdesc{$table}->{$tb_field}={
                     type        => $tb_type,
@@ -788,7 +798,7 @@ sub load_structure ($) {
         }
         $fields{$table}->{$field}=$data;
     }
-    $self->connector->sql_finish($sth);
+    $cn->sql_finish($sth);
 
     ##
     # Checking if this is a 4.1 database running in a 5.0 engine. In
@@ -871,7 +881,7 @@ sub load_structure ($) {
             }
             $sql="ALTER TABLE $table $sql";
             dprint "-- $sql";
-            $self->connector->sql_do($sql,@def);
+            $cn->sql_do($sql,@def);
         }
         dprint "-";
 
@@ -935,7 +945,7 @@ sub load_structure ($) {
             if($sql) {
                 $sql="ALTER TABLE $table $sql";
                 dprint "-- $sql";
-                $self->connector->sql_do($sql,@def);
+                $cn->sql_do($sql,@def);
             }
         }
         dprint "-";
@@ -949,7 +959,7 @@ sub load_structure ($) {
             foreach my $table (@uptables) {
                 my $sql="ALTER TABLE $table TYPE=$table_types{$table}";
                 dprint "-- $sql";
-                $self->connector->sql_do($sql);
+                $cn->sql_do($sql);
             }
             dprint "-";
         }
@@ -968,7 +978,7 @@ sub load_structure ($) {
                     $sql="UPDATE $table SET $fname=RTRIM($fname)";
                 }
                 dprint "-- $sql";
-                $self->connector->sql_do($sql);
+                $cn->sql_do($sql);
             }
         }
         dprint "-";
@@ -1038,11 +1048,11 @@ sub load_structure ($) {
             dprint ".....executing SQL instructions, do not interrupt";
             $sql="ALTER TABLE $table $sql";
             ### dprint $sql;
-            $self->connector->sql_do($sql,@deflist);
+            $cn->sql_do($sql,@deflist);
             foreach my $fname (@altered_fields) {
                 $sql="UPDATE Global_Fields SET charset_='binary' WHERE table_name_='$table' AND field_name_='$fname'";
                 ### dprint $sql;
-                $self->connector->sql_do($sql);
+                $cn->sql_do($sql);
             }
         }
 
@@ -1053,9 +1063,9 @@ sub load_structure ($) {
     # Now loading classes translation table and putting fields
     # descriptions inside of it as well.
     #
-    $sth=$self->connector->sql_execute("SELECT class_name_,table_name_ FROM Global_Classes");
+    $sth=$cn->sql_execute("SELECT class_name_,table_name_ FROM Global_Classes");
     my %classes;
-    while(my $row=$self->connector->sql_fetch_row($sth)) {
+    while(my $row=$cn->sql_fetch_row($sth)) {
         my ($class,$table)=@$row;
         my $f=$fields{$table};
         $f || $self->throw("load_structure - no description for $table table (class $class)");
@@ -1064,7 +1074,7 @@ sub load_structure ($) {
             fields  => $f,
         };
     }
-    $self->connector->sql_finish($sth);
+    $cn->sql_finish($sth);
 
     ##
     # Copying key related stuff to list description which is very
@@ -1144,8 +1154,9 @@ sub retrieve_fields ($$$@) {
     my $sql=join(',',@names);
     $sql="SELECT $sql FROM $table WHERE unique_id=?";
 
-    my $sth=$self->connector->sql_execute($sql,$unique_id);
-    return $self->connector->sql_first_row($sth);
+    my $cn=$self->connector;
+    my $sth=$cn->sql_execute($sql,$unique_id);
+    return $cn->sql_first_row($sth);
 }
 
 ###############################################################################
@@ -1170,7 +1181,8 @@ sub search ($%) {
 
     # dprint "SQL: $sql";
 
-    my $sth=$self->connector->sql_execute($sql,$query->{'values'});
+    my $cn=$self->connector;
+    my $sth=$cn->sql_execute($sql,$query->{'values'});
 
     if(scalar(@{$query->{'fields_list'}})>1) {
         my @results;
@@ -1179,14 +1191,14 @@ sub search ($%) {
         # We need to copy the array we get here to avoid replicating the
         # last row into all rows by using reference to the same array.
         #
-        while(my $row=$self->connector->sql_fetch_row($sth)) {
+        while(my $row=$cn->sql_fetch_row($sth)) {
             push @results,[ @$row ];
         }
-        $self->connector->sql_finish($sth);
+        $cn->sql_finish($sth);
         return \@results;
     }
     else {
-        return $self->connector->sql_first_column($sth);
+        return $cn->sql_first_column($sth);
     }
 
 }
@@ -1391,17 +1403,18 @@ sub unique_id ($$$$$$$) {
     $key_name.='_' unless $translated;
     $conn_name.='_' unless $translated || !$conn_name;
 
+    my $cn=$self->connector;
     my $sth;
     if(defined($conn_name) && defined($conn_value)) {
-        $sth=$self->connector->sql_execute("SELECT unique_id FROM $table WHERE $conn_name=? AND $key_name=?",
+        $sth=$cn->sql_execute("SELECT unique_id FROM $table WHERE $conn_name=? AND $key_name=?",
                                 ''.$conn_value,''.$key_value);
     }
     else {
-        $sth=$self->connector->sql_execute("SELECT unique_id FROM $table WHERE $key_name=?",
+        $sth=$cn->sql_execute("SELECT unique_id FROM $table WHERE $key_name=?",
                                 ''.$key_value);
     }
 
-    my $row=$self->connector->sql_first_row($sth);
+    my $row=$cn->sql_first_row($sth);
     return $row ? $row->[0] : undef;
 }
 
