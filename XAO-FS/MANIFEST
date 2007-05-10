@@ -24,6 +24,8 @@ scripts/xao-fs
 lib/XAO/DO/Data/Customer.pm
 lib/XAO/DO/Data/Order.pm
 lib/XAO/DO/Data/Product.pm
+lib/XAO/DO/Data/Level0.pm
+lib/XAO/DO/Data/Level1.pm
 lib/XAO/DO/FS/Collection.pm
 lib/XAO/DO/FS/Config.pm
 lib/XAO/DO/FS/Global.pm
