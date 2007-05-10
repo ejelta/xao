@@ -27,7 +27,7 @@ use XAO::Objects;
 use base XAO::Objects->load(objname => 'FS::Glue::Base');
 
 use vars qw($VERSION);
-$VERSION=(0+sprintf('%u.%03u',(q$Id: Base_MySQL.pm,v 2.1 2007/05/09 21:03:09 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
+$VERSION=(0+sprintf('%u.%03u',(q$Id: Base_MySQL.pm,v 2.2 2007/05/10 05:52:19 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
 
 ###############################################################################
 
@@ -66,7 +66,7 @@ sub new ($%) {
     foreach my $pair (split(/[,;]/,$options)) {
         next unless length($pair);
         if($pair =~ /^table_type\s*=\s*(.*?)\s*$/) {
-            $self->{table_type}=lc($1);
+            $self->{'table_type'}=lc($1);
         }
         else {
             $dbopts.=';' . $pair;
@@ -387,7 +387,7 @@ will do that for you.
 
 sub disconnect ($) {
     my $self=shift;
-    if($self->{table_type} eq 'innodb') {
+    if($self->{'table_type'} eq 'innodb') {
         $self->tr_ext_rollback if $self->tr_ext_active;
         $self->tr_loc_rollback if $self->tr_loc_active;
     }
@@ -1075,7 +1075,7 @@ sub load_structure ($) {
         my ($data,$table)=@{$classes{$class}}{'fields','table'};
         my $key_name=$tkeys{$table};
         my $key_data=$data->{$key_name};
-        my $upper_data=$classes{$key_data->{refers}}->{fields}->{$upper_key_name};
+        my $upper_data=$classes{$key_data->{'refers'}}->{'fields'}->{$upper_key_name};
         @{$upper_data}{qw(key key_format key_length key_charset)}=
             ($key_name,@{$key_data}{qw(key_format key_length key_charset)});
     }
@@ -1113,7 +1113,7 @@ in locked state.
 
 sub reset () {
     my $self=shift;
-    if($self->{table_type} eq 'innodb') {
+    if($self->{'table_type'} eq 'innodb') {
         $self->tr_loc_rollback();
     }
     else {
@@ -1162,17 +1162,17 @@ sub search ($%) {
     my $self=shift;
     my $query=get_args(\@_);
 
-    my $sql=$query->{sql};
+    my $sql=$query->{'sql'};
 
-    if($query->{options} && $query->{options}->{limit}) {
-        $sql.=' LIMIT '.int($query->{options}->{limit});
+    if($query->{'options'} && $query->{'options'}->{'limit'}) {
+        $sql.=' LIMIT '.int($query->{'options'}->{'limit'});
     }
 
     # dprint "SQL: $sql";
 
-    my $sth=$self->connector->sql_execute($sql,$query->{values});
+    my $sth=$self->connector->sql_execute($sql,$query->{'values'});
 
-    if(scalar(@{$query->{fields_list}})>1) {
+    if(scalar(@{$query->{'fields_list'}})>1) {
         my @results;
 
         ##
@@ -1255,7 +1255,7 @@ sub store_row ($$$$$$$) {
     # too as it might be used in AUTOINC key formats.
     #
     my @ltab;
-    if($self->{table_type} eq 'innodb') {
+    if($self->{'table_type'} eq 'innodb') {
         #dprint "store_row: transaction begin";
         $self->tr_loc_begin;
     }
@@ -1286,10 +1286,24 @@ sub store_row ($$$$$$$) {
     else {
         throw $self "store_row - no key_value given (old usage??)";
     }
-    
+
+    # Trapping for errors. This is needed at least in MyISAM.
+    #
+    local($SIG{'__DIE__'})=sub {
+        my $msg=shift;
+        if($self->{'table_type'} eq 'innodb') {
+            $self->tr_loc_rollback;
+        }
+        else {
+            $self->unlock_tables(@ltab);
+        }
+        die $msg;
+    };
+
     if($uid) {
-        # Needs to be split into local version that is called from
+        # TODO: Needs to be split into local version that is called from
         # underneath transactional cover and "public" one.
+        #
         $self->update_fields($table,$uid,$row,0);
     }
     else {
@@ -1305,16 +1319,13 @@ sub store_row ($$$$$$$) {
         $sql.=') VALUES (';
         $sql.=join(',',('?') x scalar(@fn));
         $sql.=')';
-
         $self->connector->sql_do($sql,\@fv);
     }
 
-    if($self->{table_type} eq 'innodb') {
-        #dprint "store_row: commit()";
+    if($self->{'table_type'} eq 'innodb') {
         $self->tr_loc_commit;
     }
     else {
-        #dprint "store_row: unlock_tables()";
         $self->unlock_tables(@ltab);
     }
 
@@ -1420,7 +1431,7 @@ sub update_fields ($$$$;$) {
     $sql.=join(',',map { "${_}_=?" } @names);
     $sql.=' WHERE unique_id=?';
 
-    if(!$internal && $self->{table_type} eq 'innodb') {
+    if(!$internal && $self->{'table_type'} eq 'innodb') {
         #dprint "store_row: transaction begin";
         $self->tr_loc_begin;
     }
@@ -1443,7 +1454,7 @@ Checks if we currently have active local or external transaction.
 
 sub tr_loc_active ($) {
     my $self=shift;
-    return $self->{tr_loc_active} || $self->{tr_ext_active};
+    return $self->{'tr_loc_active'} || $self->{'tr_ext_active'};
 }
 
 ###############################################################################
@@ -1457,11 +1468,11 @@ have currently active external transaction. Does nothing for MyISAM.
 
 sub tr_loc_begin ($) {
     my $self=shift;
-    return if $self->{table_type} ne 'innodb' ||
-              $self->{tr_ext_active} ||
-              $self->{tr_loc_active};
+    return if $self->{'table_type'} ne 'innodb' ||
+              $self->{'tr_ext_active'} ||
+              $self->{'tr_loc_active'};
     $self->connector->sql_do('START TRANSACTION');
-    $self->{tr_loc_active}=1;
+    $self->{'tr_loc_active'}=1;
 }
 
 ###############################################################################
@@ -1474,9 +1485,9 @@ Commits changes for local transaction if it is active.
 
 sub tr_loc_commit ($) {
     my $self=shift;
-    return unless $self->{tr_loc_active};
+    return unless $self->{'tr_loc_active'};
     $self->connector->sql_do('COMMIT');
-    $self->{tr_loc_active}=0;
+    $self->{'tr_loc_active'}=0;
 }
 
 ###############################################################################
@@ -1490,9 +1501,9 @@ automatically on errors.
 
 sub tr_loc_rollback ($) {
     my $self=shift;
-    return unless $self->{tr_loc_active};
+    return unless $self->{'tr_loc_active'};
     $self->connector->sql_do('ROLLBACK');
-    $self->{tr_loc_active}=0;
+    $self->{'tr_loc_active'}=0;
 }
 
 ###############################################################################
@@ -1505,28 +1516,28 @@ Checks if an external transaction is currently active.
 
 sub tr_ext_active ($) {
     my $self=shift;
-    return $self->{tr_ext_active};
+    return $self->{'tr_ext_active'};
 }
 
 ###############################################################################
 
 sub tr_ext_begin ($) {
     my $self=shift;
-    $self->{tr_ext_active} &&
+    $self->{'tr_ext_active'} &&
         throw $self "tr_ext_begin - attempt to nest transactions";
-    $self->{tr_loc_active} &&
+    $self->{'tr_loc_active'} &&
         throw $self "tr_ext_begin - internal error, still in local transaction";
-    if($self->{table_type} eq 'innodb') {
+    if($self->{'table_type'} eq 'innodb') {
         $self->connector->sql_do('START TRANSACTION');
     }
-    $self->{tr_ext_active}=1;
+    $self->{'tr_ext_active'}=1;
 }
 
 ###############################################################################
 
 sub tr_ext_can ($) {
     my $self=shift;
-    return $self->{table_type} eq 'innodb' ? 1 : 0;
+    return $self->{'table_type'} eq 'innodb' ? 1 : 0;
 }
 
 ###############################################################################
@@ -1534,13 +1545,13 @@ sub tr_ext_can ($) {
 sub tr_ext_commit ($) {
     my $self=shift;
 
-    $self->{tr_ext_active} ||
+    $self->{'tr_ext_active'} ||
         throw $self "tr_ext_commit - no active transaction";
 
-    if($self->{table_type} eq 'innodb') {
+    if($self->{'table_type'} eq 'innodb') {
         $self->connector->sql_do('COMMIT');
     }
-    $self->{tr_ext_active}=0;
+    $self->{'tr_ext_active'}=0;
 }
 
 ###############################################################################
@@ -1548,13 +1559,13 @@ sub tr_ext_commit ($) {
 sub tr_ext_rollback ($) {
     my $self=shift;
 
-    $self->{tr_ext_active} ||
+    $self->{'tr_ext_active'} ||
         throw $self "tr_ext_rollback - no active transaction";
 
-    if($self->{table_type} eq 'innodb') {
+    if($self->{'table_type'} eq 'innodb') {
         $self->connector->sql_do('ROLLBACK');
     }
-    $self->{tr_ext_active}=0;
+    $self->{'tr_ext_active'}=0;
 }
 
 ###################################################################### PRIVATE
@@ -1563,14 +1574,14 @@ sub lock_tables ($@) {
     my $self=shift;
     my $sql='LOCK TABLES ';
     $sql.=join(',',map { "$_ WRITE" } @_);
-    #dprint "lock_tables: sql=$sql";
+    ### dprint "lock_tables: caller=".((caller(1))[3])." sql=$sql";
     $self->connector->sql_do($sql);
 }
 
 sub unlock_tables ($) {
     my $self=shift;
     return unless $self->connector->sql_connected;
-    #dprint "unlock_tables:";
+    ### dprint "unlock_tables: caller=".((caller(1))[3])." sql=$sql";
     $self->connector->sql_do_no_error('UNLOCK TABLES');
 }
 
