@@ -25,80 +25,15 @@ use strict;
 use XAO::Utils;
 use XAO::Objects;
 
-use base XAO::Objects->load(objname => 'FS::Glue::MySQL_DBI'),
-         'DynaLoader';
+use base XAO::Objects->load(objname => 'FS::Glue::Base_MySQL');
 
 use vars qw($VERSION);
-$VERSION='1.02';
-
-bootstrap XAO::DO::FS::Glue::MySQL $VERSION;
+$VERSION='1.03';
 
 ###############################################################################
 
-sub sql_connect ($%) {
-    my $self=shift;
-    my $args=get_args(\@_);
-
-    my $dsn=$args->{dsn} ||
-        throw $self "sql_connect - no 'dsn' given";
-    $dsn=~m/^dbi:mysql:(database=)?(\w+)(;hostname=(.*?)(;|$))?/i ||
-        throw $self "sql_connect - wrong DSN format ($dsn)";
-    my $dbname=$2 . "\0";
-    my $hostname=$3 ? $4 : '';
-    $hostname.="\0";
-    my $user=defined($args->{user}) ? $args->{user} : '';
-    $user.="\0";
-    my $password=defined($args->{password}) ? $args->{password} : '';
-    $password.="\0";
-
-    ##
-    # Perl complains about passing undefs into the sub which is ok and
-    # expected in this case.
-    #
-    my $db=sql_real_connect($hostname,$user,$password,$dbname) ||
-        throw $self "sql_connect - can't connect to the database ($dsn)";
-
-    $self->{sql}=$db;
-}
-
-###############################################################################
-
-sub sql_do ($$;@) {
-    my $rc;
-
-    if(@_>2 && ref($_[2])) {
-        $rc=sql_real_do(@_);
-    }
-    else {
-        $rc=sql_real_do($_[0],$_[1],[ @_[2..$#_] ]);
-    }
-
-    $rc && $_[0]->throw("sql_do - SQL error '" . sql_error_text($_[0]) . "' for '$_[1]'");
-}
-
-sub sql_do_no_error ($$) {
-    sql_real_do($_[0],$_[1],[ ]);
-}
-
-###############################################################################
-
-sub sql_execute ($$;@) {
-    my $r;
-
-    if(scalar(@_)==2) {
-        $r=sql_real_execute(@_,[]);
-    }
-    elsif(ref $_[2]) {
-        $r=sql_real_execute(@_);
-    }
-    else {
-        $r=sql_real_execute($_[0],$_[1],[ @_[2..$#_] ]);
-    }
-
-    defined($r) ||
-        $_[0]->throw("sql_execute - SQL error: " . sql_error_text($_[0]));
-
-    return $r;
+sub connector_create ($) {
+    return XAO::Objects->new(objname => 'FS::Glue::Connect_MySQL');
 }
 
 ###############################################################################

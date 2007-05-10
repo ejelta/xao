@@ -115,7 +115,7 @@ build_query(pTHX_ MYSQL* mysql, SV* sv_qtemplate, SV* sv_values, STRLEN* ql) {
     return query;
 }
 
-MODULE = XAO::DO::FS::Glue::MySQL		PACKAGE = XAO::DO::FS::Glue::MySQL		
+MODULE = XAO::DO::FS::Glue::Connect_MySQL		PACKAGE = XAO::DO::FS::Glue::Connect_MySQL		
 
 void
 sql_print_refcnt (sv)

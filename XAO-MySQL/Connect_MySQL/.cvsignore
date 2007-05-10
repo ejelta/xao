@@ -1,6 +1,5 @@
-.config
-ta
-blib
 Makefile
 Makefile.old
+Connect_MySQL.bs
+Connect_MySQL.c
 pm_to_blib

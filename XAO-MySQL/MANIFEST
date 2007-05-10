@@ -1,12 +1,16 @@
 CHANGES
 README
+LICENSE
 MySQL.pm
-MySQL.xs
 Makefile.PL
 MANIFEST
 MANIFEST.SKIP
 META.yml
 test.pl
+ -------------------------------------------
+Connect_MySQL/Makefile.PL
+Connect_MySQL/Connect_MySQL.pm
+Connect_MySQL/Connect_MySQL.xs
  -------------------------------------------
 bench/bench.pl
 bench/results-20020705-am-workstation.txt

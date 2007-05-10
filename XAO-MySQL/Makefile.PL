@@ -92,6 +92,10 @@ WriteMakefile(
         'XAO::Base'     => '1.06',
         'XAO::FS'       => '1.06',
     },
+    #XS              => {
+        #'Connect_MySQL.xs' => 'Connect_MySQL.c',
+    #},
+    #OBJECT          => 'Connect_MySQL.o',
     INC             => $mysql_cflags,
     LIBS            => $mysql_libs,
 );
