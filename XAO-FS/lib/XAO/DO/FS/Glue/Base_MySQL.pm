@@ -27,7 +27,7 @@ use XAO::Objects;
 use base XAO::Objects->load(objname => 'FS::Glue::Base');
 
 use vars qw($VERSION);
-$VERSION=(0+sprintf('%u.%03u',(q$Id: Base_MySQL.pm,v 2.4 2007/05/11 03:45:20 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
+$VERSION=(0+sprintf('%u.%03u',(q$Id: Base_MySQL.pm,v 2.5 2007/05/11 03:46:11 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
 
 ###############################################################################
 
@@ -100,7 +100,7 @@ sub new ($%) {
     my $vnum=($version=~/^(\d+)\.(\d+)(?:\.(\d+))?/) ? sprintf('%u.%03u%03u',$1,$2,$3||0) : 4.0;
     $self->{'mysql_version'}=$vnum;
     $self->{'mysql_version_full'}=$version;
-    dprint "MySQL version $version ($vnum)";
+    ### dprint "MySQL version $version ($vnum)";
 
     ##
     # Done preparing
