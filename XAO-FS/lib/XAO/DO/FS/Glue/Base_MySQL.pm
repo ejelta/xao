@@ -27,7 +27,7 @@ use XAO::Objects;
 use base XAO::Objects->load(objname => 'FS::Glue::Base');
 
 use vars qw($VERSION);
-$VERSION=(0+sprintf('%u.%03u',(q$Id: Base_MySQL.pm,v 2.3 2007/05/10 23:27:12 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
+$VERSION=(0+sprintf('%u.%03u',(q$Id: Base_MySQL.pm,v 2.4 2007/05/11 03:45:20 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
 
 ###############################################################################
 
@@ -82,7 +82,6 @@ sub new ($%) {
         password    => $args->{'password'},
     );
 
-    ##
     # Without this option we risk getting weird results -- for instance
     # a 'koi8r' column might be returned encoded in 'utf8' otherwise
     # depending on the server config.
@@ -90,7 +89,18 @@ sub new ($%) {
     # SET NAMES is the same as assigning the value to each of
     # character-set-{client,connection,results} separately.
     #
-    $self->connector->sql_do("SET NAMES 'binary'");
+    my $cn=$self->connector;
+    $cn->sql_do("SET NAMES 'binary'");
+
+    # Getting DB version
+    #
+    my $sth=$cn->sql_execute(q(SHOW VARIABLES LIKE 'version'));
+    my $row=$cn->sql_first_row($sth);
+    my $version=($row && $row->[0] eq 'version') ? $row->[1] : '4.0-fake';
+    my $vnum=($version=~/^(\d+)\.(\d+)(?:\.(\d+))?/) ? sprintf('%u.%03u%03u',$1,$2,$3||0) : 4.0;
+    $self->{'mysql_version'}=$vnum;
+    $self->{'mysql_version_full'}=$version;
+    dprint "MySQL version $version ($vnum)";
 
     ##
     # Done preparing
@@ -1299,8 +1309,13 @@ sub store_row ($$$$$$$) {
         throw $self "store_row - no key_value given (old usage??)";
     }
 
-    # Trapping for errors. This is needed at least in MyISAM.
+    # Trapping for errors.
     #
+    # This seems to be only needed for MySQL < 5.0.38 with MyISAM, newer versions
+    # auto-unlock and auto-rollback apparently. This code adds a pretty significant
+    # penalty (about 10% based on bench.pl - probably less on DB bound cases).
+    # So avoiding it where we can.
+    # 
     local($SIG{'__DIE__'})=sub {
         my $msg=shift;
         if($self->{'table_type'} eq 'innodb') {
@@ -1310,8 +1325,10 @@ sub store_row ($$$$$$$) {
             $self->unlock_tables(@ltab);
         }
         die $msg;
-    };
+    } if $self->{'mysql_version'} < 5.00038;
 
+    # Updating or inserting
+    #
     if($uid) {
         # TODO: Needs to be split into local version that is called from
         # underneath transactional cover and "public" one.
