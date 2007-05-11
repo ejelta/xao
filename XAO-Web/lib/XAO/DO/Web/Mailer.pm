@@ -91,7 +91,7 @@ use XAO::Objects;
 use base XAO::Objects->load(objname => 'Web::Page');
 
 use vars qw($VERSION);
-$VERSION=(0+sprintf('%u.%03u',(q$Id: Mailer.pm,v 2.8 2007/05/01 23:37:09 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
+$VERSION=(0+sprintf('%u.%03u',(q$Id: Mailer.pm,v 2.9 2007/05/11 03:18:37 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
 
 sub display ($;%) {
     my $self=shift;
@@ -175,67 +175,9 @@ sub display ($;%) {
     }
 
     ##
-    # Preparing mailer and storing content in
+    # Preparing attachments if any
     #
-    my $mailer;
-    my $encoding=$args->{'encoding'} || $config->{'encoding'} || undef;
-    if($html && !$text) {
-        $mailer=MIME::Lite->new(
-            From        => $from_hdr,
-            FromSender  => $from,
-            To          => $to,
-            Subject     => $subject,
-            Data        => $html,
-            Type        => 'text/html',
-            Encoding    => $encoding,
-        );
-    }
-    elsif($text && !$html) {
-        $mailer=MIME::Lite->new(
-            From        => $from_hdr,
-            FromSender  => $from,
-            To          => $to,
-            Subject     => $subject,
-            Data        => $text,
-            Encoding    => $encoding,
-        );
-    }
-    elsif($text && $html) {
-        $mailer=MIME::Lite->new(
-            From        => $from_hdr,
-            FromSender  => $from,
-            To          => $to,
-            Subject     => $subject,
-            Type        => 'multipart/mixed',
-        );
-        my $alt_part=MIME::Lite->new(
-            Type        => 'multipart/alternative',
-        );
-        $alt_part->delete('X-Mailer');
-        $alt_part->delete('Date');
-        $alt_part->attach(
-            Type        => 'text/plain',
-            Data        => $text,
-            Encoding    => $encoding,
-        );
-        $alt_part->attach(
-            Type        => 'text/html',
-            Data        => $html,
-            Encoding    => $encoding,
-        );
-        $mailer->attach($alt_part);
-    }
-    else {
-        throw $self "display - no text for either html or text part";
-    }
-
-    $mailer->add(Date => $args->{'date'}) if $args->{'date'};
-    $mailer->add(Cc => $cc) if $cc;
-    $mailer->add(Bcc => $bcc) if $bcc;
-
-    ##
-    # Adding attachments if any
-    #
+    my @attachments;
     foreach my $k (sort keys %$args) {
         next unless $k=~/^attachment\.(\w+)\.type$/;
         my $id=$1;
@@ -272,7 +214,92 @@ sub display ($;%) {
             throw $self "display - no path/template/file given for attachment '$id'";
         }
 
-        $mailer->attach(%data);
+        push(@attachments,\%data);
+    }
+
+    ##
+    # Preparing mailer and storing content in
+    #
+    my $mailer;
+    my $encoding=$args->{'encoding'} || $config->{'encoding'} || undef;
+    if($html && !$text) {
+        $mailer=MIME::Lite->new(
+            From        => $from_hdr,
+            FromSender  => $from,
+            To          => $to,
+            Subject     => $subject,
+            Data        => $html,
+            Type        => 'text/html',
+            Encoding    => $encoding,
+            Datestamp   => 0,
+        );
+    }
+    elsif($text && !$html) {
+        $mailer=MIME::Lite->new(
+            From        => $from_hdr,
+            FromSender  => $from,
+            To          => $to,
+            Subject     => $subject,
+            Data        => $text,
+            Encoding    => $encoding,
+            Datestamp   => 0,
+        );
+    }
+    elsif($text && $html) {
+        $mailer=MIME::Lite->new(
+            From        => $from_hdr,
+            FromSender  => $from,
+            To          => $to,
+            Subject     => $subject,
+            Type        => @attachments ? 'multipart/mixed' : 'multipart/alternative',
+            Datestamp   => 0,
+        );
+
+        if(@attachments) {
+            my $alt_part=MIME::Lite->new(
+                Type        => 'multipart/alternative',
+                Datestamp   => 0,
+            );
+            $alt_part->delete('X-Mailer');
+            $alt_part->delete('Date');
+            $alt_part->attach(
+                Type        => 'text/plain',
+                Data        => $text,
+                Encoding    => $encoding,
+            );
+            $alt_part->attach(
+                Type        => 'text/html',
+                Data        => $html,
+                Encoding    => $encoding,
+            );
+            $mailer->attach($alt_part);
+        }
+        else {
+            $mailer->attach(
+                Type        => 'text/plain',
+                Data        => $text,
+                Encoding    => $encoding,
+            );
+            $mailer->attach(
+                Type        => 'text/html',
+                Data        => $html,
+                Encoding    => $encoding,
+            );
+        }
+    }
+    else {
+        throw $self "display - no text for either html or text part";
+    }
+
+    $mailer->add(Date => $args->{'date'}) if $args->{'date'};
+    $mailer->add(Cc => $cc) if $cc;
+    $mailer->add(Bcc => $bcc) if $bcc;
+
+    ##
+    # Adding attachments if any
+    #
+    foreach my $adata (@attachments) {
+        $mailer->attach(%$adata);
     }
 
     ##
