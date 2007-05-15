@@ -542,6 +542,8 @@ sub custinfo {
                 inv_batch sic frt_code cred_type
                 default_loc sales_loc source_loc
                )}=map { $_ eq '?' ? undef : $_ } split('\t',$_[0]);
+        defined $row{'source_loc'} ||
+            throw XAO::E::P21 "custinfo - P21 error ($_[0])";
         return \%row;
     };
 
@@ -559,7 +561,7 @@ Modifies customer data, according to custinfo.
 sub modcust {
     my $self=shift;
     my $args=get_args(\@_);
-    throw $self "modcust - not supported, has never been tested";
+    throw XAO::E::P21 "modcust - not supported, has never been tested";
     print STDERR join(' ',(
                      $args->{cust_code},
                      $args->{bill_to_name},
