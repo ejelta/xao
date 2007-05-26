@@ -69,7 +69,7 @@ use Encode;
 use base XAO::Objects->load(objname => 'FS::Glue');
 
 use vars qw($VERSION);
-$VERSION=(0+sprintf('%u.%03u',(q$Id: Hash.pm,v 2.7 2006/06/23 06:14:09 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
+$VERSION=(0+sprintf('%u.%03u',(q$Id: Hash.pm,v 2.8 2007/05/26 03:05:27 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
 
 ###############################################################################
 
@@ -1091,18 +1091,18 @@ sub put ($$$) {
                 $data->{$name}=$value=Encode::encode('utf8',$value);
             }
             length($value) <= $field->{'maxlength'} ||
-                $self->throw("put - value is longer then $field->{'maxlength'} for $name");
+                $self->throw("put - value is longer than $field->{'maxlength'} for $name");
         }
         elsif($type eq 'text') {
             if(Encode::is_utf8($value)) {
                 length($value) <= $field->{'maxlength'} ||
-                    $self->throw("put - value is longer then $field->{'maxlength'} for $name");
+                    $self->throw("put - value is longer than $field->{'maxlength'} for $name");
 
                 $data->{$name}=$value=Encode::encode($field->{'charset'} eq 'binary' ? 'utf8' : $field->{'charset'},$value);
             }
             if($field->{'charset'} eq 'binary') {
                 length($value) <= $field->{'maxlength'} ||
-                    $self->throw("put - value is longer then $field->{'maxlength'} for $name");
+                    $self->throw("put - value is longer than $field->{'maxlength'} for $name");
             }
             else {
                 # Checking characters length with binary source is too expensive, not doing it

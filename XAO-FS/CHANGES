@@ -3,6 +3,7 @@
     * support for blobs and text charsets
     * drivers split into SQL dialect specific and connection specific,
       removes DBI dependency for direct MySQL implementation.
+    * auto-rollback if we finish with an uncommited transaction (die/destroy)
 
 1.06 - 11-Jan-2005
     * key_format allows to choose from different list key generation schemas

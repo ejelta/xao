@@ -51,7 +51,7 @@ use XAO::Objects;
 use base XAO::Objects->load(objname => 'Atom');
 
 use vars qw($VERSION);
-$VERSION=(0+sprintf('%u.%03u',(q$Id: Glue.pm,v 2.14 2006/09/05 20:11:25 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
+$VERSION=(0+sprintf('%u.%03u',(q$Id: Glue.pm,v 2.15 2007/05/26 03:05:27 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
 
 ###############################################################################
 
@@ -176,7 +176,13 @@ sub new ($%) {
 
 sub DESTROY () {
     my $self=shift;
+
     if($$self->{'driver'}) {
+        if($self->transact_active) {
+            eprint "Rolling back uncommitted transaction";
+            $self->transact_rollback;
+        }
+
         $self->disconnect();
     }
 }
@@ -2056,9 +2062,9 @@ sub _add_data_placeholder ($%) {
 
         my $dl=length($fdesc{'default'});
         $dl <= 30 ||
-            throw $self "_add_data_placeholder - default text is longer then 30 characters";
+            throw $self "_add_data_placeholder - default text is longer than 30 characters";
         $dl <= $fdesc{'maxlength'} ||
-            throw $self "_add_data_placeholder - default text is longer then maxlength ($fdesc{'maxlength'})";
+            throw $self "_add_data_placeholder - default text is longer than maxlength ($fdesc{'maxlength'})";
 
         $driver->add_field_text($table,$name,$fdesc{'index'},$fdesc{'unique'},
                                 $fdesc{'maxlength'},$fdesc{'default'},$fdesc{'charset'},$connected);
@@ -2069,9 +2075,9 @@ sub _add_data_placeholder ($%) {
 
         my $dl=length($fdesc{'default'});
         $dl <= 30 ||
-            throw $self "_add_data_placeholder($name) - default blob is longer then 30 characters";
+            throw $self "_add_data_placeholder($name) - default blob is longer than 30 characters";
         $dl <= $maxlength ||
-            throw $self "_add_data_placeholder($name) - default blob is longer then maxlength ($maxlength)";
+            throw $self "_add_data_placeholder($name) - default blob is longer than maxlength ($maxlength)";
 
         $driver->add_field_text($table,$name,$fdesc{'index'},$fdesc{'unique'},
                                 $maxlength,$fdesc{'default'},'binary',$connected);
