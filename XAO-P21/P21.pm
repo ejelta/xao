@@ -836,11 +836,16 @@ sub view_order_details {
 
     my $build=sub {
         my $str=shift;
-        my @arr=split(/\t/,$str);
+
+        # Perl removes spaces & tabs at the end of line, compensating
+        # for it.
+        #
+        my @arr=split(/\t/,($str."\tFOO"));
+        pop @arr;
 
         my %line;
         if($arr[0] eq 'LINE') {
-            @arr==15 ||
+            @arr==16 ||
                 throw XAO::E::P21 "view_order_details - wrong LINE ($str)";
             @line{qw(type line_number item_code entry_date
                      ord_qty inv_qty canc_qty
@@ -849,7 +854,7 @@ sub view_order_details {
                      ship_loc
                      req_date
                      suspend_flag
-		     part_number
+                     part_number
 		    )}=@arr;
             $line{'suspend_flag'}=lc($line{'suspend_flag'} || '') eq 'no' ? 0 : 1;
             $line{'part_number'}='' if $line{'part_number'} eq '?';
@@ -884,7 +889,7 @@ sub view_order_details {
                     )}=@arr;
         }
         elsif($arr[0] eq 'ORDER') {
-            @arr==8 ||
+            @arr==9 ||
                 throw XAO::E::P21 "view_order_details - wrong ORDER ($str)";
             @line{qw(type line_number cust_code cust_po sales_loc req_date ord_date suspend_flag
                     )}=@arr;
