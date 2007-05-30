@@ -142,7 +142,7 @@ sub items {
     $self->call( sub {
         my ($item_code, $prod_group, $pkg_size, $sales_unit,
             $sku, $list_price, $alt_ut_name, $alt_ut_size,
-            $desc1, $desc2, $upc, $cat_page) = split /\t/, $_[0];
+            $desc1, $desc2, $upc, $cat_page) = split /\t/, $_[0], -1;
         {
             item_code   => $item_code,
             prod_group  => $prod_group,
@@ -185,7 +185,7 @@ sub stock {
     my $item=$args->{'item'};
     return $self->call(
         sub {
-            my ($item_code, $location, $stock_level)=split(/\t/,$_[0]);
+            my ($item_code, $location, $stock_level)=split(/\t/,$_[0],-1);
             return {
                 item_code   => $item_code,
                 location    => $location,
@@ -239,7 +239,7 @@ sub catalog {
             $list_price, $std_cost,
             $col1_price, $col2_price, $col3_price, $catg_list,
             $stock_free, $stock_allocated,
-            @alt_units) = split /\t/, $_[0];
+            @alt_units) = split /\t/, $_[0], -1;
         return {
             item_code       => $item_code,
             prod_group      => $prod_group,
@@ -289,7 +289,7 @@ sub cust_item {
     my $build=$args->{'build'} || sub {
         my %row;
         @row{qw(cust_code item_code part_number sales_price int_desc)}=
-            split('\t',$_[0]);
+            split('\t',$_[0],-1);
         $row{'int_desc'}||='';
 
         defined $row{'sales_price'} ||
@@ -361,7 +361,7 @@ sub sell_schd {
 
     my $build=$args->{'build'} || sub {
         my ($group,$vendor,$basis,$code,$type,$breaks,$discounts,$item_code)=
-            split('\t',$_[0]);
+            split('\t',$_[0],-1);
 
         (defined $breaks && defined $discounts) ||
             throw XAO::E::P21 "sell_schd - wrong P21 line ($_[0])";
@@ -403,7 +403,7 @@ sub custcreate {
     my $info=get_args(\@_);
 
     my $constr=sub {
-        my ($result, $info) = split /\t/, $_[0];
+        my ($result, $info) = split /\t/, $_[0], -1;
         return { result => $result, info => $info };
     };
 
@@ -541,8 +541,8 @@ sub custinfo {
                 stax_exemp stax_flag otax_exemp otax_flag
                 inv_batch sic frt_code cred_type
                 default_loc sales_loc source_loc
-               )}=map { $_ eq '?' ? undef : $_ } split('\t',$_[0]);
-        defined $row{'source_loc'} ||
+               )}=map { $_ eq '?' ? undef : $_ } split(/\t/,$_[0],-1);
+        defined $row{'default_loc'} ||
             throw XAO::E::P21 "custinfo - P21 error ($_[0])";
         return \%row;
     };
@@ -645,7 +645,7 @@ sub order {
     my $order_list=shift;
 
     my $constr=sub {
-        my ($result, $info) = split /\t/, $_[0];
+        my ($result, $info)=split(/\t/,$_[0],-1);
         return { result => $result, info => $info };
     };
 
@@ -762,7 +762,7 @@ sub price {
     my $itemcode = $args->{itemcode} || $args->{item};
 
     $self->call(sub {
-                    my ($price, $mult) = split /\t/, $_[0];
+                    my ($price, $mult) = split /\t/, $_[0], -1;
                     $price=0 if $price eq '?';
                     return {
                         price   => $price,
@@ -803,7 +803,7 @@ sub puser {
 
     my $build=$args->{'build'} || sub {
         my %row;
-        @row{qw(user_id branch name security_2 password generic)}=split('\t',$_[0]);
+        @row{qw(user_id branch name security_2 password generic)}=split('\t',$_[0],-1);
         return \%row;
     };
 
@@ -837,11 +837,7 @@ sub view_order_details {
     my $build=sub {
         my $str=shift;
 
-        # Perl removes spaces & tabs at the end of line, compensating
-        # for it.
-        #
-        my @arr=split(/\t/,($str."\tFOO"));
-        pop @arr;
+        my @arr=split(/\t/,$str,-1);
 
         my %line;
         if($arr[0] eq 'LINE') {
@@ -931,7 +927,7 @@ number).
 sub find_match {
     my $self = shift;
     my $args = get_args(\@_);
-    $self->call( sub {  my ($refnum, $file, $order) = split /\t/, $_[0];
+    $self->call( sub {  my ($refnum, $file, $order) = split /\t/, $_[0], -1;
                         { refnum => $refnum, file => $file, order => $order } },
                  $args->{callback}, 'find_match', @{$args->{refs}} );
 }
@@ -1020,7 +1016,7 @@ sub ord_past ($%) {
     my $build=sub {
         my $str=shift;
 
-        my @arr=split(/\t/,$str);
+        my @arr=split(/\t/,$str,-1);
         scalar(@arr)>=5 ||
             throw XAO::E::P21 "ord_past - expected 5 fields ($str)";
 
@@ -1067,7 +1063,7 @@ sub units {
 
     my $build=$args->{'build'} || sub {
         my %row;
-        @row{qw(unit_name unit_description)}=split('\t',$_[0]);
+        @row{qw(unit_name unit_description)}=split(/\t/,$_[0],-1);
         return \%row;
     };
 
