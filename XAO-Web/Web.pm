@@ -308,6 +308,14 @@ sub execute ($%) {
     otherwise {
         my $e=shift;
 
+        # Under mod_perl we get apache's internal exceptions for genuine apache
+        # problems (timeouts, etc). These are not re-throwable apparently,
+        # so we wrap them into Error::Simple.
+        #
+        if($e->isa('APR::Error')) {
+            $e=Error::Simple->new("$e");
+        }
+
         $self->config->header_args(
             -Status         => '500 Internal Error',
             -expires        => 'now',
