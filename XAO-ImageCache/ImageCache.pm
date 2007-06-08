@@ -350,9 +350,10 @@ sub check($) {
     my $list_keys   = $self->{list_keys} || [ $list->keys ];
 
     my $count=0;
+    my $total=scalar(@$list_keys);
     foreach my $item_id (@$list_keys) {
 
-        dprint "Checking ID='$item_id', count=".$count++;
+        dprint "Checking ID='$item_id', count=".$count++."/$total";
 
         my $item        = $list->get($item_id);
         my $img_src_url = $item->get($img_src_url_key);
