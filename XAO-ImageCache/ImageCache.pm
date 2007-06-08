@@ -68,24 +68,22 @@ sub new ($%);
 sub init($);
 sub check($);
 sub download ($$);
-sub resize($$);
-sub thumbnail($$$);
+sub scale_file($$$$;$);
+sub scale_large($$$);
+sub scale_thumbnail($$$);
 sub remove_cache($);
-
-# Activities loging
-sub cache_log($$);
-sub error_log($$);
 
 # Special functions
 sub get_filename($);
 sub treat_filename($);
 sub convert_time($);
+sub throw($$);
 
 ###############################################################################
 
 sub DESTROY {
     my $self = shift;
-    $self->cache_log("----- XAO Image Cache finished -----");
+    dprint "----- XAO Image Cache finished -----";
 }
 
 ###############################################################################
@@ -97,18 +95,21 @@ You can use it to make new images cache or check images
 of already existent cache.
 
  my $image_cache = XAO::ImageCache->new(
-     cache_path     => "cache",        # set cache directory to './cache/'
-     source_path    => "cache/source", # set source directory to './cache/source/'
-     local_path     => "images/copy",  # (optional) try to resolve local urls
-     cache_url      => "images/",      # set cached images (relative) path to 'images/'
+     cache_path     => "cache",         # set cache directory to './cache/'
+     source_path    => "cache/source",  # set source directory to './cache/source/'
+     local_path     => "images/copy",   # (optional) try to resolve local urls
+     cache_url      => "images/",       # set cached images (relative) path to 'images/'
      list           => $odb->fetch("/Products"),
      source_url_key => 'source_image_url',
      dest_url_key   => 'dest_image_url',
      filename_key   => 'product_id',
+     min_width      => 50,              # Source image is ignored if smaller
+     min_height     => 50,
      size           => {
          width  => 320,
          height => 200,
          save_aspect_ratio => 1,
+     },
      thumbnails     => {
          path     => '/var/httpd/shop/product/images/tbn',
          url      => '/products/images/tbn/'
@@ -120,6 +121,8 @@ of already existent cache.
          agent   => 'My Lovely Browser/v13.01',
          timeout => 30,
      },  
+     force_download => 1,               # to enforce re-downloads
+     force_scale    => 1,               # to enforce re-scaling
  ) || die "Image cache creation failure!";
 
 Number of configuration parameters should be passed to 
@@ -136,8 +139,6 @@ XAO::ImageCache to tune functionality.
 =item dest_url_key
 
 =item list
-
-=item log_file
 
 =item reload
 
@@ -201,27 +202,27 @@ sub new ($%) {
     #
 
     unless (defined($self->{source_path})) {
-        $self->error_log("ERROR - missing 'source_path' parameter!");
+        $self->throw("ERROR - missing 'source_path' parameter!");
     }
 
     unless (defined($self->{cache_path})) {
-        $self->error_log("ERROR - missing 'cache_path' parameter!");
+        $self->throw("ERROR - missing 'cache_path' parameter!");
     }
 
     unless (defined($self->{list})) {
-        $self->error_log("ERROR - missing 'list' parameter!");
+        $self->throw("ERROR - missing 'list' parameter!");
     }
 
     unless (defined($self->{cache_url})){
-        $self->error_log("ERROR - missing 'cache_url' parameter!") ;
+        $self->throw("ERROR - missing 'cache_url' parameter!") ;
     }
 
     unless (defined($self->{source_url_key})) {
-        $self->error_log("ERROR - missing 'source_url_key' parameter!");
+        $self->throw("ERROR - missing 'source_url_key' parameter!");
     }
 
     unless (defined($self->{dest_url_key})) {
-        $self->error_log("ERROR - missing 'dest_url_key' parameter!");
+        $self->throw("ERROR - missing 'dest_url_key' parameter!");
     }
 
     #
@@ -238,7 +239,7 @@ sub new ($%) {
     if (defined($self->{'min_period'}) && $self->{'min_period'}) {
 
         unless ($self->{'min_period'} =~ /\d+[smhd]/) {
-            $self->error_log("ERROR - incorrectly formatted 'min_period' parameter!");
+            $self->throw("ERROR - incorrectly formatted 'min_period' parameter!");
         }
 
         # Make sure 'min_period' parameters is in seconds
@@ -257,10 +258,13 @@ sub new ($%) {
         $self->{min_period} = 0;
     }
 
+    $self->{'size'}->{'quality'}||=88;
+    $self->{'thumbnails'}->{'quality'}||=88;
+
     # Make LWP::UserAgent instance
     my $hash_ref = $self->{useragent}; 
     $self->{ua}  = LWP::UserAgent->new( %$hash_ref)
-                || $self->error_log("ERROR - LWP::UserAgent creation failure!");
+                || $self->throw("ERROR - LWP::UserAgent creation failure!");
 
     $self->init() if defined($self->{autocreate} && $self->{autocreate});
     $self;
@@ -282,7 +286,7 @@ directory if non existent and defined as initialization parameter.
 sub init($) {
     my $self = shift;
 
-    $self->cache_log("----- XAO Image Cache Initialization started -----");
+    dprint "----- XAO Image Cache Initialization started -----";
 
     my $source_path    = $self->{source_path};
     my $img_cache_path = $self->{cache_path};
@@ -294,21 +298,21 @@ sub init($) {
 
     unless (-d $source_path) {
         mkdir($source_path,0777)
-          || $self->error_log("ERROR - cache directory can't be created! $!");
-        $self->cache_log("Image Cache directory '$source_path' created.");
+          || $self->throw("ERROR - cache directory can't be created! $!");
+        dprint "Image Cache directory '$source_path' created.";
     }
 
     unless (-d $img_cache_path) {
         mkdir($img_cache_path,0777)
-          || $self->error_log("ERROR - cache directory can't be created! $!");
-        $self->cache_log("Image Cache directory '$img_cache_path' created.");
+          || $self->throw("ERROR - cache directory can't be created! $!");
+        dprint "Image Cache directory '$img_cache_path' created.";
     }
 
     if ($thm_cache_path) {
         unless (-d $thm_cache_path) {
             mkdir($thm_cache_path, 0777)
-              || $self->error_log("ERROR - can't create thumbnails cache directory ($thm_cache_path)! $!");
-            $self->cache_log("Thumbnail Cache directory '$thm_cache_path' created.");
+              || $self->throw("ERROR - can't create thumbnails cache directory ($thm_cache_path)! $!");
+            dprint "Thumbnail Cache directory '$thm_cache_path' created.";
         }
     }
 
@@ -362,21 +366,37 @@ sub check($) {
         ##
         # Download source image and create cache image and thumbnail
         #
-        my ($img_cache_file, $thm_cache_file) = $self->download(
-                                                    $item,
-                                                    $img_src_url,
-                                                    $thm_src_url,
-                                                );
-        # dprint "img=$img_cache_file thm=$thm_cache_file";
-        if ($img_cache_file) {
-            $item->put($img_dest_url_key, $img_cache_url.$img_cache_file);
-        }
-        if ($thm_cache_path && $thm_dest_url_key && $thm_cache_file) {
-            $item->put($thm_dest_url_key, $thm_cache_url.$thm_cache_file);
-        }
+        try {
+            my ($img_cache_file, $thm_cache_file)=$self->download(
+                $item,
+                $img_src_url,
+                $thm_src_url,
+            );
 
-        $checked++ if $img_cache_file || $thm_cache_file;
+            dprint ".storing('$img_cache_file','$thm_cache_file')";
+            $item->put(
+                $img_dest_url_key   => $img_cache_url.$img_cache_file,
+                $thm_dest_url_key   => $thm_cache_url.$thm_cache_file,
+            );
+        }
+        otherwise {
+            my $e=shift;
+            eprint "$e";
+
+            # This will remove the image for networking errors,
+            # and other temporary problems. Need a better
+            # solution. Different errors for different situations and
+            # trapping for them here?
+            #
+            ### $item->put(
+            ###     $img_dest_url_key   => '',
+            ###     $thm_dest_url_key   => '',
+            ### );
+        };
+
+        $checked++;
     }
+
     return $checked;
 }
 
@@ -462,8 +482,7 @@ sub download ($$) {
                     }
                 }
                 if(!$lfound) {
-                    $self->cache_log("ERROR - seems to be a local URL and no local file ($thm_src_url)");
-                    $thm_src_file="";
+                    $self->throw("ERROR - seems to be a local URL and no local file ($thm_src_url)");
                 }
             }
             else {
@@ -471,20 +490,17 @@ sub download ($$) {
                 if ($response->is_success) {
                     my $mtime_web = convert_time($response->header('Last-Modified'));
                     if ((!-r $thm_src_file) || ($mtime_src < $mtime_web) || $self->{reload}) {
-                        if(!$self->download_file($thm_src_url, $thm_src_file)) {
-                            $self->cache_log("ERROR - can't get thumbnail image '$thm_src_url'");
-                            $thm_src_file='';
-                        }
+                        $self->download_file($thm_src_url, $thm_src_file);
                     }
                 }
                 else {
-                    $self->cache_log("ERROR - can't get thumbnail header '$thm_src_url' ".$response->as_string);
+                    $self->throw("Can't get thumbnail header '$thm_src_url' - ".$response->status_line." (NETWORK)");
                     $thm_src_file = '';
                 }
             }
         }
         else {
-            $self->cache_log("THUMBNAIL SOURCE FILE CURRENT: $thm_src_url");
+            dprint ".thumbnail source file current: $thm_src_url";
         }
 
         ##
@@ -494,7 +510,7 @@ sub download ($$) {
             my $mtime_cache=(stat($thm_cache_file))[9];
             $mtime_src=(stat($thm_src_file))[9];
             if($mtime_cache<=$mtime_src) {
-                $self->thumbnail($thm_src_file, $thm_cache_file);
+                $self->scale_thumbnail($thm_src_file, $thm_cache_file);
             }
         }
     }
@@ -506,7 +522,7 @@ sub download ($$) {
     if($img_src_url) {
         my $mtime_src = (stat($img_src_file))[9] || 0;
         my $period = $time_now - $mtime_src;
-        if ($period > $self->{min_period}) {
+        if($self->{'force_download'} || $period>$self->{'min_period'}) {
             if($img_src_url !~ m/^(https?|ftp):\/\//i) {
                 my $lfound;
                 if($img_src_url=~/^\// && -r $img_src_url) {
@@ -523,9 +539,7 @@ sub download ($$) {
                     }
                 }
                 if(!$lfound) {
-                    $self->cache_log("ERROR - seems to be a local URL and no local file ($img_src_url)");
-                    $img_src_file="";
-                    $thm_src_file="";
+                    $self->throw("ERROR - seems to be a local URL and no local file ($img_src_url)");
                 }
             }
             else {
@@ -533,46 +547,35 @@ sub download ($$) {
                 if ($response->is_success) {
                     my $mtime_web = convert_time($response->header('Last-Modified'));
                     if ((!-r $img_src_file) || ($mtime_src < $mtime_web) || $self->{reload}) {
-                        if(! $self->download_file($img_src_url, $img_src_file)) {
-                            $self->cache_log("ERROR - download failure: $img_src_url -> $img_src_file");
-                            $img_src_file="";
-                            $thm_src_file="";
-                        }
+                        $self->download_file($img_src_url, $img_src_file);
                     }
                     else {
-                        $self->cache_log("IMAGE SOURCE FILE CURRENT: $img_src_url");
+                        dprint ".image source file current: $img_src_url";
                     }
                 }
                 else {
-                    $self->cache_log("ERROR - can't get header for: $img_src_url");
-                    $img_src_file="";
-                    $thm_src_file="";
+                    $self->throw("Can't get header for $img_src_url - ".$response->status_line." (NETWORK)");
                 }
             }
             $mtime_src=(stat($img_src_file))[9] if $img_src_file;
         }
 
         if($img_src_file) {
+
             # Now checking if the source file we have is newer then what's in
             # the cache and updating the cache in that case.
             #
             my $mtime_cache=(stat($img_cache_file))[9] || 0;
-            if($mtime_cache < $mtime_src) {
-                if($self->{size}) {
-                    $self->resize($img_src_file, $img_cache_file);
-                }
-                else {
-                    copy($img_src_file, $img_cache_file);
-                }
+            if($self->{'force_scale'} || $mtime_cache < $mtime_src) {
+                $self->scale_large($img_src_file, $img_cache_file);
             }
 
             # Create thumbnail from the image source file if necessary
             #
             if($thm_cache_file && (!$thm_src_url || !$thm_src_file)) {
                 $mtime_cache=(stat($thm_cache_file))[9] || 0;
-                if($mtime_cache < $mtime_src) {
-                    dprint "Making thumbnail out of big image";
-                    $self->thumbnail($img_src_file, $thm_cache_file);
+                if($self->{'force_scale'} || $mtime_cache < $mtime_src) {
+                    $self->scale_thumbnail($img_src_file,$thm_cache_file);
                 }
                 $thm_src_file=1;    # Just to mark that we have it
             }
@@ -582,7 +585,7 @@ sub download ($$) {
     $img_fnm='' unless $img_src_file;
     $thm_fnm='' unless $thm_src_file;
 
-    dprint "RETURN('$img_fnm','$thm_fnm')";
+    ### dprint "...scaled->('$img_fnm','$thm_fnm')";
 
     return ($img_fnm, $thm_fnm);
 }
@@ -599,172 +602,123 @@ sub download_file {
     my $response = $self->{ua}->get($source_url);
     if ($response->is_success) {
         open(F,"> $source_file")
-          || $self->error_log("ERROR - unable to save file '$source_file'! $!");
+          || $self->throw("ERROR - unable to save file '$source_file'! $!");
         print F $response->content;
         close(F);
-        $self->cache_log("GET $source_url -> $source_file");
     }
     else {
-        $self->cache_log("ERROR - can't download '$source_url' ".$response->as_string);
-        return undef;
+        $self->throw("Can't download '$source_url' - ".$response->status_line." (NETWORK)");
     }
-    return 1;
 }
 
 ###############################################################################
 
-=item resize($$)
+sub scale_file ($$$$;$) {
+    my ($self,$infile,$outfile,$params,$label)=@_;
+
+    $label||='unknown';
+
+    if(!$params) {
+        dprint "Copying $infile to $outfile as is ($label)";
+        copy($infile,$outfile);
+        return;
+    }
+
+    my $geometry = ''; # image dimensions in ImageMagick geometry format
+
+    my $image = Image::Magick->new() || $self->throw("ERROR - Image::Magick creation failure!");
+    my $err   = $image->ReadImage($infile);
+    $self->throw("Reading error ($err)") if $err;
+
+    ##
+    # This is required, otherwise new ImageMagick sometimes converts
+    # images to CMYK colorspace for whatever reason.
+    #
+    $image->Set(colorspace => 'RGB');
+    
+    # Get source image dimensions
+    my ($src_width, $src_height) = $image->Get('columns','rows');
+
+    my $min_width=$self->{'min_width'} || 10;
+    my $min_height=$self->{'min_height'} || $min_width;
+
+    if($src_height<=1 || $src_width<=1 || ($src_height<$min_height && $src_width<$min_width)) {
+        $self->throw("Image ($src_width,$src_height) is smaller than the minimum ($min_width,$min_height) for '$label'");
+    }
+
+    # Getting target image width and height
+    #
+    if($params->{'geometry'}){
+        $geometry = $params->{geometry}; # size was set as geometry string
+    }
+    elsif($params->{'save_aspect_ratio'}) {
+        my $src_aspect=$src_width/$src_height;
+
+        my $target_width=$params->{'width'} || $src_width;
+        my $target_height=$params->{'height'} || $src_height;
+        my $target_aspect=$target_width/$target_height;
+
+        my ($width,$height);
+         
+        if($target_aspect>$src_aspect) {
+            $height=$target_height;
+            $width=int($height*$src_aspect+0.5);
+        }
+        else {
+            $width=$target_width;
+            $height=int($width/$src_aspect+0.5);
+        }
+
+        $geometry=$width.'x'.$height.'!';
+    }
+    else {
+        # Use given width & height as is (or image size if not set)
+        $geometry = ($params->{'width'}  || $src_width) .'x'.
+                    ($params->{'height'} || $src_height).'!';
+    }
+
+    $image->Scale(geometry => $geometry);
+    $image->Set(quality => ($params->{'quality'} || 88));
+    $image->Write($outfile);
+
+    dprint "..resized ${src_width}x${src_height} to $geometry for '$label'";
+}
+
+###############################################################################
+
+=item scale_large($$$)
 
 Scaling image to given size.
 
 =cut
 
-sub resize($$) {
-    my $self     = shift;
-    my $infile   = shift;
-    my $outfile  = shift;
-    my $geometry = ''; # image dimensions in ImageMagick geometry format
+sub scale_large($$$) {
+    my ($self,$infile,$outfile)=@_;
 
-    try {
-        my $image = Image::Magick->new() || $self->error_log("ERROR - Image::Magick creation failure!");
-        my $err   = $image->ReadImage($infile);
-        $self->cache_log("RESIZE ERROR - $err") if $err;
-
-        ##
-        # This is required, otherwise new ImageMagick sometimes converts
-        # images to CMYK colorspace for whatever reason.
-        #
-        $image->Set(colorspace => 'RGB');
-        
-        # Get source image dimensions
-        my ($src_width, $src_height) = $image->Get('columns','rows');
-
-        if ($src_height < 1) {
-            $self->cache_log("RESIZE ERROR - source Height less than 1");
-            $image->Set(quality => 80);
-            $image->Write($outfile);
-            return;
-        }
-        # Do nothing if size already correct
-        elsif (
-            !$self->{size} ||
-            (
-                ($self->{size}->{width}  eq $src_width) &&
-                ($self->{size}->{height} eq $src_height)
-            )
-        ) {
-            $image->Set(quality => 80);
-            $image->Write($outfile);
-            return;
-        }
-                   
-        # Getting cached image width and height
-        #
-        if($self->{size}->{geometry}){
-            $geometry = $self->{size}->{geometry}; # size was set as geometry string
-        }
-        elsif ($self->{size}->{save_aspect_ratio}) {
-
-            $self->{size}->{width}  = $src_width  unless $self->{size}->{width};
-            $self->{size}->{height} = $src_height unless $self->{size}->{height};
-            
-            # Counting width & height to save source image aspect ratio
-            my $aspect        = $src_width  / $src_height;
-            my $width_aspect  = $src_width  / $self->{size}->{width};
-            my $height_aspect = $src_height / $self->{size}->{height};
-            
-            my ($width,$height);
-             
-            if ($width_aspect >= $height_aspect) {
-                $width = $self->{size}->{width};
-                $height= sprintf('%i',($self->{size}->{width} / $aspect));
-            }
-            else {
-                $width = sprintf('%i',($self->{size}->{height} * $aspect));
-                $height= $self->{size}->{height};
-            }
-
-            # Do nothing if size already correct
-            if (($width eq $src_width) && ($height eq $src_height)) {
-                $image->Set(quality => 80);
-                $image->Write($outfile);
-                return;
-            }
-                       
-            $geometry = $width.'x'.$height.'!';
-        }
-        else {
-            # Use given width & height as is (or image size if not set)
-            $geometry = ($self->{'size'}->{'width'}  || $src_width) .'x'.
-                        ($self->{'size'}->{'height'} || $src_height).'!';
-        }
-        $image->Scale(geometry => $geometry);
-        $image->Set(quality => 88);
-        $image->Write($outfile);
-        $self->cache_log("RESIZED from $src_width"."x$src_height to $geometry");
-    }
-    otherwise {
-        my $e=shift;
-        $self->cache_log("RESIZE ERROR - $e");
-        eprint $e;
-    };
+    return $self->scale_file($infile,$outfile,$self->{'size'},'large');
 }
 
 ###############################################################################
 
-=item thumbnail($$$)
+=item scale_thumbnail($$$)
 
 Creates thumbnail image from given source image.
 
-Source image path and destination (thumbnail) path 
-should be passed as parameters:
-
-   $img_cache->thumbnail($source_path, $thumbnail_path);
-
-Refer to L<thumbnail|/"thumbnail"> configuration parameter for 
-additional information.
-
 =cut
 
-sub thumbnail($$$) {
-    my $self = shift;
-    my $file = shift;
-    my $thumbnail_file = shift;
-    try {
-        my $image = Image::Magick->new();
+sub scale_thumbnail($$$) {
+    my ($self,$infile,$outfile)=@_;
 
-        my $err = $image->ReadImage($file);
-        $err && $self->error_log("THUMBNAIL ERROR - $err");
-
-        ##
-        # This is required, otherwise new ImageMagick sometimes converts
-        # images to CMYK colorspace for whatever reason.
-        #
-        $image->Set(colorspace => 'RGB');
-
-        my ($src_width, $src_height) = $image->Get('columns','rows');
-        my $geometry = $self->{'thumbnails'}->{'geometry'} || "50%";
-        $image->Scale(geometry => $geometry);
-        $image->Set(quality => 88);
-
-        $image->Write($thumbnail_file);
-
-        $self->cache_log("RESIZED from $src_width"."x$src_height to $geometry");
-    }
-    otherwise {
-        my $e=shift;
-        $self->cache_log("THUMBNAIL ERROR - $e");
-        eprint $e;
-    };
+    return $self->scale_file($infile,$outfile,$self->{'thumbnails'},'thumbnail');
 }
 
 ###############################################################################
 
 =item remove_cache($)
 
-Removing ALL cache directory from disk.
+Removing the ENTIRE cache directory from disk.
 
-Be carefully to use this methode!!!
+Be carefully to use this method!!!
 
 Cache structure will be removed from disk completely!
 Set C<reload> parameter to True value to download 
@@ -779,42 +733,9 @@ sub remove_cache($) {
 
 ###############################################################################
 
-=item cache_log($$)
-
-Log activities to file.
-
-Name of a log file may be set using C<log_file> key of hash of 
-configuration parameters or it will be a C<.cache_log> in cache 
-directory if C<log_file> not defined.
-
-Parameter should be an error or notice message.
-
-=cut
-
-sub error_log($$) {
-    my $self = shift;
-    my $mess = shift;
-    throw XAO::E::ImageCache $mess;
-    ## $self->cache_log($mess);
-    ## $self->cache_log("TERMINATED BY ERROR!!!");
-    ## dprint("ABORTED! $mess");
-    ## exit 1;
-}
-
-###############################################################################
-
-# Add message string to a log file
-sub cache_log($$) {
-    my $self = shift;
-    my $mess = shift;
-    dprint $mess;
-    ## my $log_file = $self->{log_file} || ($self->{cache_path} || "./").".cache_log";
-    ## my $log_mess = &UnixDate("today","[%b %e %Y %T] ");
-    ## $log_mess .= $mess;
-    ## 
-    ## open(EL,">> $log_file") || die "Can't open log file ($log_file) for write $!";
-    ##     print EL "$log_mess\n";
-    ## close(EL);
+sub throw($$) {
+    my ($self,$message)=@_;
+    throw XAO::E::ImageCache $message;
 }
 
 ###############################################################################
@@ -1013,13 +934,14 @@ For example.
     # Size 320x200 as dimensions settings
     %params = (size => {width => 320, height => 200} );
 
-    # Feet size into 320x200 with saving image proportions
+    # Fit size into 320x200 with saving image proportions
     %params = (        
         size => {
-                width                   => 320,
-                height                   => 200,
-                save_aspect_ratio => 1,
-                } );
+            width                   => 320,
+            height                   => 200,
+            save_aspect_ratio => 1,
+        }
+    );
 
 =item autocreate
 
@@ -1031,10 +953,6 @@ init() and check() methodes manualy.
 
 Existent cache directory will not be removed. You may do it 
 manualy using remove_cache() methode.
-
-=item log_file
-
-- log file name may be defined.
 
 =item reload
 

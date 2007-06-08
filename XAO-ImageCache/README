@@ -38,18 +38,21 @@ METHODS
         cache.
 
          my $image_cache = XAO::ImageCache->new(
-             cache_path     => "cache",        # set cache directory to './cache/'
-             source_path    => "cache/source", # set source directory to './cache/source/'
-             local_path     => "images/copy",  # (optional) try to resolve local urls
-             cache_url      => "images/",      # set cached images (relative) path to 'images/'
+             cache_path     => "cache",         # set cache directory to './cache/'
+             source_path    => "cache/source",  # set source directory to './cache/source/'
+             local_path     => "images/copy",   # (optional) try to resolve local urls
+             cache_url      => "images/",       # set cached images (relative) path to 'images/'
              list           => $odb->fetch("/Products"),
              source_url_key => 'source_image_url',
              dest_url_key   => 'dest_image_url',
              filename_key   => 'product_id',
+             min_width      => 50,              # Source image is ignored if smaller
+             min_height     => 50,
              size           => {
                  width  => 320,
                  height => 200,
                  save_aspect_ratio => 1,
+             },
              thumbnails     => {
                  path     => '/var/httpd/shop/product/images/tbn',
                  url      => '/products/images/tbn/'
@@ -61,6 +64,8 @@ METHODS
                  agent   => 'My Lovely Browser/v13.01',
                  timeout => 30,
              },  
+             force_download => 1,               # to enforce re-downloads
+             force_scale    => 1,               # to enforce re-scaling
          ) || die "Image cache creation failure!";
 
         Number of configuration parameters should be passed to
@@ -71,7 +76,6 @@ METHODS
         cache_url
         dest_url_key
         list
-        log_file
         reload
         source_url_key
         size
@@ -119,37 +123,20 @@ METHODS
         cached or if cached image has a later modification date than source
         image.
 
-    resize($$)
+    scale_large($$$)
         Scaling image to given size.
 
-    thumbnail($$$)
+    scale_thumbnail($$$)
         Creates thumbnail image from given source image.
 
-        Source image path and destination (thumbnail) path should be passed
-        as parameters:
-
-           $img_cache->thumbnail($source_path, $thumbnail_path);
-
-        Refer to thumbnail configuration parameter for additional
-        information.
-
     remove_cache($)
-        Removing ALL cache directory from disk.
+        Removing the ENTIRE cache directory from disk.
 
-        Be carefully to use this methode!!!
+        Be carefully to use this method!!!
 
         Cache structure will be removed from disk completely! Set "reload"
         parameter to True value to download images to cache without any
         conditions.
-
-    cache_log($$)
-        Log activities to file.
-
-        Name of a log file may be set using "log_file" key of hash of
-        configuration parameters or it will be a ".cache_log" in cache
-        directory if "log_file" not defined.
-
-        Parameter should be an error or notice message.
 
     get_filename($)
         File name generation for cached images.
@@ -256,13 +243,14 @@ CONFIGURATION PARAMETERS
             # Size 320x200 as dimensions settings
             %params = (size => {width => 320, height => 200} );
 
-            # Feet size into 320x200 with saving image proportions
+            # Fit size into 320x200 with saving image proportions
             %params = (        
                 size => {
-                        width                   => 320,
-                        height                   => 200,
-                        save_aspect_ratio => 1,
-                        } );
+                    width                   => 320,
+                    height                   => 200,
+                    save_aspect_ratio => 1,
+                }
+            );
 
     autocreate
         - create or check cache content automaticaly.
@@ -273,9 +261,6 @@ CONFIGURATION PARAMETERS
 
         Existent cache directory will not be removed. You may do it manualy
         using remove_cache() methode.
-
-    log_file
-        - log file name may be defined.
 
     reload
         - each image should be reloaded to cache and processed without
