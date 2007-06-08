@@ -202,27 +202,27 @@ sub new ($%) {
     #
 
     unless (defined($self->{source_path})) {
-        $self->throw("ERROR - missing 'source_path' parameter!");
+        $self->throw("missing 'source_path' parameter!");
     }
 
     unless (defined($self->{cache_path})) {
-        $self->throw("ERROR - missing 'cache_path' parameter!");
+        $self->throw("missing 'cache_path' parameter!");
     }
 
     unless (defined($self->{list})) {
-        $self->throw("ERROR - missing 'list' parameter!");
+        $self->throw("missing 'list' parameter!");
     }
 
     unless (defined($self->{cache_url})){
-        $self->throw("ERROR - missing 'cache_url' parameter!") ;
+        $self->throw("missing 'cache_url' parameter!") ;
     }
 
     unless (defined($self->{source_url_key})) {
-        $self->throw("ERROR - missing 'source_url_key' parameter!");
+        $self->throw("missing 'source_url_key' parameter!");
     }
 
     unless (defined($self->{dest_url_key})) {
-        $self->throw("ERROR - missing 'dest_url_key' parameter!");
+        $self->throw("missing 'dest_url_key' parameter!");
     }
 
     #
@@ -239,7 +239,7 @@ sub new ($%) {
     if (defined($self->{'min_period'}) && $self->{'min_period'}) {
 
         unless ($self->{'min_period'} =~ /\d+[smhd]/) {
-            $self->throw("ERROR - incorrectly formatted 'min_period' parameter!");
+            $self->throw("incorrectly formatted 'min_period' parameter!");
         }
 
         # Make sure 'min_period' parameters is in seconds
@@ -264,7 +264,7 @@ sub new ($%) {
     # Make LWP::UserAgent instance
     my $hash_ref = $self->{useragent}; 
     $self->{ua}  = LWP::UserAgent->new( %$hash_ref)
-                || $self->throw("ERROR - LWP::UserAgent creation failure!");
+                || $self->throw("LWP::UserAgent creation failure!");
 
     $self->init() if defined($self->{autocreate} && $self->{autocreate});
     $self;
@@ -298,20 +298,20 @@ sub init($) {
 
     unless (-d $source_path) {
         mkdir($source_path,0777)
-          || $self->throw("ERROR - cache directory can't be created! $!");
+          || $self->throw("cache directory can't be created! $!");
         dprint "Image Cache directory '$source_path' created.";
     }
 
     unless (-d $img_cache_path) {
         mkdir($img_cache_path,0777)
-          || $self->throw("ERROR - cache directory can't be created! $!");
+          || $self->throw("cache directory can't be created! $!");
         dprint "Image Cache directory '$img_cache_path' created.";
     }
 
     if ($thm_cache_path) {
         unless (-d $thm_cache_path) {
             mkdir($thm_cache_path, 0777)
-              || $self->throw("ERROR - can't create thumbnails cache directory ($thm_cache_path)! $!");
+              || $self->throw("can't create thumbnails cache directory ($thm_cache_path)! $!");
             dprint "Thumbnail Cache directory '$thm_cache_path' created.";
         }
     }
@@ -383,15 +383,15 @@ sub check($) {
             my $e=shift;
             eprint "$e";
 
-            # This will remove the image for networking errors,
-            # and other temporary problems. Need a better
-            # solution. Different errors for different situations and
-            # trapping for them here?
+            # We don't update the item unless this is a permanent error.
             #
-            ### $item->put(
-            ###     $img_dest_url_key   => '',
-            ###     $thm_dest_url_key   => '',
-            ### );
+            if("$e" =~ /PERMANENT/) {
+                dprint ".storing('','')";
+                $item->put(
+                    $img_dest_url_key   => '',
+                    $thm_dest_url_key   => '',
+                );
+            }
         };
 
         $checked++;
@@ -482,7 +482,7 @@ sub download ($$) {
                     }
                 }
                 if(!$lfound) {
-                    $self->throw("ERROR - seems to be a local URL and no local file ($thm_src_url)");
+                    $self->throw("seems to be a local URL and no local file ($thm_src_url)");
                 }
             }
             else {
@@ -494,7 +494,7 @@ sub download ($$) {
                     }
                 }
                 else {
-                    $self->throw("Can't get thumbnail header '$thm_src_url' - ".$response->status_line." (NETWORK)");
+                    $self->throw("can't get thumbnail header '$thm_src_url' - ".$response->status_line." (NETWORK)");
                     $thm_src_file = '';
                 }
             }
@@ -539,7 +539,7 @@ sub download ($$) {
                     }
                 }
                 if(!$lfound) {
-                    $self->throw("ERROR - seems to be a local URL and no local file ($img_src_url)");
+                    $self->throw("seems to be a local URL and no local file ($img_src_url)");
                 }
             }
             else {
@@ -554,7 +554,7 @@ sub download ($$) {
                     }
                 }
                 else {
-                    $self->throw("Can't get header for $img_src_url - ".$response->status_line." (NETWORK)");
+                    $self->throw("can't get header for $img_src_url - ".$response->status_line." (NETWORK)");
                 }
             }
             $mtime_src=(stat($img_src_file))[9] if $img_src_file;
@@ -602,12 +602,12 @@ sub download_file {
     my $response = $self->{ua}->get($source_url);
     if ($response->is_success) {
         open(F,"> $source_file")
-          || $self->throw("ERROR - unable to save file '$source_file'! $!");
+          || $self->throw("unable to save file '$source_file'! $!");
         print F $response->content;
         close(F);
     }
     else {
-        $self->throw("Can't download '$source_url' - ".$response->status_line." (NETWORK)");
+        $self->throw("can't download '$source_url' - ".$response->status_line." (NETWORK)");
     }
 }
 
@@ -626,9 +626,9 @@ sub scale_file ($$$$;$) {
 
     my $geometry = ''; # image dimensions in ImageMagick geometry format
 
-    my $image = Image::Magick->new() || $self->throw("ERROR - Image::Magick creation failure!");
+    my $image = Image::Magick->new() || $self->throw("Image::Magick creation failure!");
     my $err   = $image->ReadImage($infile);
-    $self->throw("Reading error ($err)") if $err;
+    $self->throw("parsing error ($err) (PERMANENT)") if $err;
 
     ##
     # This is required, otherwise new ImageMagick sometimes converts
@@ -643,7 +643,7 @@ sub scale_file ($$$$;$) {
     my $min_height=$self->{'min_height'} || $min_width;
 
     if($src_height<=1 || $src_width<=1 || ($src_height<$min_height && $src_width<$min_width)) {
-        $self->throw("Image ($src_width,$src_height) is smaller than the minimum ($min_width,$min_height) for '$label'");
+        $self->throw("Image ($src_width,$src_height) is smaller than the minimum ($min_width,$min_height) for '$label' (PERMANENT)");
     }
 
     # Getting target image width and height
