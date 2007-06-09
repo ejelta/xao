@@ -375,10 +375,10 @@ sub check($) {
             );
 
             dprint ".storing('$img_cache_file','$thm_cache_file')";
-            $item->put(
-                $img_dest_url_key   => $img_cache_url.$img_cache_file,
-                $thm_dest_url_key   => $thm_cache_url.$thm_cache_file,
-            );
+            my %d;
+            $d{$img_dest_url_key}=$img_cache_url.$img_cache_file if $img_dest_url_key;
+            $d{$thm_dest_url_key}=$thm_cache_url.$thm_cache_file if $thm_dest_url_key;
+            $item->put(\%d);
         }
         otherwise {
             my $e=shift;
@@ -387,11 +387,11 @@ sub check($) {
             # We don't update the item unless this is a permanent error.
             #
             if("$e" =~ /PERMANENT/) {
-                dprint ".storing('','')";
-                $item->put(
-                    $img_dest_url_key   => '',
-                    $thm_dest_url_key   => '',
-                );
+                dprint ".clearing existing image/thumbnail urls";
+                my %d;
+                $d{$img_dest_url_key}='' if $img_dest_url_key;
+                $d{$thm_dest_url_key}='' if $thm_dest_url_key;
+                $item->put(\%d);
             }
         };
 
