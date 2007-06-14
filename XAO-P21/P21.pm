@@ -958,7 +958,11 @@ Shows contents of order spool directory, one filename per line.
 
 sub show_spool {
     my ($self, $callback) = @_;
-    $self->call(sub { $_[0] }, $callback, 'show_spool');
+
+    $self->call(sub {
+        my ($name,$type,$size,$mtime)=split(/\t/,$_[0],-1);
+        return { name => $_[0], type => $type, size => $size, mtime => $mtime };
+    }, $callback, 'show_spool');
 }
 
 ###############################################################################
