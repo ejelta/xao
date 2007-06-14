@@ -9,7 +9,7 @@ use File::Copy;
 
 use vars qw($VERSION $REVISION);
 $VERSION='0.05';
-$REVISION='$Id: xao-server,v 1.20 2007/04/06 21:51:17 am Exp $';
+$REVISION='$Id: xao-server,v 1.21 2007/06/14 00:08:55 am Exp $';
 
 sub chld_handler ();
 sub pipe_handler ();
@@ -467,7 +467,10 @@ Output: price for one unit, multiplier.
             foreach (readdir DH) {
                 next if /^\./;
                 next unless /.+\..+/;
-                printsock "$_\n";
+                next unless -r "$spooldir/$_";
+                my $t=(-d _ ? 'd' : 'f');
+                my @s=stat(_);
+                printsock "$_\t$t\t$s[7]\t$s[9]\n";
             }
             closedir DH;
         }
