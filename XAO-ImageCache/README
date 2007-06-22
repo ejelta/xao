@@ -26,10 +26,11 @@ DESCRIPTION
     XAO::ImageCache made for cache locally images his URL stored in XAO
     Founsation Server. Also, images may be resized automaticaly.
 
-    This module provide easy methodes to scan XAO Foundation Server data
-    lists, extract images source URLs from data objects, downloading images
-    to local cache, resize local copy of image to feet in to given
-    dimensions and store new local URL of image back to data object.
+    This module provide easy methods to scan XAO Foundation Server data
+    lists, to extract images source URLs from data objects, to download
+    images to local cache, to resize a local copy of the image to fit into
+    given dimensions and to store the new local URL of the image back to the
+    data object.
 
 METHODS
     new($%)

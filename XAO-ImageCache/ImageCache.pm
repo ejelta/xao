@@ -29,11 +29,11 @@ have no right dimension or may be deleted from source site.
 XAO::ImageCache made for cache locally images his URL stored 
 in XAO Founsation Server. Also, images may be resized automaticaly.
 
-This module provide easy methodes to scan XAO Foundation 
-Server data lists, extract images source URLs from data 
-objects, downloading images to local cache, resize local 
-copy of image to feet in to given dimensions and store new 
-local URL of image back to data object.
+This module provide easy methods to scan XAO Foundation Server data
+lists, to extract images source URLs from data objects, to download
+images to local cache, to resize a local copy of the image to fit into
+given dimensions and to store the new local URL of the image back to
+the data object.
 
 =head1 METHODS
 
@@ -631,13 +631,8 @@ sub scale_file ($$$$;$) {
     my $err   = $image->ReadImage($infile);
     $self->throw("parsing error ($err) (PERMANENT)") if $err;
 
-    ##
-    # This is required, otherwise new ImageMagick sometimes converts
-    # images to CMYK colorspace for whatever reason.
-    #
-    $image->Set(colorspace => 'RGB');
-    
     # Get source image dimensions
+    #
     my ($src_width, $src_height) = $image->Get('columns','rows');
 
     my $min_width=$self->{'min_width'} || 10;
@@ -660,8 +655,19 @@ sub scale_file ($$$$;$) {
         my $target_aspect=$target_width/$target_height;
 
         my ($width,$height);
-         
-        if($target_aspect>$src_aspect) {
+
+        if($src_width<=$target_width && $src_height<=$target_height) {
+            if(lc($image->Get('mime')) eq 'image/jpeg' && uc($image->get('colorspace')) eq 'RGB') {
+                copy($infile,$outfile);
+                dprint "..copied ${src_width}x${src_height} as is for '$label' (jpeg, fits into ${target_width}x${target_height})";
+                return;
+            }
+            else {
+                $width=$src_width;
+                $height=$src_height;
+            }
+        }
+        elsif($target_aspect>$src_aspect) {
             $height=$target_height;
             $width=int($height*$src_aspect+0.5);
         }
@@ -677,6 +683,11 @@ sub scale_file ($$$$;$) {
         $geometry = ($params->{'width'}  || $src_width) .'x'.
                     ($params->{'height'} || $src_height).'!';
     }
+
+    # This is required, otherwise new ImageMagick sometimes converts
+    # images to CMYK colorspace for whatever reason.
+    #
+    $image->Set(colorspace => 'RGB');
 
     $image->Scale(geometry => $geometry);
     $image->Set(quality => ($params->{'quality'} || 88));
