@@ -55,6 +55,22 @@ sub test_all {
             template => '<%Styler real="2222.333333" format="%.4f"%>',
             result => '2,222.3333',
         },
+        t15 => {
+            template => '<%Styler real="2.333333" format="%07.2f"%>',
+            result => '0,002.33',
+        },
+        t16 => {
+            template => '<%Styler real="9876.543" format="%08.2f"%>',
+            result => '09,876.54',
+        },
+        t17 => {
+            template => '<%Styler real="333.333" format="--%07.2f--"%>',
+            result => '--0333.33--',
+        },
+        t20 => {
+            template => '<%Styler number="6" format="%02u"%>',
+            result => '06',
+        },
     );
 
     my $page=XAO::Objects->new(objname => 'Web::Page');

@@ -26,7 +26,7 @@ use base XAO::Objects->load(objname => 'Web::Page');
 ###############################################################################
 
 use vars qw($VERSION);
-$VERSION=(0+sprintf('%u.%03u',(q$Id: Styler.pm,v 2.2 2005/09/14 22:05:43 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
+$VERSION=(0+sprintf('%u.%03u',(q$Id: Styler.pm,v 2.3 2007/07/10 18:38:44 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
 
 sub separate_thousands ($);
 
@@ -43,7 +43,7 @@ sub display ($;%) {
     #
     my $template="<%NUMBER%>" if defined($args->{number});
     my $number=int($args->{number} || 0);
-    $number=separate_thousands($number);
+    $number=separate_thousands($args->{'format'} ? sprintf($args->{'format'},$number) : $number);
 
     ##
     # dollars => $1'234.78
