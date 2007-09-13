@@ -404,7 +404,7 @@ use Error qw(:try);
 use base XAO::Objects->load(objname => 'Atom');
 
 use vars qw($VERSION);
-$VERSION=(0+sprintf('%u.%03u',(q$Id: Page.pm,v 2.5 2006/07/04 02:32:52 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
+$VERSION=(0+sprintf('%u.%03u',(q$Id: Page.pm,v 2.6 2007/09/13 00:17:51 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
 
 ##
 # Prototypes
@@ -519,41 +519,42 @@ sub display ($%) {
 
             $itemflag=$item->{'flag'};
 
-            ##
-            # First we're trying to substitute from arguments
+            # First we're trying to substitute from arguments for old
+            # style <%FUBAR%>
             #
             $text=$args->{$objname};
 
-            ##
             # Executing object if not.
             #
             if(!defined $text) {
                 my $obj=$self->object(objname => $objname);
             
-                ##
                 # Preparing arguments. If argument includes object references -
                 # they are expanded first.
                 #
                 my %objargs;
                 my $ia=$item->{'args'};
                 my $args_copy;
+                my $page_obj;
                 foreach my $a (keys %$ia) {
                     my $v=$ia->{$a};
                     if(ref($v)) {
-                        if(@$v==1 && exists($v->[0]->{text})) {
-                            $v=$v->[0]->{text};
+                        if(@$v==1 && exists($v->[0]->{'text'})) {
+                            $v=$v->[0]->{'text'};
                         }
                         else {
                             if(!$args_copy) {
                                 $args_copy=merge_refs($args);
                                 delete $args_copy->{'path'};
                             }
+                            if(!$page_obj) {
+                                $page_obj=$self->object(objname => 'Page');
+                            }
                             $args_copy->{'template'}=$v;
-                            $v=$self->expand($args_copy);
+                            $v=$page_obj->expand($args_copy);
                         }
                     }
 
-                    ##
                     # Decoding entities from arguments. Lt, gt, amp,
                     # quot and &#DEC; are supported.
                     #
@@ -566,7 +567,6 @@ sub display ($%) {
                     $objargs{$a}=$v;
                 }
 
-                ##
                 # Executing object. For speed optimisation we call object's
                 # display method directly if we're not going to do anything
                 # with the text anyway. This way we avoid push/pop and at

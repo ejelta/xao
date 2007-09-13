@@ -54,7 +54,9 @@ use XAO::Objects;
 use base XAO::Objects->load(objname => 'Web::Page');
 
 use vars qw($VERSION);
-$VERSION=(0+sprintf('%u.%03u',(q$Id: SetArg.pm,v 2.1 2005/01/14 01:39:57 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
+$VERSION=(0+sprintf('%u.%03u',(q$Id: SetArg.pm,v 2.2 2007/09/13 00:17:51 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
+
+###############################################################################
 
 ##
 # Setting arguments. Actual merging is done in Page object. We just set
@@ -64,14 +66,18 @@ sub display ($;%) {
     my $self=shift;
     my $args=get_args(\@_);
 
-    my $name=$args->{name} ||
+    my $name=$args->{'name'} ||
         throw XAO::E::DO::Web::SetArg
               "display - pointless without 'name' argument";
 
-    my $value=defined($args->{value}) ? $args->{value} : "on";
-    my $parent=$self->{parent};
-    $parent || $self->throw("display - SetArg is pointless when orphan");
-    $parent->{merge_args}->{$name}=$value if !defined($parent->{args}->{$name}) || $args->{override};
+    my $value=defined($args->{'value'}) ? $args->{'value'} : "on";
+
+    my $parent=$self->{'parent'} ||
+        throw $self 'display - SetArg is pointless when orphan';
+
+    return if defined($parent->{'args'}->{$name}) && !$args->{'override'};
+
+    $parent->{'merge_args'}->{$name}=$value;
 }
 
 ###############################################################################

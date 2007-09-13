@@ -8,6 +8,8 @@ Useful in XAO::Web site context.
 
 =head1 DESCRIPTION
 
+OBSOLETE, TO BE REMOVED. Use <%FS mode='search' ...%> instead.
+
 Accepts the following arguments:
 
 =over
@@ -157,7 +159,7 @@ use XAO::Objects;
 use base XAO::Objects->load(objname => 'Web::Page');
 
 use vars qw($VERSION);
-$VERSION=(0+sprintf('%u.%03u',(q$Id: Search.pm,v 2.1 2005/01/14 01:39:57 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
+$VERSION=(0+sprintf('%u.%03u',(q$Id: Search.pm,v 2.2 2007/09/13 00:17:51 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
 
 ###############################################################################
 sub display ($;%)

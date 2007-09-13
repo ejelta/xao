@@ -4,6 +4,8 @@ use XAO::Projects;
 
 use base qw(XAO::testcases::Web::base);
 
+###############################################################################
+
 sub test_all {
     my $self=shift;
 
@@ -11,44 +13,139 @@ sub test_all {
     $self->assert(ref($page),
                   "Can't load Page object");
 
-    my $template='<%SetArg name="TEST" value="NEW"%><%TEST%><%End%>';
+    my $t1='<%SetArg name="TEST" value="NEW"%><%TEST%><%End%>';
+    my $t2='<%SetArg name="TEST" value="NEW" override%><%TEST%><%End%>';
+    my $t3=<<'EOT';
+<%SetArg
+  name='TEST'
+  value='NEW'
+%>Is<%Condition
+  a.arg='TEST=NEW'
+  a.template='New'
+  b.arg='TEST=OLD'
+  b.template='Old'
+  default.template='Default'
+%><%End%>
+EOT
+    my $t4=<<'EOT';
+<%SetArg
+  name='TEST'
+  value={<%Page template='NEW'%>}
+%>Is<%Condition
+  a.arg='TEST=NEW'
+  a.template='New'
+  b.arg='TEST=OLD'
+  b.template='Old'
+  default.template='Default'
+%><%End%>
+EOT
 
     my %matrix=(
-        t1 => {
-            args => {
-                TEST => 'OLD',
+        simple => {
+            template    => $t1,
+            tests       => {
+                r1 => {
+                    args => {
+                        TEST => 'OLD',
+                    },
+                    result => 'OLD',
+                },
+                r2 => {
+                    args => {
+                    },
+                    result => 'NEW',
+                },
+                r3 => {
+                    args => {
+                        TEST => undef,
+                    },
+                    result => 'NEW',
+                },
             },
-            result => 'OLD',
         },
-        t2 => {
-            args => {
+        with_override => {
+            template    => $t2,
+            tests       => {
+                r1 => {
+                    args => {
+                        TEST => 'OLD',
+                    },
+                    result => 'NEW',
+                },
+                r2 => {
+                    args => {
+                    },
+                    result => 'NEW',
+                },
+                r3 => {
+                    args => {
+                        TEST => undef,
+                    },
+                    result => 'NEW',
+                },
             },
-            result => 'NEW',
         },
-        t3 => {
-            args => {
-                TEST => undef,
+        cond_1 => {
+            template    => $t3,
+            tests       => {
+                r1 => {
+                    args => {
+                        TEST => 'OLD',
+                    },
+                    result => 'IsOld',
+                },
+                r2 => {
+                    args => {
+                    },
+                    result => 'IsNew',
+                },
+                r3 => {
+                    args => {
+                        TEST => undef,
+                    },
+                    result => 'IsNew',
+                },
             },
-            result => 'NEW',
+        },
+        cond_2 => {
+            template    => $t4,
+            tests       => {
+                r1 => {
+                    args => {
+                        TEST => 'OLD',
+                    },
+                    result => 'IsOld',
+                },
+                r2 => {
+                    args => {
+                    },
+                    result => 'IsNew',
+                },
+                r3 => {
+                    args => {
+                        TEST => undef,
+                    },
+                    result => 'IsNew',
+                },
+            },
         },
     );
 
-    foreach my $test (keys %matrix) {
-        my $args=$matrix{$test}->{args};
-        $args->{template}=$template;
-        my $got=$page->expand($args);
-        my $expect=$matrix{$test}->{result};
-        $self->assert($got eq $expect,
-                      "Test $test failed - expected '$expect', got '$got'");
-    }
+    foreach my $phase (keys %matrix) {
+        my $template=$matrix{$phase}->{'template'};
+        my $tests=$matrix{$phase}->{'tests'};
 
-    $template='<%SetArg name="TEST" value="NEW" override%><%TEST%><%End%>';
-    my $got=$page->expand(template => $template,
-                          TEST => 'OLD',
-                         );
-    my $expect='NEW';
-    $self->assert($got eq $expect,
-                  "Test with override failed - expected '$expect', got '$got'");
+        foreach my $test (keys %$tests) {
+            my $args=$tests->{$test}->{'args'};
+            my $got=$page->expand($args,{
+                template    => $template,
+            });
+            my $expect=$tests->{$test}->{'result'};
+            $self->assert($got eq $expect,
+                          "Phase '$phase', test '$test' failed - expected '$expect', got '$got'");
+        }
+    }
 }
 
+###############################################################################
 1;
