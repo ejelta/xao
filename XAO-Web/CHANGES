@@ -1,4 +1,7 @@
-1.08
+1.09
+
+1.08 - 12-Sep-2007
+    * Web::Page -- fixed an old bug preventing SetArg from working sometimes
     * Web::Mailer -- can now send arbitrary attachments
     * Web -- raw URL mapping using path_mapping_table
     * Web::Cookie -- creates cookies as a hash, for easy overrides
