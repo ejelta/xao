@@ -123,6 +123,36 @@ EOT
             },
             result => 'OK',
         },
+        t20 => {
+            args => {
+                template => q(<%Condition a.siteconf='base_url' a.template='OK' default.template='ERR'%>),
+            },
+            result => 'OK',
+        },
+        t21 => {
+            args => {
+                template => q(<%Condition a.siteconfig='/charset' a.template='OK' default.template='ERR'%>),
+            },
+            result => 'OK',
+        },
+        t22 => {
+            args => {
+                template => q(<%Condition a.siteconfig='nothing' a.template='ERR' default.template='OK'%>),
+            },
+            result => 'OK',
+        },
+        t23 => {
+            args => {
+                template => q(<%Condition a.siteconf='base_url=http://xao.com' a.template='OK' default.template='ERR'%>),
+            },
+            result => 'OK',
+        },
+        t24 => {
+            args => {
+                template => q(<%Condition a.siteconfig='/base_url = http://xao.com' a.template='OK' default.template='ERR'%>),
+            },
+            result => 'OK',
+        },
     );
 
     foreach my $test (keys %matrix) {

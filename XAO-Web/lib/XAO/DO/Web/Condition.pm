@@ -84,7 +84,7 @@ use XAO::Objects;
 use base XAO::Objects->load(objname => 'Web::Page');
 
 use vars qw($VERSION);
-$VERSION=(0+sprintf('%u.%03u',(q$Id: Condition.pm,v 2.5 2006/02/17 02:00:18 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
+$VERSION=(0+sprintf('%u.%03u',(q$Id: Condition.pm,v 2.6 2007/10/06 00:01:32 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
 
 sub display ($;%)
 { my $self=shift;
@@ -138,8 +138,16 @@ sub display ($;%)
          }
       }
      elsif($2 eq 'siteconf' || $2 eq 'siteconfig')
-      { if($config->get($args{$a}))
-         { $name=$1;
+      { my $param=$args{$a};
+        my $cname=$1;
+        my $target;
+        if($param =~ /^\s*(.*?)\s*=\s*(.*?)\s*$/)
+         { $param=$1;
+           $target=$2;
+         }
+        my $pvalue=$config->get($param);
+        if(defined $target ? (defined $pvalue && $pvalue eq $target) : ($pvalue))
+         { $name=$cname;
            last;
          }
       }
