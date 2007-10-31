@@ -9,7 +9,7 @@ use File::Copy;
 
 use vars qw($VERSION $REVISION);
 $VERSION='0.05';
-$REVISION='$Id: xao-server,v 1.21 2007/06/14 00:08:55 am Exp $';
+$REVISION='$Id: xao-server,v 1.22 2007/10/31 01:18:08 am Exp $';
 
 sub chld_handler ();
 sub pipe_handler ();
@@ -410,6 +410,20 @@ Placing order into spool. Input data is:
             } else {
                 printsock "0\t$basename\n";
             }
+        }
+
+=head1 prod_group
+
+Dumps a list of product group names.
+
+=cut  
+
+        elsif ($opcode eq 'prod_group') {
+            my $in = open_stream 'prod_group';
+            while(<$in>) {
+                printsock $_;
+            }
+            close($in);
         }
 
 =head1 view_open_order_details
