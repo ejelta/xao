@@ -781,6 +781,30 @@ sub price {
 
 ###############################################################################
 
+=item prod_group
+
+Returns full list of product group codes & names. By default, if no
+'callback' function is provided it will return a reference to an array
+of hash references:
+
+ prod_group     => code
+ name           => product group name
+
+=cut  
+
+sub prod_group {
+    my ($self, $callback) = @_;
+    $self->call( sub {
+        my ($prod_group, $name) = split /\t/, $_[0], -1;
+        return {
+            prod_group      => $prod_group,
+            name            => $name,
+        };
+    }, $callback, 'prod_group');
+}
+
+###############################################################################
+
 =item puser
 
 Returns a list of all users, their authorization levels, branches and
