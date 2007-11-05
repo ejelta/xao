@@ -10,19 +10,25 @@ FOR EACH catalog NO-LOCK:
         v_allocated=0
     .
 
+    /* Counting stock levels manually, not relying on the "0" division for the total
+     * to exclude Mexico divisions
+    */
     FIND FIRST p21.item WHERE item.item_code EQ catalog.item_code NO-LOCK NO-ERROR.
-    IF AVAILABLE(p21.item) THEN DO:
-        FIND FIRST p21.item_status WHERE item_status.item_rec = item.frecno
-                                   AND item_status.loc_id = 0
+    IF AVAILABLE(p21.item) THEN
+        FOR EACH p21.item_status WHERE item_status.item_rec = item.frecno
+                                   AND item_status.loc_id <> 0
+                                   AND item_status.loc_id <> 10
+                                   AND item_status.loc_id <> 13
+                                   AND item_status.loc_id <> 15
+                                   AND item_status.loc_id <> 37
                                    AND (item_status.allocated > 0 OR item_status.free > 0)
-                                   NO-LOCK NO-ERROR.
-        IF AVAILABLE(p21.item_status) THEN
+                                   NO-LOCK:
             ASSIGN
                 v_free=p21.item_status.free
                 v_allocated=p21.item_status.allocated
             .
-        .
-    END.
+        END.
+    .
 
     PUT UNFORMATTED
         catalog.item_code               d_d
