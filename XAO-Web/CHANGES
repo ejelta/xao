@@ -1,4 +1,6 @@
-1.09
+1.09 -
+    * Web -- cleanup() called in site context in process(), not new()
+    * Web -- 'cgi' cannot be passed to new()
 
 1.08 - 12-Sep-2007
     * Web::Page -- fixed an old bug preventing SetArg from working sometimes

@@ -274,7 +274,7 @@ Returns site configuration object reference.
 
 sub config ($) {
     my $self=shift;
-    return $self->{siteconfig} ||
+    return $self->{'siteconfig'} ||
         throw XAO::E::Web "config - no configuration object";
 }
 
@@ -432,11 +432,11 @@ sub expand ($%) {
     my $siteconfig=$self->config;
     if(wantarray) {
         my $header=$siteconfig->header;
-        $siteconfig->cleanup;
+        $siteconfig->cleanup(mode => 'after');
         return ($pagetext,$header);
     }
     else {
-        $siteconfig->cleanup;
+        $siteconfig->cleanup(mode => 'after');
         return $pagetext;
     }
 }
@@ -792,24 +792,11 @@ sub new ($%) {
         );
     }
 
-    ##
-    # Cleaning up the configuration. Useful even if it was just created
-    # as it will unlock tables in the database for instance.
+    # CGI in args is not supported any more, needs to be passed in execute
     #
-    $siteconfig->cleanup;
+    $args->{'cgi'} &&
+        throw XAO::E::Web "new - 'cgi' argument to 'new' is not supported, pass it to 'execute'";
 
-    ##
-    # If we are given a CGI reference then putting it into the
-    # configuration.
-    #
-    if($args->{'cgi'}) {
-        $siteconfig->embedded('web')->enable_special_access;
-        $siteconfig->cgi($args->{cgi});
-        $siteconfig->embedded('web')->disable_special_access;
-    }
-
-
-    ##
     # This helps Mailer to be called outside of web context.
     # TODO: Probably need some better initialization strategy, this does
     # not feel as the Right Thing
@@ -832,7 +819,6 @@ sub new ($%) {
         $siteconfig->put(base_url_secure => $nu);
     }
 
-    ##
     # Done
     #
     bless {
@@ -852,6 +838,13 @@ Sets the current site as the current project in the sense of XAO::Projects.
 sub set_current ($) {
     my $self=shift;
     XAO::Projects::set_current_project($self->sitename);
+
+    # Cleaning up the configuration. Useful even if it was just created
+    # as it will unlock tables in the database for instance.
+    # We call it here because cleanup code may rely on the project being
+    # active.
+    #
+    $self->config->cleanup(mode => 'before');
 }
 
 ###############################################################################
@@ -864,7 +857,7 @@ Returns site name.
 
 sub sitename ($) {
     my $self=shift;
-    $self->{sitename} || throw XAO::E::Web "sitename - no site name";
+    $self->{'sitename'} || throw XAO::E::Web "sitename - no site name";
 }
 
 ###############################################################################
