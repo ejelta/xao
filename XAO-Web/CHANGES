@@ -1,4 +1,6 @@
-1.09 -
+1.10 -
+
+1.09 - 15-Nov-2007
     * Web -- cleanup() called in site context in process(), not new()
     * Web -- 'cgi' cannot be passed to new()
 
