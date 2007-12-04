@@ -296,7 +296,6 @@ sub execute ($%) {
     my $self=shift;
     my $args=get_args(\@_);
 
-    ##
     # We check if the site has a mapping for '/internal-error' in
     # path_mapping_table. If it has we wrap expand() into the try block
     # and execute /internal-error if we get an error.
@@ -348,7 +347,6 @@ sub execute ($%) {
         }
     };
 
-    ##
     # If we get the header then it was not printed before and we are
     # expected to print out the page. This is almost always true except
     # when page includes something like Redirect object.
@@ -406,15 +404,14 @@ sub expand ($%) {
     my $self=shift;
     my $args=get_args(\@_);
 
-    ##
     # Processing the page and getting its text. Setting dprint and
     # eprint to use Apache logging if there is a reference to Apache
     # request given to us.
     #
     my $pagetext;
-    if($args->{apache}) {
+    if($args->{'apache'}) {
         my $old_logprint_handler=XAO::Utils::set_logprint_handler(sub {
-            $args->{apache}->server->warn($_[0]);
+            $args->{'apache'}->server->warn($_[0]);
         });
 
         $pagetext=$self->process($args);
@@ -425,7 +422,6 @@ sub expand ($%) {
         $pagetext=$self->process($args);
     }
 
-    ##
     # In scalar context (normal cases) we return only the resulting page
     # text. In array context (compatibility) we return header as well.
     #
@@ -462,7 +458,7 @@ sub process ($%) {
     ##
     # Making sure path starts from a slash
     #
-    my $path=$args->{path} || throw XAO::E::Web "expand - no 'path' given";
+    my $path=$args->{'path'} || throw XAO::E::Web "expand - no 'path' given";
     $path='/' . $path;
     $path=~s/\/{2,}/\//g;
 
@@ -595,7 +591,7 @@ sub process ($%) {
     ##
     # Checking if we're running under mod_perl
     #
-    my $mod_perl=($apache || $ENV{MOD_PERL}) ? 1 : 0;
+    my $mod_perl=($apache || $ENV{'MOD_PERL'}) ? 1 : 0;
     $siteconfig->clipboard->put(mod_perl => $mod_perl);
     $siteconfig->clipboard->put(mod_perl_request => $apache);
 
