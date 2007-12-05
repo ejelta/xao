@@ -285,10 +285,11 @@ sub config ($) {
 Executes given `path' using given `cgi' environment. Prints results to
 standard output and uses CGI object methods to send header.
 
-B<Note:> Execute() is not re-entry safe currently! Meaning that if you
-create a XAO::Web object in any method called inside of execute() loop
-and then call execute() on that newly created XAO::Web object the system
-will fail and no useful results will be produced.
+B<Note:> Execute() changes global projects context and is not re-entry safe
+currently! Meaning that if you create a XAO::Web object in any method
+called inside of execute() loop and then call execute() on that newly
+created XAO::Web object the system will fail and no useful results will
+be produced.
 
 =cut
 
@@ -296,13 +297,26 @@ sub execute ($%) {
     my $self=shift;
     my $args=get_args(\@_);
 
+    # Setting dprint/eprint to Apache methods if needed
+    #
+    my $old_logprint_handler;
+    if($args->{'apache'}) {
+        $old_logprint_handler=XAO::Utils::set_logprint_handler(sub {
+            $args->{'apache'}->server->warn($_[0]);
+        });
+    }
+
+    # Setting the current project context to our site.
+    #
+    $self->set_current();
+
     # We check if the site has a mapping for '/internal-error' in
-    # path_mapping_table. If it has we wrap expand() into the try block
+    # path_mapping_table. If it has we wrap process() into the try block
     # and execute /internal-error if we get an error.
     #
-    my ($pagetext,$header);
+    my $pagetext;
     try {
-        ($pagetext,$header)=$self->expand($args);
+        $pagetext=$self->process($args);
     }
     otherwise {
         my $e=shift;
@@ -336,34 +350,47 @@ sub execute ($%) {
 
             $self->clipboard->put(internal_error => $edata);
 
-            ($pagetext,$header)=$self->expand($args,{
+            $pagetext=$self->process($args,{
                 path        => $path,
                 template    => undef,
                 pagedesc    => $pd,
             });
         }
         else {
+            XAO::Utils::set_logprint_handler($old_logprint_handler) if $old_logprint_handler;
             throw $e;
         }
     };
+
+    # We need to call "header" for CGI to do its magic on it. We
+    # typically will get an empty string in mod_perl environment, and the
+    # header will be sent to Apache by CGI.
+    #
+    my $header=$self->config->header;
 
     # If we get the header then it was not printed before and we are
     # expected to print out the page. This is almost always true except
     # when page includes something like Redirect object.
     #
-    if(defined($header)) {
+    if(defined $header) {
         if(my $r=$args->{'apache'}) {
             my $h=$self->config->header_args;
-            while(my ($n,$v)=each %$h) {
-                $r->header_out($n => $v);
-                $r->err_header_out($n => $v);
-            }
+
             if($mod_perl::VERSION && $mod_perl::VERSION >= 1.99) {
+                while(my ($n,$v)=each %$h) {
+                    $r->headers_out->set($n => $v);
+                    $r->err_headers_out->set($n => $v);
+                }
                 $r->content_type('text/html') unless $r->content_type;
             }
             else {
+                while(my ($n,$v)=each %$h) {
+                    $r->header_out($n => $v);
+                    $r->err_header_out($n => $v);
+                }
                 $r->send_http_header;
             }
+
             $r->print($pagetext) unless $r->header_only;
         }
         else {
@@ -371,6 +398,14 @@ sub execute ($%) {
                   $pagetext;
         }
     }
+
+    # Cleaning up site configuration
+    #
+    $self->config->cleanup(mode => 'after');
+
+    # Restoring the default dprint/eprint handling
+    #
+    XAO::Utils::set_logprint_handler($old_logprint_handler) if $old_logprint_handler;
 }
 
 ###############################################################################
@@ -382,19 +417,22 @@ just the text of the page in scalar context and page content plus header
 content in array context.
 
 This is normally used in scripts to execute only a particular template
-and get results of execution.
+and to get results of execution. BUT this code is also used as part of
+the normal execute().
 
 `Objargs' argument may refer to a hash of additional parameters to be
 passed to the template being executed.
 
 Example:
 
- my $report=$web->expand(cgi     => XAO::Objects->new(objname => 'CGI'),
-                         path    => '/bits/stat-report',
-                         objargs => {
-                             CUSTOMER_ID => '123X234Z',
-                             MIN_TIME    => time - 86400 * 7,
-                         });
+ my $report=$web->expand(
+     cgi     => XAO::Objects->new(objname => 'CGI'),
+     path    => '/bits/stat-report',
+     objargs => {
+         CUSTOMER_ID => '123X234Z',
+         MIN_TIME    => time - 86400 * 7,
+     },
+ );
 
 See also lower level process() method.
 
@@ -404,35 +442,25 @@ sub expand ($%) {
     my $self=shift;
     my $args=get_args(\@_);
 
+    $self->set_current;
+
     # Processing the page and getting its text. Setting dprint and
     # eprint to use Apache logging if there is a reference to Apache
     # request given to us.
     #
-    my $pagetext;
-    if($args->{'apache'}) {
-        my $old_logprint_handler=XAO::Utils::set_logprint_handler(sub {
-            $args->{'apache'}->server->warn($_[0]);
-        });
-
-        $pagetext=$self->process($args);
-
-        XAO::Utils::set_logprint_handler($old_logprint_handler);
-    }
-    else {
-        $pagetext=$self->process($args);
-    }
+    my $pagetext=$self->process($args);
 
     # In scalar context (normal cases) we return only the resulting page
     # text. In array context (compatibility) we return header as well.
     #
-    my $siteconfig=$self->config;
     if(wantarray) {
-        my $header=$siteconfig->header;
-        $siteconfig->cleanup(mode => 'after');
+        eprint "Calling ".ref($self)."::expand in ARRAY context is obsolete";
+        my $header=$self->config->header;
+        $self->config->cleanup(mode => 'after');
         return ($pagetext,$header);
     }
     else {
-        $siteconfig->cleanup(mode => 'after');
+        $self->config->cleanup(mode => 'after');
         return $pagetext;
     }
 }
@@ -455,25 +483,17 @@ sub process ($%) {
     my $siteconfig=$self->config;
     my $sitename=$self->sitename;
 
-    ##
     # Making sure path starts from a slash
     #
-    my $path=$args->{'path'} || throw XAO::E::Web "expand - no 'path' given";
+    my $path=$args->{'path'} || throw XAO::E::Web "process - no 'path' given";
     $path='/' . $path;
     $path=~s/\/{2,}/\//g;
 
-    ##
-    # Setting the current project context to our site.
-    #
-    $self->set_current();
-
-    ##
     # Resetting page text stack in case it was terminated abnormally
     # before and we're in the same process/memory.
     #
     XAO::PageSupport::reset();
 
-    ##
     # Analyzing the path. We have to do that up here because the object
     # might specify that we should not touch CGI.
     #
@@ -485,7 +505,6 @@ sub process ($%) {
         $pd=$self->analyze(\@path);
     }
 
-    ##
     # Figuring out current active URL. It might be the same as base_url
     # and in most cases it is, but it just as well might be different.
     #
@@ -524,7 +543,6 @@ sub process ($%) {
             # dprint "<2.8 $active_url";
         }
 
-        ##
         # Trying to understand if rewrite module was used or not. If not
         # - adding sitename to the end of guessed URL.
         #
@@ -533,13 +551,11 @@ sub process ($%) {
         }
     }
 
-    ##
     # Eating extra slashes
     #
     chop($active_url) while $active_url =~ /\/$/;
     $active_url=~s/(?<!:)\/\//\//g;
 
-    ##
     # Figuring out secure URL
     #
     my $active_url_secure;
@@ -568,7 +584,7 @@ sub process ($%) {
     if($siteconfig->defined('base_url')) {
         my $url=$siteconfig->get('base_url');
         $url=~/^http:/i ||
-            throw XAO::E::Web "expand - bad base_url ($url) for sitename=$sitename";
+            throw XAO::E::Web "process - bad base_url ($url) for sitename=$sitename";
         my $nu=$url;
         chop($nu) while $nu =~ /\/$/;
         $siteconfig->put(base_url => $nu) if $nu ne $url;
@@ -707,7 +723,6 @@ sub process ($%) {
         }
     }
 
-    ##
     # Preparing object arguments out of standard ones, object specific
     # once from template paths and supplied hash (in that order of
     # preference).
@@ -719,13 +734,11 @@ sub process ($%) {
     };
     $objargs=merge_refs($objargs,$pd->{'objargs'},$args->{'objargs'});
 
-    ##
     # Loading page displaying object and executing it.
     #
     my $obj=XAO::Objects->new(objname => 'Web::' . $pd->{'objname'});
     $pagetext.=$obj->expand($objargs);
 
-    ##
     # Done!
     #
     return $pagetext;
@@ -833,6 +846,7 @@ Sets the current site as the current project in the sense of XAO::Projects.
 
 sub set_current ($) {
     my $self=shift;
+
     XAO::Projects::set_current_project($self->sitename);
 
     # Cleaning up the configuration. Useful even if it was just created

@@ -45,7 +45,7 @@ sub new ($@);
 # Package version for checks and reference
 #
 use vars qw($VERSION);
-$VERSION=(0+sprintf('%u.%03u',(q$Id: Config.pm,v 2.3 2006/01/20 22:40:29 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
+$VERSION=(0+sprintf('%u.%03u',(q$Id: Config.pm,v 2.4 2007/12/05 23:49:21 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
 
 ###############################################################################
 
@@ -287,12 +287,19 @@ a session before sending out session results.
 
 sub header ($@) {
     my $self=shift;
-    return undef if $self->{header_printed};
+    return undef if $self->{'header_printed'};
     $self->header_args(@_) if @_;
-    $self->{header_printed}=1;
+    $self->{'header_printed'}=1;
     $self->cgi->header(%{merge_refs( { -cookie => $self->cookies },
-                                     $self->{header_args})
+                                     $self->{'header_args'})
                         });
+}
+
+###############################################################################
+
+sub header_printed ($) {
+    my $self=shift;
+    return $self->{'header_printed'};
 }
 
 ###############################################################################
