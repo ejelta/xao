@@ -97,12 +97,12 @@ sub do_test {
             name        => 147,
         },
         t03 => {
-            query       => '"gglassy hipotesis" "A idsplay calls"',
+            query       => '"gglassy hipotesis" "A dsplay calls"',
             name        => '',
             speller     => {
                 gglassy         => 'glassy',
                 hipotesis       => 'hypothesis',
-                idsplay         => 'display',
+                dsplay          => 'display',
                 calls           => 'calls',
             },
             speller_query => '"glassy hypothesis" "A display calls"',
