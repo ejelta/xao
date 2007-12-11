@@ -689,7 +689,17 @@ sub scale_file ($$$$;$) {
     #
     $image->Set(colorspace => 'RGB');
 
+    # Scaling
+    #
     $image->Scale(geometry => $geometry);
+
+    # Stripping embedded profiles & comments. They sometimes take
+    # upwards of 500kb
+    #
+    $image->Strip;
+
+    # Writing the results
+    #
     $image->Set(quality => ($params->{'quality'} || 88));
     $image->Write($outfile);
 

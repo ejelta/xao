@@ -107,7 +107,7 @@ WriteMakefile(
         'Date::Manip'   => undef,
 	    'XAO::FS'	    => '1.01',
         'Test::Unit'    => '0.14',
-	    'Image::Magick' => '5.2.4',
+	    'Image::Magick' => '6.3.0',
 	    'LWP'		    => '5.63',
     },
     'MAN3PODS'      => \%man3pods,
