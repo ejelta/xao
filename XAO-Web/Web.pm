@@ -853,7 +853,6 @@ sub check_uri_access ($$) {
         },$self->config->get('path_deny_table') || { });
         $pdtc=[ map { qr/$_/ } grep { $pdt->{$_} } keys %$pdt ];
         $self->config->put('path_deny_table_compiled' => $pdtc);
-        dprint join("\n",@$pdtc);
     }
 
     return ! grep { $uri =~ $_ } @$pdtc;
