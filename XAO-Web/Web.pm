@@ -838,6 +838,29 @@ sub new ($%) {
 
 ###############################################################################
 
+sub check_uri_access ($$) {
+    my ($self,$uri)=@_;
+
+    # By convention we disallow access to /bits/ and /CVS/ for security
+    # reasons. If needed the site can override these or add other
+    # regex'es into path_deny_table
+    #
+    my $pdtc=$self->config->get('path_deny_table_compiled');
+    if(!$pdtc) {
+        my $pdt=merge_refs({
+            '/bits/'        => 1,
+            '/CVS/'         => 1,
+        },$self->config->get('path_deny_table') || { });
+        $pdtc=[ map { qr/$_/ } grep { $pdt->{$_} } keys %$pdt ];
+        $self->config->put('path_deny_table_compiled' => $pdtc);
+        dprint join("\n",@$pdtc);
+    }
+
+    return ! grep { $uri =~ $_ } @$pdtc;
+}
+
+###############################################################################
+
 =item set_current ()
 
 Sets the current site as the current project in the sense of XAO::Projects.

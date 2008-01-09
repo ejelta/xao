@@ -1,4 +1,5 @@
 1.10 -
+    * Web -- formalized deny masks and added /CVS/ to default
 
 1.09 - 15-Nov-2007
     * Web -- cleanup() called in site context in process(), not new()

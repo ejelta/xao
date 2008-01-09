@@ -96,7 +96,7 @@ use XAO::Web;
 ###############################################################################
 
 use vars qw($VERSION);
-$VERSION=(0+sprintf('%u.%03u',(q$Id: XAO.pm,v 2.6 2006/07/30 06:47:35 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
+$VERSION=(0+sprintf('%u.%03u',(q$Id: XAO.pm,v 2.7 2008/01/09 03:30:51 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
 
 use vars qw($MP2);
 
@@ -167,14 +167,6 @@ EOT
     }
 
     ##
-    # By convention we disallow access to /bits/ for security reasons.
-    #
-    if(index($uri,'/bits/')>=0) {
-        ### $r->server->log_error("Attempt of direct access to /bits/ ($uri)");
-        return NOT_FOUND;
-    }
-
-    ##
     # Getting site name and loading the site configuration
     #
     my $sitename=$r->dir_config('sitename') || $r->dir_config('SiteName');
@@ -186,6 +178,13 @@ EOT
     }
     my $web=XAO::Web->new(sitename => $sitename);
 
+    # Checking access rules
+    #
+    if(!$web->check_uri_access($uri)) {
+        $r->server->log_error("Access denied to $uri, see path_deny_table (/CVS/ and /bits/ are denied by default)");
+        return NOT_FOUND;
+    }
+
     ##
     # Checking if we need to worry about ExtFilesMap or ExtFiles in the
     # apache config.
@@ -193,7 +192,6 @@ EOT
     my $efm=$r->dir_config('ExtFilesMap') || '';
     my $ef=$r->dir_config('ExtFiles') || '';
     if($efm || $ef) {
-        my $config=$web->config;
         my $pmt=$config->get('path_mapping_table');
         my $pmt_orig=$pmt;
         foreach my $path (split(/:+/,$efm)) {

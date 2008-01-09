@@ -38,25 +38,22 @@ try {
     my @path=split('/+','/'.$path_info);
     shift @path;
     my $sitename=shift @path;
-    $sitename || throw XAO::E::Handler "No site name given!";
+    $sitename || throw XAO::E::Handler "xao-apache.pl - no site name found";
     push @path,'' if $path_info=~/\/$/;
 
-    ##
-    # This is not a very good way to check it here, should be more
-    # flexible I guess.
-    #
-    throw XAO::E::Handler "Bad file path" if grep(/^bits$/,@path);
-
-    ##
     # Loading or creating site object.
     #
-    my $site=XAO::Web->new(sitename => $sitename);
+    my $web=XAO::Web->new(sitename => $sitename);
   
-    ##
+    # Checking access control rules (path_deny_table in the config)
+    #
+    my $path=join('/','',@path);
+    $web->check_uri_access($path) ||
+        throw XAO::E::Handler "xao-apache.pl - access denied to file path '$path'";
+
     # Executing.
     #
-    my $path=join('/','/',@path);
-    $site->execute(
+    $web->execute(
         path    => $path,
     );
 }
