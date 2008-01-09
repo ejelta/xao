@@ -96,7 +96,7 @@ use XAO::Web;
 ###############################################################################
 
 use vars qw($VERSION);
-$VERSION=(0+sprintf('%u.%03u',(q$Id: XAO.pm,v 2.7 2008/01/09 03:30:51 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
+$VERSION=(0+sprintf('%u.%03u',(q$Id: XAO.pm,v 2.8 2008/01/09 03:40:12 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
 
 use vars qw($MP2);
 
@@ -192,6 +192,7 @@ EOT
     my $efm=$r->dir_config('ExtFilesMap') || '';
     my $ef=$r->dir_config('ExtFiles') || '';
     if($efm || $ef) {
+        my $config=$web->config;
         my $pmt=$config->get('path_mapping_table');
         my $pmt_orig=$pmt;
         foreach my $path (split(/:+/,$efm)) {
