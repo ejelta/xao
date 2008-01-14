@@ -24,8 +24,8 @@ FOR EACH catalog NO-LOCK:
                                    AND (item_status.allocated > 0 OR item_status.free > 0)
                                    NO-LOCK:
             ASSIGN
-                v_free=p21.item_status.free
-                v_allocated=p21.item_status.allocated
+                v_free=(v_free + p21.item_status.free)
+                v_allocated=(v_free + p21.item_status.allocated)
             .
         END.
     .
