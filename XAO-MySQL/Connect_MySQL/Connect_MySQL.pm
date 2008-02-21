@@ -22,7 +22,7 @@ use base (
 );
 
 use vars qw($VERSION);
-$VERSION=(0+sprintf('%u.%03u',(q$Id: Connect_MySQL.pm,v 1.1 2007/05/10 05:58:18 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
+$VERSION=(0+sprintf('%u.%03u',(q$Id: Connect_MySQL.pm,v 1.2 2008/02/21 21:42:34 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
 
 bootstrap XAO::DO::FS::Glue::Connect_MySQL $VERSION;
 
@@ -32,27 +32,63 @@ sub sql_connect ($%) {
     my $self=shift;
     my $args=get_args(\@_);
 
-    my $dsn=$args->{'dsn'} ||
+    if(%$args) {
+        $self->{'dsn'}=$args->{'dsn'} || throw $self "sql_connect - no 'dsn' given";
+        $self->{'user'}=$args->{'user'};
+        $self->{'password'}=$args->{'password'};
+    }
+
+    my $dsn=$self->{'dsn'} ||
         throw $self "sql_connect - no 'dsn' given";
+
     $dsn=~m/^dbi:mysql:(database=)?(\w+)(;hostname=(.*?)(;|$))?/i ||
         throw $self "sql_connect - wrong DSN format ($dsn)";
-    my $dbname=$2 . "\0";
+
+    my $dbname=$2;
     my $hostname=$3 ? $4 : '';
-    $hostname.="\0";
-    my $user=defined($args->{user}) ? $args->{user} : '';
-    $user.="\0";
-    my $password=defined($args->{password}) ? $args->{password} : '';
-    $password.="\0";
+    my $user=defined($self->{'user'}) ? $self->{'user'} : '';
+    my $password=defined($self->{'password'}) ? $self->{'password'} : '';
 
-    ##
-    # Perl complains about passing undefs into the sub which is ok and
-    # expected in this case.
-    #
-    my $db=sql_real_connect($hostname,$user,$password,$dbname) ||
-        throw $self "sql_connect - can't connect to the database ($dsn)";
+    ### dprint "CONNECT: dbname='$dbname', hostname='$hostname', user='$user', password='$password'";
 
+    my $db=sql_real_connect(
+        $hostname."\0",
+        $user."\0",
+        $password."\0",
+        $dbname."\0",
+    ) || throw $self "sql_connect - can't connect to the database ($dsn)";
+
+    ### dprint "CONNECT: db=$db";
     $self->{'sql'}=$db;
 }
+
+###############################################################################
+
+=item sql_connected ()
+
+Checks and returns true if the database connection is currently
+established.
+
+=cut
+
+sub sql_connected ($) {
+    my $self=shift;
+    ### dprint "Sql_connected: ".join('|',caller(1));
+
+    return undef unless $self->{'sql'};
+
+    return sql_real_do($self,'select 1',[ ]) ? 0 : 1;
+}
+
+###############################################################################
+
+=item sql_disconnect ()
+
+Closes connection to the database.
+
+=cut
+
+# Implemented in .xs
 
 ###############################################################################
 
