@@ -6,20 +6,6 @@ use Error qw(:try);
 
 use base qw(XAO::testcases::FS::base);
 
-##
-# MySQL is noisy about mistakes that we expect. So we hide DBD
-# messages.
-#
-use vars qw(*SE);
-sub stderr_stop {
-    open(SE,">&STDERR");
-    open(STDERR,">/dev/null");
-}
-sub stderr_restore {
-    open(STDERR,">&SE");
-    close(SE);
-}
-
 sub test_space_stripping {
     my $self=shift;
 
@@ -384,14 +370,18 @@ sub test_unique {
         $self->assert($c1->get('uf') == 1,
                       "Wrong value in the unique field of the first object (1)");
         my $mistake;
-        stderr_stop();
+
+        # MySQL is noisy about mistakes that we expect. So we hide DBD
+        # messages.
+        #
+        $self->stderr_stop();
         try {
             $list->put(u2 => $c);
             $mistake=1;
         } otherwise {
             $mistake=0;
         };
-        stderr_restore();
+        $self->stderr_restore();
         $self->assert(! $mistake,
                 "Succeded in putting the same object twice, 'unique' does not work");
 
@@ -407,14 +397,14 @@ sub test_unique {
         $self->assert($c2->get('uf') == 3,
                       "Wrong value in the unique field of the first object (3)");
 
-        stderr_stop();
+        $self->stderr_stop();
         try {
             $c1->put(uf => 3);
             $mistake=1;
         } otherwise {
             $mistake=0;
         };
-        stderr_restore();
+        $self->stderr_restore();
         $self->assert(! $mistake,
                       "Succeded in storing two equal values into unique field");
         $self->assert($c1->get('uf') == 1,
@@ -461,7 +451,7 @@ sub test_unique_2 {
         my $c2list=$c2->get('Orders');
 
         my $mistake;
-        stderr_stop();
+        $self->stderr_stop();
         try {
             $c1list->put(o1 => $order);
             $c2list->put(o1 => $order);
@@ -470,11 +460,11 @@ sub test_unique_2 {
         otherwise {
             $mistake=1;
         };
-        stderr_restore();
+        $self->stderr_restore();
         $self->assert(! $mistake,
             "Can't put the same object into two different parents' lists");
 
-        stderr_stop();
+        $self->stderr_stop();
         try {
             $c1list->put(o2 => $order);
             $mistake=1;
@@ -482,21 +472,21 @@ sub test_unique_2 {
         otherwise {
             $mistake=0;
         };
-        stderr_restore();
+        $self->stderr_restore();
         $self->assert(! $mistake,
             "Put the same object twice (type=$type), 'unique' does not work on the second level");
 
         $order->put(foo => 2);
         $c2list->put(o2 => $order);
 
-        stderr_stop();
+        $self->stderr_stop();
         try {
             $c2list->put(o1 => $order);
             $mistake=1;
         } otherwise {
             $mistake=0;
         };
-        stderr_restore();
+        $self->stderr_restore();
         $self->assert(! $mistake,
             "Put the same object twice (type=$type), replacement");
 

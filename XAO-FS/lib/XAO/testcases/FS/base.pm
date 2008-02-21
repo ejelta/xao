@@ -90,4 +90,15 @@ sub timediff ($$$) {
     $t1-$t2;
 }
 
+use vars qw(*SE);
+sub stderr_stop {
+    open(SE,">&STDERR");
+    open(STDERR,">/dev/null");
+}
+
+sub stderr_restore {
+    open(STDERR,">&SE");
+    close(SE);
+}
+
 1;

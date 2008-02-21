@@ -6,6 +6,30 @@ use Error qw(:try);
 
 use base qw(XAO::testcases::FS::base);
 
+sub test_reset {
+    my $self=shift;
+
+    my $odb=$self->{'odb'};
+
+    my $g=$odb->fetch('/');
+    
+    $g->put(project => 'test');
+
+    # This is not normally used!
+    $g->_driver->disconnect;
+
+    $self->assert(! $g->_driver->connector->sql_connected,
+        "Database is still connected after the disconnect");
+
+    $g->reset;
+
+    $self->assert($g->_driver->connector->sql_connected,
+        "Database is NOT connected after reset()");
+
+    $self->assert($g->get('project') eq 'test',
+        "Value is not the same as stored");
+}
+
 sub test_xaofs {
     my $self=shift;
 

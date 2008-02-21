@@ -42,7 +42,7 @@ use XAO::Errors qw(XAO::DO::FS::Config);
 ##
 # Prototypes
 #
-sub cleanup ($);
+sub cleanup ($;@);
 sub disable_special_access ($);
 sub embeddable_methods ($);
 sub enable_special_access ($);
@@ -53,7 +53,7 @@ sub odb ($;$);
 # Package version for checks and reference
 #
 use vars qw($VERSION);
-$VERSION=(0+sprintf('%u.%03u',(q$Id: Config.pm,v 2.1 2005/01/14 00:23:54 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
+$VERSION=(0+sprintf('%u.%03u',(q$Id: Config.pm,v 2.2 2008/02/21 02:22:15 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
 
 ###############################################################################
 
@@ -72,9 +72,9 @@ for the next session.
 
 =cut
 
-sub cleanup ($) {
+sub cleanup ($;@) {
     my $self=shift;
-    $self->{odb}->reset if $self->{odb};
+    $self->{'odb'}->reset(@_) if $self->{'odb'};
 }
 
 ###############################################################################

@@ -37,7 +37,7 @@ use DBI;
 use base XAO::Objects->load(objname => 'FS::Glue::Connect_SQL');
 
 use vars qw($VERSION);
-$VERSION=(0+sprintf('%u.%03u',(q$Id: Connect_DBI.pm,v 2.1 2007/05/09 21:03:09 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
+$VERSION=(0+sprintf('%u.%03u',(q$Id: Connect_DBI.pm,v 2.2 2008/02/21 02:22:15 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
 
 ###############################################################################
 
@@ -55,20 +55,47 @@ sub sql_connect ($%) {
     my $self=shift;
     my $args=get_args(\@_);
 
-    my $dsn=$args->{'dsn'} ||
-        throw $self "sql_connect - no 'dsn' given";
+    if(%$args) {
+        $self->{'dsn'}=$args->{'dsn'} || throw $self "sql_connect - no 'dsn' given";
+        $self->{'user'}=$args->{'user'};
+        $self->{'password'}=$args->{'password'};
+    }
 
-    $self->{'sql'}=DBI->connect($dsn,$args->{'user'},$args->{'password'}) ||
-        throw $self "sql_connect - can't connect to dsn='$dsn'";
+    $self->{'sql'}=DBI->connect(
+        $self->{'dsn'},
+        $self->{'user'},
+        $self->{'password'},
+    ) || throw $self "sql_connect - can't connect to dsn='$self->{'dsn'}'";
 }
 
 ###############################################################################
 
 =item sql_connected ()
 
-Returns true if the database connection is currently established.
+Checks and returns true if the database connection is currently
+established.
 
 =cut
+
+sub sql_connected ($) {
+    my $self=shift;
+    ### dprint "Sql_connected: ".join('|',caller(1));
+
+    return undef unless $self->{'sql'};
+
+    # MySQL seems to send error messages directly to stderr. Hiding them
+    #
+    use vars qw(*SE);
+    open(SE,">&STDERR");
+    open(STDERR,">/dev/null");
+
+    my $rc=eval { $self->{'sql'}->do('select 1') };
+
+    open(STDERR,">&SE");
+    close(SE);
+
+    return $rc ? 1 : 0;
+}
 
 ###############################################################################
 

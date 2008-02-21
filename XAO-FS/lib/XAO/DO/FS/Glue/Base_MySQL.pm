@@ -27,7 +27,7 @@ use XAO::Objects;
 use base XAO::Objects->load(objname => 'FS::Glue::Base');
 
 use vars qw($VERSION);
-$VERSION=(0+sprintf('%u.%03u',(q$Id: Base_MySQL.pm,v 2.5 2007/05/11 03:46:11 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
+$VERSION=(0+sprintf('%u.%03u',(q$Id: Base_MySQL.pm,v 2.6 2008/02/21 02:22:15 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
 
 ###############################################################################
 
@@ -1127,17 +1127,24 @@ sub mangle_field_name ($$) {
 =item reset ()
 
 Brings driver to usable state. Unlocks tables if they were somehow left
-in locked state.
+in locked state. Reconnects to the database if the connection expired.
 
 =cut
 
 sub reset () {
     my $self=shift;
-    if($self->{'table_type'} eq 'innodb') {
-        $self->tr_loc_rollback();
+
+    if($self->connector->sql_connected) {
+        if($self->{'table_type'} eq 'innodb') {
+            $self->tr_loc_rollback();
+        }
+        else {
+            $self->unlock_tables();
+        }
     }
-    else {
-        $self->unlock_tables();
+    else {  # no point unlocking tables if we just reconnected
+        dprint "Database connection expired, re-connecting";
+        $self->connector->sql_connect;
     }
 }
 
@@ -1610,7 +1617,7 @@ sub lock_tables ($@) {
 
 sub unlock_tables ($) {
     my $self=shift;
-    return unless $self->connector->sql_connected;
+    ### return unless $self->connector->sql_connected;
     ### dprint "unlock_tables: caller=".((caller(1))[3])." sql=$sql";
     $self->connector->sql_do_no_error('UNLOCK TABLES');
 }

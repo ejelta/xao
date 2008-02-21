@@ -51,7 +51,7 @@ use XAO::Objects;
 use base XAO::Objects->load(objname => 'Atom');
 
 use vars qw($VERSION);
-$VERSION=(0+sprintf('%u.%03u',(q$Id: Glue.pm,v 2.15 2007/05/26 03:05:27 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
+$VERSION=(0+sprintf('%u.%03u',(q$Id: Glue.pm,v 2.16 2008/02/21 02:22:15 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
 
 ###############################################################################
 
@@ -133,10 +133,12 @@ sub new ($%) {
         $dsn=~/^OS:(\w+):\w+(;.*)?$/ || $self->throw("new - bad format of 'dsn' ($dsn)");
         my $drvname='FS::Glue::' . $1;
 
-        my $driver=XAO::Objects->new(objname  => $drvname,
-                                     dsn      => $dsn,
-                                     user     => $user,
-                                     password => $password);
+        my $driver=XAO::Objects->new(
+            objname  => $drvname,
+            dsn      => $dsn,
+            user     => $user,
+            password => $password,
+        );
         $$self->{'driver'}=$driver;
 
         ##
@@ -420,19 +422,20 @@ sub objtype ($) {
 =item reset ()
 
 Useful to bring glue to a usable state after some unknown software used
-it. If there is an active transaction -- it will be rolled back, if
-there are locked tables -- they will be unlocked.
+it. If the connection went down it is reconnected. If there is an active
+transaction -- it will be rolled back, if there are locked tables --
+they will be unlocked.
 
 =cut
 
 sub reset ($) {
     my $self=shift;
 
+    $self->_driver->reset;
+
     if($self->transact_active) {
         $self->transact_rollback;
     }
-
-    $self->_driver->reset;
 }
 
 ###############################################################################
