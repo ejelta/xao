@@ -15,6 +15,9 @@ sub test_reset {
     
     $g->put(project => 'test');
 
+    $self->assert($g->_driver->connector->sql_connected,
+        "Database is NOT connected before reset");
+
     # This is not normally used!
     $g->_driver->disconnect;
 
@@ -28,6 +31,16 @@ sub test_reset {
 
     $self->assert($g->get('project') eq 'test',
         "Value is not the same as stored");
+
+    # Checking the reset from a non-disconnected state
+    #
+    $g->reset;
+
+    $self->assert($g->_driver->connector->sql_connected,
+        "Database is NOT connected after reset() (connected)");
+
+    $self->assert($g->get('project') eq 'test',
+        "Value is not the same as stored after reset() (connected)");
 }
 
 sub test_xaofs {
