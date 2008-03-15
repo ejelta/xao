@@ -185,7 +185,7 @@ use XAO::Objects;
 use base XAO::Objects->load(objname => 'Web::Action');
 
 use vars qw($VERSION);
-$VERSION=(0+sprintf('%u.%03u',(q$Id: FS.pm,v 2.3 2005/11/28 07:26:53 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
+$VERSION=(0+sprintf('%u.%03u',(q$Id: FS.pm,v 2.4 2008/03/15 02:59:06 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
 
 ###############################################################################
 
@@ -555,11 +555,14 @@ sub search ($;%) {
 
     my $last_item_idx  = $#{$ra_all_ids};
     my $total          = scalar(@$ra_all_ids);
-    my $items_per_page = int($args->{items_per_page} || -1);
-    $items_per_page    = '' if $items_per_page < 1; # show all items in page
+    my $items_per_page = int($args->{'items_per_page'} || 0);
+    $items_per_page    = 0 if $items_per_page < 1; # show all items in page
+    $items_per_page    = 10 if $items_per_page>10000;
     my $start_item     = int($args->{start_item} || 1);
     $start_item        = 1 if $start_item < 1;
     my $limit_reached  = $items_per_page && $total>$items_per_page;
+
+    $start_item=0 if $start_item>1000000000;    # avoiding perl's "panic: memory wrap"
 
     my $ra_ids;
     if ($items_per_page) {
