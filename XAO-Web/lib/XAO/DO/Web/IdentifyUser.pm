@@ -87,6 +87,7 @@ $config hash with all required parameters is presented below:
                                             # default is 10 years
     id_cookie_type      => 'name',          # optional, see below
     user_prop           => 'email',         # optional, see below    
+    alt_user_prop       => 'logname',       # optional, see below
     pass_prop           => 'password', 
     pass_encrypt        =>  'md5',          # optional, see below
     vf_key_prop         => 'verify_key',    # optional, see below 
@@ -141,6 +142,12 @@ member object, then the following might be used:
 
 See below for how to access deeper objects and ids (the object in
 'Nicknames' list in that case).
+
+=item alt_user_prop
+
+If this is given then on login the username is checked against this
+database property. If there is exactly one match it is used, otherwise
+(no matches or multiple matches) the logic goes back to user_prop, etc.
 
 =item pass_prop
 
@@ -297,7 +304,7 @@ use XAO::Objects;
 use base XAO::Objects->load(objname => 'Web::Action');
 
 use vars qw($VERSION);
-$VERSION=(0+sprintf('%u.%03u',(q$Id: IdentifyUser.pm,v 2.10 2008/02/19 22:18:40 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
+$VERSION=(0+sprintf('%u.%03u',(q$Id: IdentifyUser.pm,v 2.11 2008/04/16 03:11:39 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
 
 ###############################################################################
 
@@ -730,12 +737,42 @@ sub find_user ($$$) {
     my $config=shift;
     my $username=shift;
 
-    my $list_uri=$config->{list_uri} ||
+    my $list_uri=$config->{'list_uri'} ||
         throw $self "find_user - no 'list_uri' in the configuration";
     my $list=$self->odb->fetch($list_uri);
 
-    my $user_prop=$config->{user_prop};
+    my $user_prop=$config->{'user_prop'};
+
+    # This is an optional parameter to make it possible for users to log
+    # in using this property as well as the default method.
+    #
+    my $alt_user_prop=$config->{'alt_user_prop'};
+    if($alt_user_prop) {
+        my $new_username;
+        try {
+            my $sr=$list->search($alt_user_prop,'eq',$username);
+            if(@$sr==1) {
+                if($user_prop) {
+                    $new_username=$list->get($sr->[0])->get($user_prop);
+                }
+                else {
+                    $new_username=$sr->[0];
+                }
+            }
+        }
+        otherwise {
+            my $e=shift;
+            dprint "Alt_user_prop checking error: $e";
+        };
+        if($new_username) {
+            dprint "Alt_user_prop: Changing '$username' to '$new_username'";
+            $username=$new_username;
+        }
+    }
  
+    # User_prop can be a path into a deeper database property, like
+    # Nicknames/name for instance.
+    #
     if($user_prop) {
         my @names=split(/\/+/,$user_prop);
 
@@ -757,7 +794,7 @@ sub find_user ($$$) {
                 if($i!=$#names) {
                     my $name=$names[0];
                     $list=$obj->get($name);
-                    $dref->{list_prop}=$name;
+                    $dref->{'list_prop'}=$name;
                     $dref=$dref->{$name}={};
                 }
                 else {
@@ -765,7 +802,7 @@ sub find_user ($$$) {
                     # 'eq' to get to it, MySQL ignores case by default.
                     #
                     my $real_username=$obj->get($searchprop);
-                    if($config->{id_case_sensitive}) {
+                    if($config->{'id_case_sensitive'}) {
                         if($real_username ne $username) {
                             eprint "Case difference between '$real_username' and '$username'";
                             return undef;
@@ -789,6 +826,9 @@ sub find_user ($$$) {
 
         return \%d;
     }
+
+    # If there is no user_prop, then the username is the object key in the database.
+    #
     else {
         return undef unless $list->check_name($username);
 
@@ -802,7 +842,6 @@ sub find_user ($$$) {
         };
         return undef unless $obj;
 
-        ##
         # Real username can be different even though we used
         # 'eq' to get to it, MySQL ignores case by default.
         #
@@ -830,6 +869,10 @@ sub find_user ($$$) {
             username    => $username,
         };
     }
+
+    # Should not get here.
+    #
+    die "Should not have gotten here";
 }
 
 ##############################################################################

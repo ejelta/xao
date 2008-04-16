@@ -827,6 +827,24 @@ sub test_user_prop_hash {
                 text        => 'V',
             },
         },
+        t06     => {
+            sub_pre => sub {
+                $config->put('/identify_user/member/user_prop' => undef);
+                $config->put('/identify_user/member/alt_user_prop' => 'email');
+            },
+            args => {
+                mode        => 'login',
+                type        => 'member',
+                username    => 'foo@bar.org',
+                password    => '12345',
+            },
+            results => {
+                cookies     => {
+                    member_id   => 'm001',
+                },
+                text        => 'V',
+            },
+        },
     );
 
     $self->run_matrix(\%matrix,\%cjar);
