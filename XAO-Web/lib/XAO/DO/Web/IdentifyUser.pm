@@ -304,7 +304,7 @@ use XAO::Objects;
 use base XAO::Objects->load(objname => 'Web::Action');
 
 use vars qw($VERSION);
-$VERSION=(0+sprintf('%u.%03u',(q$Id: IdentifyUser.pm,v 2.11 2008/04/16 03:11:39 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
+$VERSION=(0+sprintf('%u.%03u',(q$Id: IdentifyUser.pm,v 2.12 2008/05/01 20:08:46 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
 
 ###############################################################################
 
@@ -979,6 +979,7 @@ sub login ($;%) {
             password    => $password,
             type        => $type,
             cbdata      => $data,
+            force       => $args->{'force'},
         );
     }
 
