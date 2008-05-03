@@ -9,7 +9,7 @@ use File::Copy;
 
 use vars qw($VERSION $REVISION);
 $VERSION='0.05';
-$REVISION='$Id: xao-server,v 1.22 2007/10/31 01:18:08 am Exp $';
+$REVISION='$Id: xao-server,v 1.23 2008/05/03 02:16:27 am Exp $';
 
 sub chld_handler ();
 sub pipe_handler ();
@@ -245,6 +245,20 @@ attributes order.
 
         elsif ($opcode eq "catalog") {
             my $in = open_stream "catalog";
+            while(<$in>) {
+                printsock $_;
+            }
+            close($in);
+        }
+
+=head1 catdiff
+
+Returns a report on items that are different in "catalog" and "item" files.
+
+=cut  
+
+        elsif ($opcode eq "catdiff") {
+            my $in = open_stream "catdiff";
             while(<$in>) {
                 printsock $_;
             }
