@@ -27,7 +27,7 @@ use base XAO::Objects->load(objname => 'SpellChecker::Base');
 ###############################################################################
 
 use vars qw($VERSION);
-$VERSION=(0+sprintf('%u.%03u',(q$Id: Aspell.pm,v 1.6 2005/12/06 05:04:15 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
+$VERSION=(0+sprintf('%u.%03u',(q$Id: Aspell.pm,v 1.7 2008/05/03 02:53:12 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
 
 ###############################################################################
 
@@ -72,7 +72,7 @@ sub local_suggest_replacements ($$) {
     my %pairs;
     foreach my $word (split(/[\s[:punct:]]+/,$phrase)) {
         next unless $word =~ /^\w+$/;
-        $pairs{lc($word)}=[ map { /-/ ? () : (lc) } $speller->suggest($word) ];
+        $pairs{lc($word)}=[ map { defined $_ ? (/-/ ? () : (lc)) : () } $speller->suggest($word) ];
     }
 
     return \%pairs;
