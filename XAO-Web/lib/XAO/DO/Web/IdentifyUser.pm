@@ -304,7 +304,7 @@ use XAO::Objects;
 use base XAO::Objects->load(objname => 'Web::Action');
 
 use vars qw($VERSION);
-$VERSION=(0+sprintf('%u.%03u',(q$Id: IdentifyUser.pm,v 2.12 2008/05/01 20:08:46 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
+$VERSION=(0+sprintf('%u.%03u',(q$Id: IdentifyUser.pm,v 2.13 2008/07/02 00:08:50 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
 
 ###############################################################################
 
@@ -903,14 +903,12 @@ sub login ($;%) {
         throw $self "login - no 'identify_user' configuration for '$type'";
     my $cookie_domain=$config->{'domain'};
 
-    ##
     # Looking for the user in the database
     #
     my $username=$args->{'username'} ||
         throw $self "login - no 'username' given";
     my $data=$self->find_user($config,$username);
 
-    ##
     # Since MySQL is not case sensitive by default on text fields, there
     # was a glitch allowing people to log in with names like 'JOHN'
     # where the database entry would be keyed 'john'. Later on, if site
@@ -927,19 +925,48 @@ sub login ($;%) {
         $errstr="No information found about '$username'";
     }
 
-    ##
+    # Controls for when login fails more than a number of times in a
+    # certain periof of time.
+    #
+    my $fail_time_prop=$config->{'fail_time_prop'};
+    my $fail_count_prop=$config->{'fail_count_prop'};
+    my $fail_expire=$config->{'fail_expire'};
+    my $fail_max_count=$config->{'fail_max_count'};
+    my $fail_locked;
+
     # Checking password
     #
     my $password=$args->{'password'};
     if($user) {
         $data->{'id'}=$user->container_key;
 
+        # If available we first check if the user if locked due to
+        # previous login failures
+        #
+        if(!$args->{'force'} && $fail_count_prop && $fail_max_count) {
+            my $fail_count=$user->get($fail_count_prop);
+            if($fail_count>$fail_max_count) {
+                if($fail_time_prop && $fail_expire && (time-$user->get($fail_time_prop))>$fail_expire) {
+                    # Ok to go on, failure has expired
+                }
+                else {
+                    $errstr='The account is temporarily locked';
+                    $fail_locked=1;
+                }
+            }
+        }
+
+        # We go on checking, even if the account is locked. If it is
+        # locked and we get another error we remove fail_locked and let
+        # the fail counts increase below.
+        #
         if(!defined($password)) {
             if($args->{'force'}) {
                 # success!
             }
             else {
-                $errstr="No password given";
+                $errstr='No password given';
+                $fail_locked=undef;
             }
         }
         else {
@@ -963,11 +990,11 @@ sub login ($;%) {
 
             if(!$dbpass || $dbpass ne $password) {
                 $errstr='Password mismatch';
+                $fail_locked=undef;
             }
         }
     }
 
-    ##
     # Calling overridable function that can check some additional
     # conditions. Return a string with the suggested error message or an
     # empty string on success.
@@ -981,15 +1008,58 @@ sub login ($;%) {
             cbdata      => $data,
             force       => $args->{'force'},
         );
+        $fail_locked=undef if $errstr;
     }
 
-    ##
     # We know our fate at this point. Displaying anonymous path and
     # bailing out if there were errors.
     #
-    return $self->display_results($args,'anonymous',$errstr) if $errstr;
+    # Also updating the count of failures if available.
+    #
+    my $clipboard=$self->clipboard;
+    my $cb_uri=$config->{'cb_uri'} || "/IdentifyUser/$type";
+    if($errstr) {
 
-    ##
+        # Anonymous user should not propagate anything identifyable -
+        # resetting the data
+        #
+        $data={
+            fail_locked => $fail_locked,
+        };
+
+        if($user && !$fail_locked) {
+            my %ud;
+
+            $ud{$fail_time_prop}=time if $fail_time_prop;
+
+            if($fail_count_prop) {
+                $ud{$fail_count_prop}=($user->get($fail_count_prop) || 0) + 1;
+
+                $data->{'fail_count'}=$ud{$fail_count_prop};
+
+                if($fail_max_count) {
+                    $data->{'fail_max_count'}=$fail_max_count;
+                    $data->{'fail_max_count_reached'}=1 if $ud{$fail_count_prop}>$fail_max_count;
+                }
+            }
+
+            $user->put(\%ud) if %ud;
+        }
+
+        $clipboard->put($cb_uri => $data);
+
+        return $self->display_results($args,'anonymous',$errstr);
+    }
+
+    # When we get here it means a successful login. Removing failure time & count if needed.
+    #
+    if($fail_time_prop || $fail_count_prop) {
+        $user->put(
+            ($fail_time_prop ? ($fail_time_prop => 0) : ()),
+            ($fail_count_prop ? ($fail_count_prop => 0) : ()),
+        );
+    }
+
     # If we have key_list_uri we store verification key there and ignore
     # vf_key_prop even if it exists.
     #
@@ -1104,14 +1174,12 @@ sub login ($;%) {
         );
     }
 
-    ##
     # Setting login time
     #
     if(!$key_list_uri) {
         $user->put($vf_time_prop => time);
     }
 
-    ##
     # Setting user name cookie depending on id_cookie_type parameter.
     #
     my $expire=$config->{'id_cookie_expire'} ? "+$config->{id_cookie_expire}s"
@@ -1149,15 +1217,11 @@ sub login ($;%) {
         throw $self "login - unsupported id_cookie_type ($id_cookie_type)";
     }
 
-    ##
     # Storing values into the clipboard
     #
-    my $clipboard=$self->clipboard;
-    my $cb_uri=$config->{cb_uri} || "/IdentifyUser/$type";
     $data->{'verified'}=1;
     $clipboard->put($cb_uri => $data);
 
-    ##
     # Displaying results
     #
     $self->display_results($args,'verified');

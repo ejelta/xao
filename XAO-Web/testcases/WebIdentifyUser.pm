@@ -11,6 +11,228 @@ use base qw(XAO::testcases::Web::base);
 
 ###############################################################################
 
+sub test_fail_blocking {
+    my $self=shift;
+
+    my $config=$self->siteconfig;
+    $config->put(
+        identify_user => {
+            member => {
+                list_uri        => '/Members',
+                id_cookie       => 'member_id',
+                pass_prop       => 'password',
+                vf_time_prop    => 'verify_time',
+                vf_expire_time  => 120,
+                vf_key_cookie   => 'member_key',
+                vf_key_prop     => 'verify_key',
+                fail_max_count  => 3,                   # how many times allowed to fail
+                fail_expire     => 2,                   # when to auto-expire failed status
+                fail_time_prop  => 'failure_time',      # time of login failure
+                fail_count_prop => 'failure_count',     # how many times failed
+            },
+        },
+    );
+
+    $self->assert($config->get('/identify_user/member/list_uri') eq '/Members',
+                  "Can't get configuration parameter");
+
+    my $odb=$config->odb;
+    $odb->fetch('/')->build_structure(
+        Members => {
+            type        => 'list',
+            class       => 'Data::Member1',
+            key         => 'member_id',
+            structure   => {
+                password => {
+                    type        => 'text',
+                    maxlength   => 100,
+                    charset     => 'latin1',
+                },
+                verify_time => {
+                    type        => 'integer',
+                    minvalue    => 0,
+                },
+                verify_key => {
+                    type        => 'text',
+                    maxlength   => 20,
+                    charset     => 'latin1',
+                },
+                failure_time => {
+                    type        => 'integer',
+                    minvalue    => 0,
+                },
+                failure_count => {
+                    type        => 'integer',
+                    minvalue    => 0,
+                    maxvalue    => 100,
+                },
+            },
+        },
+    );
+
+    my $m_list=$config->odb->fetch('/Members');
+    my $m_obj=$m_list->get_new;
+    $m_obj->put(
+        password    => '12345',
+        verify_time => 0,
+    );
+    $m_list->put(m001 => $m_obj);
+
+    my %cjar;
+
+    my %matrix=(
+        t01     => {
+            args => {
+                mode        => 'login',
+                type        => 'member',
+                username    => 'm001',
+                password    => '12345',
+            },
+            results => {
+                cookies     => {
+                    member_id   => 'm001',
+                },
+                text        => 'V',
+            },
+        },
+        t02     => {
+            args => {
+                mode        => 'login',
+                type        => 'member',
+                username    => 'm001',
+                password    => 'WRONG',
+            },
+            results => {
+                clipboard   => {
+                    '/IdentifyUser/member/fail_count'               => 1,
+                    '/IdentifyUser/member/fail_max_count'           => 3,
+                    '/IdentifyUser/member/fail_max_count_reached'   => undef,
+                    '/IdentifyUser/member/fail_locked'              => undef,
+                },
+                text        => 'A',
+            },
+        },
+        t03     => {
+            args => {
+                mode        => 'login',
+                type        => 'member',
+                username    => 'm001',
+                password    => 'WRONG',
+            },
+            results => {
+                clipboard   => {
+                    '/IdentifyUser/member/fail_count'               => 2,
+                    '/IdentifyUser/member/fail_max_count'           => 3,
+                    '/IdentifyUser/member/fail_max_count_reached'   => undef,
+                    '/IdentifyUser/member/fail_locked'              => undef,
+                },
+                text        => 'A',
+            },
+        },
+        t04     => {
+            args => {
+                mode        => 'login',
+                type        => 'member',
+                username    => 'm001',
+                password    => 'WRONG',
+            },
+            results => {
+                clipboard   => {
+                    '/IdentifyUser/member/fail_count'               => 3,
+                    '/IdentifyUser/member/fail_max_count'           => 3,
+                    '/IdentifyUser/member/fail_max_count_reached'   => undef,
+                    '/IdentifyUser/member/fail_locked'              => undef,
+                },
+                text        => 'A',
+            },
+        },
+        t05     => {
+            args => {
+                mode        => 'login',
+                type        => 'member',
+                username    => 'm001',
+                password    => 'WRONG',
+            },
+            results => {
+                clipboard   => {
+                    '/IdentifyUser/member/fail_count'               => 4,
+                    '/IdentifyUser/member/fail_max_count'           => 3,
+                    '/IdentifyUser/member/fail_max_count_reached'   => 1,
+                    '/IdentifyUser/member/fail_locked'              => undef,
+                },
+                text        => 'A',
+            },
+        },
+        t06     => {
+            args => {
+                mode        => 'login',
+                type        => 'member',
+                username    => 'm001',
+                password    => '12345',
+            },
+            results => {
+                clipboard   => {
+                    '/IdentifyUser/member/fail_locked'              => 1,
+                },
+                text        => 'A',
+            },
+        },
+        # Success after failures expire
+        t07     => {
+            sub_pre => sub { sleep(4) },
+            args => {
+                mode        => 'login',
+                type        => 'member',
+                username    => 'm001',
+                password    => '12345',
+            },
+            results => {
+                clipboard   => {
+                    '/IdentifyUser/member/fail_locked'              => undef,
+                },
+                text        => 'V',
+            },
+        },
+        # Failing again, to see if counter drops to zero after success
+        t08     => {
+            args => {
+                mode        => 'login',
+                type        => 'member',
+                username    => 'm001',
+                password    => 'WRONG',
+            },
+            results => {
+                clipboard   => {
+                    '/IdentifyUser/member/fail_count'               => 1,
+                    '/IdentifyUser/member/fail_max_count'           => 3,
+                    '/IdentifyUser/member/fail_max_count_reached'   => undef,
+                    '/IdentifyUser/member/fail_locked'              => undef,
+                },
+                text        => 'A',
+            },
+        },
+        # Success after single failure
+        t09     => {
+            args => {
+                mode        => 'login',
+                type        => 'member',
+                username    => 'm001',
+                password    => '12345',
+            },
+            results => {
+                clipboard   => {
+                    '/IdentifyUser/member/fail_locked'              => undef,
+                },
+                text        => 'V',
+            },
+        },
+    );
+
+    $self->run_matrix(\%matrix,\%cjar);
+}
+
+###############################################################################
+
 sub test_no_vf_key {
     my $self=shift;
 
