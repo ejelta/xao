@@ -68,6 +68,48 @@ EOT
             },
             result => 'gV1',
         },
+        t6gt1 => {
+            args => {
+                template => q(<%Condition a.arg='V1>2' a.template='gV1' default.template='gDF'%>),
+                V1 => '3',
+            },
+            result => 'gV1',
+        },
+        t6gt2 => {
+            args => {
+                template => q(<%Condition a.arg='V1>2' a.template='gV1' default.template='gDF'%>),
+                V1 => '1',
+            },
+            result => 'gDF',
+        },
+        t6lt1 => {
+            args => {
+                template => q(<%Condition a.arg='V1<2' a.template='gV1' default.template='gDF'%>),
+                V1 => '3',
+            },
+            result => 'gDF',
+        },
+        t6lt2 => {
+            args => {
+                template => q(<%Condition a.arg='V1<2' a.template='gV1' default.template='gDF'%>),
+                V1 => '1',
+            },
+            result => 'gV1',
+        },
+        t6ne1 => {
+            args => {
+                template => q(<%Condition a.arg='V1!abc' a.template='gV1' default.template='gDF'%>),
+                V1 => 'def',
+            },
+            result => 'gV1',
+        },
+        t6ne2 => {
+            args => {
+                template => q(<%Condition a.arg='V1!abc' a.template='gV1' default.template='gDF'%>),
+                V1 => 'abc',
+            },
+            result => 'gDF',
+        },
         t7 => {
             args => {
                 template => q(<%Condition a.arg='V1=abc' a.template='gV1' default.template='gDF'%>),

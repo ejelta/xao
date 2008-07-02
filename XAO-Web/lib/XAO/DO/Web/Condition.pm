@@ -84,8 +84,26 @@ use XAO::Objects;
 use base XAO::Objects->load(objname => 'Web::Page');
 
 use vars qw($VERSION);
-$VERSION=(0+sprintf('%u.%03u',(q$Id: Condition.pm,v 2.6 2007/10/06 00:01:32 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
+$VERSION=(0+sprintf('%u.%03u',(q$Id: Condition.pm,v 2.7 2008/07/02 02:11:38 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
 
+###############################################################################
+
+sub check_target ($$$) {
+    my ($pvalue,$target,$targop)=@_;
+
+    if(defined $target) {
+        if($targop eq '=')      { return ($pvalue eq $target); }
+        elsif($targop eq '!')   { return ($pvalue ne $target); }
+        elsif($targop eq '<')   { return ($pvalue < $target); }
+        elsif($targop eq '>')   { return ($pvalue > $target); }
+    }
+    else {
+        return $pvalue;
+    }
+}
+
+###############################################################################
+ 
 sub display ($;%)
 { my $self=shift;
   my %args=%{get_args(\@_) || {}};
@@ -124,14 +142,16 @@ sub display ($;%)
      elsif($2 eq 'arg')
       { my $param=$args{$a};
         my $cname=$1;
-        my $target;
-        if($param =~ /^\s*(.*?)\s*=\s*(.*?)\s*$/)
+        my ($target,$targop);
+        if($param =~ /^\s*(.*?)\s*(=|>|<|\!)\s*(.*?)\s*$/)
          { $param=$1;
-           $target=$2;
+           $targop=$2;
+           $target=$3;
          }
         if($self->{'parent'})
          { my $pvalue=$self->{'parent'}->{'args'}->{$param};
-           if(defined $target ? (defined $pvalue && $pvalue eq $target) : ($pvalue))
+           my $matches;
+           if(check_target($pvalue,$target,$targop))
             { $name=$cname;
               last;
             }
@@ -140,13 +160,14 @@ sub display ($;%)
      elsif($2 eq 'siteconf' || $2 eq 'siteconfig')
       { my $param=$args{$a};
         my $cname=$1;
-        my $target;
-        if($param =~ /^\s*(.*?)\s*=\s*(.*?)\s*$/)
+        my ($target,$targop);
+        if($param =~ /^\s*(.*?)\s*(=|>|<|\!)\s*(.*?)\s*$/)
          { $param=$1;
-           $target=$2;
+           $targop=$2;
+           $target=$3;
          }
         my $pvalue=$config->get($param);
-        if(defined $target ? (defined $pvalue && $pvalue eq $target) : ($pvalue))
+        if(check_target($pvalue,$target,$targop))
          { $name=$cname;
            last;
          }
@@ -155,12 +176,14 @@ sub display ($;%)
       { my $param=$args{$a};
         my $cname=$1;
         my $target;
-        if($param =~ /^\s*(.*?)\s*=\s*(.*?)\s*$/)
+        my ($target,$targop);
+        if($param =~ /^\s*(.*?)\s*(=|>|<|\!)\s*(.*?)\s*$/)
          { $param=$1;
-           $target=$2;
+           $targop=$2;
+           $target=$3;
          }
         my $pvalue=$config->cgi->cookie($param);
-        if(defined $target ? (defined $pvalue && $pvalue eq $target) : ($pvalue))
+        if(check_target($pvalue,$target,$targop))
          { $name=$cname;
            last;
          }
@@ -180,13 +203,14 @@ sub display ($;%)
      elsif($2 eq 'clipboard')
       { my $param=$args{$a};
         my $cname=$1;
-        my $target;
-        if($param =~ /^\s*(.*?)\s*=\s*(.*?)\s*$/)
+        my ($target,$targop);
+        if($param =~ /^\s*(.*?)\s*(=|>|<|\!)\s*(.*?)\s*$/)
          { $param=$1;
-           $target=$2;
+           $targop=$2;
+           $target=$3;
          }
         my $pvalue=$self->clipboard->get($param);
-        if(defined $target ? (defined $pvalue && $pvalue eq $target) : ($pvalue))
+        if(check_target($pvalue,$target,$targop))
          { $name=$cname;
            last;
          }
