@@ -168,6 +168,23 @@ sub test_fail_blocking {
                 mode        => 'login',
                 type        => 'member',
                 username    => 'm001',
+                password    => 'WRONG',
+            },
+            results => {
+                clipboard   => {
+                    '/IdentifyUser/member/fail_count'               => 4,
+                    '/IdentifyUser/member/fail_max_count'           => 3,
+                    '/IdentifyUser/member/fail_max_count_reached'   => 1,
+                    '/IdentifyUser/member/fail_locked'              => 1,
+                },
+                text        => 'A',
+            },
+        },
+        t07     => {
+            args => {
+                mode        => 'login',
+                type        => 'member',
+                username    => 'm001',
                 password    => '12345',
             },
             results => {
@@ -178,7 +195,7 @@ sub test_fail_blocking {
             },
         },
         # Success after failures expire
-        t07     => {
+        t08     => {
             sub_pre => sub { sleep(4) },
             args => {
                 mode        => 'login',
@@ -194,7 +211,7 @@ sub test_fail_blocking {
             },
         },
         # Failing again, to see if counter drops to zero after success
-        t08     => {
+        t09     => {
             args => {
                 mode        => 'login',
                 type        => 'member',
@@ -212,7 +229,73 @@ sub test_fail_blocking {
             },
         },
         # Success after single failure
-        t09     => {
+        t10     => {
+            args => {
+                mode        => 'login',
+                type        => 'member',
+                username    => 'm001',
+                password    => '12345',
+            },
+            results => {
+                clipboard   => {
+                    '/IdentifyUser/member/fail_locked'              => undef,
+                },
+                text        => 'V',
+            },
+        },
+        # failures, then success at the last moment
+        t11     => {
+            args => {
+                mode        => 'login',
+                type        => 'member',
+                username    => 'm001',
+                password    => 'WRONG',
+            },
+            results => {
+                clipboard   => {
+                    '/IdentifyUser/member/fail_count'               => 1,
+                    '/IdentifyUser/member/fail_max_count'           => 3,
+                    '/IdentifyUser/member/fail_max_count_reached'   => undef,
+                    '/IdentifyUser/member/fail_locked'              => undef,
+                },
+                text        => 'A',
+            },
+        },
+        t12     => {
+            args => {
+                mode        => 'login',
+                type        => 'member',
+                username    => 'm001',
+                password    => 'WRONG',
+            },
+            results => {
+                clipboard   => {
+                    '/IdentifyUser/member/fail_count'               => 2,
+                    '/IdentifyUser/member/fail_max_count'           => 3,
+                    '/IdentifyUser/member/fail_max_count_reached'   => undef,
+                    '/IdentifyUser/member/fail_locked'              => undef,
+                },
+                text        => 'A',
+            },
+        },
+        t13     => {
+            args => {
+                mode        => 'login',
+                type        => 'member',
+                username    => 'm001',
+                password    => 'WRONG',
+            },
+            results => {
+                clipboard   => {
+                    '/IdentifyUser/member/fail_count'               => 3,
+                    '/IdentifyUser/member/fail_max_count'           => 3,
+                    '/IdentifyUser/member/fail_max_count_reached'   => undef,
+                    '/IdentifyUser/member/fail_locked'              => undef,
+                },
+                text        => 'A',
+            },
+        },
+        t14     => {
             args => {
                 mode        => 'login',
                 type        => 'member',

@@ -304,7 +304,7 @@ use XAO::Objects;
 use base XAO::Objects->load(objname => 'Web::Action');
 
 use vars qw($VERSION);
-$VERSION=(0+sprintf('%u.%03u',(q$Id: IdentifyUser.pm,v 2.13 2008/07/02 00:08:50 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
+$VERSION=(0+sprintf('%u.%03u',(q$Id: IdentifyUser.pm,v 2.14 2008/07/02 01:00:56 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
 
 ###############################################################################
 
@@ -875,6 +875,44 @@ sub find_user ($$$) {
     die "Should not have gotten here";
 }
 
+###############################################################################
+
+=item login_errstr ($)
+
+Overridable method to translate login error codes to human readable
+strings. Can be used to for example translate messages into other
+languages.
+
+Receives the following arguments:
+
+    type    => user type
+    object  => user object (or undef if not known)
+    errcode => one of NO_INFO, NO_PASSWORD, BAD_PASSWORD, FAIL_LOCKED
+
+=cut
+
+our %login_errstr_table=(
+    NO_INFO         => 'No information found',
+    NO_PASSWORD     => 'No password given',
+    BAD_PASSWORD    => 'Password mismatch',
+    FAIL_LOCKED     => 'The account is temporarily locked',
+);
+
+sub login_errstr ($@) {
+    my $self=shift;
+    my $args=get_args(\@_);
+
+    my $errcode=$args->{'errcode'};
+    $errcode || eprint "login_errstr - no 'errcode' given";
+    my $errstr=$login_errstr_table{$errcode};
+    if(!$errstr) {
+        eprint "login_errstr - untranslatable error code '$errcode'";
+        $errstr=$errcode;
+    }
+
+    return $errstr;
+}
+
 ##############################################################################
 
 =item login ()
@@ -922,7 +960,11 @@ sub login ($;%) {
         $username=$data->{'name'};
     }
     else {
-        $errstr="No information found about '$username'";
+        $errstr=$self->login_errstr(
+            type    => $type,
+            object  => $user,
+            errcode => 'NO_INFO',
+        );
     }
 
     # Controls for when login fails more than a number of times in a
@@ -950,47 +992,60 @@ sub login ($;%) {
                     # Ok to go on, failure has expired
                 }
                 else {
-                    $errstr='The account is temporarily locked';
+                    $errstr=$self->login_errstr(
+                        type    => $type,
+                        object  => $user,
+                        errcode => 'FAIL_LOCKED',
+                    );
                     $fail_locked=1;
                 }
             }
         }
 
-        # We go on checking, even if the account is locked. If it is
-        # locked and we get another error we remove fail_locked and let
-        # the fail counts increase below.
+        # If the account is locked due to repeated failures we stop at
+        # that, to avoid passing any indication of whether the password
+        # matches or not to the outside. This is the purpose - to
+        # prevent brute-force password guessing.
         #
-        if(!defined($password)) {
-            if($args->{'force'}) {
-                # success!
+        if(!$fail_locked) {
+            if(!defined($password)) {
+                if($args->{'force'}) {
+                    # success!
+                }
+                else {
+                    $errstr=$self->login_errstr(
+                        type    => $type,
+                        object  => $user,
+                        errcode => 'NO_PASSWORD',
+                    );
+                }
             }
             else {
-                $errstr='No password given';
-                $fail_locked=undef;
-            }
-        }
-        else {
-            my $pass_prop=$config->{'pass_prop'} || 
-                throw $self "login - no 'pass_prop' in the configuration";
-            my $dbpass=$user->get($pass_prop);
+                my $pass_prop=$config->{'pass_prop'} || 
+                    throw $self "login - no 'pass_prop' in the configuration";
+                my $dbpass=$user->get($pass_prop);
 
-            my $pass_encrypt=lc($config->{'pass_encrypt'} || 'plaintext');
-            if($pass_encrypt eq 'plaintext') {
-                # Nothing
-            }
-            elsif($pass_encrypt eq 'md5') {
-                $password=md5_base64($password);
-            }
-            elsif($pass_encrypt eq 'crypt') {
-                $password=crypt($password,$dbpass);
-            }
-            else {
-                throw $self "login - unknown encryption mode '$pass_encrypt'";
-            }
+                my $pass_encrypt=lc($config->{'pass_encrypt'} || 'plaintext');
+                if($pass_encrypt eq 'plaintext') {
+                    # Nothing
+                }
+                elsif($pass_encrypt eq 'md5') {
+                    $password=md5_base64($password);
+                }
+                elsif($pass_encrypt eq 'crypt') {
+                    $password=crypt($password,$dbpass);
+                }
+                else {
+                    throw $self "login - unknown encryption mode '$pass_encrypt'";
+                }
 
-            if(!$dbpass || $dbpass ne $password) {
-                $errstr='Password mismatch';
-                $fail_locked=undef;
+                if(!$dbpass || $dbpass ne $password) {
+                    $errstr=$self->login_errstr(
+                        type    => $type,
+                        object  => $user,
+                        errcode => 'BAD_PASSWORD',
+                    );
+                }
             }
         }
     }
@@ -1008,7 +1063,6 @@ sub login ($;%) {
             cbdata      => $data,
             force       => $args->{'force'},
         );
-        $fail_locked=undef if $errstr;
     }
 
     # We know our fate at this point. Displaying anonymous path and
@@ -1027,23 +1081,33 @@ sub login ($;%) {
             fail_locked => $fail_locked,
         };
 
-        if($user && !$fail_locked) {
-            my %ud;
-
-            $ud{$fail_time_prop}=time if $fail_time_prop;
-
-            if($fail_count_prop) {
-                $ud{$fail_count_prop}=($user->get($fail_count_prop) || 0) + 1;
-
-                $data->{'fail_count'}=$ud{$fail_count_prop};
-
-                if($fail_max_count) {
-                    $data->{'fail_max_count'}=$fail_max_count;
-                    $data->{'fail_max_count_reached'}=1 if $ud{$fail_count_prop}>$fail_max_count;
-                }
+        # We only increase failure counts when it's really a failure,
+        # not when the account is locked
+        #
+        if($user) {
+            if($fail_locked) {
+                $data->{'fail_count'}=$user->get($fail_count_prop);
+                $data->{'fail_max_count'}=$fail_max_count;
+                $data->{'fail_max_count_reached'}=1;
             }
+            else {
+                my %ud;
 
-            $user->put(\%ud) if %ud;
+                $ud{$fail_time_prop}=time if $fail_time_prop;
+
+                if($fail_count_prop) {
+                    $ud{$fail_count_prop}=($user->get($fail_count_prop) || 0) + 1;
+
+                    $data->{'fail_count'}=$ud{$fail_count_prop};
+
+                    if($fail_max_count) {
+                        $data->{'fail_max_count'}=$fail_max_count;
+                        $data->{'fail_max_count_reached'}=1 if $ud{$fail_count_prop}>$fail_max_count;
+                    }
+                }
+
+                $user->put(\%ud) if %ud;
+            }
         }
 
         $clipboard->put($cb_uri => $data);
