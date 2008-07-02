@@ -84,7 +84,7 @@ use XAO::Objects;
 use base XAO::Objects->load(objname => 'Web::Page');
 
 use vars qw($VERSION);
-$VERSION=(0+sprintf('%u.%03u',(q$Id: Condition.pm,v 2.7 2008/07/02 02:11:38 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
+$VERSION=(0+sprintf('%u.%03u',(q$Id: Condition.pm,v 2.8 2008/07/02 02:21:56 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
 
 ###############################################################################
 
@@ -118,18 +118,16 @@ sub display ($;%)
      if($2 eq 'cgiparam')
       { my $param=$args{$a};
         my $cname=$1;
-        if($param =~ /^\s*(.*?)\s*=\s*(.*?)\s*$/)
-         { my $pval=$config->cgi->param($1);
-           if(defined($pval) && $pval eq $2)
-            { $name=$cname;
-              last;
-            }
+        my ($target,$targop);
+        if($param =~ /^\s*(.*?)\s*(=|>|<|\!)\s*(.*?)\s*$/)
+         { $param=$1;
+           $targop=$2;
+           $target=$3;
          }
-        else
-         { if($config->cgi->param($param))
-            { $name=$cname;
-              last;
-            }
+        my $pvalue=$config->cgi->param($param);
+        if(check_target($pvalue,$target,$targop))
+         { $name=$cname;
+           last;
          }
       }
      elsif($2 eq 'length')
@@ -175,7 +173,6 @@ sub display ($;%)
      elsif($2 eq 'cookie')
       { my $param=$args{$a};
         my $cname=$1;
-        my $target;
         my ($target,$targop);
         if($param =~ /^\s*(.*?)\s*(=|>|<|\!)\s*(.*?)\s*$/)
          { $param=$1;

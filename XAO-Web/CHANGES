@@ -1,5 +1,8 @@
 1.10 -
     * Web -- formalized deny masks and added /CVS/ to default
+    * Web::Condition -- greater/smaller support for
+      arg/clipboard/cgiparam/siteconf/cookie
+    * Web::IdentifyUser -- support for failure counts & locking
 
 1.09 - 15-Nov-2007
     * Web -- cleanup() called in site context in process(), not new()
