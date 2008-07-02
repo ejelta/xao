@@ -304,7 +304,7 @@ use XAO::Objects;
 use base XAO::Objects->load(objname => 'Web::Action');
 
 use vars qw($VERSION);
-$VERSION=(0+sprintf('%u.%03u',(q$Id: IdentifyUser.pm,v 2.14 2008/07/02 01:00:56 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
+$VERSION=(0+sprintf('%u.%03u',(q$Id: IdentifyUser.pm,v 2.15 2008/07/02 01:46:59 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
 
 ###############################################################################
 
@@ -904,6 +904,7 @@ sub login_errstr ($@) {
 
     my $errcode=$args->{'errcode'};
     $errcode || eprint "login_errstr - no 'errcode' given";
+
     my $errstr=$login_errstr_table{$errcode};
     if(!$errstr) {
         eprint "login_errstr - untranslatable error code '$errcode'";
