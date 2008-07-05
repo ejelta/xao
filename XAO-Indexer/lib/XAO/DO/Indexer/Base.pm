@@ -44,7 +44,7 @@ sub sequential_helper ($$;$$$);
 ###############################################################################
 
 use vars qw($VERSION);
-$VERSION=(0+sprintf('%u.%03u',(q$Id: Base.pm,v 1.45 2006/07/04 02:28:36 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
+$VERSION=(0+sprintf('%u.%03u',(q$Id: Base.pm,v 1.46 2008/07/05 07:02:46 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
 
 ###############################################################################
 
@@ -539,7 +539,6 @@ sub suggest_alternative ($%) {
         throw $self "suggest_alternative - '$algorithm' algorithm is not supported";
     }
 
-    ##
     # Now building other alternative strings and returning them in order.
     #
     my $results_count=$rcdata->{'results_count'} || 0;
@@ -556,6 +555,8 @@ sub suggest_alternative ($%) {
             my $altword=$pairs->[$j+1];
             if($word ne $altword) {
                 $newq=~s/\b$word\b/$altword/ig;
+                $newq=~s/^\s*(.*?)\s*$/$1/s;
+                $newq=~s/\s{2,}/ /s;
                 push(@finalpairs,[ $word, $altword ]);
             }
         }
@@ -582,7 +583,6 @@ sub suggest_alternative ($%) {
         }
     }
 
-    ##
     # Storing all variants and returning the first one.
     #
     $rcdata->{'spellchecker_alternatives'}=\@alts;

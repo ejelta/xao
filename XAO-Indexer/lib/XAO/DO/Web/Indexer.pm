@@ -37,7 +37,7 @@ use base XAO::Objects->load(objname => 'Web::Action');
 ###############################################################################
 
 use vars qw($VERSION);
-$VERSION=(0+sprintf('%u.%03u',(q$Id: Indexer.pm,v 1.3 2007/01/08 07:08:57 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
+$VERSION=(0+sprintf('%u.%03u',(q$Id: Indexer.pm,v 1.4 2008/07/05 07:02:46 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
 
 ###############################################################################
 
@@ -152,7 +152,8 @@ sub search ($%) {
                 my $alt_query_html=t2ht($alt_query);
                 foreach my $pair (@{$spdata->{'pairs'}}) {
                     my $altword=t2ht($pair->[1]);
-                    $alt_query_html=~s/\b($altword)\b/<I><B>$1<\/B><\/I>/sg;
+                    next unless length($altword);
+                    $alt_query_html=~s/\b($altword)\b/<em><strong>$1<\/em><\/strong>/sg;
                 }
 
                 $alt_kw[$i]=$alt_query;
