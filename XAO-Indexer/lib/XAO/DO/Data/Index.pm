@@ -125,6 +125,7 @@ sub data_structure ($;$$) {
                 },
                 keyword => {
                     type        => 'text',
+                    charset     => 'utf8',
                     maxlength   => 50,
                     index       => 1,
                     unique      => 1,
@@ -158,6 +159,7 @@ sub data_structure ($;$$) {
                 },
                 keyword => {
                     type        => 'text',
+                    charset     => 'utf8',
                     maxlength   => 50,
                     index       => 1,
                     unique      => 1,
