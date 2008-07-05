@@ -377,10 +377,14 @@ sub execute ($%) {
             my $h=$self->config->header_args;
 
             if($mod_perl::VERSION && $mod_perl::VERSION >= 1.99) {
-                while(my ($n,$v)=each %$h) {
-                    $r->headers_out->set($n => $v);
-                    $r->err_headers_out->set($n => $v);
-                }
+                # This is accomplished by CGI when config->header is
+                # called above, and it does not work properly anyway
+                #
+                ### while(my ($n,$v)=each %$h) {
+                ###     dprint "n='$n' v='$v'";
+                ###     $r->headers_out->set($n => $v);
+                ###     $r->err_headers_out->set($n => $v);
+                ### }
                 $r->content_type('text/html') unless $r->content_type;
             }
             else {
