@@ -123,9 +123,71 @@ sub data_structure ($;$$) {
                     minvalue    => 0,
                     index       => 1,
                 },
+                # Before we switch to 'utf8' here (if ever) this problem
+                # needs to be solved:
+                # MySQL treats "Muller" and "Müller" as identical words
+                # not letting them happen twice in the "unique" keyword
+                # field.
+                # This is due to the fact that collation in MySQL uses
+                # "level 1" differences, as this script shows:
+                #
+                # #!/usr/bin/perl -w
+                # use strict;
+                # use warnings;
+                # use utf8;
+                # use Unicode::Collate;
+                # use Encode;
+                # 
+                # binmode(STDOUT,":utf8");
+                # 
+                # my $c;
+                # 
+                # my $u1='Muller';
+                # my $u2='Müller';
+                # my $u3='MULLER';
+                # my $u4='MÜLLER';
+                # my $u5='Buller';
+                # 
+                # foreach my $lev (4,3,2,1) {
+                #     print "---level=$lev\n";
+                # 
+                #     $c=Unicode::Collate->new(
+                #         level => $lev,
+                #     );
+                #     
+                #     sss($u1,$u1);
+                #     sss($u2,$u2);
+                #     sss($u1,$u2);
+                #     sss($u1,$u3);
+                #     sss($u2,$u4);
+                #     sss($u1,$u4);
+                #     sss($u1,$u5);
+                #     sss($u2,$u5);
+                # }
+                # 
+                # sub sss {
+                #     my ($a,$b)=@_;
+                #     my $r=$c->eq($a,$b);
+                #     print "a='$a' (".utf8::is_utf8($a).") ".
+                #           "b='$b' (".utf8::is_utf8($b).") r='$r'\n";
+                # }
+                #
+                # Perhaps the keyword should be left as binary to
+                # avoid possible inconsistencies between perl and
+                # mysql collation implementations and some kind of
+                # normalization needs to be done before keywords are
+                # inserted?
+                #
+                # Or, as another (slightly slower) idea, we can rely on
+                # MySQL: before inserting a keyword we can search the
+                # index not trusting the md5 by letting mysql literally
+                # compare the keyword with all collations in place. And
+                # then merge data into that keyword even when it's not a
+                # literal equivalent of the one we have.
+                #
                 keyword => {
                     type        => 'text',
-                    charset     => 'utf8',
+                    ### charset     => 'utf8', # see note above!
                     maxlength   => 50,
                     index       => 1,
                     unique      => 1,
@@ -159,7 +221,7 @@ sub data_structure ($;$$) {
                 },
                 keyword => {
                     type        => 'text',
-                    charset     => 'utf8',
+                    #charset     => 'utf8',
                     maxlength   => 50,
                     index       => 1,
                     unique      => 1,

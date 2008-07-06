@@ -44,7 +44,7 @@ sub sequential_helper ($$;$$$);
 ###############################################################################
 
 use vars qw($VERSION);
-$VERSION=(0+sprintf('%u.%03u',(q$Id: Base.pm,v 1.46 2008/07/05 07:02:46 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
+$VERSION=(0+sprintf('%u.%03u',(q$Id: Base.pm,v 1.47 2008/07/06 05:47:54 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
 
 ###############################################################################
 
@@ -783,7 +783,7 @@ sub update ($%) {
             # ignore it and issue a warning. Should not happen often --
             # if it does the field length should be extended.
             #
-            if(length($kw) > $max_kw_length) {
+            if(length(Encode::encode('utf8',$kw)) > $max_kw_length) {
                 eprint "Keyword '$kw' is longer than $max_kw_length, ignored";
                 next;
             }
