@@ -53,13 +53,13 @@ use XAO::Cache;
 use base XAO::Objects->load(objname => 'Atom');
 
 use vars qw($VERSION);
-$VERSION=(0+sprintf('%u.%03u',(q$Id: Config.pm,v 2.1 2005/01/13 22:34:34 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
+$VERSION=(0+sprintf('%u.%03u',(q$Id: Config.pm,v 2.2 2008/07/06 23:02:15 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
 
 ###############################################################################
 # Prototypes
 #
 sub cache ($%);
-sub cleanup ($);
+sub cleanup ($;@);
 sub embed ($%);
 sub embedded ($$);
 sub new ($);
@@ -124,11 +124,11 @@ available. Order of calls is random.
 
 =cut
 
-sub cleanup ($) {
+sub cleanup ($;@) {
     my $self=shift;
     foreach my $name (keys %{$self->{names}}) {
         my $obj=$self->{names}->{$name}->{obj};
-        $obj->cleanup() if $obj->can('cleanup');
+        $obj->cleanup(@_) if $obj->can('cleanup');
     }
 }
 

@@ -132,6 +132,27 @@ sub test_html {
                   "Wrong value from t2hf ($got)");
 }
 
+sub test_t2hj {
+    my $self=shift;
+
+    use XAO::Utils qw(:html);
+
+    my %matrix=(
+        'plain'                     => 'plain',
+        q(John's)                   => q(John\\'s),
+        q(John "Bloody" Baron)      => q(John \\"Bloody\\" Baron),
+        q(C:\\Foo - John's "Files") => q(C:\\\\Foo - John\\'s \\"Files\\"),
+        qq(Two\nTabbed\tLines)      => q(Two\\012Tabbed\\011Lines),
+        qq(Two\nTabbed\tLines)      => q(Two\\012Tabbed\\011Lines),
+        qq(smiley - \x{263a})       => qq(smiley - \x{263a}),
+    );
+    foreach my $t (keys %matrix) {
+        my $j=t2hj($t);
+        $self->assert($j eq $matrix{$t},
+                      "t2hj: for '$t' expected '$matrix{$t}', got '$j'");
+    }
+}
+
 sub test_args {
     my $self=shift;
 

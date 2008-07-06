@@ -34,12 +34,13 @@ sub eprint (@);
 sub t2ht ($);
 sub t2hf ($);
 sub t2hq ($);
+sub t2hj ($);
 sub get_args (@);
 sub merge_refs (@);
 sub fround ($$);
 
 use vars qw($VERSION);
-$VERSION=(0+sprintf('%u.%03u',(q$Id: Utils.pm,v 2.4 2007/05/09 20:01:28 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
+$VERSION=(0+sprintf('%u.%03u',(q$Id: Utils.pm,v 2.5 2008/07/06 23:02:15 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
 
 ###############################################################################
 # Export control
@@ -51,7 +52,7 @@ require Exporter;
     all => \@EXPORT_OK,
     args => [qw(get_args merge_refs)],
     debug => [qw(dprint eprint)],
-    html => [qw(t2ht t2hq t2hf)],
+    html => [qw(t2ht t2hq t2hf t2hj)],
     keys => [qw(generate_key repair_key)],
     math => [qw(fround)],
     none => [],
@@ -386,6 +387,27 @@ sub t2ht ($) {
     $text=~s/&/&amp;/sg;
     $text=~s/</&lt;/sg;
     $text=~s/>/&gt;/sg;
+    return $text;
+}
+
+###############################################################################
+
+=item t2hj ($)
+
+Escapes text to look the same in JavaScript.
+
+ ' ->> \'
+ " ->> \"
+ \ ->> \\
+
+=cut
+
+sub t2hj ($) {
+    my $text=shift;
+    $text=~s/\\/\\\\/sg;
+    $text=~s/'/\\'/sg;
+    $text=~s/"/\\"/sg;
+    $text=~s/([\x00-\x1f])/'\\'.sprintf('%03o',ord($1))/esg;
     return $text;
 }
 
