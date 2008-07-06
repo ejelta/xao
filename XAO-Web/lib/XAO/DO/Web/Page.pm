@@ -404,7 +404,7 @@ use Error qw(:try);
 use base XAO::Objects->load(objname => 'Atom');
 
 use vars qw($VERSION);
-$VERSION=(0+sprintf('%u.%03u',(q$Id: Page.pm,v 2.6 2007/09/13 00:17:51 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
+$VERSION=(0+sprintf('%u.%03u',(q$Id: Page.pm,v 2.7 2008/07/06 23:14:26 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
 
 ##
 # Prototypes
@@ -615,6 +615,12 @@ sub display ($%) {
             }
             elsif($itemflag eq 'u') {
                 $text=XAO::Utils::t2hq($text);
+            }
+            elsif($itemflag eq 'j') {
+                $text=XAO::Utils::t2hj($text);
+            }
+            else {
+                eprint "Unsupported translation flag '$itemflag', objname=",$item->{'objname'};
             }
         }
 
