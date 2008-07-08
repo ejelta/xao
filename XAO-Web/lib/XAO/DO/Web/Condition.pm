@@ -84,14 +84,14 @@ use XAO::Objects;
 use base XAO::Objects->load(objname => 'Web::Page');
 
 use vars qw($VERSION);
-$VERSION=(0+sprintf('%u.%03u',(q$Id: Condition.pm,v 2.8 2008/07/02 02:21:56 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
+$VERSION=(0+sprintf('%u.%03u',(q$Id: Condition.pm,v 2.9 2008/07/08 03:41:48 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
 
 ###############################################################################
 
 sub check_target ($$$) {
     my ($pvalue,$target,$targop)=@_;
 
-    if(defined $target) {
+    if(defined $target && defined $pvalue) {
         if($targop eq '=')      { return ($pvalue eq $target); }
         elsif($targop eq '!')   { return ($pvalue ne $target); }
         elsif($targop eq '<')   { return ($pvalue < $target); }
