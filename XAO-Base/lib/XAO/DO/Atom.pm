@@ -33,7 +33,7 @@ use XAO::Utils;
 use XAO::Errors;
 
 use vars qw($VERSION);
-$VERSION=(0+sprintf('%u.%03u',(q$Id: Atom.pm,v 2.1 2005/01/13 22:34:34 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
+$VERSION=(0+sprintf('%u.%03u',(q$Id: Atom.pm,v 2.2 2008/07/21 03:14:22 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
 
 ###############################################################################
 
@@ -65,25 +65,40 @@ Helps to write code like:
     ...
  }
 
-It is recommended to always use text maessages af the following format:
+It is recommended to always use text messages of the following format:
 
- "function_name - error description starting from lowercase letter"
+ "function_name - error description starting with a lowercase letter"
+ or
+ "- error description starting with a lowercase letter"
+ or
+ "(arg1,arg2) - error description"
 
 There is no need to print class name, it will be prepended to the front
-of your error message automatically.
+of your error message automatically. If the message starts with '- ' or '('
+then the function name is taken from the stack and added automatically
+too.
 
 =cut
 
 sub throw ($@) {
     my $self=shift;
-    my $text=join('',@_);
+    my $text=join('',map { defined $_ ? $_ : '<UNDEF>' } @_);
 
     my $class;
-    if(eval { $self->{objname} } && !$@) {
-        $class='XAO::DO::' . $self->{objname};
+    if(eval { $self->{'objname'} } && !$@) {
+        $class='XAO::DO::' . $self->{'objname'};
     }
     else {
         $class=ref($self);
+    }
+
+    if($text =~ /^\s*-\s+/) {
+        (my $fname=(caller(1))[3])=~s/^.*://;
+        $text=$fname . ' ' . $text;
+    }
+    elsif($text =~ /^\s*\(/) {
+        (my $fname=(caller(1))[3])=~s/^.*://;
+        $text=$fname . $text;
     }
 
     XAO::Errors->throw_by_class($class,$text);

@@ -2,8 +2,11 @@ package testcases::Objects;
 use strict;
 use XAO::SimpleHash;
 use XAO::Utils;
+use Error qw(:try);
 
 use base qw(testcases::base);
+
+###############################################################################
 
 sub test_everything {
     my $self=shift;
@@ -47,6 +50,55 @@ sub test_everything {
     $ref=ref($obj);
     $self->assert($ref eq 'XAO::DO::Test1',
                   "new(Test1,base) returned an object of wrong type ($ref)");
+
+    # Testing error throwing
+
+    $obj=XAO::Objects->new(objname => 'Thrower');
+
+    my $etext;
+    try {
+        throw $obj "function - error message";
+    }
+    otherwise {
+        my $e=shift;
+        $etext="$e";
+    };
+
+    $self->assert(defined $etext,
+                  "'Throw' did not throw an error");
+
+    $self->assert(($etext =~ /^XAO::DO::Thrower::function - error message/) ? 1 : 0,
+                  "Throw message ($etext) is not formatted as expected");
+
+    undef $etext;
+    try {
+        $obj->eat('leftovers');
+    }
+    otherwise {
+        my $e=shift;
+        $etext="$e";
+    };
+
+    $self->assert(defined $etext,
+                  "obj->eat did not throw an error");
+
+    $self->assert(($etext =~ /^XAO::DO::Thrower::eat\(leftovers\) - not edible/) ? 1 : 0,
+                  "Throw message ($etext) is not formatted as expected");
+
+    undef $etext;
+    try {
+        $obj->drink;
+    }
+    otherwise {
+        my $e=shift;
+        $etext="$e";
+    };
+
+    $self->assert(defined $etext,
+                  "obj->drink did not throw an error");
+
+    $self->assert(($etext =~ /^XAO::DO::Thrower::drink - drunk/) ? 1 : 0,
+                  "Throw message ($etext) is not formatted as expected");
 }
 
 1;
