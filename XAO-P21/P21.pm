@@ -268,6 +268,22 @@ sub catalog {
 
 ###############################################################################
 
+=item catdiff
+
+Returns verbatim the report on differences between P21 catalog and item files.
+The report is returned as an array of array refs or using callbacks.
+
+=cut  
+
+sub catdiff {
+    my ($self,$callback)=@_;
+    $self->call(sub {
+        return [ split(/\t/,$_[0],-1) ];
+    },$callback,'catdiff');
+}
+
+###############################################################################
+
 =item cust_item
 
 Returns custom priced items in an array of hashes:
