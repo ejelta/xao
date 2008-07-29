@@ -27,7 +27,7 @@ use XAO::Objects;
 use base XAO::Objects->load(objname => 'FS::Glue::Base');
 
 use vars qw($VERSION);
-$VERSION=(0+sprintf('%u.%03u',(q$Id: Base_MySQL.pm,v 2.7 2008/07/29 06:35:33 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
+$VERSION=(0+sprintf('%u.%03u',(q$Id: Base_MySQL.pm,v 2.8 2008/07/29 07:07:41 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
 
 ###############################################################################
 
@@ -755,7 +755,7 @@ sub load_structure ($) {
     # assuming transactional without checking.
     #
     if(!$self->{'table_type'}) {
-        eprint "It is recommended to always have '...;table_type=TYPE' as part of DSN, assuming table_type 'innodb'";
+        eprint "It is recommended to always have '...;table_type=TYPE' as part of DSN, assuming 'innodb'";
         $self->{'table_type'}='innodb';
     }
 
