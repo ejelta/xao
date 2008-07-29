@@ -46,10 +46,11 @@ sub init {
     my $fsconfig=XAO::Objects->new(
         objname => 'FS::Config',
         odb_args => {
-            dsn => $d{test_dsn},
-            user => $d{test_user},
-            password => $d{test_password},
-            empty_database => 'confirm',
+            dsn                 => $d{'test_dsn'},
+            user                => $d{'test_user'},
+            password            => $d{'test_password'},
+            empty_database      => 'confirm',
+            check_consistency   => 1,
         },
     );
 

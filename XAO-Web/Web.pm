@@ -343,7 +343,7 @@ sub execute ($%) {
         if($pd && $pd->{'type'} eq 'xaoweb' && $pd->{'objname'} ne 'Default') {
             eprint "$e";
 
-            $edata->{'message'}||=$e->text;
+            $edata->{'message'}||="$e";
             $edata->{'code'}||='UNKNOWN';
             $edata->{'path'}||=$args->{'path'};
             $edata->{'pagedesc'}||=$self->clipboard->get('pagedesc');
@@ -768,7 +768,7 @@ sub new ($%) {
     ##
     # Getting site name
     #
-    my $sitename=$args->{sitename} ||
+    my $sitename=$args->{'sitename'} ||
         throw XAO::E::Web "new - required parameter missing (sitename)";
 
     ##
@@ -794,7 +794,7 @@ sub new ($%) {
         # Running initialization, this is where parameters are inserted and
         # normally FS::Config gets embedded.
         #
-        $siteconfig->init();
+        $siteconfig->init($args->{'init_args'});
 
         ##
         # Creating an entry in in-memory projects repository
