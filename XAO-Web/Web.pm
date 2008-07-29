@@ -794,7 +794,7 @@ sub new ($%) {
         # Running initialization, this is where parameters are inserted and
         # normally FS::Config gets embedded.
         #
-        $siteconfig->init($args->{'init_args'});
+        $siteconfig->init($args->{'init_args'} || ());
 
         ##
         # Creating an entry in in-memory projects repository
