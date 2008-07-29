@@ -51,7 +51,7 @@ use XAO::Objects;
 use base XAO::Objects->load(objname => 'Atom');
 
 use vars qw($VERSION);
-$VERSION=(0+sprintf('%u.%03u',(q$Id: Glue.pm,v 2.17 2008/07/29 06:35:33 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
+$VERSION=(0+sprintf('%u.%03u',(q$Id: Glue.pm,v 2.18 2008/07/29 07:01:37 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
 
 ###############################################################################
 
@@ -144,11 +144,13 @@ sub new ($%) {
         # Checking if this is a request to trash everything and produce a
         # squeky clean new database.
         #
+        my $empty_database;
         if($args->{'empty_database'}) {
             $args->{'empty_database'} eq 'confirm' ||
                 throw $self "new - request for 'empty_database' is not 'confirm'ed";
 
             $driver->initialize_database;
+            $empty_database=1;
         }
 
         # Loading data layout. From 1.07 onward by default it does not
@@ -157,8 +159,13 @@ sub new ($%) {
         # same time and fixes/upgrades were run in parallel.
         #
         # 'check_consistency' argument is needed to get checks done.
+        # If the database is just created 'check_consistency' is
+        # assumed, to help in test cases
         #
-        $driver->consistency_check_set($args->{'check_consistency'} || $args->{'consistency_check'});
+        $driver->consistency_check_set(
+            $empty_database ||
+            $args->{'check_consistency'} || $args->{'consistency_check'}
+        );
         $$self->{'classes'}=$driver->load_structure;
     }
 
