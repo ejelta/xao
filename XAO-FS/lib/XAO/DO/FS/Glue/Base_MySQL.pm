@@ -27,7 +27,7 @@ use XAO::Objects;
 use base XAO::Objects->load(objname => 'FS::Glue::Base');
 
 use vars qw($VERSION);
-$VERSION=(0+sprintf('%u.%03u',(q$Id: Base_MySQL.pm,v 2.8 2008/07/29 07:07:41 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
+$VERSION=(0+sprintf('%u.%03u',(q$Id: Base_MySQL.pm,v 2.9 2008/07/29 07:22:10 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
 
 ###############################################################################
 
@@ -669,7 +669,6 @@ sub load_structure ($) {
 
     # Checking table types, if requested
     #
-    $sth=$cn->sql_execute("SHOW TABLE STATUS");
     my %table_types;
     if($self->{'consistency_check_requested'}) {
         ### dprint "Meta-data consistency check requested, loading 'table status', etc";
@@ -677,6 +676,7 @@ sub load_structure ($) {
         my %type_counts;
         my $table_count=0;
 
+        $sth=$cn->sql_execute("SHOW TABLE STATUS");
         while(my $row=$cn->sql_fetch_row($sth)) {
             my ($name,$type,$row_format,$rows)=@$row;
             $type=lc($type);
