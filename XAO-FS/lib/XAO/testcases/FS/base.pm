@@ -5,10 +5,9 @@ use XAO::Objects;
 
 use base qw(Test::Unit::TestCase);
 
-sub set_up {
+sub set_up ($) {
     my $self=shift;
 
-    ##
     # Reading configuration
     #
     my %d;
@@ -18,23 +17,27 @@ sub set_up {
         close(F);
         eval $t;
     }
-    $self->assert($d{test_dsn},
+
+    $self->assert($d{'test_dsn'},
                   "No test configuration available (no .config)");
 
-    $self->{odb}=XAO::Objects->new(objname => 'FS::Glue',
-                                   dsn => $d{test_dsn},
-                                   user => $d{test_user},
-                                   password => $d{test_password},
-                                   empty_database => 'confirm');
+    $self->{'odb'}=XAO::Objects->new(
+        objname             => 'FS::Glue',
+        dsn                 => $d{'test_dsn'},
+        user                => $d{'test_user'},
+        password            => $d{'test_password'},
+        empty_database      => 'confirm',
+        check_consistency   => 1,
+    );
     $self->assert($self->{odb}, "Can't connect to the FS database");
 
-    $self->{odb_args}={
-        dsn => $d{test_dsn},
-        user => $d{test_user},
-        password => $d{test_password},
+    $self->{'odb_args'}={
+        dsn         => $d{'test_dsn'},
+        user        => $d{'test_user'},
+        password    => $d{'test_password'},
     };
 
-    my $global=$self->{odb}->fetch('/');
+    my $global=$self->{'odb'}->fetch('/');
     $self->assert($global, "Can't fetch Global from FS database");
 
     $global->build_structure(
@@ -73,7 +76,7 @@ sub tear_down {
 
 sub get_odb {
     my $self=shift;
-    my $odb=$self->{odb};
+    my $odb=$self->{'odb'};
     $self->assert(defined($odb) && ref($odb), 'No object database handler');
     $odb;
 }

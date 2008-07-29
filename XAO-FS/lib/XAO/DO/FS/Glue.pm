@@ -51,7 +51,7 @@ use XAO::Objects;
 use base XAO::Objects->load(objname => 'Atom');
 
 use vars qw($VERSION);
-$VERSION=(0+sprintf('%u.%03u',(q$Id: Glue.pm,v 2.16 2008/02/21 02:22:15 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
+$VERSION=(0+sprintf('%u.%03u',(q$Id: Glue.pm,v 2.17 2008/07/29 06:35:33 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
 
 ###############################################################################
 
@@ -141,7 +141,6 @@ sub new ($%) {
         );
         $$self->{'driver'}=$driver;
 
-        ##
         # Checking if this is a request to trash everything and produce a
         # squeky clean new database.
         #
@@ -152,14 +151,19 @@ sub new ($%) {
             $driver->initialize_database;
         }
 
-        ##
-        # Loading data layout
+        # Loading data layout. From 1.07 onward by default it does not
+        # check table consistency as this is a slow operation that can
+        # also be dangerous if multiple requests were to be made at the
+        # same time and fixes/upgrades were run in parallel.
         #
+        # 'check_consistency' argument is needed to get checks done.
+        #
+        $driver->consistency_check_set($args->{'check_consistency'} || $args->{'consistency_check'});
         $$self->{'classes'}=$driver->load_structure;
     }
 
     else {
-        ##
+
         # We must have glue object somewhere - either explicitly given
         # or from an object being cloned..
         #
@@ -2016,7 +2020,14 @@ sub _list_store_object ($$$) {
     return $key_value;
 }
 
-##
+# Returns true if meta-data consistency has been checked at startup
+# (default is now not to check)
+#
+sub _consistency_checked($) {
+    my $self=shift;
+    return $self->_driver->consistency_checked;
+}
+
 # Adds new data field to the hash object.
 #
 sub _add_data_placeholder ($%) {
@@ -2030,26 +2041,22 @@ sub _add_data_placeholder ($%) {
     my $table=$self->_class_description->{'table'};
     my $driver=$self->_driver;
 
-    ##
     # Copying args to avoid destroying external hash
     #
     my %fdesc;
     @fdesc{keys %{$args}}=CORE::values %{$args};
     undef $args;
 
-    ##
     # Checking if this is a hash in a list stored in some other hash
     # other then Global.
     #
     my $upper_class=$self->upper_class;
     my $connected=(!$upper_class || $upper_class eq 'FS::Global') ? 0 : 1;
 
-    ##
     # Checking or setting the default value.
     #
     $fdesc{'default'}=$self->_field_default($name,\%fdesc);
 
-    ##
     # Adding...
     #
     if($type eq 'words') {

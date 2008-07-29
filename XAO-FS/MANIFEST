@@ -49,6 +49,7 @@ lib/XAO/testcases/FS/index.pm
 lib/XAO/testcases/FS/linkage.pm
 lib/XAO/testcases/FS/lists.pm
 lib/XAO/testcases/FS/placeholders.pm
+lib/XAO/testcases/FS/qstart.pm
 lib/XAO/testcases/FS/search.pm
 lib/XAO/testcases/FS/transact.pm
  ------------------------------------------------------------- Benchmarking

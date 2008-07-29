@@ -1,4 +1,8 @@
-1.07 -
+1.08 - 
+
+1.07 - 28-Jul-2008
+    * default is 'quick-start' now, without 'show table status' -- all
+      project build_structure scripts need to be updated
     * support for 'result' option, multiple return fields in searches
     * support for blobs and text charsets
     * drivers split into SQL dialect specific and connection specific,

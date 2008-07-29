@@ -69,7 +69,7 @@ use Encode;
 use base XAO::Objects->load(objname => 'FS::Glue');
 
 use vars qw($VERSION);
-$VERSION=(0+sprintf('%u.%03u',(q$Id: Hash.pm,v 2.8 2007/05/26 03:05:27 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
+$VERSION=(0+sprintf('%u.%03u',(q$Id: Hash.pm,v 2.9 2008/07/29 06:35:33 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
 
 ###############################################################################
 
@@ -351,6 +351,9 @@ sub build_structure ($%) {
     my $args=get_args(\@_);
 
     my %changed_charsets;
+
+    $self->_consistency_checked ||
+        throw $self "- can't build_structure without 'check_consistency' on loading";
 
     foreach my $name (keys %$args) {
         my %ph;
