@@ -96,9 +96,10 @@ use XAO::Web;
 ###############################################################################
 
 use vars qw($VERSION);
-$VERSION=(0+sprintf('%u.%03u',(q$Id: XAO.pm,v 2.8 2008/01/09 03:40:12 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
+$VERSION=(0+sprintf('%u.%03u',(q$Id: XAO.pm,v 2.9 2008/07/30 03:45:05 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
 
 use vars qw($MP2);
+use vars qw($HAVE_SIZE_LIMIT);
 
 BEGIN {
     eval {
@@ -160,7 +161,7 @@ sub handler {
     # Checking if we were called as a PerlHandler and complaining
     # otherwise.
     #
-    if($r->is_initial_req && exists $ENV{REQUEST_METHOD}) {
+    if($r->is_initial_req && exists $ENV{'REQUEST_METHOD'}) {
         return server_error($r,'Use PerlTransHandler',<<EOT);
 Please use 'PerlTransHandler Apache::XAO' instead of just PerlHandler.
 EOT
@@ -185,7 +186,6 @@ EOT
         return NOT_FOUND;
     }
 
-    ##
     # Checking if we need to worry about ExtFilesMap or ExtFiles in the
     # apache config.
     #
@@ -214,7 +214,6 @@ EOT
         }
     }
 
-    ##
     # Checking if we should serve this request at all. If the URI ends
     # with / we always add index.html to the URI before checking.
     #
@@ -248,14 +247,12 @@ EOT
         return OK;
     }
 
-    ##
     # We pass the knowledge along in the 'notes' table.
     #
     $r->pnotes(xaoweb   => $web);
     $r->pnotes(pagedesc => $pagedesc);
     $r->pnotes(uri      => $uri);
 
-    ##
     # Default is to install a content handler to produce actual output.
     # It could be more optimal to have two always present handlers
     # instead of pushing/popping automatically -- in this case
@@ -269,7 +266,6 @@ EOT
     if($htype eq 'auto') {
         ### $r->server->log_error("TRANS: auto (uri=$uri)");
 
-        ##
         # In mod_perl 2.x filepath translation is done in a separate
         # phase, we need to set up a handler for it -- otherwise apache
         # will still attempt to map filename, and worse yet -- attempt
@@ -299,7 +295,6 @@ EOT
 sub handler_content ($) {
     my $r=shift;
 
-    ##
     # Getting the data. If there is no data then trans handler was not
     # executed or has declined, so we do not need to do anything.
     #
@@ -307,13 +302,40 @@ sub handler_content ($) {
         return DECLINED;
     my $pagedesc=$r->pnotes('pagedesc');
 
-    ##
+    # If needed setting up SizeLimit to possibly restart this process
+    # when it gets too big. Controlled by memory_size_limit parameters
+    # in the site config:
+    #
+    #  check_every_n_requests | every_n_requests
+    #  max_process_size         (in KB)
+    #  min_share_size           (in KB)
+    #  max_unshared_size        (in KB)
+    #
+    if(my $msl=$web->config->get('memory_size_limit')) {
+        if($MP2 && $MP2==2) {
+            if(!$HAVE_SIZE_LIMIT) {
+                require Apache2::MPM;
+                require Apache2::SizeLimit;
+                $HAVE_SIZE_LIMIT=1;
+            }
+
+            $Apache2::SizeLimit::CHECK_EVERY_N_REQUESTS=$msl->{'check_every_n_requests'} if $msl->{'check_every_n_requests'};
+            $Apache2::SizeLimit::CHECK_EVERY_N_REQUESTS=$msl->{'every_n_requests'} if $msl->{'every_n_requests'};
+
+            Apache2::SizeLimit::setmin($msl->{'min_share_size'}) if $msl->{'min_share_size'};
+            Apache2::SizeLimit::setmin($msl->{'min_shared_size'}) if $msl->{'min_shared_size'};
+            Apache2::SizeLimit::setmax($msl->{'max_process_size'},$r) if $msl->{'max_process_size'};
+            Apache2::SizeLimit::setmax_unshared($msl->{'max_unshared_size'}) if $msl->{'max_unshared_size'};
+
+            ### $r->server->log_error("$Apache2::SizeLimit::CHECK_EVERY_N_REQUESTS / $Apache2::SizeLimit::MIN_SHARE_SIZE / $Apache2::SizeLimit::MAX_UNSHARED_SIZE / $Apache2::SizeLimit::MAX_PROCESS_SIZE");
+        }
+    }
+
     # We have to get the original URI, the one in $r->uri may get mangled
     #
     my $uri=$r->pnotes('uri');
     ### $r->server->log_error("CONTENT: uri=$uri");
 
-    ##
     # Executing
     #
     $web->execute(
