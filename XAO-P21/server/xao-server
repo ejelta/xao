@@ -9,7 +9,7 @@ use File::Copy;
 
 use vars qw($VERSION $REVISION);
 $VERSION='0.05';
-$REVISION='$Id: xao-server,v 1.23 2008/05/03 02:16:27 am Exp $';
+$REVISION='$Id: xao-server,v 1.24 2008/07/30 20:49:06 am Exp $';
 
 sub chld_handler ();
 sub pipe_handler ();
@@ -337,7 +337,8 @@ Creates a customer with a predefined cust-code.
                 pop @args;  # removing space keeper
 
                 open(OUT,">$fname~") or die "$!";
-                print OUT '"'.join('","',map { s/"/""/g; $_ } @args).qq(",\n);
+                ### print OUT '"'.join('","',map { s/"/""/g; $_ } @args).qq(",\n);
+                print OUT '"'.join('","',@args).qq(",\n);
                 close(OUT) or die "$!";
 
                 rename("$fname~", $fname) or die "$!";
@@ -398,7 +399,7 @@ Placing order into spool. Input data is:
                     }
 
                     foreach(@line) {
-                        s/"/""/sg;
+                        ### s/"/""/sg;  # P21 has a bug that does not work with double quotes (7/30/2008)
                         s/[\r\n\t]/ /sg;
                     }
 
