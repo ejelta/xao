@@ -96,7 +96,7 @@ use XAO::Web;
 ###############################################################################
 
 use vars qw($VERSION);
-$VERSION=(0+sprintf('%u.%03u',(q$Id: XAO.pm,v 2.9 2008/07/30 03:45:05 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
+$VERSION=(0+sprintf('%u.%03u',(q$Id: XAO.pm,v 2.10 2008/07/30 03:47:46 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
 
 use vars qw($MP2);
 use vars qw($HAVE_SIZE_LIMIT);
@@ -328,6 +328,9 @@ sub handler_content ($) {
             Apache2::SizeLimit::setmax_unshared($msl->{'max_unshared_size'}) if $msl->{'max_unshared_size'};
 
             ### $r->server->log_error("$Apache2::SizeLimit::CHECK_EVERY_N_REQUESTS / $Apache2::SizeLimit::MIN_SHARE_SIZE / $Apache2::SizeLimit::MAX_UNSHARED_SIZE / $Apache2::SizeLimit::MAX_PROCESS_SIZE");
+        }
+        else {
+            $r->server->log_error("memory_size_limit is only supported when Apache2::SizeLimit is available");
         }
     }
 
