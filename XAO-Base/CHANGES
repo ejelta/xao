@@ -1,3 +1,6 @@
+1.07 -
+    * XAO::Utils - added t2hj for javascript translations
+
 1.06 - 11-Jan-2005
     * XAO::Utils - set_logprint_handler()
     * XAO::TestUtils - 'use blib' is optional now
