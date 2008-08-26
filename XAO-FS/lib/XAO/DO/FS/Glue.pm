@@ -51,7 +51,7 @@ use XAO::Objects;
 use base XAO::Objects->load(objname => 'Atom');
 
 use vars qw($VERSION);
-$VERSION=(0+sprintf('%u.%03u',(q$Id: Glue.pm,v 2.19 2008/08/26 22:29:04 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
+$VERSION=(0+sprintf('%u.%03u',(q$Id: Glue.pm,v 2.20 2008/08/26 22:30:26 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
 
 ###############################################################################
 
@@ -1521,8 +1521,8 @@ sub _build_search_query ($%) {
     }
 
     # MySQL suggests to add "ORDER BY NULL" if the query has "GROUP BY",
-    # but sorting order is not important. It avoids the overhead of
-    # sorting.
+    # but sorting order is not important. The default MySQL behavior is
+    # to assume there is an ORDER BY on the same columns as GROUP BY.
     #
     if($have_group_by && !@orderby) {
         $sql.=' ORDER BY NULL';
