@@ -51,7 +51,7 @@ use XAO::Objects;
 use base XAO::Objects->load(objname => 'Atom');
 
 use vars qw($VERSION);
-$VERSION=(0+sprintf('%u.%03u',(q$Id: Glue.pm,v 2.18 2008/07/29 07:01:37 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
+$VERSION=(0+sprintf('%u.%03u',(q$Id: Glue.pm,v 2.19 2008/08/26 22:29:04 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
 
 ###############################################################################
 
@@ -1496,17 +1496,19 @@ sub _build_search_query ($%) {
     # The drawback of that is that if we were asked to have distinct
     # values in some inner class then we can have repeating keys.
     #
+    my $have_group_by;
     if(@distinct) {
         $sql.=' GROUP BY ' . join(',',@distinct);
+        $have_group_by=1;
     }
     elsif($no_distinct) {
         #
     }
     elsif(scalar(keys %$c_names)>1) {
         $sql.=' GROUP BY ' . $fields_list[$groupby_pos];
+        $have_group_by=1;
     }
 
-    ##
     # Ordering goes after GROUP BY
     #
     if(@orderby) {
@@ -1518,12 +1520,18 @@ sub _build_search_query ($%) {
         }
     }
 
-    ##
+    # MySQL suggests to add "ORDER BY NULL" if the query has "GROUP BY",
+    # but sorting order is not important. It avoids the overhead of
+    # sorting.
+    #
+    if($have_group_by && !@orderby) {
+        $sql.=' ORDER BY NULL';
+    }
+
     # To aid in debugging..
     #
     print STDERR "SEARCH SQL: $sql\n" if $debug;
 
-    ##
     # Returning resulting hash
     #
     return {

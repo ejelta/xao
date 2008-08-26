@@ -1319,7 +1319,8 @@ sub test_multiple_branches {
 
     $ids=$customers->search([ 'Orders/name', 'eq', 'foo' ],
                             'and',
-                            [ 'Products/name', 'eq', 'bar' ]);
+                            [ 'Products/name', 'eq', 'bar' ],
+                            { orderby => 'customer_id' });
 
     $t_ids=join(",",@$ids);
     $self->assert($t_ids eq 'c1,screw',
