@@ -69,7 +69,7 @@ use Encode;
 use base XAO::Objects->load(objname => 'FS::Glue');
 
 use vars qw($VERSION);
-$VERSION=(0+sprintf('%u.%03u',(q$Id: Hash.pm,v 2.9 2008/07/29 06:35:33 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
+$VERSION=(0+sprintf('%u.%03u',(q$Id: Hash.pm,v 2.10 2008/09/14 07:07:12 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
 
 ###############################################################################
 
@@ -809,7 +809,7 @@ sub get ($$) {
                 if($type eq 'text' && $field->{'charset'} ne 'binary' && !Encode::is_utf8($value)) {
                     $value=Encode::decode($field->{'charset'},$value,Encode::FB_DEFAULT);
                 }
-                    
+
                 return $value;
             }
         }
