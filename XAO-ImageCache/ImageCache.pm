@@ -57,7 +57,7 @@ use File::Path;
 use File::Copy;
 
 use vars qw($VERSION);
-$VERSION=1.0;
+$VERSION=1.1;
 
 ###############################################################################
 
@@ -123,9 +123,10 @@ of already existent cache.
      },  
      force_download => 1,               # to enforce re-downloads
      force_scale    => 1,               # to enforce re-scaling
+     clear_on_error => 0,               # don't clear DB properties even on permanent errors
  ) || die "Image cache creation failure!";
 
-Number of configuration parameters should be passed to 
+A number of configuration parameters can be passed to 
 XAO::ImageCache to tune functionality. 
 
 =over
@@ -136,11 +137,15 @@ XAO::ImageCache to tune functionality.
 
 =item cache_url
 
+=item clear_on_error
+
 =item dest_url_key
 
-=item list
+=item force_download
 
-=item reload
+=item force_scale
+
+=item list
 
 =item source_url_key
 
@@ -153,9 +158,9 @@ XAO::ImageCache to tune functionality.
 =back
 
 Follow to L<CONFIGURATION PARAMETERS|/"CONFIGURATION PARAMETERS"> 
-section to see what each parameter do.
+section to see what each parameter does.
 
-If any of required parameter is not present error will returned.
+If any required parameter is not present an error will be thrown.
 
 =cut 
 
@@ -258,11 +263,13 @@ sub new ($%) {
         $self->{min_period} = 0;
     }
 
+    $self->{'reload'}=1 if $self->{'force_download'};
+
     $self->{'size'}->{'quality'}||=88;
     $self->{'thumbnails'}->{'quality'}||=88;
 
     # Make LWP::UserAgent instance
-    my $hash_ref = $self->{useragent}; 
+    my $hash_ref = $self->{'useragent'}; 
     $self->{ua}  = LWP::UserAgent->new( %$hash_ref)
                 || $self->throw("LWP::UserAgent creation failure!");
 
@@ -384,14 +391,17 @@ sub check($) {
             my $e=shift;
             eprint "$e";
 
-            # We don't update the item unless this is a permanent error.
+            # We don't update the item unless this is a permanent error
+            # and we have a 'clear_on_error' argument.
             #
             if("$e" =~ /PERMANENT/) {
-                dprint ".clearing existing image/thumbnail urls";
-                my %d;
-                $d{$img_dest_url_key}='' if $img_dest_url_key;
-                $d{$thm_dest_url_key}='' if $thm_dest_url_key;
-                $item->put(\%d);
+                if($self->{'clear_on_error'}) {
+                    dprint ".permanent error - clearing existing image/thumbnail urls";
+                    my %d;
+                    $d{$img_dest_url_key}='' if $img_dest_url_key;
+                    $d{$thm_dest_url_key}='' if $thm_dest_url_key;
+                    $item->put(\%d);
+                }
             }
         };
 
@@ -419,7 +429,7 @@ an optional parameter:
 Downloaded image is resized if C<size> parameter present. Thumbnail is
 resized as specified by C<thumbnails> C<geometry> parameter.
 
-When C<reload> configuration parameter is not set to True value, image
+When C<force_download> configuration parameter is not set to True value, image
 will be downloaded into cache only if image is not already cached or if
 cached image has a later modification date than source image.
 
@@ -490,7 +500,7 @@ sub download ($$) {
                 my $response = $user_agent->head($thm_src_url);
                 if ($response->is_success) {
                     my $mtime_web = convert_time($response->header('Last-Modified'));
-                    if ((!-r $thm_src_file) || ($mtime_src < $mtime_web) || $self->{reload}) {
+                    if ((!-r $thm_src_file) || ($mtime_src < $mtime_web) || $self->{'reload'} || $self->{'force_download'}) {
                         $self->download_file($thm_src_url, $thm_src_file);
                     }
                 }
@@ -504,7 +514,6 @@ sub download ($$) {
             dprint ".thumbnail source file current: $thm_src_url";
         }
 
-        ##
         # Resizing if required
         #
         if($thm_src_file) {
@@ -547,7 +556,7 @@ sub download ($$) {
                 my $response = $user_agent->head($img_src_url);
                 if ($response->is_success) {
                     my $mtime_web = convert_time($response->header('Last-Modified'));
-                    if ((!-r $img_src_file) || ($mtime_src < $mtime_web) || $self->{reload}) {
+                    if ((!-r $img_src_file) || ($mtime_src < $mtime_web) || $self->{'reload'} || $self->{'force_download'}) {
                         $self->download_file($img_src_url, $img_src_file);
                     }
                     else {
@@ -600,15 +609,17 @@ sub download_file {
 
     dprint "DOWNLOAD ($source_url)->($source_file)";
 
-    my $response = $self->{ua}->get($source_url);
-    if ($response->is_success) {
-        open(F,"> $source_file")
-          || $self->throw("unable to save file '$source_file'! $!");
+    my $response = $self->{'ua'}->get($source_url);
+    if($response->is_success) {
+        $response->content_type =~ /^image\// ||
+            $self->throw("- downloaded '$source_url' is not an image (".$response->content_type.") (PERMANENT)");
+
+        open(F,"> $source_file") || $self->throw("- unable to save file '$source_file'! $!");
         print F $response->content;
         close(F);
     }
     else {
-        $self->throw("can't download '$source_url' - ".$response->status_line." (NETWORK)");
+        $self->throw("- can't download '$source_url' - ".$response->status_line." (NETWORK)");
     }
 }
 
@@ -627,7 +638,7 @@ sub scale_file ($$$$;$) {
 
     my $geometry = ''; # image dimensions in ImageMagick geometry format
 
-    my $image = Image::Magick->new() || $self->throw("Image::Magick creation failure!");
+    my $image = Image::Magick->new() || $self->throw("- Image::Magick creation failure!");
     my $err   = $image->ReadImage($infile);
     $self->throw("parsing error ($err) (PERMANENT)") if $err;
 
@@ -743,20 +754,26 @@ Removing the ENTIRE cache directory from disk.
 Be carefully to use this method!!!
 
 Cache structure will be removed from disk completely!
-Set C<reload> parameter to True value to download 
+Set C<force_download> parameter to True value to download 
 images to cache without any conditions.
 
 =cut
 
 sub remove_cache($) {
     my $self = shift;
-    rmtree($self->{cache_path});
+    rmtree($self->{'cache_path'});
 }
 
 ###############################################################################
 
 sub throw($$) {
     my ($self,$message)=@_;
+
+    if($message=~/^-/) {
+        (my $fname=(caller(1))[3])=~s/^.*://;
+        $message=$fname." ".$message;
+    }
+
     throw XAO::E::ImageCache $message;
 }
 
@@ -976,7 +993,7 @@ init() and check() methodes manualy.
 Existent cache directory will not be removed. You may do it 
 manualy using remove_cache() methode.
 
-=item reload
+=item force_download
 
 - each image should be reloaded to cache and processed without 
 dependance of source image modification time. Any conditions 
