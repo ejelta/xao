@@ -133,6 +133,31 @@ DESCRIPTION
         order to retrieve new stored object from database you will have to
         call get().
 
+    scan (@)
+        A wrapper for search() method that makes it easier to search in
+        large collections of data. Will use 'offset' and 'limit' options to
+        search in multiple iterations and will use callbacks to process
+        results.
+
+        Parameters are:
+
+          block_size        => required, how many records to retrieve at once
+          search_query      => optional array reference, see below in search() method
+          search_options    => required, must include at least an 'orderby' option
+          call_before       => optional, called before the start
+          call_block        => optional, called with the full retrieved data block
+          call_row          => optional, called for each row of the data
+          call_after        => optional, called after the scanning is done
+
+        All callbacks get at least two arguments: the reference to the
+        parameters passed to scan(), reference to the list or collection
+        being scanned. Call_block also gets a reference to the block, and
+        its zero-based offset. Call_row gets the result (either an array ref
+        or a scalar, depending on 'result' option), its zero-based offset.
+
+        Scan() does not return anything, so at least one callback is
+        necessary.
+
     search (@)
         Returns a reference to the list of IDs of objects corresponding to
         the given criteria.
@@ -366,6 +391,11 @@ DESCRIPTION
              my $subset=$persons->search('eye_color','eq','brown', {
                                              'limit' => 100
                                         });
+
+        offset
+            Indicates that you are only interested in results starting at
+            the 'offset' position in the resulting set. In combination with
+            'limit' this can be used to page through large result sets.
 
         result
             This is a very powerful option that can significantly decrease

@@ -33,7 +33,7 @@ use XAO::Objects;
 use base XAO::Objects->load(objname => 'FS::Glue');
 
 use vars qw($VERSION);
-$VERSION=(0+sprintf('%u.%03u',(q$Id: List.pm,v 2.8 2008/04/29 23:07:07 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
+$VERSION=(0+sprintf('%u.%03u',(q$Id: List.pm,v 2.9 2008/12/10 05:05:17 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
 
 ###############################################################################
 
@@ -423,6 +423,105 @@ sub put ($$;$) {
 
 ###############################################################################
 
+=item scan (@)
+
+A wrapper for search() method that makes it easier to search in large
+collections of data. Will use 'offset' and 'limit' options to search in
+multiple iterations and will use callbacks to process results.
+
+Parameters are:
+
+  block_size        => required, how many records to retrieve at once
+  search_query      => optional array reference, see below in search() method
+  search_options    => required, must include at least an 'orderby' option
+  call_before       => optional, called before the start
+  call_block        => optional, called with the full retrieved data block
+  call_row          => optional, called for each row of the data
+  call_after        => optional, called after the scanning is done
+
+All callbacks get at least two arguments: the reference to the
+parameters passed to scan(), reference to the list or collection being
+scanned. Call_block also gets a reference to the block, and its zero-based
+offset. Call_row gets the result (either an array ref or a scalar,
+depending on 'result' option), its zero-based offset.
+
+Scan() does not return anything, so at least one callback is necessary.
+
+=cut
+
+sub scan ($@) {
+    my $self=shift;
+    my $args=get_args(\@_);
+
+    my $block_size=$args->{'block_size'} || throw $self "- no block_size";
+
+    $args->{'search_options'} || throw $self "- no search_options";
+
+    my $options=merge_refs($args->{'search_options'});
+
+    $options->{'orderby'} || throw $self "- must have an orderby in search_options";
+
+    my $offset_global=$args->{'offset'} || $args->{'search_options'}->{'offset'} || 0;
+    my $limit_global=$args->{'limit'} || $args->{'search_options'}->{'limit'} || 0;
+
+    $args->{'call_before'} &&
+        $args->{'call_before'}->($self,$args);
+
+    my $offset=$offset_global;
+    while(1) {
+        $options->{'offset'}=$offset;
+        $options->{'limit'}=(!$limit_global || $offset-$offset_global+$block_size < $limit_global)
+                                ? $block_size
+                                : $limit_global-($offset-$offset_global);
+
+        my $sr=$self->search(
+            $args->{'search_query'} || [ ],
+            $options,
+        );
+
+        last unless @$sr;
+
+        ### dprint Dumper($sr);
+        ### dprint Dumper($options);
+
+        my $margs=merge_refs($args,{
+            search_options  => $options,
+        });
+
+        if($args->{'call_block'}) {
+            $args->{'call_block'}->(
+                $self,
+                $margs,
+                $sr,
+                $options->{'offset'},
+                $options->{'limit'},
+            );
+        }
+
+        if($args->{'call_row'}) {
+            for(my $i=0; $i<@$sr; ++$i) {
+                $args->{'call_row'}->(
+                    $self,
+                    $margs,
+                    $sr->[$i],
+                    $i+$options->{'offset'},
+                );
+            }
+        }
+
+        last if scalar(@$sr)<$options->{'limit'};
+
+        last if $limit_global && $options->{'offset'}+scalar(@$sr) >= $limit_global;
+
+        $offset+=scalar(@$sr);
+    }
+
+    $args->{'call_after'} &&
+        $args->{'call_after'}->($self,$args);
+}
+
+###############################################################################
+
 =item search (@)
 
 Returns a reference to the list of IDs of objects corresponding to the
@@ -688,6 +787,12 @@ underlying database does not support this feature.
  my $subset=$persons->search('eye_color','eq','brown', {
                                  'limit' => 100
                             });
+
+=item offset
+
+Indicates that you are only interested in results starting at the
+'offset' position in the resulting set. In combination with 'limit' this
+can be used to page through large result sets.
 
 =item result
 

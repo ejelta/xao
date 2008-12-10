@@ -27,7 +27,7 @@ use XAO::Objects;
 use base XAO::Objects->load(objname => 'FS::Glue::Base');
 
 use vars qw($VERSION);
-$VERSION=(0+sprintf('%u.%03u',(q$Id: Base_MySQL.pm,v 2.9 2008/07/29 07:22:10 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
+$VERSION=(0+sprintf('%u.%03u',(q$Id: Base_MySQL.pm,v 2.10 2008/12/10 05:05:17 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
 
 ###############################################################################
 
@@ -1246,7 +1246,10 @@ sub search ($%) {
     my $sql=$query->{'sql'};
 
     if($query->{'options'} && $query->{'options'}->{'limit'}) {
-        $sql.=' LIMIT '.int($query->{'options'}->{'limit'});
+        my $limit=int($query->{'options'}->{'limit'});
+        my $offset=int($query->{'options'}->{'offset'});
+
+        $sql.=' LIMIT '.$offset.','.$limit;
     }
 
     # dprint "SQL: $sql";

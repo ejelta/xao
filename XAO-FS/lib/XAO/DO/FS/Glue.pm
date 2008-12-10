@@ -51,7 +51,7 @@ use XAO::Objects;
 use base XAO::Objects->load(objname => 'Atom');
 
 use vars qw($VERSION);
-$VERSION=(0+sprintf('%u.%03u',(q$Id: Glue.pm,v 2.20 2008/08/26 22:30:26 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
+$VERSION=(0+sprintf('%u.%03u',(q$Id: Glue.pm,v 2.21 2008/12/10 05:05:17 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
 
 ###############################################################################
 
@@ -1325,7 +1325,7 @@ sub _build_search_query ($%) {
                     push(@orderby,$o,$sqlfn);
                 }
             }
-            elsif(lc($option) eq 'limit') {
+            elsif(lc($option) eq 'limit' || lc($option) eq 'offset') {
                 # pass through, handled in the driver
             }
             elsif(lc($option) eq 'index') {

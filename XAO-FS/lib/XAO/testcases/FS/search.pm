@@ -84,6 +84,167 @@ use base qw(XAO::testcases::FS::base);
 
 ###############################################################################
 
+sub test_scan {
+    my $self=shift;
+
+    my $odb=$self->get_odb();
+
+    my $cust_list=$odb->fetch('/Customers');
+    my $cust_obj=$cust_list->get_new();
+
+    for(my $i=0; $i<100; ++$i) {
+        $cust_obj->put(name => sprintf('scancust%04u',$i));
+        $cust_list->put(sprintf('id%04u',$i) => $cust_obj);
+    }
+
+    $self->assert(scalar($cust_list->keys)==102,
+                  "Expected to have 102 customers in the list, got ".scalar($cust_list->keys));
+
+
+    my %tests=(
+        t01 => {
+            params  => {
+                block_size => 20,
+                search_query  => [
+                    'name','sw','scancust',
+                ],
+                search_options => {
+                    result  => [ 'customer_id','name' ],
+                    orderby => [ descend => 'customer_id' ],
+                    limit   => 90,  # overall limit
+                    offset  => 5,   # overall offset
+                },
+            },
+            expect => {
+                rows    => 90,
+                blocks  => 5,
+                first5  => 'id0094,id0093,id0092,id0091,id0090',
+            },
+        },
+        t02 => {
+            params  => {
+                block_size => 1,
+                search_query  => [
+                    'name','sw','scancust',
+                ],
+                search_options => {
+                    orderby => 'name',
+                },
+            },
+            expect => {
+                rows    => 100,
+                blocks  => 100,
+                first5  => 'id0000,id0001,id0002,id0003,id0004',
+            },
+        },
+        t03 => {
+            params  => {
+                block_size => 11,
+                search_options => {
+                    orderby => 'customer_id',
+                    offset  => 5,   # overall offset
+                },
+            },
+            expect => {
+                rows    => 97,
+                blocks  => 9,
+                first5  => 'id0003,id0004,id0005,id0006,id0007',
+            },
+        },
+        t04 => {
+            params  => {
+                block_size  => 40,
+                limit       => 35,  # overall offset
+                search_options => {
+                    orderby => 'customer_id',
+                    limit   => 50,  # low priority
+                },
+            },
+            expect => {
+                rows    => 35,
+                blocks  => 1,
+                first5  => 'c1,c2,id0000,id0001,id0002',
+            },
+        },
+    );
+
+    foreach my $testname (keys %tests) {
+        my $tdata=$tests{$testname};
+
+        my $called_before=0;
+        my $called_block=0;
+        my $called_row=0;
+        my $called_after=0;
+        my @srb;
+        my @srr;
+        $cust_list->scan($tdata->{'params'},{
+            call_before => sub {
+                my ($list,$args)=@_;
+                ++$called_before;
+                $self->assert(ref($args) && $args->{'block_size'},
+                              "Expected to get back arguments in 'call_before'");
+                $self->assert(ref($list),
+                              "Expected to get back list in 'call_before'");
+            },
+            call_block => sub {
+                my ($list,$args,$block)=@_;
+                ++$called_block;
+                ### dprint "call_block($called_block): ".Dumper($block);
+                push(@srb,@$block);
+                $self->assert((ref($args) && ref($args->{'call_block'})) ? 1 : 0,
+                              "Expected to get back arguments in 'call_block'");
+                $self->assert((ref($list)) ? 1 : 0,
+                              "Expected to get back list in 'call_block'");
+                $self->assert(ref($block) eq 'ARRAY',
+                              "Expected to get results block in 'call_block'");
+            },
+            call_row => sub {
+                my ($list,$args,$row)=@_;
+                ++$called_row;
+                push(@srr,$row);
+                $self->assert((ref($args) && $args->{'search_options'}) ? 1 : 0,
+                              "Expected to get back arguments in 'call_row'");
+                $self->assert(ref($list),
+                              "Expected to get back list in 'call_row'");
+                $self->assert(defined($row),
+                              "Expected to get a result row in 'call_row'");
+            },
+            call_after => sub {
+                my ($list,$args)=@_;
+                ++$called_after;
+                $self->assert(ref($args) && $args->{'block_size'},
+                              "Expected to get back arguments in 'call_after'");
+                $self->assert(ref($list),
+                              "Expected to get back list in 'call_after'");
+            },
+        });
+
+        my $expect=$tdata->{'expect'};
+
+        $self->assert($called_before==1,
+                      "Expected to have called_before==1, got $called_before");
+        $self->assert($called_block==$expect->{'blocks'},
+                      "Expected to have called_block==$expect->{'blocks'}, got $called_block");
+        $self->assert($called_row==$expect->{'rows'},
+                      "Expected to have called_row==$expect->{'rows'}, got $called_row");
+        $self->assert($called_after==1,
+                      "Expected to have called_after==1, got $called_after");
+
+        $self->assert(scalar(@srb)==scalar(@srr),
+                      "Expected to have the same data from call_block and call_row");
+        for(my $i=0; $i<@srr; ++$i) {
+            $self->assert($srb[$i] eq $srr[$i],
+                          "Expected to have the same data from call_block and call_row, got $srb[$i] and $srr[$i] at position $i");
+        }
+
+        my $first5=join(',',map { ref($_) ? $_->[0] : $_ } @srr[0..4] );
+        $self->assert($first5 eq $expect->{'first5'},
+                      "Expected first 5 elements to be $expect->{'first5'}, got $first5");
+    }
+}
+
+###############################################################################
+
 sub test_mixed_case {
     my $self=shift;
 
@@ -803,6 +964,28 @@ sub test_real_deep {
             class   => 'Data::E',
             result  => '14,57,23,90,103,33,105,22,80,27',
         },
+        t6_2 => {
+            args    => [
+                [ '/project','cs','new' ],
+                { orderby   => 'name',
+                  limit     => 10,
+                  offset    => 0,
+                },
+            ],
+            class   => 'Data::E',
+            result  => '14,57,23,90,103,33,105,22,80,27',
+        },
+        t6_3 => {
+            args    => [
+                [ '/project','cs','new' ],
+                { orderby   => 'name',
+                  limit     => 10,
+                  offset    => 1,
+                },
+            ],
+            class   => 'Data::E',
+            result  => '57,23,90,103,33,105,22,80,27,74',
+        },
         t7 => {
             args    => [
                 [ 'B/*/C/*/name', 'sw', 'e' ],
@@ -1197,7 +1380,6 @@ EOT
     @a{@$list}=@$list;
     $self->assert(scalar(keys %a) == 149,
                   "Non-unique ID in search results, test 14");
-
 
     ##
     # Cleaning up
