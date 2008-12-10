@@ -1,4 +1,6 @@
 1.08 - 
+    * Added 'offset' option to the search()
+    * Added scan() utility method
 
 1.07 - 28-Jul-2008
     * default is 'quick-start' now, without 'show table status' -- all

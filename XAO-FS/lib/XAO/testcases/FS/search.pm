@@ -192,54 +192,54 @@ sub test_scan {
                 ### dprint "call_block($called_block): ".Dumper($block);
                 push(@srb,@$block);
                 $self->assert((ref($args) && ref($args->{'call_block'})) ? 1 : 0,
-                              "Expected to get back arguments in 'call_block'");
+                              "$testname: Expected to get back arguments in 'call_block'");
                 $self->assert((ref($list)) ? 1 : 0,
-                              "Expected to get back list in 'call_block'");
+                              "$testname: Expected to get back list in 'call_block'");
                 $self->assert(ref($block) eq 'ARRAY',
-                              "Expected to get results block in 'call_block'");
+                              "$testname: Expected to get results block in 'call_block'");
             },
             call_row => sub {
                 my ($list,$args,$row)=@_;
                 ++$called_row;
                 push(@srr,$row);
                 $self->assert((ref($args) && $args->{'search_options'}) ? 1 : 0,
-                              "Expected to get back arguments in 'call_row'");
+                              "$testname: Expected to get back arguments in 'call_row'");
                 $self->assert(ref($list),
-                              "Expected to get back list in 'call_row'");
+                              "$testname: Expected to get back list in 'call_row'");
                 $self->assert(defined($row),
-                              "Expected to get a result row in 'call_row'");
+                              "$testname: Expected to get a result row in 'call_row'");
             },
             call_after => sub {
                 my ($list,$args)=@_;
                 ++$called_after;
                 $self->assert(ref($args) && $args->{'block_size'},
-                              "Expected to get back arguments in 'call_after'");
+                              "$testname: Expected to get back arguments in 'call_after'");
                 $self->assert(ref($list),
-                              "Expected to get back list in 'call_after'");
+                              "$testname: Expected to get back list in 'call_after'");
             },
         });
 
         my $expect=$tdata->{'expect'};
 
         $self->assert($called_before==1,
-                      "Expected to have called_before==1, got $called_before");
+                      "$testname: Expected to have called_before==1, got $called_before");
         $self->assert($called_block==$expect->{'blocks'},
-                      "Expected to have called_block==$expect->{'blocks'}, got $called_block");
+                      "$testname: Expected to have called_block==$expect->{'blocks'}, got $called_block");
         $self->assert($called_row==$expect->{'rows'},
-                      "Expected to have called_row==$expect->{'rows'}, got $called_row");
+                      "$testname: Expected to have called_row==$expect->{'rows'}, got $called_row");
         $self->assert($called_after==1,
-                      "Expected to have called_after==1, got $called_after");
+                      "$testname: Expected to have called_after==1, got $called_after");
 
         $self->assert(scalar(@srb)==scalar(@srr),
-                      "Expected to have the same data from call_block and call_row");
+                      "$testname: Expected to have the same data from call_block and call_row");
         for(my $i=0; $i<@srr; ++$i) {
             $self->assert($srb[$i] eq $srr[$i],
-                          "Expected to have the same data from call_block and call_row, got $srb[$i] and $srr[$i] at position $i");
+                          "$testname: Expected to have the same data from call_block and call_row, got $srb[$i] and $srr[$i] at position $i");
         }
 
         my $first5=join(',',map { ref($_) ? $_->[0] : $_ } @srr[0..4] );
         $self->assert($first5 eq $expect->{'first5'},
-                      "Expected first 5 elements to be $expect->{'first5'}, got $first5");
+                      "$testname: Expected first 5 elements to be $expect->{'first5'}, got $first5");
     }
 }
 
@@ -985,6 +985,16 @@ sub test_real_deep {
             ],
             class   => 'Data::E',
             result  => '57,23,90,103,33,105,22,80,27,74',
+        },
+        t6_4 => {
+            args    => [
+                [ '/project','cs','new' ],
+                { orderby   => 'name',
+                  offset    => 120,
+                },
+            ],
+            class   => 'Data::E',
+            result  => '30,19,73,65,92',
         },
         t7 => {
             args    => [

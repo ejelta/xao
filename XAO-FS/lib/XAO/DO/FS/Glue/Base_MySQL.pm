@@ -27,7 +27,7 @@ use XAO::Objects;
 use base XAO::Objects->load(objname => 'FS::Glue::Base');
 
 use vars qw($VERSION);
-$VERSION=(0+sprintf('%u.%03u',(q$Id: Base_MySQL.pm,v 2.10 2008/12/10 05:05:17 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
+$VERSION=(0+sprintf('%u.%03u',(q$Id: Base_MySQL.pm,v 2.11 2008/12/10 05:33:26 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
 
 ###############################################################################
 
@@ -1245,11 +1245,21 @@ sub search ($%) {
 
     my $sql=$query->{'sql'};
 
-    if($query->{'options'} && $query->{'options'}->{'limit'}) {
-        my $limit=int($query->{'options'}->{'limit'});
-        my $offset=int($query->{'options'}->{'offset'});
+    if($query->{'options'}) {
+        my $limit=int($query->{'options'}->{'limit'} || 0);
+        my $offset=int($query->{'options'}->{'offset'} || 0);
 
-        $sql.=' LIMIT '.$offset.','.$limit;
+        # MySQL has no syntax to specify offset without a non-zero
+        # limit. Using a very large number per recommendation of mysql
+        # docs.
+        #
+        if($limit>0 || $offset>0) {
+            $sql.=' LIMIT '.($limit || '18446744073709551615');
+        }
+
+        if($offset>0) {
+            $sql.=' OFFSET '.$offset;
+        }
     }
 
     # dprint "SQL: $sql";
