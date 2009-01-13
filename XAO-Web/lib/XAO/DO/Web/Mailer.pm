@@ -44,6 +44,7 @@ arguments (where N can be any alphanumeric tag):
  attachment.N.disposition => attachment disposition (optional, 'attachment' by default)
  attachment.N.path        => path to a template for building the attachment
  attachment.N.template    => inline template for building the attachment
+ attachment.N.unparsed    => use the template literally, without xao-parsing
  attachment.N.pass        => pass all arguments of the calling template
  attachment.N.ARG         => VALUE - passed literally as ARG=>VALUE to the template
 
@@ -91,7 +92,7 @@ use XAO::Objects;
 use base XAO::Objects->load(objname => 'Web::Page');
 
 use vars qw($VERSION);
-$VERSION=(0+sprintf('%u.%03u',(q$Id: Mailer.pm,v 2.10 2008/06/03 23:36:28 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
+$VERSION=(0+sprintf('%u.%03u',(q$Id: Mailer.pm,v 2.11 2009/01/13 02:19:27 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
 
 sub display ($;%) {
     my $self=shift;
@@ -195,17 +196,30 @@ sub display ($;%) {
                 $objargs{$1}=$args->{$kk};
             }
 
-            my $obj=$self->object(objname => ($objargs{'objname'} || 'Page'));
-            delete $objargs{'objname'};
-
-            if($args->{'attachment.'.$id.'.pass'} && $self->{'parent'} && $self->{'parent'}->{'args'}) {
-                my $aaa=merge_refs($self->{'parent'}->{'args'});
-                delete $aaa->{'path'};
-                delete $aaa->{'template'};
-                %objargs=%{merge_refs($aaa,\%objargs)};
+            if($args->{'attachment.'.$id.'.unparsed'}) {
+                if(defined $args->{'attachment.'.$id.'.template'}) {
+                    $data{'Data'}=$args->{'attachment.'.$id.'.template'};
+                }
+                elsif(defined $args->{'attachment.'.$id.'.path'}) {
+                    $data{'Data'}=$self->object->expand(
+                        path        => $args->{'attachment.'.$id.'.path'},
+                        unparsed    => 1,
+                    );
+                }
             }
+            else {
+                my $obj=$self->object(objname => ($objargs{'objname'} || 'Page'));
+                delete $objargs{'objname'};
 
-            $data{'Data'}=$obj->expand(\%objargs);
+                if($args->{'attachment.'.$id.'.pass'} && $self->{'parent'} && $self->{'parent'}->{'args'}) {
+                    my $aaa=merge_refs($self->{'parent'}->{'args'});
+                    delete $aaa->{'path'};
+                    delete $aaa->{'template'};
+                    %objargs=%{merge_refs($aaa,\%objargs)};
+                }
+
+                $data{'Data'}=$obj->expand(\%objargs);
+            }
         }
         elsif($args->{'attachment.'.$id.'.file'}) {
             throw $self "display - attaching files not implemented";
