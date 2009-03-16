@@ -33,7 +33,7 @@ use XAO::Objects;
 use base XAO::Objects->load(objname => 'FS::Glue');
 
 use vars qw($VERSION);
-$VERSION=(0+sprintf('%u.%03u',(q$Id: List.pm,v 2.9 2008/12/10 05:05:17 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
+$VERSION=(0+sprintf('%u.%03u',(q$Id: List.pm,v 2.10 2009/03/16 21:28:54 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
 
 ###############################################################################
 
@@ -439,13 +439,30 @@ Parameters are:
   call_row          => optional, called for each row of the data
   call_after        => optional, called after the scanning is done
 
-All callbacks get at least two arguments: the reference to the
-parameters passed to scan(), reference to the list or collection being
-scanned. Call_block also gets a reference to the block, and its zero-based
-offset. Call_row gets the result (either an array ref or a scalar,
-depending on 'result' option), its zero-based offset.
+All callbacks get at least two arguments: the reference to the list or
+collection being scanned, and the reference to the parameters passed
+to scan(). Call_block also gets a reference to the block, and its
+zero-based offset. Call_row gets the result (either an array ref or a
+scalar, depending on 'result' option), its zero-based offset.
 
 Scan() does not return anything, so at least one callback is necessary.
+
+Example:
+
+    $list->scan(
+        block_size      => 10000,
+        search_options  => {
+            orderby => 'item_code',
+            result  => [ 'item_code','cat_page' ],
+        },
+        call_block      => sub {
+            my ($l,$a,$block,$offset)=@_;
+            dprint "..$offset";
+            foreach my $row (@$block) {
+                #...
+            }
+        },
+    );
 
 =cut
 
