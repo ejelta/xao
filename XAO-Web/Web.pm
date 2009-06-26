@@ -674,7 +674,7 @@ sub process ($%) {
     ##
     # Separator for the error_log :)
     #
-    if(XAO::Utils::get_debug()) {
+    if(XAO::Utils::get_debug() && !$args->{'quieter'}) {
         my @d=localtime;
         my $date=sprintf("%02u:%02u:%02u %u/%02u/%04u",$d[2],$d[1],$d[0],$d[4]+1,$d[3],$d[5]+1900);
         undef(@d);
