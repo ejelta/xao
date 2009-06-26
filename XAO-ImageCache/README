@@ -67,26 +67,29 @@ METHODS
              },  
              force_download => 1,               # to enforce re-downloads
              force_scale    => 1,               # to enforce re-scaling
+             clear_on_error => 0,               # don't clear DB properties even on permanent errors
          ) || die "Image cache creation failure!";
 
-        Number of configuration parameters should be passed to
+        A number of configuration parameters can be passed to
         XAO::ImageCache to tune functionality.
 
         autocreate
         cache_path
         cache_url
+        clear_on_error
         dest_url_key
+        force_download
+        force_scale
         list
-        reload
         source_url_key
         size
         thumbnails
         useragent
 
         Follow to CONFIGURATION PARAMETERS section to see what each
-        parameter do.
+        parameter does.
 
-        If any of required parameter is not present error will returned.
+        If any required parameter is not present an error will be thrown.
 
     init($)
         Cache structure initialization.
@@ -119,10 +122,10 @@ METHODS
         Downloaded image is resized if "size" parameter present. Thumbnail
         is resized as specified by "thumbnails" "geometry" parameter.
 
-        When "reload" configuration parameter is not set to True value,
-        image will be downloaded into cache only if image is not already
-        cached or if cached image has a later modification date than source
-        image.
+        When "force_download" configuration parameter is not set to True
+        value, image will be downloaded into cache only if image is not
+        already cached or if cached image has a later modification date than
+        source image.
 
     scale_large($$$)
         Scaling image to given size.
@@ -135,9 +138,9 @@ METHODS
 
         Be carefully to use this method!!!
 
-        Cache structure will be removed from disk completely! Set "reload"
-        parameter to True value to download images to cache without any
-        conditions.
+        Cache structure will be removed from disk completely! Set
+        "force_download" parameter to True value to download images to cache
+        without any conditions.
 
     get_filename($)
         File name generation for cached images.
@@ -263,7 +266,7 @@ CONFIGURATION PARAMETERS
         Existent cache directory will not be removed. You may do it manualy
         using remove_cache() methode.
 
-    reload
+    force_download
         - each image should be reloaded to cache and processed without
         dependance of source image modification time. Any conditions
         ignored.
