@@ -149,14 +149,31 @@ DESCRIPTION
           call_row          => optional, called for each row of the data
           call_after        => optional, called after the scanning is done
 
-        All callbacks get at least two arguments: the reference to the
-        parameters passed to scan(), reference to the list or collection
-        being scanned. Call_block also gets a reference to the block, and
+        All callbacks get at least two arguments: the reference to the list
+        or collection being scanned, and the reference to the parameters
+        passed to scan(). Call_block also gets a reference to the block, and
         its zero-based offset. Call_row gets the result (either an array ref
         or a scalar, depending on 'result' option), its zero-based offset.
 
         Scan() does not return anything, so at least one callback is
         necessary.
+
+        Example:
+
+            $list->scan(
+                block_size      => 10000,
+                search_options  => {
+                    orderby => 'item_code',
+                    result  => [ 'item_code','cat_page' ],
+                },
+                call_block      => sub {
+                    my ($l,$a,$block,$offset)=@_;
+                    dprint "..$offset";
+                    foreach my $row (@$block) {
+                        #...
+                    }
+                },
+            );
 
     search (@)
         Returns a reference to the list of IDs of objects corresponding to

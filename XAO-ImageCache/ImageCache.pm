@@ -57,7 +57,7 @@ use File::Path;
 use File::Copy;
 
 use vars qw($VERSION);
-$VERSION=1.1;
+$VERSION=1.0;
 
 ###############################################################################
 
@@ -123,10 +123,9 @@ of already existent cache.
      },  
      force_download => 1,               # to enforce re-downloads
      force_scale    => 1,               # to enforce re-scaling
-     clear_on_error => 0,               # don't clear DB properties even on permanent errors
  ) || die "Image cache creation failure!";
 
-A number of configuration parameters can be passed to 
+Number of configuration parameters should be passed to 
 XAO::ImageCache to tune functionality. 
 
 =over
@@ -137,15 +136,11 @@ XAO::ImageCache to tune functionality.
 
 =item cache_url
 
-=item clear_on_error
-
 =item dest_url_key
 
-=item force_download
-
-=item force_scale
-
 =item list
+
+=item reload
 
 =item source_url_key
 
@@ -158,9 +153,9 @@ XAO::ImageCache to tune functionality.
 =back
 
 Follow to L<CONFIGURATION PARAMETERS|/"CONFIGURATION PARAMETERS"> 
-section to see what each parameter does.
+section to see what each parameter do.
 
-If any required parameter is not present an error will be thrown.
+If any of required parameter is not present error will returned.
 
 =cut 
 
@@ -207,27 +202,27 @@ sub new ($%) {
     #
 
     unless (defined($self->{source_path})) {
-        $self->throw("- missing 'source_path' parameter!");
+        $self->throw("missing 'source_path' parameter!");
     }
 
     unless (defined($self->{cache_path})) {
-        $self->throw("- missing 'cache_path' parameter!");
+        $self->throw("missing 'cache_path' parameter!");
     }
 
     unless (defined($self->{list})) {
-        $self->throw("- missing 'list' parameter!");
+        $self->throw("missing 'list' parameter!");
     }
 
     unless (defined($self->{cache_url})){
-        $self->throw("- missing 'cache_url' parameter!") ;
+        $self->throw("missing 'cache_url' parameter!") ;
     }
 
     unless (defined($self->{source_url_key})) {
-        $self->throw("- missing 'source_url_key' parameter!");
+        $self->throw("missing 'source_url_key' parameter!");
     }
 
     unless (defined($self->{dest_url_key})) {
-        $self->throw("- missing 'dest_url_key' parameter!");
+        $self->throw("missing 'dest_url_key' parameter!");
     }
 
     #
@@ -244,7 +239,7 @@ sub new ($%) {
     if (defined($self->{'min_period'}) && $self->{'min_period'}) {
 
         unless ($self->{'min_period'} =~ /\d+[smhd]/) {
-            $self->throw("- incorrectly formatted 'min_period' parameter!");
+            $self->throw("incorrectly formatted 'min_period' parameter!");
         }
 
         # Make sure 'min_period' parameters is in seconds
@@ -263,18 +258,23 @@ sub new ($%) {
         $self->{min_period} = 0;
     }
 
-    $self->{'reload'}=1 if $self->{'force_download'};
-
     $self->{'size'}->{'quality'}||=88;
     $self->{'thumbnails'}->{'quality'}||=88;
 
     # Make LWP::UserAgent instance
-    my $hash_ref = $self->{'useragent'}; 
+    my $hash_ref = $self->{useragent}; 
     $self->{ua}  = LWP::UserAgent->new( %$hash_ref)
-                || $self->throw("- LWP::UserAgent creation failure!");
+                || $self->throw("LWP::UserAgent creation failure!");
 
     $self->init() if defined($self->{autocreate} && $self->{autocreate});
     $self;
+}
+
+###############################################################################
+
+sub user_agent ($) {
+    my $self=shift;
+    return $self->{'ua'};
 }
 
 ###############################################################################
@@ -305,20 +305,20 @@ sub init($) {
 
     unless (-d $source_path) {
         mkdir($source_path,0777)
-          || $self->throw("- cache directory can't be created! $!");
+          || $self->throw("cache directory can't be created! $!");
         dprint "Image Cache directory '$source_path' created.";
     }
 
     unless (-d $img_cache_path) {
         mkdir($img_cache_path,0777)
-          || $self->throw("- cache directory can't be created! $!");
+          || $self->throw("cache directory can't be created! $!");
         dprint "Image Cache directory '$img_cache_path' created.";
     }
 
     if ($thm_cache_path) {
         unless (-d $thm_cache_path) {
             mkdir($thm_cache_path, 0777)
-              || $self->throw("- can't create thumbnails cache directory ($thm_cache_path)! $!");
+              || $self->throw("can't create thumbnails cache directory ($thm_cache_path)! $!");
             dprint "Thumbnail Cache directory '$thm_cache_path' created.";
         }
     }
@@ -391,17 +391,14 @@ sub check($) {
             my $e=shift;
             eprint "$e";
 
-            # We don't update the item unless this is a permanent error
-            # and we have a 'clear_on_error' argument.
+            # We don't update the item unless this is a permanent error.
             #
             if("$e" =~ /PERMANENT/) {
-                if($self->{'clear_on_error'}) {
-                    dprint ".permanent error - clearing existing image/thumbnail urls";
-                    my %d;
-                    $d{$img_dest_url_key}='' if $img_dest_url_key;
-                    $d{$thm_dest_url_key}='' if $thm_dest_url_key;
-                    $item->put(\%d);
-                }
+                dprint ".clearing existing image/thumbnail urls";
+                my %d;
+                $d{$img_dest_url_key}='' if $img_dest_url_key;
+                $d{$thm_dest_url_key}='' if $thm_dest_url_key;
+                $item->put(\%d);
             }
         };
 
@@ -429,7 +426,7 @@ an optional parameter:
 Downloaded image is resized if C<size> parameter present. Thumbnail is
 resized as specified by C<thumbnails> C<geometry> parameter.
 
-When C<force_download> configuration parameter is not set to True value, image
+When C<reload> configuration parameter is not set to True value, image
 will be downloaded into cache only if image is not already cached or if
 cached image has a later modification date than source image.
 
@@ -493,19 +490,19 @@ sub download ($$) {
                     }
                 }
                 if(!$lfound) {
-                    $self->throw("- seems to be a local URL and no local file ($thm_src_url)");
+                    $self->throw("seems to be a local URL and no local file ($thm_src_url)");
                 }
             }
             else {
                 my $response = $user_agent->head($thm_src_url);
                 if ($response->is_success) {
                     my $mtime_web = convert_time($response->header('Last-Modified'));
-                    if ((!-r $thm_src_file) || ($mtime_src < $mtime_web) || $self->{'reload'} || $self->{'force_download'}) {
+                    if ((!-r $thm_src_file) || ($mtime_src < $mtime_web) || $self->{reload}) {
                         $self->download_file($thm_src_url, $thm_src_file);
                     }
                 }
                 else {
-                    $self->throw("- can't get thumbnail header '$thm_src_url' - ".$response->status_line." (NETWORK)");
+                    $self->throw("can't get thumbnail header '$thm_src_url' - ".$response->status_line." (NETWORK)");
                     $thm_src_file = '';
                 }
             }
@@ -514,6 +511,7 @@ sub download ($$) {
             dprint ".thumbnail source file current: $thm_src_url";
         }
 
+        ##
         # Resizing if required
         #
         if($thm_src_file) {
@@ -549,14 +547,14 @@ sub download ($$) {
                     }
                 }
                 if(!$lfound) {
-                    $self->throw("- seems to be a local URL and no local file ($img_src_url)");
+                    $self->throw("seems to be a local URL and no local file ($img_src_url)");
                 }
             }
             else {
                 my $response = $user_agent->head($img_src_url);
                 if ($response->is_success) {
                     my $mtime_web = convert_time($response->header('Last-Modified'));
-                    if ((!-r $img_src_file) || ($mtime_src < $mtime_web) || $self->{'reload'} || $self->{'force_download'}) {
+                    if ((!-r $img_src_file) || ($mtime_src < $mtime_web) || $self->{reload}) {
                         $self->download_file($img_src_url, $img_src_file);
                     }
                     else {
@@ -564,7 +562,7 @@ sub download ($$) {
                     }
                 }
                 else {
-                    $self->throw("- can't get header for $img_src_url - ".$response->status_line." (NETWORK)");
+                    $self->throw("can't get header for $img_src_url - ".$response->status_line." (NETWORK)");
                 }
             }
             $mtime_src=(stat($img_src_file))[9] if $img_src_file;
@@ -609,36 +607,15 @@ sub download_file {
 
     dprint "DOWNLOAD ($source_url)->($source_file)";
 
-    my $response=$self->{'ua'}->get($source_url);
-    my $errstr;
-    if($response->is_success) {
-        if($response->content_type =~ /^image\//) {
-            open(F,"> $source_file.tmp") || $self->throw("- unable to save file '$source_file': $!");
-            binmode(F);
-            print F $response->content;
-            close(F);
-            rename("$source_file.tmp",$source_file);
-        }
-        else {
-            $errstr="downloaded '$source_url' is not an image (".$response->content_type.") (PERMANENT)";
-        }
+    my $response = $self->{ua}->get($source_url);
+    if ($response->is_success) {
+        open(F,"> $source_file")
+          || $self->throw("unable to save file '$source_file'! $!");
+        print F $response->content;
+        close(F);
     }
     else {
-        $errstr="can't download '$source_url' - ".$response->status_line." (NETWORK)";
-    }
-
-    return unless $errstr;
-
-    # If the file is already there (from previous downloads then just
-    # printing the error, but returning normally to let the file be scaled and
-    # stored as image/thumbnail
-    #
-    if(-f $source_file && !$self->{'clear_on_error'}) {
-        eprint "download_file: $errstr -- ignoring and keeping existing file";
-        return;
-    }
-    else {
-        $self->throw("- $errstr");
+        $self->throw("can't download '$source_url' - ".$response->status_line." (NETWORK)");
     }
 }
 
@@ -657,15 +634,9 @@ sub scale_file ($$$$;$) {
 
     my $geometry = ''; # image dimensions in ImageMagick geometry format
 
-    my $image = Image::Magick->new() || $self->throw("- Image::Magick creation failure!");
+    my $image = Image::Magick->new() || $self->throw("Image::Magick creation failure!");
     my $err   = $image->ReadImage($infile);
-    $self->throw("- parsing error ($err) (PERMANENT)") if $err;
-
-    # We only deal with image/* types -- otherwise ImageMagick can
-    # sometimes successfully open and convert HTML or text messages into
-    # images.
-    #
-    $image->Get('mime')=~/^image\// || $self->throw("- not an image file '$infile' (".$image->Get('mime').")");
+    $self->throw("parsing error ($err) (PERMANENT)") if $err;
 
     # Get source image dimensions
     #
@@ -675,7 +646,7 @@ sub scale_file ($$$$;$) {
     my $min_height=$self->{'min_height'} || $min_width;
 
     if($src_height<=1 || $src_width<=1 || ($src_height<$min_height && $src_width<$min_width)) {
-        $self->throw("- image ($src_width,$src_height) is smaller than the minimum ($min_width,$min_height) for '$label' (PERMANENT)");
+        $self->throw("Image ($src_width,$src_height) is smaller than the minimum ($min_width,$min_height) for '$label' (PERMANENT)");
     }
 
     # Getting target image width and height
@@ -779,26 +750,20 @@ Removing the ENTIRE cache directory from disk.
 Be carefully to use this method!!!
 
 Cache structure will be removed from disk completely!
-Set C<force_download> parameter to True value to download 
+Set C<reload> parameter to True value to download 
 images to cache without any conditions.
 
 =cut
 
 sub remove_cache($) {
     my $self = shift;
-    rmtree($self->{'cache_path'});
+    rmtree($self->{cache_path});
 }
 
 ###############################################################################
 
 sub throw($$) {
     my ($self,$message)=@_;
-
-    if($message=~/^-/) {
-        (my $fname=(caller(1))[3])=~s/^.*://;
-        $message=$fname." ".$message;
-    }
-
     throw XAO::E::ImageCache $message;
 }
 
@@ -1018,7 +983,7 @@ init() and check() methodes manualy.
 Existent cache directory will not be removed. You may do it 
 manualy using remove_cache() methode.
 
-=item force_download
+=item reload
 
 - each image should be reloaded to cache and processed without 
 dependance of source image modification time. Any conditions 

@@ -99,6 +99,16 @@ sub test_fround {
             prec        => 10,
             expect      => -1.5,
         },
+        t10 => {
+            num         => 12.345,
+            prec        => 0.1,
+            expect      => 10,
+        },
+        t11 => {
+            num         => 18.345,
+            prec        => 0.1,
+            expect      => 20,
+        },
     );
 
     foreach my $test_id (keys %matrix) {
