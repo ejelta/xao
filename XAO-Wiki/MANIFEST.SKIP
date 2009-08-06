@@ -1,4 +1,4 @@
-\.cvsignore$
+\.gitignore$
 ^\.config$
 ^Makefile$
 ^WikiParser/Makefile$
@@ -13,7 +13,7 @@ pm_to_blib
 ^CVS/
 /CVS/
 ^ta/
-WikiParser/.cvsignore
+WikiParser/.gitignore
 WikiParser/WikiParser.bs
 WikiParser/WikiParser.c
 WikiParser/WikiParser.o

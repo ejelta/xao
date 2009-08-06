@@ -28,4 +28,4 @@ sample/templates/search-cat.html
 sample/templates/search-prod.html
 sample/templates/search.html
 
-.*\.cvsignore
+.*\.gitignore
