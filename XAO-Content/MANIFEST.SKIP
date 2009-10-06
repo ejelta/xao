@@ -1,6 +1,6 @@
 Makefile(\.old)?$
 CVS/
-\.cvsignore
+\.gitignore
 \.config
 ^blib/.*
 pm_to_blib

@@ -1,5 +1,5 @@
 ^.config$
-^.cvsignore$
+^.gitignore$
 Makefile$
 .*\.old$
 blib/
