@@ -446,7 +446,8 @@ Display() accepts the following arguments:
 Passes arguments from calling context into the template.
 
 The syntax allows to map parent arguments into new names,
-and/or to limit what is passed:
+and/or to limit what is passed. Multiple semi-colon separated rules are
+allowed. Rules are processed from left to right.
 
   NEWNAME=OLDNAME  - pass the value of OLDNAME as NEWNAME
   NEW*=OLD*        - pass all old values starting with OLD as NEW*
@@ -460,7 +461,7 @@ under their own names.
 There are exceptions, that are never passed from parent arguments:
 'pass', 'objname', 'path', and 'template'.
 
-Arguments given to DISPLAY override those inherited from the caller
+Arguments given to display() override those inherited from the caller
 using 'pass'.
 
 =item path => 'path/to/the/template'

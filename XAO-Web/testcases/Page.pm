@@ -117,59 +117,59 @@ EOT
 EOT
 
     my %tests=(
-###        t01 => {
-###            args        => {
-###                template    => $template_simple,
-###            },
-###            expect      => 'IN',
-###        },
-###        t02 => {
-###            args        => {
-###                template    => $template_simple,
-###                FOO         => 'OUT',
-###            },
-###            expect      => 'OUT',
-###        },
-###        t03 => {
-###            args        => {
-###                template    => $template_star,
-###            },
-###            expect      => 'IN',
-###        },
-###        t04 => {
-###            args        => {
-###                template    => $template_star,
-###                FOO         => 'OUT',
-###            },
-###            expect      => 'OUT',
-###        },
-###        t10 => {
-###            args        => {
-###                template    => $template_map,
-###                FOO         => 'FOOVALUE',
-###                BAR         => 'BARVALUE',
-###                VARNAME     => 'FOO',
-###            },
-###            expect      => 'FOOVALUE',
-###        },
-###        t11 => {
-###            args        => {
-###                template    => $template_map,
-###                FOO         => 'FOOVALUE',
-###                BAR         => 'BARVALUE',
-###                VARNAME     => 'BAR',
-###            },
-###            expect      => 'BARVALUE',
-###        },
-###        t12 => {
-###            args        => {
-###                template    => $template_map,
-###                FOO         => 'FOOVALUE',
-###                BAR         => 'BARVALUE',
-###                VARNAME     => 'NONEXIST',
-###            },
-###            expect      => 'DEFAULT',
-###        },
+       t01 => {
+           args        => {
+               template    => $template_simple,
+           },
+           expect      => 'IN',
+       },
+       t02 => {
+           args        => {
+               template    => $template_simple,
+               FOO         => 'OUT',
+           },
+           expect      => 'OUT',
+       },
+       t03 => {
+           args        => {
+               template    => $template_star,
+           },
+           expect      => 'IN',
+       },
+       t04 => {
+           args        => {
+               template    => $template_star,
+               FOO         => 'OUT',
+           },
+           expect      => 'OUT',
+       },
+       t10 => {
+           args        => {
+               template    => $template_map,
+               FOO         => 'FOOVALUE',
+               BAR         => 'BARVALUE',
+               VARNAME     => 'FOO',
+           },
+           expect      => 'FOOVALUE',
+       },
+       t11 => {
+           args        => {
+               template    => $template_map,
+               FOO         => 'FOOVALUE',
+               BAR         => 'BARVALUE',
+               VARNAME     => 'BAR',
+           },
+           expect      => 'BARVALUE',
+       },
+       t12 => {
+           args        => {
+               template    => $template_map,
+               FOO         => 'FOOVALUE',
+               BAR         => 'BARVALUE',
+               VARNAME     => 'NONEXIST',
+           },
+           expect      => 'DEFAULT',
+       },
         t20 => {
             args        => {
                 template    => $template_map2,
