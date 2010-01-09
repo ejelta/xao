@@ -195,6 +195,27 @@ EOT
             },
             result => 'OK',
         },
+        t25 => {
+            args => {
+                template    => q(<%Condition a.arg='COND' a.pass a.template={'<%SetArg name='VAR' value='DEFAULT'%>OK-<$VAR$>'} default.template='ERR'%>),
+                COND        => 'CONDVALUE',
+                VAR         => 'VARVALUE',
+            },
+            result => 'OK-VARVALUE',
+        },
+        t26 => {
+            args => {
+                template    => q(<%Condition a.arg='COND' a.pass a.template={'<%SetArg name='VAR' value='DEFAULT'%>OK-<$VAR$>'} default.template='ERR'%>),
+                COND        => 'CONDVALUE',
+            },
+            result => 'OK-DEFAULT',
+        },
+        t27 => {
+            args => {
+                template    => q(<%Condition a.arg='COND' a.pass a.template={'<%SetArg name='VAR' value='DEFAULT'%>OK-<$VAR$>'} default.template='ERR'%>),
+            },
+            result => 'ERR',
+        },
     );
 
     foreach my $test (keys %matrix) {

@@ -219,14 +219,13 @@ sub display ($;%)
    }
     $name="default" unless defined $name;
 
-    ##
     # Building object arguments now.
     #
     my %objargs;
     foreach my $a (keys %args) {
-        if($self->{parent} && $self->{parent}->{args}
-                           && $a =~ /^$name\.pass\.(.*)$/) {
-            $objargs{$1}=$self->{parent}->{args}->{$1};
+        if($self->{'parent'} && $self->{'parent'}->{'args'}
+                             && $a =~ /^$name\.pass\.(.*)$/) {
+            $objargs{$1}=$self->{'parent'}->{'args'}->{$1};
         }
         elsif($a eq "$name.pass") {
             # See below
@@ -237,20 +236,15 @@ sub display ($;%)
     }
     return unless %objargs;
 
-    ##
     # Now getting the object
     #
-    my $obj=$self->object(objname => $objargs{objname} || "Page");
-    delete $objargs{objname};
+    my $obj=$self->object(objname => $objargs{'objname'} || "Page");
+    delete $objargs{'objname'};
 
-    ##
     # If we were asked to pass complete set of arguments then merging.
     #
-    if($args{"$name.pass"} && $self->{parent} && $self->{parent}->{args}) {
-        my $aaa=merge_refs($self->{parent}->{args});
-        delete $aaa->{path};
-        delete $aaa->{template};
-        $obj->display(merge_refs($aaa,\%objargs));
+    if($args{"$name.pass"}) {
+        $obj->display($self->pass_args($args{"$name.pass"},\%objargs));
     }
     else {
         $obj->display(\%objargs);

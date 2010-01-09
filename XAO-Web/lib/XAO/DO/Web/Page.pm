@@ -441,6 +441,28 @@ Display() accepts the following arguments:
 
 =over
 
+=item pass
+
+Passes arguments from calling context into the template.
+
+The syntax allows to map parent arguments into new names,
+and/or to limit what is passed:
+
+  NEWNAME=OLDNAME  - pass the value of OLDNAME as NEWNAME
+  NEW*=OLD*        - pass all old values starting with OLD as NEW*
+  VAR;VAR.*        - pass VAR and VAR.* under their own names
+  *;!VAR*          - pass everything except VAR*
+
+The default, when the value of 'pass' is 'on' or '1', is the same as
+passing '*' -- meaning that all parent arguments are passed literally
+under their own names.
+
+There are exceptions, that are never passed from parent arguments:
+'pass', 'objname', 'path', and 'template'.
+
+Arguments given to DISPLAY override those inherited from the caller
+using 'pass'.
+
 =item path => 'path/to/the/template'
 
 Gives Page a path to the template that should be processed and
@@ -476,23 +498,17 @@ sub display ($%) {
     my $self=shift;
     my $args=$self->{'args'}=get_args(\@_);
 
-    ##
-    # Merging parent's args in if requested
+    # Merging parent's args in if requested.
     #
-    if($args->{'pass'} && $self->{'parent'} && $self->{'parent'}->{'args'}) {
-        my $pargs=$self->{'parent'}->{'args'};
-        delete $pargs->{'path'};
-        delete $pargs->{'template'};
-        $args=$self->{'args'}=merge_refs($pargs,$args);
+    if($args->{'pass'}) {
+        $args=$self->{'args'}=$self->pass_args($args->{'pass'},$args);
     }
 
-    ##
     # Parsing template or getting already pre-parsed template when it is
     # available.
     #
     my $page=$self->parse($args);
 
-    ##
     # Template processing itself. Pretty simple, huh? :)
     #
     foreach my $item (@{$page}) {
@@ -580,13 +596,11 @@ sub display ($%) {
                     $obj->display(\%objargs);
                 }
 
-                ##
                 # Indicator that we do not need to parse or display anything
                 # after that point.
                 #
                 $stop_after=$self->clipboard->get('_no_more_output');
 
-                ##
                 # Was it something like SetArg object? Merging changes in then.
                 #
                 if($self->{'merge_args'}) {
@@ -595,7 +609,6 @@ sub display ($%) {
             }
         }
 
-        ##
         # Safety conversion - q for query, h - for html, s - for
         # nbsp'ced html, f - for tag fields, u - for URLs, t - for text
         # as is (default).
@@ -624,12 +637,10 @@ sub display ($%) {
             }
         }
 
-        ##
         # Sending out the text
         #
         $self->textout($text) if defined($text);
 
-        ##
         # Checking if this object required to stop processing
         #
         last if $stop_after;
@@ -718,26 +729,26 @@ sub parse ($%) {
     # Getting template text
     #
     my $template;
-    my $unparsed=$args->{unparsed};
+    my $unparsed=$args->{'unparsed'};
     my $path;
-    if(defined($args->{template})) {
-        $template=$args->{template};
+    if(defined($args->{'template'})) {
+        $template=$args->{'template'};
         if(ref($template)) {
             return $template;       # Pre-parsed as an argument of some upper class
         }
     }
     else {
-        $path=$args->{path} ||
+        $path=$args->{'path'} ||
             throw $self "parse - no 'path' and no 'template' given to a Page object";
 
-        $sitename=$self->{sitename} || get_current_project_name();
+        $sitename=$self->{'sitename'} || get_current_project_name();
 
         if(!$unparsed && exists $parsed_cache{$sitename}->{$path}) {
             return $parsed_cache{$sitename}->{$path};
         }
 
         if($self->debug_check('show-path')) {
-            dprint $self->{objname}."::parse - path='$path'";
+            dprint $self->{'objname'}."::parse - path='$path'";
         }
 
         $template=XAO::Templates::get(path => $path);
@@ -745,15 +756,13 @@ sub parse ($%) {
             throw $self "parse - no template found (path=$path)";
     }
 
-    ##
     # Checking if we do not need to parse that template.
     #
     if($unparsed) {
         return [ { text => $template } ];
     }
 
-    ##
-    # Parsing. If a scalar is returned it is an indicator of an error.
+    # Logging the template or path if requested.
     #
     if($self->debug_check('show-parse')) {
         if($path) {
@@ -768,6 +777,9 @@ sub parse ($%) {
             dprint $self->{'objname'}."::parse - parsing inline template ($te)";
         }
     }
+
+    # Parsing. If a scalar is returned it is an indicator of an error.
+    #
     my $parsed=XAO::PageSupport::parse($template);
     ref $parsed ||
         throw $self "parse - $parsed";
@@ -1121,6 +1133,99 @@ sub decode_charset ($$) {
     else {
         return $text;
     }
+}
+
+###############################################################################
+
+sub pass_args ($$;$) {
+    my ($self,$pass,$args)=@_;
+
+    $args||={ };
+
+    # The first argument is the content of 'pass', if it's not defined
+    # we return unadulteraded arguments.
+    #
+    return $args unless $pass;
+
+    # If we don't have parent arguments then there is nothing to do.
+    #
+    my $pargs;
+    return $args unless $self->{'parent'} && ($pargs=$self->{'parent'}->{'args'});
+
+    # Simplified (old) way of calling with just <%Page pass
+    # template='xxx'%> would result in pass being 'on'.
+    #
+    if($pass eq 'on' || $pass eq '1') {
+        $pass='*';
+    }
+
+    # Building inherited hash.
+    #
+    my $hash;
+    foreach my $rule (split(/;/,$pass)) {
+        $rule=~s/^\s*(.*?)\s*$/$1/;
+
+        ### dprint "...rule='$rule'";
+
+        if($rule eq '*') {
+            $hash=merge_refs($pargs,$hash);
+        }
+        elsif($rule =~ /^([\w\.]+)\s*=\s*([\w\.]+)$/) {     # VAR=FOO
+            $hash->{$1}=$pargs->{$2};
+        }
+        elsif($rule =~ /^([\w\.]+)\*\s*=\s*([\w\.]+)\*?$/) {# VAR*=FOO*
+            my ($prnew,$prold)=($1,$2);
+            my $lnew=length($prnew);
+            my $lold=length($prold);
+            foreach my $k (keys %$pargs) {
+                next unless substr($k,0,$lold) eq $prold;
+                dprint "....$k $prnew=$prold";
+                $hash->{$prnew.substr($k,$lold)}=$pargs->{$k};
+            }
+        }
+        elsif($rule =~ /^([\w\.]+)$/) {                     # VAR
+            $hash->{$1}=$pargs->{$1};
+        }
+        elsif($rule =~ /^([\w\.]+)\*$/) {                   # VAR*
+            my $pr=$1;
+            my $l=length($pr);
+            foreach my $k (keys %$pargs) {
+                next unless substr($k,0,$l) eq $pr;
+                dprint "....$k $pr";
+                $hash->{$k}=$pargs->{$k};
+            }
+        }
+        elsif($rule =~ /^!([\w\.]+)$/) {                    # !VAR
+            delete $hash->{$1};
+        }
+        elsif($rule =~ /^!([\w\.]+)\*$/) {                  # !VAR*
+            my $pr=$1;
+            my $l=length($pr);
+            my @todel;
+            foreach my $k (keys %$hash) {
+                next unless substr($k,0,$l) eq $pr;
+                push(@todel,$k);
+            }
+            delete @{$hash}{@todel};
+        }
+        elsif($rule eq '') {
+            # no-op
+        }
+        else {
+            throw $self "- don't know how to pass for '$rule'";
+        }
+    }
+
+    # Always deleting pass, path and template
+    #
+    delete @{$hash}{'pass','objname','path','template'};
+
+    ### use Data::Dumper;
+    ### dprint Dumper($hash);
+
+    # This is it, merging with the arguments given to us and returning
+    #
+    return merge_refs($hash,$args);
 }
 
 ###############################################################################

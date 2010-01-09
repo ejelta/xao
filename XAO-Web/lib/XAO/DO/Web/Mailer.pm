@@ -138,44 +138,31 @@ sub display ($;%) {
 
     my $subject=$args->{'subject'} || $self->get_subject() || 'No subject';
 
-    ##
-    # Getting common args from the parent template by a little bit of black magic.
+    # Getting common args from the parent template if needed.
     #
-    my %common;
-    if($args->{'pass'} && $self->{'parent'} && $self->{'parent'}->{'args'}) {
-        foreach my $paname (keys %{$self->{'parent'}->{'args'}}) {
-            next if $args->{$paname};
-            next if $paname eq 'path' || $paname eq 'template';
-            my $pavalue=$self->{'parent'}->{'args'}->{$paname};
-            next if ref $pavalue;
-            $common{$paname}=$pavalue;
-        }
-    }
+    my $common=$self->pass_args($args->{'pass'});
 
-    ##
     # Parsing text template
     #
     my $page=$self->object;
     my $text;
     if($args->{'text.path'} || $args->{'path'} || $args->{'text.template'} || $args->{'template'}) {
-        $text=$page->expand($args,\%common,{
+        $text=$page->expand($args,$common,{
             path        => $args->{'text.path'} || $args->{'path'},
             template    => $args->{'text.template'} || $args->{'template'},
         });
     }
     
-    ##
     # Parsing HTML template
     #
     my $html;
     if($args->{'html.path'} || $args->{'html.template'}) {
-        $html=$page->expand($args,\%common,{
+        $html=$page->expand($args,$common,{
             path        => $args->{'html.path'},
             template    => $args->{'html.template'},
         });
     }
 
-    ##
     # Preparing attachments if any
     #
     my @attachments;
@@ -190,10 +177,10 @@ sub display ($;%) {
         );
 
         if($args->{'attachment.'.$id.'.template'} || $args->{'attachment.'.$id.'.path'}) {
-            my %objargs;
+            my $objargs={ };
             foreach my $kk (keys %$args) {
                 next unless $kk =~ /^attachment\.$id\.(.*)$/;
-                $objargs{$1}=$args->{$kk};
+                $objargs->{$1}=$args->{$kk};
             }
 
             if($args->{'attachment.'.$id.'.unparsed'}) {
@@ -208,17 +195,14 @@ sub display ($;%) {
                 }
             }
             else {
-                my $obj=$self->object(objname => ($objargs{'objname'} || 'Page'));
-                delete $objargs{'objname'};
+                my $obj=$self->object(objname => ($objargs->{'objname'} || 'Page'));
+                delete $objargs->{'objname'};
 
-                if($args->{'attachment.'.$id.'.pass'} && $self->{'parent'} && $self->{'parent'}->{'args'}) {
-                    my $aaa=merge_refs($self->{'parent'}->{'args'});
-                    delete $aaa->{'path'};
-                    delete $aaa->{'template'};
-                    %objargs=%{merge_refs($aaa,\%objargs)};
+                if($args->{'attachment.'.$id.'.pass'}) {
+                    $objargs=$self->pass_args($args->{'attachment.'.$id.'.pass'},$objargs);
                 }
 
-                $data{'Data'}=$obj->expand(\%objargs);
+                $data{'Data'}=$obj->expand($objargs);
             }
         }
         elsif($args->{'attachment.'.$id.'.file'}) {
@@ -231,7 +215,6 @@ sub display ($;%) {
         push(@attachments,\%data);
     }
 
-    ##
     # Preparing mailer and storing content in
     #
     my $mailer;

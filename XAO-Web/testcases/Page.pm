@@ -84,24 +84,175 @@ sub test_pass {
     $self->assert(ref($page),
                   "Can't load Page object");
 
-    my $template=q(<%Page ) .
-                 q(  template={'<%SetArg name='FOO' value='IN'%><$FOO$>'} ) .
-                 q(  pass ) .
-                 q(%>);
+    my $template_simple=<<'EOT';
+<%Page
+  template={'<%SetArg name='FOO' value='IN'%><$FOO$>'}
+  pass
+%><%End%>
+EOT
 
-    my $got=$page->expand(
-        template    => $template,
+    my $template_star=<<'EOT';
+<%Page
+  template={'<%SetArg name='FOO' value='IN'%><$FOO$>'}
+  pass='*'
+%><%End%>
+EOT
+
+    my $template_map=<<'EOT';
+<%Page
+  template={'<%SetArg name='VAR' value='DEFAULT'%><$VAR$>'}
+  pass="VAR=<$VARNAME$>"
+%><%End%>
+EOT
+
+    my $template_map2=<<'EOT';
+<%Page
+  template={'<%SetArg name='VAR' value='DEFAULT'
+             %><%SetArg name='VAR.ONE' value='DEFAULT.ONE'
+             %><%SetArg name='VAR.TWO' value='DEFAULT.TWO'
+             %><%SetArg name='OUTSIDE' value='DEFAULT-OUTSIDE'
+             %><$VAR$>/<$VAR.ONE$>/<$VAR.TWO$>/<$OUTSIDE$>'}
+  pass="<$PASS$>"
+%><%End%>
+EOT
+
+    my %tests=(
+###        t01 => {
+###            args        => {
+###                template    => $template_simple,
+###            },
+###            expect      => 'IN',
+###        },
+###        t02 => {
+###            args        => {
+###                template    => $template_simple,
+###                FOO         => 'OUT',
+###            },
+###            expect      => 'OUT',
+###        },
+###        t03 => {
+###            args        => {
+###                template    => $template_star,
+###            },
+###            expect      => 'IN',
+###        },
+###        t04 => {
+###            args        => {
+###                template    => $template_star,
+###                FOO         => 'OUT',
+###            },
+###            expect      => 'OUT',
+###        },
+###        t10 => {
+###            args        => {
+###                template    => $template_map,
+###                FOO         => 'FOOVALUE',
+###                BAR         => 'BARVALUE',
+###                VARNAME     => 'FOO',
+###            },
+###            expect      => 'FOOVALUE',
+###        },
+###        t11 => {
+###            args        => {
+###                template    => $template_map,
+###                FOO         => 'FOOVALUE',
+###                BAR         => 'BARVALUE',
+###                VARNAME     => 'BAR',
+###            },
+###            expect      => 'BARVALUE',
+###        },
+###        t12 => {
+###            args        => {
+###                template    => $template_map,
+###                FOO         => 'FOOVALUE',
+###                BAR         => 'BARVALUE',
+###                VARNAME     => 'NONEXIST',
+###            },
+###            expect      => 'DEFAULT',
+###        },
+        t20 => {
+            args        => {
+                template    => $template_map2,
+                'PASS'      => 'VAR=FOO;VAR.*=BAR.*',
+                'FOO'       => 'FOOVALUE',
+                'FOO.ONE'   => 'FOO.ONEVALUE',
+                'FOO.TWO'   => 'FOO.TWOVALUE',
+                'BAR'       => 'BARVALUE',
+                'BAR.ONE'   => 'BAR.ONEVALUE',
+                'BAR.TWO'   => 'BAR.TWOVALUE',
+            },
+            expect      => 'FOOVALUE/BAR.ONEVALUE/BAR.TWOVALUE/DEFAULT-OUTSIDE',
+        },
+        t21 => {
+            args        => {
+                template    => $template_map2,
+                'PASS'      => 'VAR = FOO ; VAR.*=BAR.* ;*',        # * after
+                'FOO'       => 'FOOVALUE',
+                'FOO.ONE'   => 'FOO.ONEVALUE',
+                'FOO.TWO'   => 'FOO.TWOVALUE',
+                'BAR'       => 'BARVALUE',
+                'BAR.ONE'   => 'BAR.ONEVALUE',
+                'BAR.TWO'   => 'BAR.TWOVALUE',
+            },
+            expect      => 'FOOVALUE/BAR.ONEVALUE/BAR.TWOVALUE/DEFAULT-OUTSIDE',
+        },
+        t22 => {
+            args        => {
+                template    => $template_map2,
+                'PASS'      => '*;  VAR = FOO ;VAR.*=  BAR.* ; ;',        # * before
+                'FOO'       => 'FOOVALUE',
+                'FOO.ONE'   => 'FOO.ONEVALUE',
+                'FOO.TWO'   => 'FOO.TWOVALUE',
+                'BAR'       => 'BARVALUE',
+                'BAR.ONE'   => 'BAR.ONEVALUE',
+                'BAR.TWO'   => 'BAR.TWOVALUE',
+                'OUTSIDE'   => 'OUT-VALUE',
+            },
+            expect      => 'FOOVALUE/BAR.ONEVALUE/BAR.TWOVALUE/OUT-VALUE',
+        },
+        t23 => {
+            args        => {
+                template    => $template_map2,
+                'PASS'      => '*; VAR=FOO; !OUTSIDE;',
+                'FOO'       => 'FOOVALUE',
+                'VAR.ONE'   => 'FOO.ONEVALUE',
+                'OUTSIDE'   => 'OUT-VALUE',
+            },
+            expect      => 'FOOVALUE/FOO.ONEVALUE/DEFAULT.TWO/DEFAULT-OUTSIDE',
+        },
+        t24 => {
+            args        => {
+                template    => $template_map2,
+                'PASS'      => '*; VAR=FOO; !OUTSIDE; !VAR.*',
+                'FOO'       => 'FOOVALUE',
+                'VAR.ONE'   => 'FOO.ONEVALUE',
+                'VAR.TWO'   => 'FOO.TWOVALUE',
+                'OUTSIDE'   => 'OUT-VALUE',
+            },
+            expect      => 'FOOVALUE/DEFAULT.ONE/DEFAULT.TWO/DEFAULT-OUTSIDE',
+        },
+        t25 => {
+            args        => {
+                template    => $template_map2,
+                'PASS'      => '*; VAR.*=FOO.*; !VAR.T*',
+                'FOO'       => 'FOOVALUE',
+                'VAR.ONE'   => 'FOO.ONEVALUE',
+                'VAR.TWO'   => 'FOO.TWOVALUE',
+                'OUTSIDE'   => 'OUT-VALUE',
+            },
+            expect      => 'DEFAULT/FOO.ONEVALUE/DEFAULT.TWO/OUT-VALUE',
+        },
     );
-    $self->assert($got eq 'IN',
-                  "Something wrong with arguments, expected 'IN' got '$got'");
 
-    $got=$page->expand(
-        template    => $template,
-        FOO         => 'OUT',
-    );
-    $self->assert($got eq 'OUT',
-                  "Page with 'pass' does not work, expected 'OUT' got '$got'");
+    foreach my $tname (keys %tests) {
+        my $args=$tests{$tname}->{'args'};
 
+        my $got=$page->expand($args);
+        my $expect=$tests{$tname}->{'expect'};
+
+        $self->assert($got eq $expect,
+                      "In test '$tname' expected '$expect', got '$got'");
+    }
 }
 
 ###############################################################################
