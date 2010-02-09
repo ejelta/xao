@@ -1174,7 +1174,7 @@ sub pass_args ($$;$) {
         elsif($rule =~ /^([\w\.]+)\s*=\s*([\w\.]+)$/) {     # VAR=FOO
             $hash->{$1}=$pargs->{$2};
         }
-        elsif($rule =~ /^([\w\.]+)\*\s*=\s*([\w\.]+)\*?$/) {# VAR*=FOO*
+        elsif($rule =~ /^([\w\.]*)\*\s*=\s*([\w\.]+)\*?$/) {# VAR*=FOO* or *=FOO*
             my ($prnew,$prold)=($1,$2);
             my $lnew=length($prnew);
             my $lold=length($prold);

@@ -242,6 +242,26 @@ EOT
             },
             expect      => 'DEFAULT/FOO.ONEVALUE/DEFAULT.TWO/OUT-VALUE',
         },
+        t26 => {
+            args        => {
+                template    => <<'EOT',
+<%Page
+  template={'<%SetArg name='V1' value='V1-DEFAULT'
+             %><%SetArg name='V2' value='V2-DEFAULT'
+             %><%SetArg name='V3' value='V3-DEFAULT'
+             %><$V1$>/<$V2$>/<$V3$>'}
+  pass="<$PASS$>"
+  V2='V2-INTERNAL'
+%><%End%>
+EOT
+                'PASS'      => '*=FOO.*;!V3',
+                'FOO'       => 'FOOVALUE',
+                'FOO.V1'    => 'V1-FOO',
+                'FOO.V2'    => 'V2-FOO',
+                'FOO.V3'    => 'V3-FOO',
+            },
+            expect      => 'V1-FOO/V2-INTERNAL/V3-DEFAULT',
+        },
     );
 
     foreach my $tname (keys %tests) {
