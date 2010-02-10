@@ -1,4 +1,4 @@
-^.cvsignore$
+^.gitignore$
 ^.config$
 ^Makefile$
 ^PageSupport/Makefile$
@@ -9,7 +9,7 @@ pm_to_blib
 ^CVS/
 /CVS/
 ^ta/
-PageSupport/.cvsignore
+PageSupport/.gitignore
 PageSupport/PageSupport.bs
 PageSupport/PageSupport.c
 PageSupport/PageSupport.o

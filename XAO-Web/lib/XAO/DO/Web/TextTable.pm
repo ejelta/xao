@@ -228,19 +228,16 @@ sub generate_row ($%) {
     foreach my $name (sort keys %params) {
         my $p=$params{$name};
 
-        my $objname=$p->{objname} || 'Page';
+        my $objname=$p->{'objname'} || 'Page';
 
-        $p=merge_refs($args,$p) if $p->{pass};
-
-        delete $p->{pass};
-        delete $p->{objname};
+        $p=$self->pass_args($p->{'pass'},$p) if $p->{'pass'};
 
         my $obj=$self->object(objname => $objname);
 
         push(@row,$obj->expand($p));
     }
 
-    @row;
+    return @row;
 }
 
 ###############################################################################

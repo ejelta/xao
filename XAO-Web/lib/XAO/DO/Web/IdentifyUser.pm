@@ -1027,6 +1027,8 @@ sub login ($;%) {
                 my $dbpass=$user->get($pass_prop);
 
                 my $pass_encrypt=lc($config->{'pass_encrypt'} || 'plaintext');
+                my $errcode;
+
                 if($pass_encrypt eq 'plaintext') {
                     # Nothing
                 }
@@ -1036,15 +1038,30 @@ sub login ($;%) {
                 elsif($pass_encrypt eq 'crypt') {
                     $password=crypt($password,$dbpass);
                 }
+                elsif($pass_encrypt eq 'custom') {
+                    $password=$self->login_password_encrypt(
+                        type                => $type,
+                        object              => $user,
+                        config              => $config,
+                        #
+                        username            => $username,
+                        password_typed      => $password,
+                        password_stored     => $dbpass,
+                        #
+                        error_message_ref   => \$errcode,
+                    );
+                }
                 else {
                     throw $self "login - unknown encryption mode '$pass_encrypt'";
                 }
 
-                if(!$dbpass || $dbpass ne $password) {
+                # Empty passwords are never accepted
+                #
+                if(!length($dbpass) || $dbpass ne $password || $errcode) {
                     $errstr=$self->login_errstr(
                         type    => $type,
                         object  => $user,
-                        errcode => 'BAD_PASSWORD',
+                        errcode => ($errcode || 'BAD_PASSWORD'),
                     );
                 }
             }
@@ -1292,7 +1309,14 @@ sub login ($;%) {
     $self->display_results($args,'verified');
 }
 
-##############################################################################
+###############################################################################
+
+sub login_password_encrypt ($@) {
+    my $self=shift;
+    throw $self "- this method must be implemented in a derived class";
+}
+
+###############################################################################
 
 =item login_check ()
 
@@ -1320,7 +1344,7 @@ sub login_check ($%) {
     return '';
 }
 
-##############################################################################
+###############################################################################
 
 =item logout ()
 
