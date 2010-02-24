@@ -1345,18 +1345,18 @@ sub store_row ($$$$$$$) {
     $key_name.='_';
     $conn_name.='_' if $conn_name;
 
-    ##
     # If we have no transaction support we need to lock Global_Fields
     # too as it might be used in AUTOINC key formats.
     #
     my @ltab;
     if($self->{'table_type'} eq 'innodb') {
-        #dprint "store_row: transaction begin";
+        ### dprint "store_row: transaction begin";
         $self->tr_loc_begin;
     }
     else {
-        #dprint "store_row: locking tables";
-        @ltab=$table eq 'Global_Fields' ? ('Global_Fields') : ($table,'Global_Fields');
+        ### dprint "store_row: locking tables";
+        #@ltab=($table eq 'Global_Fields' || $table eq 'Global_Classes') ? ($table) : ($table,'Global_Fields','Global_Classes');
+        @ltab=($table eq 'Global_Fields') ? ($table) : ($table,'Global_Fields');
         $self->lock_tables(@ltab);
     }
 
@@ -1389,39 +1389,43 @@ sub store_row ($$$$$$$) {
     # penalty (about 10% based on bench.pl - probably less on DB bound cases).
     # So avoiding it where we can.
     # 
-    local($SIG{'__DIE__'})=sub {
-        my $msg=shift;
-        if($self->{'table_type'} eq 'innodb') {
-            $self->tr_loc_rollback;
+    if(1) {
+        my $connector=$self->connector;
+
+        local($SIG{'__DIE__'})=sub {
+            my $msg=shift;
+            if($self->{'table_type'} eq 'innodb') {
+                $self->tr_loc_rollback;
+            }
+            else {
+                $self->unlock_tables(@ltab);
+            }
+            die $msg;
+        } if ($self->{'mysql_version'} < 5.00038 || $connector->need_unlock_on_error);
+
+        # Updating or inserting
+        #
+        if($uid) {
+            # TODO: Needs to be split into local version that is called from
+            # underneath transactional cover and "public" one.
+            #
+            $self->update_fields($table,$uid,$row,0);
         }
         else {
-            $self->unlock_tables(@ltab);
-        }
-        die $msg;
-    } if $self->{'mysql_version'} < 5.00038;
+            my @fn=($key_name, map { $_.'_' } keys %{$row});
+            my @fv=($key_value, values %{$row});
+            if($conn_name && $conn_value) {
+                unshift @fn,$conn_name;
+                unshift @fv,$conn_value;
+            }
 
-    # Updating or inserting
-    #
-    if($uid) {
-        # TODO: Needs to be split into local version that is called from
-        # underneath transactional cover and "public" one.
-        #
-        $self->update_fields($table,$uid,$row,0);
-    }
-    else {
-        my @fn=($key_name, map { $_.'_' } keys %{$row});
-        my @fv=($key_value, values %{$row});
-        if($conn_name && $conn_value) {
-            unshift @fn,$conn_name;
-            unshift @fv,$conn_value;
+            my $sql="INSERT INTO $table (";
+            $sql.=join(',',@fn);
+            $sql.=') VALUES (';
+            $sql.=join(',',('?') x scalar(@fn));
+            $sql.=')';
+            $connector->sql_do($sql,\@fv);
         }
-
-        my $sql="INSERT INTO $table (";
-        $sql.=join(',',@fn);
-        $sql.=') VALUES (';
-        $sql.=join(',',('?') x scalar(@fn));
-        $sql.=')';
-        $self->connector->sql_do($sql,\@fv);
     }
 
     if($self->{'table_type'} eq 'innodb') {
@@ -1431,7 +1435,7 @@ sub store_row ($$$$$$$) {
         $self->unlock_tables(@ltab);
     }
 
-    $key_value;
+    return $key_value;
 }
 
 ###############################################################################
@@ -1523,6 +1527,8 @@ set to a non-zero value.
 
 sub update_fields ($$$$;$) {
     my ($self,$table,$unique_id,$data,$internal)=@_;
+
+    ### dprint "update_fields($table,$unique_id,...)";
 
     $unique_id ||
         throw $self "update_field($table,..) - no unique_id given";
@@ -1685,7 +1691,11 @@ sub unlock_tables ($) {
     my $self=shift;
     ### return unless $self->connector->sql_connected;
     ### dprint "unlock_tables: caller=".((caller(1))[3])." sql=$sql";
+    ### eprint "unlock_tables2: caller=".((caller(2))[3]);
+    ### eprint "unlock_tables1: caller=".((caller(1))[3]);
+    ### eprint "unlock_tables0: caller=".((caller(0))[3]);
     $self->connector->sql_do_no_error('UNLOCK TABLES');
+    ### eprint "unlock_tables:DONE";
 }
 
 sub throw ($@) {

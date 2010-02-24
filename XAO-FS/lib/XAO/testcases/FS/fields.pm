@@ -415,7 +415,6 @@ sub test_unique {
     }
 }
 
-##
 # Checking how 'unique' works for second level objects. The trick with
 # them is that the field should be unique in the space of an enclosing
 # container, but two containers can have identical properties.
@@ -500,8 +499,10 @@ sub test_unique_2 {
         $self->assert($c2list->get('o2')->get('foo') eq '2',
             "Got wrong value from c2list/o2");
 
+        dprint "Dropping placeholder Orders/foo";
         $order->drop_placeholder('foo');
 
+        dprint "Dropping placeholder Orders";
         $c1->drop_placeholder('Orders');
     }
 }

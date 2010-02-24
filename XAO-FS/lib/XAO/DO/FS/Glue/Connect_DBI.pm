@@ -144,7 +144,11 @@ sub sql_do ($$;@) {
 sub sql_do_no_error ($$;@) {
     my ($self,$query)=@_;
 
+    ### dprint "Sql_do_no_error($query): ".join('|',caller(1));
+
     $self->{'sql'}->do($query);
+
+    ### dprint "Sql_do_no_error($query): DONE";
 }
 
 ###############################################################################
@@ -177,6 +181,7 @@ sql_execute() as a parameter.
 
 sub sql_execute ($$;@) {
     my ($self,$pq,@values)=@_;
+
     $pq=$self->sql_prepare($pq) unless ref $pq;
 
     ### use Data::Dumper;
@@ -279,6 +284,12 @@ sub sql_prepare ($$) {
     ### dprint "SQL_PREPARE: $query";
     return $self->{'sql'}->prepare($query) ||
         throw $self "sql_prepare - SQL error: ".$self->{'sql'}->errstr;
+}
+
+###############################################################################
+
+sub need_unlock_on_error ($) {
+    return 1;
 }
 
 ###############################################################################
