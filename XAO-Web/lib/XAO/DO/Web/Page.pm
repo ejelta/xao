@@ -1180,7 +1180,6 @@ sub pass_args ($$;$) {
             my $lold=length($prold);
             foreach my $k (keys %$pargs) {
                 next unless substr($k,0,$lold) eq $prold;
-                dprint "....$k $prnew=$prold";
                 $hash->{$prnew.substr($k,$lold)}=$pargs->{$k};
             }
         }
@@ -1192,7 +1191,6 @@ sub pass_args ($$;$) {
             my $l=length($pr);
             foreach my $k (keys %$pargs) {
                 next unless substr($k,0,$l) eq $pr;
-                dprint "....$k $pr";
                 $hash->{$k}=$pargs->{$k};
             }
         }
