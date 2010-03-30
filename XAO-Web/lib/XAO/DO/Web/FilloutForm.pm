@@ -107,7 +107,9 @@ sub new ($%) {
     $self;
 }
 
-##
+
+###############################################################################
+
 # Setting object up for use as embedded form checker from other
 # non-derived objects.
 #
@@ -126,23 +128,26 @@ sub new ($%) {
 # Call to this subroutine is not required from derived objects, use
 # method overriding instead when possible!
 #
+
 sub setup ($%) {
     my $self=shift;
     my $args=get_args(\@_);
 
-    ##
     # Fields and values
     #
-    $self->setup_fields(fields => $args->{'fields'},
-                        values => $args->{'values'});
+    $self->setup_fields(
+        fields => $args->{'fields'},
+        values => $args->{'values'},
+    );
 
-    ##
     # Handlers and special data:
-    #  extra_data  - passed to handlers as is.
-    #  submit_name - name of submit button for pre-filled forms (change form).
+    #  extra_data    - passed to handlers as is.
+    #  submit_name   - name of submit button for pre-filled forms (change form).
+    #  dont_sanitize - don't remove <> from CGI input
     #
-    my @names=qw(extra_data submit_name form_ok pre_check_form check_form keep_form);
+    my @names=qw(extra_data submit_name form_ok pre_check_form check_form keep_form dont_sanitize);
     @{$self}{@names}=@{$args}{@names};
+
     my $values=$args->{'values'} || {};
     foreach my $fdata (@{$self->{'fields'}}) {
         $fdata->{'value'}=$values->{$fdata->{'name'}};
@@ -249,12 +254,21 @@ sub display ($;%) {
     my $errstr;
     my %formparams;
 
+    my $dont_sanitize=$self->{'dont_sanitize'} || $args->{'dont_sanitize'};
+
     foreach my $fdata (@{$fields}) {
         my $name=$fdata->{'name'};
+
         my $cgivalue=$cgi->param($name);
         $have_cgivalues++ if defined($cgivalue);
 
-        ##
+        # Unless we have a 'dont_sanitize' argument we remove angle
+        # brackets to prevent XSS attacks.
+        #
+        if(!$dont_sanitize) {
+            $cgivalue=~s/[<>]/ /sg;
+        }
+
         # Checking form phase for multi-phased forms if required.
         #
         next if defined($fdata->{'phase'}) && $phase<$fdata->{'phase'};
@@ -266,14 +280,12 @@ sub display ($;%) {
             $value=$fdata->{'default'} unless defined($value);
         }
 
-        ##
         # Empty value is the same as undefined. Spaces are trimmed from the
         # beginning and the end of the string.
         #
         $value="" unless defined $value;
         $value=~s/^\s*(.*?)\s*$/$1/g;
 
-        ##
         # Various checks depending on field style.
         #
         my $newerr;
