@@ -724,7 +724,7 @@ sub display ($;%) {
                     my $param=$fdata->{'param'} || uc($fdata->{'name'});
 
                     if($fdata->{'errstr'}) {
-                        $fdata->{'errstr'}.=($fdata->{'errstr'}=~/\.\s*$/ ? ' ' . '; ') . $e;
+                        $fdata->{'errstr'}.=($fdata->{'errstr'} =~ /\.\s*$/ ? ' ' : '; ') . $e;
                         $formparams{"$param.ERRSTR"}=$fdata->{'errstr'};
                     }
                     else {
