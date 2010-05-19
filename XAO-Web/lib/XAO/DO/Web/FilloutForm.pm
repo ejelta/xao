@@ -684,7 +684,7 @@ sub display ($;%) {
         # error. Storing value otherwise.
         #
         if($newerr) {
-            $errstr.=($fdata->{'text'} || $name) .  ": " . $newerr . "<BR>\n";
+            $errstr.=($fdata->{'text'} || $name) .  ": " . $newerr . "<br />\n";
             $fdata->{'errstr'}=$newerr;
         }
         else {
@@ -722,13 +722,21 @@ sub display ($;%) {
                 if($fname) {
                     my $fdata=$self->field_desc($fname);
                     my $param=$fdata->{'param'} || uc($fdata->{'name'});
-                    $fdata->{'errstr'}=$formparams{"$param.ERRSTR"}=$e;
-                    $errstr.="\n<BR>" if $errstr;
+
+                    if($fdata->{'errstr'}) {
+                        $fdata->{'errstr'}.=($fdata->{'errstr'}=~/\.\s*$/ ? ' ' . '; ') . $e;
+                        $formparams{"$param.ERRSTR"}=$fdata->{'errstr'};
+                    }
+                    else {
+                        $fdata->{'errstr'}=$formparams{"$param.ERRSTR"}=$e;
+                    }
+
+                    $errstr.="\n<br />" if $errstr;
                     $errstr.=$e;
                 }
                 else {
-                    $errstr.="\n<BR>" if $errstr;
-                    $formparams{'ERRSTR.CHECK_FORM'}.="\n<BR>" if $errstr;
+                    $errstr.="\n<br />" if $errstr;
+                    $formparams{'ERRSTR.CHECK_FORM'}.="\n<br />" if $errstr;
                     $errstr.=$e;
                     $formparams{'ERRSTR.CHECK_FORM'}.=$e;
                 }
