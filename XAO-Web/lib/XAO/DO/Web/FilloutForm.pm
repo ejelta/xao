@@ -265,7 +265,7 @@ sub display ($;%) {
         # Unless we have a 'dont_sanitize' argument we remove angle
         # brackets to prevent XSS attacks.
         #
-        if(!$dont_sanitize) {
+        if(defined $cgivalue && !$dont_sanitize) {
             $cgivalue=~s/[<>]/ /sg;
         }
 
@@ -701,7 +701,7 @@ sub display ($;%) {
         $formparams{"$param.REQUIRED"}=$fdata->{'required'} ? 1 : 0;
         $formparams{"$param.SIZE"}=$fdata->{'size'} || 30;
         $formparams{"$param.ROWS"}=$fdata->{'rows'} || 1;
-        $formparams{"$param.MAXLENGTH"}=$fdata->{'maxlength'} || 0;
+        $formparams{"$param.MAXLENGTH"}=$fdata->{'maxlength'} || 100;
         $formparams{"$param.MINLENGTH"}=$fdata->{'minlength'} || 0;
         $formparams{"$param.ERRSTR"}=$fdata->{'errstr'} || '';
     }
