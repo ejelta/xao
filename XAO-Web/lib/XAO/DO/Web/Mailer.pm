@@ -110,8 +110,14 @@ sub display ($;%) {
     if($config->{'override_to'}) {
         dprint ref($self)."::display - overriding '$to' with '$config->{override_to}'";
         $to=$config->{'override_to'};
-        $cc='';
-        $bcc='';
+        if($cc) {
+            dprint "...CC was '$cc' before override, replaced with nothing";
+            $cc='';
+        }
+        if($bcc) {
+            dprint "...BCC was '$cc' before override, replaced with nothing";
+            $bcc='';
+        }
     }
 
     my $from=$args->{'from'};
