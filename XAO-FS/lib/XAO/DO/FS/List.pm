@@ -466,76 +466,7 @@ Example:
 
 =cut
 
-sub scan ($@) {
-    my $self=shift;
-    my $args=get_args(\@_);
-
-    my $block_size=$args->{'block_size'} || throw $self "- no block_size";
-
-    $args->{'search_options'} || throw $self "- no search_options";
-
-    my $options=merge_refs($args->{'search_options'});
-
-    $options->{'orderby'} || throw $self "- must have an orderby in search_options";
-
-    my $offset_global=$args->{'offset'} || $args->{'search_options'}->{'offset'} || 0;
-    my $limit_global=$args->{'limit'} || $args->{'search_options'}->{'limit'} || 0;
-
-    $args->{'call_before'} &&
-        $args->{'call_before'}->($self,$args);
-
-    my $offset=$offset_global;
-    while(1) {
-        $options->{'offset'}=$offset;
-        $options->{'limit'}=(!$limit_global || $offset-$offset_global+$block_size < $limit_global)
-                                ? $block_size
-                                : $limit_global-($offset-$offset_global);
-
-        my $sr=$self->search(
-            $args->{'search_query'} || [ ],
-            $options,
-        );
-
-        last unless @$sr;
-
-        ### dprint Dumper($sr);
-        ### dprint Dumper($options);
-
-        my $margs=merge_refs($args,{
-            search_options  => $options,
-        });
-
-        if($args->{'call_block'}) {
-            $args->{'call_block'}->(
-                $self,
-                $margs,
-                $sr,
-                $options->{'offset'},
-                $options->{'limit'},
-            );
-        }
-
-        if($args->{'call_row'}) {
-            for(my $i=0; $i<@$sr; ++$i) {
-                $args->{'call_row'}->(
-                    $self,
-                    $margs,
-                    $sr->[$i],
-                    $i+$options->{'offset'},
-                );
-            }
-        }
-
-        last if scalar(@$sr)<$options->{'limit'};
-
-        last if $limit_global && $options->{'offset'}+scalar(@$sr) >= $limit_global;
-
-        $offset+=scalar(@$sr);
-    }
-
-    $args->{'call_after'} &&
-        $args->{'call_after'}->($self,$args);
-}
+# Implemented in Glue
 
 ###############################################################################
 
@@ -875,7 +806,6 @@ rows in your code anyway.
 As a degraded case of search it is safe to pass nothing or just options
 to select everything in the given list. Examples:
 
- ##
  # These two lines are roughly equivalent. Note that you get an array
  # reference in the first line and an array itself in the second.
  #
@@ -883,12 +813,10 @@ to select everything in the given list. Examples:
 
  my @keys=$products->keys();
 
- ##
  # This is the way to get all the keys ordered by price.
  #
  my $keys=$products->search({ orderby => 'price' });
 
- ##
  # Getting name and surname for all records
  #
  my $data=$customers->search({ result => [qw(name surname)] });
