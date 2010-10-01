@@ -151,7 +151,6 @@ sub server_error ($$;$);
 sub handler {
     my $r=shift;
 
-    ##
     # Request URI
     #
     my $uri=$r->uri;
@@ -224,7 +223,7 @@ EOT
     else {
         $pagedesc=$web->analyze($uri,$sitename,1);
     }
-    my $ptype=$pagedesc->{type} || 'xaoweb';
+    my $ptype=$pagedesc->{'type'} || 'xaoweb';
     if($ptype eq 'external') {
         ### $r->server->log_error("EXTERNAL: uri=$uri");
         return DECLINED;

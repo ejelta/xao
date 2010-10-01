@@ -532,7 +532,7 @@ sub display ($;%) {
                 my $sel=(lc($c) eq lc($value)) ? " SELECTED" : "";
                 $html.="<OPTION$sel>".t2ht($c)."</OPTION>\n";
             }
-            $fdata->{'html'}=qq(<SELECT NAME=$name><OPTION VALUE="">Select Country</OPTION>$html</SELECT>);
+            $fdata->{'html'}=qq(<SELECT NAME="$name"><OPTION VALUE="">Select Country</OPTION>$html</SELECT>);
         }
         elsif($style eq 'usstate' || $style eq 'uscontst') {
             my @cl=$style eq 'usstate' ? $self->us_states_list()
@@ -547,7 +547,7 @@ sub display ($;%) {
                        "</OPTION>\n";
             }
             $formparams{"$param.HTML_OPTIONS"}=$html;
-            $fdata->{'html'}=qq(<SELECT NAME=$name><OPTION VALUE="">Select State</OPTION>$html</SELECT>);
+            $fdata->{'html'}=qq(<SELECT NAME="$name"><OPTION VALUE="">Select State</OPTION>$html</SELECT>);
         }
         elsif($style eq 'cctype') {
             my @cl=$self->cc_list();
@@ -556,7 +556,7 @@ sub display ($;%) {
                 my $sel=(lc($c) eq lc($value)) ? " SELECTED" : "";
                 $html.="<OPTION$sel>".t2ht($c)."</OPTION>\n";
             }
-            $fdata->{'html'}=qq(<SELECT NAME=$name><OPTION VALUE="">Select Card Type</OPTION>$html</SELECT>);
+            $fdata->{'html'}=qq(<SELECT NAME="$name"><OPTION VALUE="">Select Card Type</OPTION>$html</SELECT>);
         }  
         elsif($style eq 'month') {
             my @cl=qw(January February March April May June July
@@ -566,7 +566,7 @@ sub display ($;%) {
                 my $sel=($value && $value == $i+1) ? " SELECTED" : "";
                 $html.=sprintf("<OPTION VALUE=\"%02u\"$sel>%02u - %s</OPTION>\n",$i+1,$i+1,$cl[$i]);
             }
-            $fdata->{'html'}=qq(<SELECT NAME=$name><OPTION VALUE="">Select Month</OPTION>$html</SELECT>);
+            $fdata->{'html'}=qq(<SELECT NAME="$name"><OPTION VALUE="">Select Month</OPTION>$html</SELECT>);
         }
         elsif($style eq 'year' && !$fdata->{'maxlength'} && $fdata->{'minyear'} && $fdata->{'maxyear'}) {
             my $minyear=$self->calculate_year($fdata->{'minyear'});
