@@ -1399,11 +1399,14 @@ sub _build_search_query ($%) {
                 for(my $i=0; $i<@$list; $i+=2) {
                     my $fn=$list->[$i+1];
                     my ($sqlfn,$fdesc)=$self->_build_search_field(\%classes,$fn);
+
                     $fdesc->{'type'} eq 'list' &&
                         $self->throw("_build_search_query - can't use 'list' fields in ORDERBY");
+
                     my $o=lc($list->[$i]);
                     $o='ascend' if $o eq 'asc';
                     $o='descend' if $o eq 'desc';
+
                     push(@orderby,$o,$sqlfn);
                 }
             }
@@ -1652,14 +1655,12 @@ sub _build_search_field ($$$) {
     my $up=$classes->{'up'};
     $up=$classes->{'up'}={} unless $up;
 
-    ##
     # Optimizing stupid things like 'D/../E' into 'E'
     #
     while($lha=~/^(.*\/)?\w.*?\/\.\.\/(.*)$/) {
         $lha=(defined($1) ? $1 : '') . $2;
     }
 
-    ##
     # Splitting field name into parts if it looks like path either
     # absolute or relative. Real field name is the last element, popping
     # it back into $lha.
@@ -1729,13 +1730,11 @@ sub _build_search_field ($$$) {
         };
     }
 
-    ##
-    # Special condition for 'unique_id' field names
+    # Special condition for 'unique_id' field names.
     #
-    my $field_desc=$lha eq 'unique_id' ? {} : $class_desc->{'fields'}->{$lha};
+    my $field_desc=$lha eq 'unique_id' ? { type => 'unique_id' } : $class_desc->{'fields'}->{$lha};
     $field_desc || $self->throw("_build_search_field - unknown field '$lha' ($class_name)");
 
-    ##
     # Counting number of fields using that table, index have more weight
     # and unique index even more. If not overriden in options that is
     # going to be our center table.
@@ -1748,7 +1747,6 @@ sub _build_search_field ($$$) {
         $classes->{'center_tag'}=$class_tag;
     }
 
-    ##
     # We don't need to mangle field name if it's a unique_id field
     #
     if($lha eq 'unique_id') {
