@@ -1146,6 +1146,7 @@ sub _list_search ($%) {
     }
     elsif(scalar(@_) == 1 && ref($_[0]) eq 'ARRAY') {
         $conditions=$_[0];
+        $conditions=undef unless @$conditions;
     }
     elsif(! @_) {
         $conditions=undef;
