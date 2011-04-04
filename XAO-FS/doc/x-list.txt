@@ -471,7 +471,6 @@ DESCRIPTION
         As a degraded case of search it is safe to pass nothing or just
         options to select everything in the given list. Examples:
 
-         ##
          # These two lines are roughly equivalent. Note that you get an array
          # reference in the first line and an array itself in the second.
          #
@@ -479,12 +478,10 @@ DESCRIPTION
 
          my @keys=$products->keys();
 
-         ##
          # This is the way to get all the keys ordered by price.
          #
          my $keys=$products->search({ orderby => 'price' });
 
-         ##
          # Getting name and surname for all records
          #
          my $data=$customers->search({ result => [qw(name surname)] });

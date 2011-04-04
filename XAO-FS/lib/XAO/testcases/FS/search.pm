@@ -168,78 +168,91 @@ sub test_scan {
         },
     );
 
-    foreach my $testname (keys %tests) {
-        my $tdata=$tests{$testname};
+    # Testing both collection and list scanning on the same set of tests.
+    #
+    my $cust_coll=$odb->collection(class => 'Data::Customer');
 
-        my $called_before=0;
-        my $called_block=0;
-        my $called_row=0;
-        my $called_after=0;
-        my @srb;
-        my @srr;
-        $cust_list->scan($tdata->{'params'},{
-            call_before => sub {
-                my ($list,$args)=@_;
-                ++$called_before;
-                $self->assert(ref($args) && $args->{'block_size'},
-                              "Expected to get back arguments in 'call_before'");
-                $self->assert(ref($list),
-                              "Expected to get back list in 'call_before'");
-            },
-            call_block => sub {
-                my ($list,$args,$block)=@_;
-                ++$called_block;
-                ### dprint "call_block($called_block): ".Dumper($block);
-                push(@srb,@$block);
-                $self->assert((ref($args) && ref($args->{'call_block'})) ? 1 : 0,
-                              "$testname: Expected to get back arguments in 'call_block'");
-                $self->assert((ref($list)) ? 1 : 0,
-                              "$testname: Expected to get back list in 'call_block'");
-                $self->assert(ref($block) eq 'ARRAY',
-                              "$testname: Expected to get results block in 'call_block'");
-            },
-            call_row => sub {
-                my ($list,$args,$row)=@_;
-                ++$called_row;
-                push(@srr,$row);
-                $self->assert((ref($args) && $args->{'search_options'}) ? 1 : 0,
-                              "$testname: Expected to get back arguments in 'call_row'");
-                $self->assert(ref($list),
-                              "$testname: Expected to get back list in 'call_row'");
-                $self->assert(defined($row),
-                              "$testname: Expected to get a result row in 'call_row'");
-            },
-            call_after => sub {
-                my ($list,$args)=@_;
-                ++$called_after;
-                $self->assert(ref($args) && $args->{'block_size'},
-                              "$testname: Expected to get back arguments in 'call_after'");
-                $self->assert(ref($list),
-                              "$testname: Expected to get back list in 'call_after'");
-            },
-        });
+    foreach my $cust_lc ($cust_list,$cust_coll) {
+        foreach my $testname (keys %tests) {
+            my $tdata=$tests{$testname};
 
-        my $expect=$tdata->{'expect'};
+            my $called_before=0;
+            my $called_block=0;
+            my $called_row=0;
+            my $called_after=0;
+            my @srb;
+            my @srr;
+            $cust_lc->scan($tdata->{'params'},{
+                call_before => sub {
+                    my ($list,$args)=@_;
+                    ++$called_before;
+                    $self->assert(ref($args) && $args->{'block_size'},
+                                  "Expected to get back arguments in 'call_before'");
+                    $self->assert(ref($list),
+                                  "Expected to get back list in 'call_before'");
+                },
+                call_block => sub {
+                    my ($list,$args,$block)=@_;
+                    ++$called_block;
+                    ### dprint "call_block($called_block): ".Dumper($block);
+                    push(@srb,@$block);
+                    $self->assert((ref($args) && ref($args->{'call_block'})) ? 1 : 0,
+                                  "$testname: Expected to get back arguments in 'call_block'");
+                    $self->assert((ref($list)) ? 1 : 0,
+                                  "$testname: Expected to get back list in 'call_block'");
+                    $self->assert(ref($block) eq 'ARRAY',
+                                  "$testname: Expected to get results block in 'call_block'");
+                },
+                call_row => sub {
+                    my ($list,$args,$row)=@_;
+                    ++$called_row;
+                    push(@srr,$row);
+                    $self->assert((ref($args) && $args->{'search_options'}) ? 1 : 0,
+                                  "$testname: Expected to get back arguments in 'call_row'");
+                    $self->assert(ref($list),
+                                  "$testname: Expected to get back list in 'call_row'");
+                    $self->assert(defined($row),
+                                  "$testname: Expected to get a result row in 'call_row'");
+                },
+                call_after => sub {
+                    my ($list,$args)=@_;
+                    ++$called_after;
+                    $self->assert(ref($args) && $args->{'block_size'},
+                                  "$testname: Expected to get back arguments in 'call_after'");
+                    $self->assert(ref($list),
+                                  "$testname: Expected to get back list in 'call_after'");
+                },
+            });
 
-        $self->assert($called_before==1,
-                      "$testname: Expected to have called_before==1, got $called_before");
-        $self->assert($called_block==$expect->{'blocks'},
-                      "$testname: Expected to have called_block==$expect->{'blocks'}, got $called_block");
-        $self->assert($called_row==$expect->{'rows'},
-                      "$testname: Expected to have called_row==$expect->{'rows'}, got $called_row");
-        $self->assert($called_after==1,
-                      "$testname: Expected to have called_after==1, got $called_after");
+            my $expect=$tdata->{'expect'};
 
-        $self->assert(scalar(@srb)==scalar(@srr),
-                      "$testname: Expected to have the same data from call_block and call_row");
-        for(my $i=0; $i<@srr; ++$i) {
-            $self->assert($srb[$i] eq $srr[$i],
-                          "$testname: Expected to have the same data from call_block and call_row, got $srb[$i] and $srr[$i] at position $i");
+            $self->assert($called_before==1,
+                          "$testname: Expected to have called_before==1, got $called_before");
+            $self->assert($called_block==$expect->{'blocks'},
+                          "$testname: Expected to have called_block==$expect->{'blocks'}, got $called_block");
+            $self->assert($called_row==$expect->{'rows'},
+                          "$testname: Expected to have called_row==$expect->{'rows'}, got $called_row");
+            $self->assert($called_after==1,
+                          "$testname: Expected to have called_after==1, got $called_after");
+
+            $self->assert(scalar(@srb)==scalar(@srr),
+                          "$testname: Expected to have the same data from call_block and call_row");
+            for(my $i=0; $i<@srr; ++$i) {
+                $self->assert($srb[$i] eq $srr[$i],
+                              "$testname: Expected to have the same data from call_block and call_row, got $srb[$i] and $srr[$i] at position $i");
+            }
+
+            # In the collection we're going to get collection IDs, not list
+            # IDs. Translating them to make the same tests work in both
+            # cases.
+            #
+            @srr=(map { ref($_) ? $_ : $cust_lc->get($_)->container_key } @srr);
+
+            my $first5=join(',',map { ref($_) ? $_->[0] : $_ } @srr[0..4] );
+
+            $self->assert($first5 eq $expect->{'first5'},
+                          "$testname: Expected first 5 elements to be $expect->{'first5'}, got $first5");
         }
-
-        my $first5=join(',',map { ref($_) ? $_->[0] : $_ } @srr[0..4] );
-        $self->assert($first5 eq $expect->{'first5'},
-                      "$testname: Expected first 5 elements to be $expect->{'first5'}, got $first5");
     }
 }
 

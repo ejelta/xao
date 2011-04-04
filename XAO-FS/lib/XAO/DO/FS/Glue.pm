@@ -451,6 +451,88 @@ sub reset ($) {
 
 ###############################################################################
 
+=item scan (@)
+
+A wrapper for search() method that makes it easier to search in large
+collections of data.
+
+See L<XAO::DO::FS::List> for details.
+
+=cut
+
+sub scan ($@) {
+    my $self=shift;
+    my $args=get_args(\@_);
+
+    my $block_size=$args->{'block_size'} || throw $self "- no block_size";
+
+    $args->{'search_options'} || throw $self "- no search_options";
+
+    my $options=merge_refs($args->{'search_options'});
+
+    $options->{'orderby'} || throw $self "- must have an orderby in search_options";
+
+    my $offset_global=$args->{'offset'} || $args->{'search_options'}->{'offset'} || 0;
+    my $limit_global=$args->{'limit'} || $args->{'search_options'}->{'limit'} || 0;
+
+    $args->{'call_before'} &&
+        $args->{'call_before'}->($self,$args);
+
+    my $offset=$offset_global;
+    while(1) {
+        $options->{'offset'}=$offset;
+        $options->{'limit'}=(!$limit_global || $offset-$offset_global+$block_size < $limit_global)
+                                ? $block_size
+                                : $limit_global-($offset-$offset_global);
+
+        my $sr=$self->search(
+            $args->{'search_query'} || [ ],
+            $options,
+        );
+
+        last unless @$sr;
+
+        ### dprint Dumper($sr);
+        ### dprint Dumper($options);
+
+        my $margs=merge_refs($args,{
+            search_options  => $options,
+        });
+
+        if($args->{'call_block'}) {
+            $args->{'call_block'}->(
+                $self,
+                $margs,
+                $sr,
+                $options->{'offset'},
+                $options->{'limit'},
+            );
+        }
+
+        if($args->{'call_row'}) {
+            for(my $i=0; $i<@$sr; ++$i) {
+                $args->{'call_row'}->(
+                    $self,
+                    $margs,
+                    $sr->[$i],
+                    $i+$options->{'offset'},
+                );
+            }
+        }
+
+        last if scalar(@$sr)<$options->{'limit'};
+
+        last if $limit_global && $options->{'offset'}+scalar(@$sr) >= $limit_global;
+
+        $offset+=scalar(@$sr);
+    }
+
+    $args->{'call_after'} &&
+        $args->{'call_after'}->($self,$args);
+}
+
+###############################################################################
+
 =item transact_active ()
 
 Checks if a there is an active transaction at the moment. Can be used to
@@ -1064,6 +1146,7 @@ sub _list_search ($%) {
     }
     elsif(scalar(@_) == 1 && ref($_[0]) eq 'ARRAY') {
         $conditions=$_[0];
+        $conditions=undef unless @$conditions;
     }
     elsif(! @_) {
         $conditions=undef;
@@ -1317,11 +1400,14 @@ sub _build_search_query ($%) {
                 for(my $i=0; $i<@$list; $i+=2) {
                     my $fn=$list->[$i+1];
                     my ($sqlfn,$fdesc)=$self->_build_search_field(\%classes,$fn);
+
                     $fdesc->{'type'} eq 'list' &&
                         $self->throw("_build_search_query - can't use 'list' fields in ORDERBY");
+
                     my $o=lc($list->[$i]);
                     $o='ascend' if $o eq 'asc';
                     $o='descend' if $o eq 'desc';
+
                     push(@orderby,$o,$sqlfn);
                 }
             }
@@ -1570,14 +1656,12 @@ sub _build_search_field ($$$) {
     my $up=$classes->{'up'};
     $up=$classes->{'up'}={} unless $up;
 
-    ##
     # Optimizing stupid things like 'D/../E' into 'E'
     #
     while($lha=~/^(.*\/)?\w.*?\/\.\.\/(.*)$/) {
         $lha=(defined($1) ? $1 : '') . $2;
     }
 
-    ##
     # Splitting field name into parts if it looks like path either
     # absolute or relative. Real field name is the last element, popping
     # it back into $lha.
@@ -1647,13 +1731,11 @@ sub _build_search_field ($$$) {
         };
     }
 
-    ##
-    # Special condition for 'unique_id' field names
+    # Special condition for 'unique_id' field names.
     #
-    my $field_desc=$lha eq 'unique_id' ? {} : $class_desc->{'fields'}->{$lha};
+    my $field_desc=$lha eq 'unique_id' ? { type => 'unique_id' } : $class_desc->{'fields'}->{$lha};
     $field_desc || $self->throw("_build_search_field - unknown field '$lha' ($class_name)");
 
-    ##
     # Counting number of fields using that table, index have more weight
     # and unique index even more. If not overriden in options that is
     # going to be our center table.
@@ -1666,7 +1748,6 @@ sub _build_search_field ($$$) {
         $classes->{'center_tag'}=$class_tag;
     }
 
-    ##
     # We don't need to mangle field name if it's a unique_id field
     #
     if($lha eq 'unique_id') {

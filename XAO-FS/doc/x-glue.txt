@@ -135,6 +135,12 @@ PUBLIC METHODS
         an active transaction -- it will be rolled back, if there are locked
         tables -- they will be unlocked.
 
+    scan (@)
+        A wrapper for search() method that makes it easier to search in
+        large collections of data.
+
+        See XAO::DO::FS::List for details.
+
     transact_active ()
         Checks if a there is an active transaction at the moment. Can be
         used to avoid starting another one as transactions can't be nested.
