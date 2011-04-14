@@ -104,7 +104,7 @@ WriteMakefile(
     'NAME'          => 'XAO::ImageCache',
     'VERSION_FROM'	=> 'ImageCache.pm',
     'PREREQ_PM'     => { 
-        'Date::Manip'   => undef,
+        'Date::Manip'   => '6.22',
 	    'XAO::FS'	    => '1.01',
         'Test::Unit'    => '0.14',
 	    'Image::Magick' => '6.3.0',
