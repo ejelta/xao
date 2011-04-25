@@ -221,10 +221,13 @@ sub display ($;%) {
         push(@attachments,\%data);
     }
 
+    # Charset for outgoing mail. Either /mailer/charset or /charset
+    #
+    my $charset=$config->{'charset'} || $self->siteconfig->get('charset') || undef;
+
     # Preparing mailer and storing content in
     #
     my $mailer;
-    my $encoding=$args->{'encoding'} || $config->{'encoding'} || undef;
     my @stdhdr=(
         From        => $from_hdr,
         FromSender  => $from,
@@ -237,17 +240,18 @@ sub display ($;%) {
             @stdhdr,
             Data        => $html,
             Type        => 'text/html',
-            Encoding    => $encoding,
             Datestamp   => 0,
         );
+        $mailer->attr('content-type.charset' => $charset) if $charset;
     }
     elsif($text && !$html) {
         $mailer=MIME::Lite->new(
             @stdhdr,
             Data        => $text,
-            Encoding    => $encoding,
+            Type        => 'text/plain',
             Datestamp   => 0,
         );
+        $mailer->attr('content-type.charset' => $charset) if $charset;
     }
     elsif($text && $html) {
         $mailer=MIME::Lite->new(
@@ -255,6 +259,26 @@ sub display ($;%) {
             Type        => @attachments ? 'multipart/mixed' : 'multipart/alternative',
             Datestamp   => 0,
         );
+
+        my $text_part=MIME::Lite->new(
+            Type        => 'text/plain',
+            Data        => $text,
+        );
+
+        $text_part->delete('X-Mailer');
+        $text_part->delete('Date');
+
+        $text_part->attr('content-type.charset' => $charset) if $charset;
+
+        my $html_part=MIME::Lite->new(
+            Type        => 'text/html',
+            Data        => $html,
+        );
+
+        $html_part->delete('X-Mailer');
+        $html_part->delete('Date');
+
+        $html_part->attr('content-type.charset' => $charset) if $charset;
 
         if(@attachments) {
             my $alt_part=MIME::Lite->new(
@@ -264,31 +288,14 @@ sub display ($;%) {
             $alt_part->delete('X-Mailer');
             $alt_part->delete('Date');
 
-            $alt_part->attach(
-                Type        => 'text/plain',
-                Data        => $text,
-                Encoding    => $encoding,
-            );
-
-            $alt_part->attach(
-                Type        => 'text/html',
-                Data        => $html,
-                Encoding    => $encoding,
-            );
+            $alt_part->attach($text_part);
+            $alt_part->attach($html_part);
 
             $mailer->attach($alt_part);
         }
         else {
-            $mailer->attach(
-                Type        => 'text/plain',
-                Data        => $text,
-                Encoding    => $encoding,
-            );
-            $mailer->attach(
-                Type        => 'text/html',
-                Data        => $html,
-                Encoding    => $encoding,
-            );
+            $mailer->attach($text_part);
+            $mailer->attach($html_part);
         }
     }
     else {
