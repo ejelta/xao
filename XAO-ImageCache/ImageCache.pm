@@ -508,8 +508,13 @@ sub download ($$) {
                     }
                 }
                 else {
-                    $self->throw("- can't get thumbnail header '$thm_src_url' - ".$response->status_line." (NETWORK)");
-                    $thm_src_file = '';
+                    if(-r $thm_src_file) {
+                        dprint "...error downloading thumbnail (".$response->status_line."), keeping existing source $thm_src_file";
+                    }
+                    else {
+                        $self->throw("- can't get thumbnail header '$thm_src_url' - ".$response->status_line." (NETWORK)");
+                        $thm_src_file = '';
+                    }
                 }
             }
         }
@@ -567,7 +572,19 @@ sub download ($$) {
                     }
                 }
                 else {
-                    $self->throw("- can't get header for $img_src_url - ".$response->status_line." (NETWORK)");
+
+                    # This is here mainly for situations like this: a
+                    # superseded item content gets into a new item, but
+                    # the image URL is long gone, not accessible; we
+                    # have a cached copy and we use it.
+                    #
+                    if(-r $img_src_file) {
+                        dprint "...error downloading image (".$response->status_line."), keeping existing source $thm_src_file";
+                    }
+                    else {
+                        $self->throw("- can't get image header for $img_src_url - ".$response->status_line." (NETWORK)");
+                        $img_src_file = '';
+                    }
                 }
             }
             $mtime_src=(stat($img_src_file))[9] if $img_src_file;
