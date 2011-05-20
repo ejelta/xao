@@ -344,17 +344,22 @@ sub check($) {
 
     my $self = shift;
 
-    my $img_src_url_key  = $self->{source_url_key};
-    my $img_dest_url_key = $self->{dest_url_key};
-    my $img_cache_url    = $self->{cache_url};
-    my $thm_src_url_key  = $self->{thumbnails}->{source_url_key} || '';
-    my $thm_dest_url_key = $self->{thumbnails}->{dest_url_key}   || '';
-    my $thm_cache_url    = $self->{thumbnails}->{cache_url}      || '';
-    my $thm_cache_path   = $self->{thumbnails}->{cache_path}     || '';
+    my $img_src_url_key  = $self->{'source_url_key'};
+    my $img_dest_url_key = $self->{'dest_url_key'};
+    my $img_cache_url    = $self->{'cache_url'};
+    my $thm_src_url_key  = $self->{'thumbnails'}->{'source_url_key'} || '';
+    my $thm_dest_url_key = $self->{'thumbnails'}->{'dest_url_key'}   || '';
+    my $thm_cache_url    = $self->{'thumbnails'}->{'cache_url'}      || '';
+    my $thm_cache_path   = $self->{'thumbnails'}->{'cache_path'}     || '';
+
+    my $getter=$self->{'get_property_sub'} || sub ($$) {
+        my ($obj,$prop)=@_;
+        return $prop ? $obj->get($prop) : '';
+    };
 
     my $checked     = 0;
-    my $list        = $self->{list};
-    my $list_keys   = $self->{list_keys} || [ $list->keys ];
+    my $list        = $self->{'list'};
+    my $list_keys   = $self->{'list_keys'} || [ $list->keys ];
 
     my $count=0;
     my $total=scalar(@$list_keys);
@@ -363,15 +368,13 @@ sub check($) {
         dprint "Checking ID='$item_id', count=".$count++."/$total";
 
         my $item        = $list->get($item_id);
-        my $img_src_url = $item->get($img_src_url_key);
-        my $thm_src_url = $thm_src_url_key ? $item->get($thm_src_url_key) : '';
+        my $img_src_url = $getter->($item,$img_src_url_key);
+        my $thm_src_url = $getter->($item,$thm_src_url_key);
 
-        ##
         # Skipping products without images
         #
         next unless $img_src_url || $thm_src_url;
 
-        ##
         # Download source image and create cache image and thumbnail
         #
         try {
