@@ -98,6 +98,23 @@ sub test_all {
             template => '<%URL uri%>',
             result => '/WebURL.html',
         },
+        tg => {
+            template => '<%URL x="img"%>',
+            result => 'http://img.foo.com',
+        },
+        th => {
+            template => '<%URL x="img" secure%>',
+            result => 'https://img.foo.com',
+        },
+        ti => {
+            template => '<%URL x="stat"%>',
+            result => 'http://www.foo.com',
+        },
+        tj => {
+            template => '<%URL x="stat" secure%>',
+            result => 'https://ssl.foo.com',
+        },
+
     );
 
     foreach my $test (keys %matrix) {
