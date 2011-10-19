@@ -86,7 +86,7 @@ sub display ($%) {
 
         if(!$url) {
             $url=$extra_urls->{$x} ||
-                throw $self "- no '$x' in /extra_urls";
+                 $self->base_url(active => 0, secure => $secure);
 
             if($secure) {
                 $url=~s/^http:/https:/;

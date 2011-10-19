@@ -114,12 +114,27 @@ sub test_all {
             template => '<%URL x="stat" secure%>',
             result => 'https://ssl.foo.com',
         },
-
+        tk => {
+            template => '<%URL x="css"%>',
+            result => 'http://css.foo.com',
+        },
+        tl => {
+            template => '<%URL x="css" secure%>',
+            result => 'https://xao.com',
+        },
+        tm => {
+            template => '<%URL x="css"%>',
+            result => 'http://css.foo.com',
+        },
+        tn => {
+            template => '<%URL x="css" secure%>',
+            result => 'https://xao.com',
+        },
     );
 
     foreach my $test (keys %matrix) {
-        my $template=$matrix{$test}->{template};
-        my $expect=$matrix{$test}->{result};
+        my $template=$matrix{$test}->{'template'};
+        my $expect=$matrix{$test}->{'result'};
 
         my $got=$site->expand(
             cgi     => $cgi,
