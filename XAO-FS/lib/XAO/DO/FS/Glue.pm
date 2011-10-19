@@ -1900,7 +1900,7 @@ sub _build_search_clause ($$$$$$) {
     ##
     # And finally making the part of clause we were asked for
     #
-    $field_desc->{'type'} ne 'list' ||
+    ($field_desc->{'type'} && $field_desc->{'type'} eq 'list') &&
         throw $self "_build_search_clause - can't search on 'list' field '$lha'";
     ref($rha) &&
         throw $self "_build_search_clause - expected constant right hand side argument ['$lha', '$op', $rha]";

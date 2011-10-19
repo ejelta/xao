@@ -344,17 +344,22 @@ sub check($) {
 
     my $self = shift;
 
-    my $img_src_url_key  = $self->{source_url_key};
-    my $img_dest_url_key = $self->{dest_url_key};
-    my $img_cache_url    = $self->{cache_url};
-    my $thm_src_url_key  = $self->{thumbnails}->{source_url_key} || '';
-    my $thm_dest_url_key = $self->{thumbnails}->{dest_url_key}   || '';
-    my $thm_cache_url    = $self->{thumbnails}->{cache_url}      || '';
-    my $thm_cache_path   = $self->{thumbnails}->{cache_path}     || '';
+    my $img_src_url_key  = $self->{'source_url_key'};
+    my $img_dest_url_key = $self->{'dest_url_key'};
+    my $img_cache_url    = $self->{'cache_url'};
+    my $thm_src_url_key  = $self->{'thumbnails'}->{'source_url_key'} || '';
+    my $thm_dest_url_key = $self->{'thumbnails'}->{'dest_url_key'}   || '';
+    my $thm_cache_url    = $self->{'thumbnails'}->{'cache_url'}      || '';
+    my $thm_cache_path   = $self->{'thumbnails'}->{'cache_path'}     || '';
+
+    my $getter=$self->{'get_property_sub'} || sub ($$) {
+        my ($obj,$prop)=@_;
+        return $prop ? $obj->get($prop) : '';
+    };
 
     my $checked     = 0;
-    my $list        = $self->{list};
-    my $list_keys   = $self->{list_keys} || [ $list->keys ];
+    my $list        = $self->{'list'};
+    my $list_keys   = $self->{'list_keys'} || [ $list->keys ];
 
     my $count=0;
     my $total=scalar(@$list_keys);
@@ -363,15 +368,13 @@ sub check($) {
         dprint "Checking ID='$item_id', count=".$count++."/$total";
 
         my $item        = $list->get($item_id);
-        my $img_src_url = $item->get($img_src_url_key);
-        my $thm_src_url = $thm_src_url_key ? $item->get($thm_src_url_key) : '';
+        my $img_src_url = $getter->($item,$img_src_url_key);
+        my $thm_src_url = $getter->($item,$thm_src_url_key);
 
-        ##
         # Skipping products without images
         #
         next unless $img_src_url || $thm_src_url;
 
-        ##
         # Download source image and create cache image and thumbnail
         #
         try {
@@ -505,8 +508,13 @@ sub download ($$) {
                     }
                 }
                 else {
-                    $self->throw("- can't get thumbnail header '$thm_src_url' - ".$response->status_line." (NETWORK)");
-                    $thm_src_file = '';
+                    if(-r $thm_src_file) {
+                        dprint "...error downloading thumbnail (".$response->status_line."), keeping existing source $thm_src_file";
+                    }
+                    else {
+                        $self->throw("- can't get thumbnail header '$thm_src_url' - ".$response->status_line." (NETWORK)");
+                        $thm_src_file = '';
+                    }
                 }
             }
         }
@@ -564,7 +572,19 @@ sub download ($$) {
                     }
                 }
                 else {
-                    $self->throw("- can't get header for $img_src_url - ".$response->status_line." (NETWORK)");
+
+                    # This is here mainly for situations like this: a
+                    # superseded item content gets into a new item, but
+                    # the image URL is long gone, not accessible; we
+                    # have a cached copy and we use it.
+                    #
+                    if(-r $img_src_file) {
+                        dprint "...error downloading image (".$response->status_line."), keeping existing source $thm_src_file";
+                    }
+                    else {
+                        $self->throw("- can't get image header for $img_src_url - ".$response->status_line." (NETWORK)");
+                        $img_src_file = '';
+                    }
                 }
             }
             $mtime_src=(stat($img_src_file))[9] if $img_src_file;

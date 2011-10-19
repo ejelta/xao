@@ -364,7 +364,7 @@ sub display ($;%) {
         }
         elsif($style eq 'int' || $style eq 'integer' || $style eq 'number') {
             if(length($value)) {
-                if($value =~ /^[\d,']+$/) {
+                if($value =~ /^-?[\d,']+$/) {
                     $value=~s/[,']+//g;
                     if(defined($fdata->{'minvalue'}) && $value<$fdata->{'minvalue'}) {
                         $newerr=$self->Tx("Value is less than {{min}}",

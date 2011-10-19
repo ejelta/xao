@@ -98,11 +98,43 @@ sub test_all {
             template => '<%URL uri%>',
             result => '/WebURL.html',
         },
+        tg => {
+            template => '<%URL x="img"%>',
+            result => 'http://img.foo.com',
+        },
+        th => {
+            template => '<%URL x="img" secure%>',
+            result => 'https://img.foo.com',
+        },
+        ti => {
+            template => '<%URL x="stat"%>',
+            result => 'http://www.foo.com',
+        },
+        tj => {
+            template => '<%URL x="stat" secure%>',
+            result => 'https://ssl.foo.com',
+        },
+        tk => {
+            template => '<%URL x="css"%>',
+            result => 'http://css.foo.com',
+        },
+        tl => {
+            template => '<%URL x="css" secure%>',
+            result => 'https://xao.com',
+        },
+        tm => {
+            template => '<%URL x="css"%>',
+            result => 'http://css.foo.com',
+        },
+        tn => {
+            template => '<%URL x="css" secure%>',
+            result => 'https://xao.com',
+        },
     );
 
     foreach my $test (keys %matrix) {
-        my $template=$matrix{$test}->{template};
-        my $expect=$matrix{$test}->{result};
+        my $template=$matrix{$test}->{'template'};
+        my $expect=$matrix{$test}->{'result'};
 
         my $got=$site->expand(
             cgi     => $cgi,

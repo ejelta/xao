@@ -23,6 +23,7 @@ performed:
  <%URL base full secure%>   -- https://host.com/test.html
  <%URL secure%>             -- https://www.host.com/test.html
  <%URL uri%>                -- /test.html
+ <%URL x='TAG'%>            -- from /extra_urls, assumes "top"
 
 If browser is at 'https://www.host.com/test.html' (secure protocol):
 
@@ -62,9 +63,6 @@ sub display ($%) {
     my $self=shift;
     my $args=get_args(\@_);
 
-    my $active=$args->{'base'} ? 0 : 1;
-    my $full=$args->{'top'} ? 0 : 1;
-
     my $secure;
     if($args->{'secure'}) {
         $secure=1;
@@ -76,8 +74,32 @@ sub display ($%) {
         $secure=$self->is_secure;
     }
 
-    my $url=$full ? $self->pageurl(active => $active, secure => $secure) :
-                    $self->base_url(active => $active, secure => $secure);
+    my $url;
+
+    my $x=$args->{'x'};
+
+    if($x) {
+        my $extra_urls=$self->siteconfig->get('extra_urls') ||
+            throw $self "- no /extra_urls for x='$x'";
+
+        $url=$extra_urls->{$x.'.'.($secure ? 'secure' : 'insecure')};
+
+        if(!$url) {
+            $url=$extra_urls->{$x} ||
+                 $self->base_url(active => 0, secure => $secure);
+
+            if($secure) {
+                $url=~s/^http:/https:/;
+            }
+        }
+    }
+    else {
+        my $active=$args->{'base'} ? 0 : 1;
+        my $full=$args->{'top'} ? 0 : 1;
+
+        $url=$full ? $self->pageurl(active => $active, secure => $secure) :
+                     $self->base_url(active => $active, secure => $secure);
+    }
 
     if($args->{'uri'}) {
         $url=~s/^\w+:\/\/.*?\//\//;

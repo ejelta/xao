@@ -9,6 +9,15 @@ use base XAO::Objects->load(objname => 'Config', baseobj => 1);
 my %data = (
     base_url => 'http://xao.com',
     charset  => 'UTF-8',
+    extra_urls => {
+        'img'           => 'http://img.foo.com',
+        'stat.insecure' => 'http://www.foo.com',
+        'stat.secure'   => 'https://ssl.foo.com',
+        'css.secure'    => '',
+        'css.insecure'  => 'http://css.foo.com',
+        'js.secure'     => 'https://js.foo.com',
+        'js.insecure'   => '',
+    },
     path_mapping_table  => {
         '/rawobj' => {
             type        => 'xaoweb',
