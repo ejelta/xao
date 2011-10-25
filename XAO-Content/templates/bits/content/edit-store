@@ -2,6 +2,6 @@
   mode="content-store"
   name={<%CgiParam/f name="name"%>}
   comment={<%CgiParam/f name="comment"%>}
-  text={<%CgiParam/f name="text"%>}
+  text={<%CgiParam/f name="text" dont_sanitize%>}
   path="/bits/content/edit-store-success"
 %>

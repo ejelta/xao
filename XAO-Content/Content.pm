@@ -883,10 +883,12 @@ sub content_store ($%) {
     my $data_list=$content->get('Data');
     my $data=$data_list->get_new();
 
-    $data->put(text => $text);
-    $data->put(comment => $comment);
-    $data->put(mime_type => $mime_type);
-    $data->put(mod_time => time);
+    $data->put(
+        text        => $text,
+        comment     => $comment,
+        mime_type   => $mime_type,
+        mod_time    => time,
+    );
 
     my $preview_id=$content->get('preview_id');
     if($preview_id) {
