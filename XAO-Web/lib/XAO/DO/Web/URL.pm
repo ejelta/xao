@@ -79,8 +79,7 @@ sub display ($%) {
     my $x=$args->{'x'};
 
     if($x) {
-        my $extra_urls=$self->siteconfig->get('extra_urls') ||
-            throw $self "- no /extra_urls for x='$x'";
+        my $extra_urls=$self->siteconfig->get('extra_urls') || { };
 
         $url=$extra_urls->{$x.'.'.($secure ? 'secure' : 'insecure')};
 
