@@ -772,7 +772,7 @@ sub _charset_change ($%) {
         my $fdesc=$desc->{'fields'}->{$name} || throw $self "_charset_change - something went wrong";
 
         my $charset_new=$flist->{$name};
-        my $charset_old=$fdesc->{'charset'} || throw $self "_charset_change - no existing charset";
+        my $charset_old=$fdesc->{'charset'} || throw $self "_charset_change - no existing charset on field '$name'";
         dprint "...field $name, changing charset from '$charset_old' to '$charset_new'";
 
         $driver->charset_change_field($csh,$name,$charset_new,$fdesc->{'maxlength'},$fdesc->{'default'});
