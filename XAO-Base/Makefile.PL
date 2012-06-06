@@ -3,18 +3,29 @@ use strict;
 use ExtUtils::MakeMaker;
 use ExtUtils::Manifest;
 
-##
-# This is the version for XAO::Base, should be updated manually.
+# Version needs to be known here, but it's also convenient to have it in
+# XAO::Base to make it possible to check it in "require XAO::Base" for
+# instance.
 #
-my $version='1.07';
+my $version;
+open(F,'<Base.pm') || die "Can't open Base.pm: $!\n";
+while(<F>) {
+    if(/\$VERSION\s*=\s*'?([\d\.]+)'?\s*;/) {
+        $version=$1;
+        last;
+    }
+}
+close(F);
 
-##
+$version ||
+    die "Unable to find version in Base.pm\n";
+
 # Trying to find out current configuration. If it is saved in file -
 # retrieving and asking otherwise.
 #
 my ($homedir,$config_version);
 my $ask=0;
-if(open(F,".config")) {
+if(open(F,"<.config")) {
     while(<F>) {
         next unless /^(\w+)\s+(.*?)[\s\r\n]+$/s;
         my ($cmd,$value)=($1,$2);
