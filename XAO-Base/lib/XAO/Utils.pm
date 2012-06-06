@@ -20,6 +20,7 @@ functions.
 ###############################################################################
 package XAO::Utils;
 use strict;
+use Encode;
 use XAO::Errors qw(XAO::Utils);
 
 ##
@@ -362,12 +363,20 @@ symbols from [&?<>"=%#+] are substituted to %XX hexadecimal codes
 interpreted by all standard CGI tools. The same conversion may be used
 for URLs themselves.
 
+Unicode is encoded into UTF-8.
+
 =cut
 
-sub t2hq ($) {
-    my $text=shift;
-    $text=~s/([\x00-\x20\x80-\xff\&\?<>;"=%#+])/"%".unpack("H2",$1)/sge;
-    $text;
+sub t2hq ($;$) {
+    my ($text,$encoding)=@_;
+
+    $encoding||='utf8';
+
+    my $bytes=Encode::is_utf8($text) ? Encode::encode($encoding,$text) : $text;
+
+    $bytes=~s/([^[:ascii:]]|[\x00-\x20\&\?<>;"=%#\+])/"%".unpack("H2",$1)/sge;
+
+    return $bytes;
 }
 
 ###############################################################################

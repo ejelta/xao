@@ -153,13 +153,35 @@ sub test_t2hj {
         q(John "Bloody" Baron)      => q(John \\"Bloody\\" Baron),
         q(C:\\Foo - John's "Files") => q(C:\\\\Foo - John\\'s \\"Files\\"),
         qq(Two\nTabbed\tLines)      => q(Two\\012Tabbed\\011Lines),
-        qq(Two\nTabbed\tLines)      => q(Two\\012Tabbed\\011Lines),
         qq(smiley - \x{263a})       => qq(smiley - \x{263a}),
     );
     foreach my $t (keys %matrix) {
         my $j=t2hj($t);
         $self->assert($j eq $matrix{$t},
                       "t2hj: for '$t' expected '$matrix{$t}', got '$j'");
+    }
+}
+
+sub test_t2hq {
+    my $self=shift;
+
+    use XAO::Utils qw(:html);
+    use Encode;
+
+    my %matrix=(
+        'plain'                     => 'plain',
+        q(John's)                   => q(John's),
+        q(John "Bloody" Baron)      => q(John%20%22Bloody%22%20Baron),
+        q(C:\\Foo - John's "Files") => q(C:\Foo%20-%20John's%20%22Files%22),
+        qq(Two\nTabbed\tLines)      => q(Two%0aTabbed%09Lines),
+        qq(smiley - \x{263a})       => q(smiley%20-%20%e2%98%ba),
+        # binary
+        Encode::encode('UTF-8',qq(smiley - \x{263a}))   => q(smiley%20-%20%e2%98%ba),
+    );
+    foreach my $t (keys %matrix) {
+        my $j=t2hq($t);
+        $self->assert($j eq $matrix{$t},
+                      "t2hq: for '$t' expected '$matrix{$t}', got '$j'");
     }
 }
 
