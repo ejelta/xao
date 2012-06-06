@@ -6,7 +6,7 @@ use ExtUtils::Manifest;
 ##
 # This is the version for XAO::Base, should be updated manually.
 #
-my $version='1.06';
+my $version='1.07';
 
 ##
 # Trying to find out current configuration. If it is saved in file -
