@@ -35,15 +35,20 @@ $VERSION=(0+sprintf('%u.%03u',(q$Id: Default.pm,v 2.3 2006/05/23 20:17:35 am Exp
 
 =item display (%)
 
-Takes only one argument - file path and displays
-/bits/errors/file-not-found template providing that path as a FILEPATH
-argument.
+Normally takes no arguments and uses /pagedesc/fullpath to pass to
+/bits/errors/file-not-found template as a FILEPATH argument.
+
+Sets up page headers to show 404 page not found message.
 
 =cut
 
 sub display ($@) {
     my $self=shift;
     my $args=get_args(\@_);
+
+    my $path=$self->clipboard->get('/pagedesc/fullpath') ||
+        $args->{'path'} ||
+        '';
 
     $self->siteconfig->header_args(
         -Status         => '404 File not found',
@@ -53,7 +58,7 @@ sub display ($@) {
 
     $self->object->display(
         path        => '/bits/errors/file-not-found',
-        FILEPATH    => $args->{'path'} || '',
+        FILEPATH    => $path,
     );
 }
 
