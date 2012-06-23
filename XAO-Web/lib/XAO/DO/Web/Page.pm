@@ -1138,6 +1138,33 @@ sub decode_charset ($$) {
 
 ###############################################################################
 
+=item pass_args ($) {
+
+Helper method for supporting "pass" argument in web objects. Synopsis:
+
+    $page->display($page->pass_args($args->{'pass'},$args),{
+        path        => $args->{'blah.path'},
+        template    => $args->{'blah.template'},
+        FOO         => 'bar',
+    });
+
+If "pass" argument is not defined it will just return the original args,
+otherwise the following rules are supported:
+
+    "on" or "1"     - pass all arguments from parent object
+    "VAR=FOO"       - pass FOO from parent as VAR
+    "VAR*=FOO*"     - pass FOO* from parent renaming as VAR*
+    "*=FOO*"        - pass FOO* from parent stripping FOO
+    "VAR"           - pass only VAR from parent
+    "VAR*"          - pass only VAR* from parent
+
+Multiple pass specifications can be given with semi-colon delimiter.
+
+Several special tags are deleted from parent arguments: pass, path,
+template, and objname.
+
+=cut
+
 sub pass_args ($$;$) {
     my ($self,$pass,$args)=@_;
 
@@ -1151,7 +1178,10 @@ sub pass_args ($$;$) {
     # If we don't have parent arguments then there is nothing to do.
     #
     my $pargs;
-    return $args unless $self->{'parent'} && ($pargs=$self->{'parent'}->{'args'});
+    if(!$self->{'parent'} || !($pargs=$self->{'parent'}->{'args'})) {
+        dprint "No parent data for 'pass=$pass'";
+        return $args;
+    }
 
     # Simplified (old) way of calling with just <%Page pass
     # template='xxx'%> would result in pass being 'on'.

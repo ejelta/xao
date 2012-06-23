@@ -91,21 +91,23 @@ testcases/testroot/projects/test/objects/Data/MemberNick.pm
 testcases/testroot/projects/test/objects/Web/MyAction.pm
 testcases/testroot/projects/test/objects/Web/MyPage.pm
 testcases/testroot/projects/test/objects/Web/Unicode.pm
-testcases/testroot/projects/test/templates/WebURL.html
 testcases/testroot/projects/test/templates/bits/local-test
 testcases/testroot/projects/test/templates/bits/rawobj-template
 testcases/testroot/projects/test/templates/index.html
 testcases/testroot/projects/test/templates/local.txt
 testcases/testroot/projects/test/templates/raw
+testcases/testroot/projects/test/templates/WebURL.html
+testcases/testroot/templates/bits/system-test
 testcases/testroot/templates/bits/WebCondition/text-default
 testcases/testroot/templates/bits/WebCondition/text-v2
 testcases/testroot/templates/bits/WebFS/hash
 testcases/testroot/templates/bits/WebFS/list-header
-testcases/testroot/templates/bits/system-test
 testcases/testroot/templates/bits/WebFS/list-row
 testcases/testroot/templates/bits/WebTextTable/table-result
 testcases/testroot/templates/bits/WebTextTable/table-source
 testcases/testroot/templates/system.txt
+testcases/WebCgiParam.pm
+testcases/WebFilloutForm.pm
 testcases/WebIdentifyUser.pm
  --------------------------------- Misc stuff
 misc/web-bench.pl

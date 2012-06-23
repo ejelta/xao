@@ -41,7 +41,7 @@ argument.
 
 =cut
 
-sub display ($%) {
+sub display ($@) {
     my $self=shift;
     my $args=get_args(\@_);
 
@@ -53,7 +53,7 @@ sub display ($%) {
 
     $self->object->display(
         path        => '/bits/errors/file-not-found',
-        FILEPATH    => $args->{path} || '',
+        FILEPATH    => $args->{'path'} || '',
     );
 }
 
