@@ -2,6 +2,7 @@ package testcases::WebURL;
 use strict;
 use XAO::Utils;
 use XAO::Web;
+use Data::Dumper;
 
 use base qw(XAO::testcases::Web::base);
 
@@ -129,6 +130,18 @@ sub test_all {
         tn => {
             template => '<%URL x="css" secure%>',
             result => 'https://xao.com',
+        },
+        #
+        # This is counterintuitive, but historically accurate.
+        # The reason <%URL%> expands into a variable is because we used to
+        # have ONLY <%%> brackets for everything and we need to be compatible
+        # with that. If we try to expand objects first for all <%%> it will
+        # be inefficient and not exactly compatible.
+        # 
+        to => {
+            template => q(<%SetArg name='URL' value='URLVAR'%>[<%URL%>] [<$URL$>]),
+            ### result => '[http://www.xao.com/WebURL.html] [URLVAR]',
+            result => '[URLVAR] [URLVAR]',
         },
     );
 

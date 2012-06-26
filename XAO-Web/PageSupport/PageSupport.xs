@@ -140,7 +140,7 @@ parse_text(pTHX_ char * template, unsigned length) {
         while(str<end && (isalnum_dot(*str) || *str==':')) str++;
 
         /* End object is a special case, we stop parsing if we meet it
-         * and do not even look what's behind it. That helps if it there
+         * and do not even look what's behind it. That helps if there
          * are some elements with broken syntax after the <%End%> that the
          * developer intended to ignore.
         */
