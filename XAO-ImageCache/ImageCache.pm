@@ -679,7 +679,21 @@ sub scale_file ($$$$;$) {
 
     my $image = Image::Magick->new() || $self->throw("- Image::Magick creation failure!");
     my $err   = $image->ReadImage($infile);
-    $self->throw("- parsing error ($err) (PERMANENT)") if $err;
+
+    # Only throwing an error if no image was read. If we consider all
+    # warnings as errors then some 3M tiff files don't parse.
+    #
+    # From http://www.imagemagick.org/script/perl-magick.php:
+    #
+    #   $x = $image->Read(...);
+    #   warn "$x" if "$x";      # print the error message
+    #   $x =~ /(\d+)/;
+    #   print $1;               # print the error number
+    #   print 0+$x;             # print the number of images read
+    #
+    ### $self->throw("- parsing error ($err) (PERMANENT)") if $err;
+    (0 + $err)>0 ||
+        $self->throw("- parsing error ($err) (PERMANENT)");
 
     # We only deal with image/* types -- otherwise ImageMagick can
     # sometimes successfully open and convert HTML or text messages into
