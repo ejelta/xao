@@ -1179,7 +1179,6 @@ sub pass_args ($$;$) {
     #
     my $pargs;
     if(!$self->{'parent'} || !($pargs=$self->{'parent'}->{'args'})) {
-        dprint "No parent data for 'pass=$pass'";
         return $args;
     }
 

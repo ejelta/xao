@@ -51,7 +51,7 @@ sub test_all {
             args    => {
                 param   => 'q',
             },
-            expect  => ' script alert(1) /script ',
+            expect  => 'script alert(1) /script',
         },
         t21 => {
             set     => {
@@ -61,7 +61,7 @@ sub test_all {
                 param           => 'q',
                 dont_sanitize   => '',
             },
-            expect  => ' script alert(1) /script ',
+            expect  => 'script alert(1) /script',
         },
         t22 => {
             set     => {
@@ -72,6 +72,42 @@ sub test_all {
                 dont_sanitize   => 'on',
             },
             expect  => '<script>alert(1)</script>',
+        },
+        #
+        t30 => {
+            set     => { q      => 'foo ' },
+            args    => { param  => 'q' },
+            expect  => 'foo',
+        },
+        t31 => {
+            set     => { q      => "foo\t " },
+            args    => { param  => 'q' },
+            expect  => 'foo',
+        },
+        t32 => {
+            set     => { q      => " foo" },
+            args    => { param  => 'q' },
+            expect  => 'foo',
+        },
+        t33 => {
+            set     => { q      => "\t\tfoo" },
+            args    => { param  => 'q' },
+            expect  => 'foo',
+        },
+        t34 => {
+            set     => { q      => ' foo ' },
+            args    => { param  => 'q', keep_spaces => '' },
+            expect  => 'foo',
+        },
+        t35 => {
+            set     => { q      => 'foo ' },
+            args    => { param  => 'q', keep_spaces => 1 },
+            expect  => 'foo ',
+        },
+        t36 => {
+            set     => { q      => '  foo ' },
+            args    => { param  => 'q', keep_spaces => 1 },
+            expect  => '  foo ',
         },
     );
 
