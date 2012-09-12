@@ -46,6 +46,12 @@ sub display ($;%) {
         $text=~s/[<>]/ /sg;
     }
 
+    # Trimming spaces
+    #
+    if(!$args->{'keep_spaces'}) {
+        $text=~s/^\s*|\s*$//sg;
+    }
+
     $self->textout($text);
 }
 
