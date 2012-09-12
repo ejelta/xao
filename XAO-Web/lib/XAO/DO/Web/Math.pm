@@ -34,6 +34,10 @@ template with the following parameters:
   FORMULA   => formula with substituted values, as calculated
   RESULT    => calculation result
   ERROR     => error message if calculation could not be performed
+  ERRCODE   => more concise error code (FORMULA, VALUE, FUNCTION, CALCULATE)
+
+Some mathematical functions are also supported: min(), max(), sum(),
+abs(), and sqrt(). The first three work on any number of arguments.
 
 =head1 METHODS
 

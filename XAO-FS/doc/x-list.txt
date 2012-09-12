@@ -13,7 +13,7 @@ DESCRIPTION
     A list object provides methods for managing a list of FS::Hash objects
     of the same class -- storing, retrieving and searching on them.
 
-    List class shares most of the API with the Hash class.
+    List class shares most of the API with the Hash class.
 
     Here is the list of all List methods (alphabetically):
 
@@ -369,7 +369,7 @@ DESCRIPTION
 
              my $color_ids=$products->search('category_id', 'eq', 123, {
                                                 'distinct' => 'color'
-                                            }); 
+                                            });
 
         debug
             Turns on debug messages in the underlying driver. Messages will
