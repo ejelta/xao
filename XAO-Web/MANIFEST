@@ -31,6 +31,7 @@ lib/XAO/DO/Web/Header.pm
 lib/XAO/DO/Web/IdentifyAgent.pm
 lib/XAO/DO/Web/IdentifyUser.pm
 lib/XAO/DO/Web/Mailer.pm
+lib/XAO/DO/Web/Math.pm
 lib/XAO/DO/Web/MenuBuilder.pm
 lib/XAO/DO/Web/MultiPageNav.pm
 lib/XAO/DO/Web/Page.pm
@@ -78,6 +79,7 @@ testcases/WebCondition.pm
 testcases/WebConfig.pm
 testcases/WebDebug.pm
 testcases/WebFS.pm
+testcases/WebMath.pm
 testcases/WebUtility.pm
 testcases/Web.pm
 testcases/WebSetArg.pm
