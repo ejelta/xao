@@ -115,7 +115,7 @@ sub display ($;%) {
             $cc='';
         }
         if($bcc) {
-            dprint "...BCC was '$cc' before override, replaced with nothing";
+            dprint "...BCC was '$bcc' before override, replaced with nothing";
             $bcc='';
         }
     }
