@@ -679,6 +679,7 @@ sub scale_file ($$$$;$) {
 
     my $image = Image::Magick->new() || $self->throw("- Image::Magick creation failure!");
     my $err   = $image->ReadImage($infile);
+    ### dprint ".source in '$infile'";
 
     # Only throwing an error if no image was read. If we consider all
     # warnings as errors then some 3M tiff files don't parse.
@@ -754,6 +755,12 @@ sub scale_file ($$$$;$) {
                     ($params->{'height'} || $src_height).'!';
     }
 
+    # We don't support transparency and by default transparent regions
+    # sometimes get translated to black. Forcing them into white.
+    #
+    $image->Set(background => 'white');
+    $image=$image->Flatten();
+
     # This is required, otherwise new ImageMagick sometimes converts
     # images to CMYK colorspace for whatever reason.
     #
@@ -770,6 +777,7 @@ sub scale_file ($$$$;$) {
 
     # Writing the results
     #
+    $image->Set(magick => 'JPEG');
     $image->Set(quality => ($params->{'quality'} || 88));
     $image->Write($outfile);
 
