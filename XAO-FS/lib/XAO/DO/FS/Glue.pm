@@ -2200,7 +2200,7 @@ sub _add_data_placeholder ($%) {
         $fdesc{'minvalue'}+=0 if defined($fdesc{'minvalue'});
         $fdesc{'maxvalue'}+=0 if defined($fdesc{'maxvalue'});
         $driver->add_field_real($table,$name,$fdesc{'index'},$fdesc{'unique'},
-                                $fdesc{'minvalue'},$fdesc{'maxvalue'},$fdesc{'default'},$connected);
+                                $fdesc{'minvalue'},$fdesc{'maxvalue'},$fdesc{'scale'},$fdesc{'default'},$connected);
     }
     else {
         $self->throw("_add_data_placeholder - unknown type ($type)");
@@ -2220,7 +2220,7 @@ sub _add_data_placeholder ($%) {
                        { type       => $fdesc{'type'},
                          index      => $fdesc{'unique'} ? 2 : ($fdesc{'index'} ? 1 : 0),
                          default    => $fdesc{'default'},
-                         maxlength  => $fdesc{'maxlength'},
+                         maxlength  => $fdesc{'maxlength'} || $fdesc{'scale'},
                          maxvalue   => $fdesc{'maxvalue'},
                          minvalue   => $fdesc{'minvalue'},
                          charset    => $fdesc{'charset'},

@@ -234,6 +234,13 @@ inclusive. Default is -2147483648 for integer property. If you use
 positive value or zero for integer property you're converting that
 property to unsigned integer value effectively.
 
+=item scale
+
+Only makes sense for 'real' type. When set the field is stored as a
+fixed precision decimal with guaranteed math properties (as opposed to
+plain 'real' values where there may not be a way to store exactly 3.0
+for example).
+
 =item name
 
 Placeholder name -- this is the name you would then use in put() and

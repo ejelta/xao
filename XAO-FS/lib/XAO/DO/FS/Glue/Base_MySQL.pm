@@ -200,14 +200,29 @@ B<Note:> Indexes only work with MySQL 3.23 and later.
 
 sub add_field_real ($$$;$$) {
     my $self=shift;
-    my ($table,$name,$index,$unique,$min,$max,$default,$connected)=@_;
+    my ($table,$name,$index,$unique,$min,$max,$scale,$default,$connected)=@_;
     $name.='_';
 
     if($self->tr_loc_active || $self->tr_ext_active) {
         throw $self "add_field_real - modifying structure in transaction scope is not supported";
     }
 
-    my $sql="ALTER TABLE $table ADD $name DOUBLE NOT NULL DEFAULT $default";
+    # Real translates to two different field types depending on whether
+    # the scale is set or not.
+    #
+    my $sql="ALTER TABLE $table add $name ";
+    if($scale) {
+        my $pmin=defined $min ? length(abs(int($min))) : 20;
+        my $pmax=defined $max ? length(abs(int($max))) : 20;
+        my $precision=$pmin>$pmax ? $pmin : $pmax;
+        $precision+=$scale;
+        $sql.="DECIMAL($precision,$scale) NOT NULL DEFAULT $default";
+    }
+    else {
+        $sql.="DOUBLE NOT NULL DEFAULT $default";
+    }
+
+    ### dprint ">>>$sql<<<";
 
     my $cn=$self->connector;
     $cn->sql_do($sql);
@@ -215,13 +230,13 @@ sub add_field_real ($$$;$$) {
     if(($index || $unique) && (!$unique || !$connected)) {
         my $usql=$unique ? " UNIQUE" : "";
         $sql="ALTER TABLE $table ADD$usql INDEX fsi__$name ($name)";
-        #dprint ">>>$sql<<<";
+        ### dprint ">>>$sql<<<";
         $cn->sql_do($sql);
     }
 
     if($unique && $connected) {
         $sql="ALTER TABLE $table ADD UNIQUE INDEX fsu__$name (parent_unique_id_,$name)";
-        #dprint ">>>$sql<<<";
+        ### dprint ">>>$sql<<<";
         $cn->sql_do($sql);
     }
 }
@@ -849,6 +864,7 @@ sub load_structure ($) {
                 default     => $default,
                 minvalue    => defined($minvalue) ? 0+$minvalue : undef,
                 maxvalue    => defined($maxvalue) ? 0+$maxvalue : undef,
+                scale       => ($type eq 'real' ? $maxlength : 0),
             };
         }
         else {
