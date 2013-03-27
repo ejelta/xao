@@ -107,37 +107,40 @@ sub tracking_url ($%) {
 
     my $carrier=$args->{'carrier'} || '';
     my $tracknum=$args->{tracknum} || '';
+
     my $url;
+
     if(lc($carrier) eq 'usps') {
         $url='http://trkcnfrm1.smi.usps.com/' .
              'PTSInternetWeb/InterLabelInquiry.do?' .
-             'origTrackNum=' . t2ht($tracknum);
+             'origTrackNum=' . t2hq($tracknum);
     }
     elsif(lc($carrier) eq 'ups') {
         $url='http://wwwapps.ups.com/WebTracking/processInputRequest' .
              '?HTMLVersion=5.0&sort_by=status&tracknums_displayed=1' .
              '&TypeOfInquiryNumber=T&loc=en_US&AgreeToTermsAndConditions=yes' .
-             '&InquiryNumber1=' . t2ht($tracknum);
+             '&InquiryNumber1=' . t2hq($tracknum);
     }
     elsif(lc($carrier) eq 'fedex') {
-        $url='http://fedex.com/cgi-bin/tracking' .
-             '?tracknumbers=' .  t2ht($tracknum) .
-             '&action=track&language=english&cntry_code=us';
+        $url='https://www.fedex.com/fedextrack/' .
+             '?tracknumbers=' . t2hq($tracknum) .
+             '&cntry_code=us';
     }
     elsif(lc($carrier) eq 'dhl') {
         $url='http://www.dhl-usa.com/cgi-bin/tracking.pl' .
-             '?AWB=' . t2ht($tracknum) .
+             '?AWB=' . t2hq($tracknum) .
              'LAN=ENG&TID=US_ENG&FIRST_DB=US';
     }
     elsif(lc($carrier) eq 'yellow') {
         $tracknum=sprintf('%09u',int($tracknum));
         $url='http://www2.yellowcorp.com/cgi-bin/gx.cgi/applogic+yfsgentracing.E000YfsTrace' .
-             '?diff=protrace&PRONumber=' . t2ht($tracknum);
+             '?diff=protrace&PRONumber=' . t2hq($tracknum);
     }
     else {
         eprint "Unknown carrier '$carrier'";
         $url='';
     }
+
     $self->textout($url);
 }
 
