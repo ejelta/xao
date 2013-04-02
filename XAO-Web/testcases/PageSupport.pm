@@ -202,7 +202,7 @@ sub test_parse {
                             a.pa_ss
                             default.path="/bits/header-normal"
                             default.pass
-                          %><!--//javascript--><%End%>Something) => [
+                          %><!--//javascript-->foo<!--bar-->baz<!--[if IE]>CODE<![endif]--><%End%>Something) => [
             {   objname => 'Condition',
                 args    => {
                     'a.cgiparam'    => [
@@ -227,8 +227,8 @@ sub test_parse {
                     ],
                 },
             },
-            {   text    => '<!--//javascript-->',
-            },
+            {   text    => '<!--//javascript-->foo' },
+            {   text    => 'baz<!--[if IE]>CODE<![endif]-->' },
         ],
         # Sample from the man page
         q(Text <%Object a=A b="B" c={<%C/f ca={CA}%>} d='D' e={'<$E$>'}%>) => [
