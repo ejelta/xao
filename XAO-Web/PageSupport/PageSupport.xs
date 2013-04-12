@@ -91,7 +91,7 @@ parse_text(pTHX_ char * template, unsigned length) {
                     break;
                 }
             }
-            else if(*str=='<' && str+4<end && str[1]=='!' && str[2]=='-' && str[3]=='-' && str[4]!='/') {
+            else if(*str=='<' && str+4<end && str[1]=='!' && str[2]=='-' && str[3]=='-' && str[4]!='/' && str[4]!='[' && str[4]!='>' && str[4]!='<') {
                 if(text_ptr!=str) {
                     hv=newHV();
                     hv_store(hv,"text",4,

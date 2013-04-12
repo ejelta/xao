@@ -57,7 +57,7 @@ use File::Path;
 use File::Copy;
 
 use vars qw($VERSION);
-$VERSION=1.1;
+$VERSION=1.2;
 
 ###############################################################################
 
