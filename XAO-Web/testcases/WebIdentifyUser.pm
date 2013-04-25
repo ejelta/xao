@@ -470,7 +470,6 @@ sub test_no_vf_key {
 
         t13     => {
             args => {
-                mode        => 'check',
                 type        => 'member',
             },
             results => {

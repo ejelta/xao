@@ -116,15 +116,18 @@ use base XAO::Objects->load(objname => 'Web::Page');
 
 ###############################################################################
 
-my %modecache;
-
 sub display ($%) {
     my $self=shift;
     my $args=get_args(\@_);
 
     my $mode=$args->{'mode'} || '-no-mode';
 
-    my $modeconf=$modecache{$mode};
+    my $modecache=$self->{'_mode_cache'};
+    if(!$modecache) {
+        $self->{'_mode_cache'}=$modecache={ };
+    }
+
+    my $modeconf=$modecache->{$mode};
 
     if(!$modeconf) {
         (my $subname=$mode)=~s/-/_/g;
@@ -159,7 +162,7 @@ sub display ($%) {
 
         # Storing to speed up future calls
         #
-        $modecache{$mode}=$modeconf=[$display_sub,$data_sub];
+        $modecache->{$mode}=$modeconf=[$display_sub,$data_sub];
     }
 
     my ($display_sub,$data_sub)=@$modeconf;

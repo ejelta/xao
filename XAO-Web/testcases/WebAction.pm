@@ -22,6 +22,11 @@ sub test_all {
         '<%MyAction mode="test-two" arg="two"%>'        => 'test-two-ok',
         '<%MyAction mode="test-three" format="json"%>'  => qr/^\s*\[\s*"foo"\s*,\s*"bar"/s,
         '<%MyAction mode="test-four"%>'                 => qr/status.*:.*success/s,
+        #
+        # Cross-polination of code cache checking
+        #
+        '<%MyAction2 mode="foo"%>'                      => 'MyAction2: Got FOO',
+        '<%MyAction2 mode="test-one" arg="one"%>'       => 'MyAction2: test-one-ok',
     );
 
     foreach my $template (keys %tests) {
