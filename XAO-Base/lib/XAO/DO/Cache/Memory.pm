@@ -7,10 +7,6 @@ XAO::DO::Cache::Memory - memory storage back-end for XAO::Cache
 You should not use this object directly, it is a back-end for
 XAO::Cache.
 
- if($backend->exists(\@c)) {
-     return $backend->get(\@c);
- }
-
 =head1 DESCRIPTION
 
 Cache::Memory is the default implementation of XAO::Cache back-end. It
@@ -27,6 +23,7 @@ package XAO::DO::Cache::Memory;
 use strict;
 use XAO::Utils;
 use XAO::Objects;
+use Clone qw(clone);
 
 use base XAO::Objects->load(objname => 'Atom');
 
@@ -110,21 +107,18 @@ sub drop ($@) {
 
 ###############################################################################
 
-=item exists (@)
+=item drop_all ($)
 
-Checks if an element exists in the cache. Does not update its access
-time, but checks it. If the element should be expired it removes it from
-the cache and returns false.
+Drops all elements.
 
 =cut
 
-sub exists ($$) {
-    my $self=shift;
+sub drop_all ($$$) {
+    my ($self,$key,$ed)=@_;
 
-    my $key=$self->make_key($_[0]);
-    my $ed=$self->{data}->{$key};
-
-    return $ed && $ed->{access_time} + $self->{expire} > time;
+    $self->{'data'}={ };
+    $self->{'least_recent'}=$self->{'most_recent'}=undef;
+    $self->{'current_size'}=0;
 }
 
 ###############################################################################
@@ -140,10 +134,14 @@ sub get ($$) {
     my $self=shift;
 
     my $key=$self->make_key($_[0]);
-    my $ed=$self->{data}->{$key} ||
-        throw $self "get - no such element in the cache ($key), internal error";
 
-    return $ed->{element};
+    my $ed=$self->{'data'}->{$key};
+
+    my $expire=$self->{'expire'};
+
+    my $exists=($ed && (!$expire || $ed->{'access_time'} + $expire > time));
+
+    return $exists ? $ed->{'element'} : undef;
 }
 
 ###############################################################################
@@ -171,22 +169,27 @@ depends on when an element was accessed last.
 
 sub put ($$$) {
     my $self=shift;
+
     my $key=$self->make_key(shift);
-    my $element=shift;
+
+    # We store a deep copy, not an actual data piece. It must be OK to
+    # modify the original data after it's cached.
+    #
+    my $element=clone(shift);
 
     my $data=$self->{data};
     my $size=$self->{size};
     my $nsz=$size ? $self->calculate_size($element) : 0;
 
     my $lr=$self->{least_recent};
-    my $expire=$self->{expire};
+    my $expire=$self->{'expire'};
     my $now=time;
     my $count=5;
     while(defined($lr)) {
         my $lred=$data->{$lr};
         last unless $count--;
         last unless ($size && $self->{current_size}+$nsz>$size) ||
-                    $lred->{access_time}+$expire < $now;
+                    ($expire && $lred->{access_time}+$expire < $now);
         $lr=$self->drop_oldest($lr,$lred);
     }
 
@@ -220,10 +223,10 @@ sub setup ($%) {
     my $self=shift;
     my $args=get_args(\@_);
 
-    $self->{data}={};
-    $self->{current_size}=0;
-    $self->{expire}=$args->{expire} || 60;
-    $self->{size}=$args->{size} || 0;
+    $self->{'expire'}=$args->{'expire'} || 0;
+    $self->{'size'}=$args->{'size'} || 0;
+
+    $self->drop_all();
 }
 
 ###############################################################################

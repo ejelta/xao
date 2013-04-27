@@ -90,6 +90,24 @@ Example:
      expire      => 60
  );
 
+It will also look for default values under /cache/config/common and
+/cache/config/NAME in the site configuration.
+
+ cache => {
+    config  => {
+        common  => {
+            backend     => 'Cache::Memory',
+            size        => 1_000_000,
+        },
+        fubar   => {
+            size        => 500_000,
+        },
+    },
+ },
+
+For the call above and the configuration data above the cache will be
+called on 'Cache::Memory' backend with size set to 500_000.
+
 Caches are kept between executions in mod_perl environment.
 
 =cut
@@ -98,17 +116,28 @@ sub cache ($%) {
     my $self=shift;
     my $args=get_args(\@_);
 
-    my $name=$args->{name} ||
+    my $name=$args->{'name'} ||
         throw $self "cache - no 'name' argument";
 
-    my $cache_list=$self->{cache_list};
+    my $cache_list=$self->{'cache_list'};
     if(! $cache_list) {
-        $cache_list=$self->{cache_list}={};
+        $cache_list=$self->{'cache_list'}={};
     }
 
     my $cache=$cache_list->{$name};
+
     if(! $cache) {
-        $cache=XAO::Cache->new($args);
+
+        # Looking for default values in the site configuration
+        #
+        my $cfg=($self->{'methods'}->{'get'} ? $self->get('/cache/config') : undef) || { };
+
+        $cache=XAO::Cache->new(merge_refs(
+            $cfg->{'common'} || { },
+            $cfg->{$name} || { },
+            $args,
+        ));
+
         $cache_list->{$name}=$cache;
     }
 

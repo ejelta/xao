@@ -46,8 +46,7 @@ use XAO::Utils;
 use XAO::Errors qw(XAO::E::Cache);
 use XAO::Objects;
 
-use vars qw($VERSION);
-$VERSION=(0+sprintf('%u.%03u',(q$Id: Cache.pm,v 2.1 2005/01/13 22:34:34 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
+our $VERSION=2.1;
 
 ###############################################################################
 
@@ -77,6 +76,25 @@ sub drop ($%) {
 
 ###############################################################################
 
+=item drop_all ($)
+
+Remove all elements from the cache.
+
+=cut
+
+sub drop_all ($) {
+    my $self=shift;
+
+    if($self->{'backend'}->can('drop_all')) {
+        $self->{'backend'}->drop_all();
+    }
+    else {
+        eprint "Cache backend '$self->{'backend'}' does not support drop_all()";
+    }
+}
+
+###############################################################################
+
 =item get ($%)
 
 Retrieve a data element from the cache. The cache can decide to use real
@@ -100,21 +118,26 @@ Example of calling 'retrieve' as a method:
 
 sub get ($@) {
     my $self=shift;
-    my $backend=$self->{backend};
+    my $backend=$self->{'backend'};
     
     my $object=ref($_[0]) && ref($_[0]) ne 'HASH' ? shift(@_) : undef;
     my $args=get_args(\@_);
 
-    my @c=map { $args->{$_} } @{$self->{coords}};
+    my @c=map { $args->{$_} } @{$self->{'coords'}};
     defined($c[0]) ||
         throw XAO::E::Cache "get - no first coordinate ($args->{coords}->[0])";
 
-    if($backend->exists(\@c)) {
-        return ${$backend->get(\@c)};
-    }
+    # Get method will return undef for non-existent. Or a reference to
+    # value (possibly an undef) when a value exists.
+    #
+    my $data_ref=$backend->get(\@c);
 
-    my $data=&{$self->{retrieve}}($object ? ($object) : (),$args);
+    return $$data_ref if defined $data_ref;
+
+    my $data=&{$self->{'retrieve'}}($object ? ($object) : (),$args);
+
     $backend->put(\@c => \$data);
+
     return $data;
 }
 
@@ -156,7 +179,8 @@ criteria.
 
 =item expire
 
-Expiration time for data elements in the cache. Default is 1 minute.
+Expiration time for data elements in the cache. Default is no expiration
+time.
 
 =item retrieve
 
@@ -184,13 +208,11 @@ sub new ($%) {
     my $proto=shift;
     my $args=get_args(\@_);
 
-    ##
     # Backend -- can be an object reference or an object name
     #
     my $backend=$args->{backend} || 'Cache::Memory';
     $backend=XAO::Objects->new(objname => $backend) unless ref($backend);
 
-    ##
     # Retrieve function must be a code reference
     #
     my $retrieve=$args->{retrieve} ||
@@ -198,7 +220,6 @@ sub new ($%) {
     ref($retrieve) eq 'CODE' ||
         throw XAO::E::Cache "new - 'retrive' must be a code reference";
 
-    ##
     # Coords must be an array reference or a single scalar
     #
     my $coords=$args->{coords} ||
@@ -208,21 +229,31 @@ sub new ($%) {
         throw XAO::E::Cache "new - 'coords' must be an array reference";
 
     my $self={
+        name        => $args->{'name'},
         backend     => $backend,
         coords      => $coords,
-        expire      => $args->{expire} || 60,
+        expire      => $args->{'expire'} || 0,
         retrieve    => $retrieve,
-        size        => ($args->{size} || 0)*1024,
+        size        => ($args->{'size'} || 0)*1024,
     };
 
-    ##
     # Setting up back-end parameters
     #
     $backend->setup(
-        expire      => $self->{expire},
-        size        => $self->{size},
+        expire      => $self->{'expire'},
+        size        => $self->{'size'},
+        name        => $self->{'name'},
     );
 
+    # Old caches used to have 'exists' method, which is now obsolete.
+    # It requires at least a double key calculation, and in the case of 
+    # memcached also a double network trip.
+    #
+    !$backend->can('exists') ||
+        throw XAO::E::Cache "new - backend '$backend' supports an obsolete 'exists' method, upgrade it";
+
+    # Done, blessing
+    #
     bless $self,ref($proto) || $proto;
 }
 
@@ -232,13 +263,13 @@ __END__
 
 =head1 AUTHORS
 
-Copyright (c) 2002 XAO Inc.
-
-Andrew Maltsev <am@xao.com>.
+Copyright (c) 2013 Andrew Maltsev <am@ejelta.com>.
+Copyright (c) 2002 XAO Inc., Andrew Maltsev <am@xao.com>.
 
 =head1 SEE ALSO
 
 Have a look at:
+L<XAO::DO::Cache::Memcached>,
 L<XAO::DO::Cache::Memory>,
 L<XAO::Objects>,
 L<XAO::Base>,

@@ -2,9 +2,134 @@ package testcases::Cache;
 use strict;
 use XAO::SimpleHash;
 use XAO::Utils;
+use XAO::Objects;
+use XAO::Projects;
 use XAO::Cache;
 
 use base qw(testcases::base);
+
+sub test_backends {
+    my $self=shift;
+
+    eval {
+        require JSON;
+    };
+
+    if($@) {
+        warn "Skipping $self tests, need JSON\n";
+        return;
+    }
+
+    my @backends=('Cache::Memory');
+
+    eval {
+        require Cache::Memcached;
+
+        my $config=XAO::Objects->new(
+            objname     => 'Config',
+            sitename    => 'cachetest',
+        );
+
+        XAO::Projects::create_project(
+            name        => 'cachetest',
+            object      => $config,
+            set_current => 1,
+        );
+
+        $config->init();
+
+        $config->embed('hash' => new XAO::SimpleHash());
+        
+        $config->embedded('hash')->put('cache' => {
+            memcached   => {
+                servers => [ '127.0.0.1:11211' ],
+                debug   => 0,
+            },
+        });
+
+        if($config->get('/cache/memcached')) {
+            push(@backends,'Cache::Memcached');
+        }
+        else {
+            warn "No /cache/memcached configuration in the site config\n";
+        }
+    };
+
+    if($@) {
+        warn "Skipping Cache::Memcached: $@\n";
+    }
+
+    my @tests=(
+        undef,
+        "",
+        "string",
+        Encode::encode("utf8","binary:\x01\x02\x{2345}"),
+        { hash => 'reference' },
+        [ qw(simple array of data) ],
+        { complex => [ qw(data) ], with => undef, values => { foo => 'bar' } },
+    );
+
+    foreach my $backend (@backends) {
+        dprint "Testing backend '$backend'";
+
+        my @buildcount;
+
+        my $cache=XAO::Cache->new(
+            backend     => $backend,
+            name        => "Test of $backend",
+            retrieve    => sub {
+                my $args=get_args(\@_);
+                my $idx=$args->{'idx'};
+                ### dprint "..RETRIEVE $idx : ",$tests[$idx];
+                ++$buildcount[$idx];
+                return $tests[$idx];
+            },
+            coords      => ['idx'],
+        );
+
+        # For memcached we may have some data from previous runs.
+        #
+        $cache->drop_all();
+
+        foreach my $round (1..5) {
+            dprint ".test round $round";
+
+            for(my $i=0; $i<@tests; ++$i) {
+                my $got=$cache->get(idx => $i);
+
+                my $expect=$tests[$i];
+
+                $self->assert($buildcount[$i] == 1,
+                    "Expected build count to be 1, got $buildcount[$i] on test #$i, round $round (MEMCACHED not running?)");
+
+                if(ref $expect) {
+                    my $jgot=JSON::to_json($got,{ canonical => 1, utf8 => 0 });
+                    my $jexpect=JSON::to_json($expect,{ canonical => 1, utf8 => 0 });
+
+                    $self->assert($jgot eq $jexpect,
+                        "Received '$jgot', expected '$jexpect' for test #$i, round $round");
+
+                    if($round>1) {
+                        $self->assert($got ne $expect,
+                            "Expected to receive a copy, not the original reference on test #$i, round $round");
+                    }
+                }
+                elsif(defined $expect) {
+                    $self->assert(defined $got,
+                        "Received 'undef' on test $i (expected '$expect')");
+                    $self->assert($got eq $expect,
+                        "Received '$got' on test $i (expected '$expect')");
+                }
+                else {
+                    $self->assert(!defined $got,
+                        "Received '$got' on test $i (expected 'undef')");
+                }
+            }
+        }
+    }
+}
+
+###############################################################################
 
 sub test_everything {
     my $self=shift;
@@ -211,4 +336,5 @@ sub test_drop {
     }
 }
 
+###############################################################################
 1;
