@@ -32,7 +32,10 @@ sub test_all {
     foreach my $template (keys %tests) {
         my $expect=$tests{$template};
 
-        my ($got,$err_my,$err_base,$err_unknown);
+        my ($err_my,$err_base,$err_unknown)=('','','');
+
+        my $got;
+
         try {
             $got=$page->expand(template => $template);
         }
@@ -67,7 +70,7 @@ sub test_all {
         }
         else {
             $self->assert(!defined $got,
-                "Expected a failure, got '$got' for '$template'");
+                "Expected a failure, got '".(defined $got ? $got : '<undef>')."' for '$template'");
 
             $self->assert(!$err_unknown,
                 "Expected a custom error, got generic '$err_unknown' for '$template'");
