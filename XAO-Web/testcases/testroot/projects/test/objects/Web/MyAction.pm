@@ -36,7 +36,8 @@ sub display_test_two ($@) {
 
     ref($data) eq 'HASH' || throw $self "- data is not a hash";
 
-    $data->{'arg'} eq 'xx'.$args->{'arg'};
+    $data->{'arg'} eq 'xx'.$args->{'arg'} ||
+        throw $self "- invalid data->{arg}='$data->{'arg'}'";
 
     $self->textout('test-two-ok');
 }
