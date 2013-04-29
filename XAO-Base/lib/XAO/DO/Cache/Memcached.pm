@@ -126,7 +126,7 @@ Makes a key from the given reference to a list of coordinates.
 
 sub make_key ($$) {
     my $self=shift;
-    return join("\001",map { defined($_) ? $_ : '' } @{$_[0]});
+    return join("\001",$self->{'name'},map { defined($_) ? $_ : '' } @{$_[0]});
 }
 
 ###############################################################################
@@ -146,6 +146,7 @@ sub put ($$$) {
     # accomplish both.
     #
     my $json_text=encode_json([$$data]);
+
     ### dprint "..put('$key' => '$json_text')"; 
 
     my $expire=$self->{'expire'};
@@ -177,6 +178,8 @@ sub setup ($%) {
         eprint "Memcached is nearly useless without a 'name' (assumed '$name')";
     }
 
+    $self->{'name'}=$name;
+
     # Checking if we have a configuration
     #
     my $config=XAO::Projects::get_current_project() ||
@@ -184,8 +187,6 @@ sub setup ($%) {
 
     $config->get('/cache/memcached/servers') ||
         throw $self "- need at least /cache/memcached/servers in the site config";
-
-    $self->{'name'}=$name;
 }
 
 ###############################################################################
