@@ -36,6 +36,9 @@ retrieve data.
 That means that cache always returns valid data or throws an error if
 that is not possible.
 
+To force the cache to use "retrieve" to get a new value that is stored
+in the cache give an extra "force_update" parameter to the get() method.
+
 =head1 METHODS
 
 Here is the alphabetically arranged list of methods:
@@ -119,6 +122,10 @@ Example of calling 'retrieve' as a method:
 
  $cache->get($object, foo => 123, bar => 123);
 
+Example of forcing an update of cache value:
+
+ $cache->get(foo => 123, bar => 234, force_update => 1);
+
 =cut
 
 sub get ($@) {
@@ -135,7 +142,7 @@ sub get ($@) {
     # Get method will return undef for non-existent. Or a reference to
     # value (possibly an undef) when a value exists.
     #
-    my $data_ref=$backend->get(\@c);
+    my $data_ref=$args->{'force_update'} ? undef : $backend->get(\@c);
 
     return $$data_ref if defined $data_ref;
 
@@ -261,11 +268,16 @@ sub new ($%) {
 
     # Coords must be an array reference or a single scalar
     #
-    my $coords=$args->{'coords'} ||
+    my $coords=$args->{'coords'} || $args->{'coordinates'} ||
         throw XAO::E::Cache "new - no 'coords' argument";
+
     $coords=[ $coords ] if !ref($coords);
+
     ref($coords) eq 'ARRAY' ||
         throw XAO::E::Cache "new - 'coords' must be an array reference";
+
+    (grep { $_ eq 'force_update' } @$coords) &&
+        throw XAO::E::Cache "new - cannot use 'force_update' as a coordinate";
 
     my $self={
         name        => $args->{'name'},

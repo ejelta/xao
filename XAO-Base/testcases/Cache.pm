@@ -144,6 +144,15 @@ sub test_backends {
                 }
             }
         }
+
+        # Checking force_update
+        #
+        my $idx=(keys %tests)[2];
+        my $count_before=$buildcount{$idx};
+        my $got=$cache->get(idx => $idx, force_update => 1);
+        my $count_after=$buildcount{$idx};
+        $self->assert($count_after == $count_before + 1,
+            "Count update with force_update expected to be ".($count_before+1).", got $count_after");
     }
 }
 
