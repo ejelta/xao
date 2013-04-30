@@ -51,8 +51,24 @@ sub test_backends {
             },
             config      => {
                 common  => {
-                    ### debug       => 1,
-                    ### separator   => '!',
+                    debug       => 0,
+                },
+                withsep => {
+                    separator   => '!',
+                },
+                withns1 => {
+                    namespace   => '',
+                },
+                withns2 => {
+                    namespace   => ("Ns" x 100),
+                    separator   => ':',
+                },
+                withns3 => {
+                    namespace   => ("Lg" x 110),
+                    separator   => ':',
+                },
+                withdig => {
+                    digest_keys => 1,
                 },
             },
         });
@@ -82,82 +98,99 @@ sub test_backends {
         ''              => 'emptykey',
         0               => 'zero',
         "\x{2122}"      => 'unicode key',
-        "one two"       => 'key with a space',
-        ('.' x 300)     => 'very long key 1',
-        ('.' x 400)     => 'very long key 2',
-        ('.' x 500)     => 'very long key 3',
+        'one two'       => 'key with a space',
+        ('.' x 50)      => 'very long key  50',
+        ('.' x 230)     => 'very long key 230',
+        ('.' x 240)     => 'very long key 240',
+        ('.' x 250)     => 'very long key 250',
+        ('.' x 260)     => 'very long key 260',
+        ('.' x 300)     => 'very long key 300',
+        ('.' x 400)     => 'very long key 400',
+        ('.' x 500)     => 'very long key 500',
     );
 
     foreach my $backend (@backends) {
-        dprint "Testing backend '$backend'";
 
-        my %buildcount;
-
-        my $cache=XAO::Cache->new(
-            backend     => $backend,
-            name        => "Test of $backend",
-            retrieve    => sub {
-                my $args=get_args(\@_);
-                my $idx=$args->{'idx'};
-                ### dprint "..RETRIEVE $idx : ",$tests{$idx};
-                ++$buildcount{$idx};
-                return $tests{$idx};
-            },
-            coords      => ['idx'],
+        my @cnames=(
+            'default',
+            grep { $_ ne 'common' } keys %{$config->get('/cache/config')},
         );
 
-        # For memcached we may have some data from previous runs.
-        #
-        $cache->drop_all();
+        foreach my $cachename (@cnames) {
+            dprint "Testing backend '$backend', cache '$cachename'";
 
-        foreach my $round (1..5) {
-            dprint ".test round $round";
+            my %buildcount;
 
-            foreach my $idx (keys %tests) {
+            my $cache=XAO::Cache->new(
+                backend     => $backend,
+                name        => $cachename,
+                retrieve    => sub {
+                    my $args=get_args(\@_);
+                    my $idx=$args->{'idx'};
+                    ### dprint "..RETRIEVE $idx : ",$tests{$idx};
+                    ++$buildcount{$idx};
+                    return $tests{$idx};
+                },
+                coords      => ['idx'],
+            );
 
-                my $got=$cache->get(idx => $idx);
+            # For memcached we may have some data from previous runs.
+            # Dropping only once to also check for cache
+            # cross-contamination because of non-unique keys.
+            #
+            if($cachename eq 'default') {
+                $cache->drop_all();
+            }
 
-                $self->assert($buildcount{$idx} == 1,
-                    "Expected build count to be 1, got $buildcount{$idx} on test #$idx, round $round (MEMCACHED not running?)");
+            foreach my $round (1..5) {
+                dprint ".test round $round";
 
-                my $expect=$tests{$idx};
+                foreach my $idx (keys %tests) {
 
-                ### dprint "got=",$got;
-                ### dprint "exp=",$expect;
+                    my $got=$cache->get(idx => $idx);
 
-                if(ref $expect) {
-                    my $jgot=JSON::to_json($got,{ canonical => 1, utf8 => 0 });
-                    my $jexpect=JSON::to_json($expect,{ canonical => 1, utf8 => 0 });
+                    $self->assert($buildcount{$idx} == 1,
+                        "Expected build count to be 1, got $buildcount{$idx} on test #$idx, round $round (MEMCACHED not running?)");
 
-                    $self->assert($jgot eq $jexpect,
-                        "Received '$jgot', expected '$jexpect' for test #$idx, round $round");
+                    my $expect=$tests{$idx};
 
-                    if($round>1) {
-                        $self->assert($got ne $expect,
-                            "Expected to receive a copy, not the original reference on test #$idx, round $round");
+                    ### dprint "got=",$got;
+                    ### dprint "exp=",$expect;
+
+                    if(ref $expect) {
+                        my $jgot=JSON::to_json($got,{ canonical => 1, utf8 => 0 });
+                        my $jexpect=JSON::to_json($expect,{ canonical => 1, utf8 => 0 });
+
+                        $self->assert($jgot eq $jexpect,
+                            "Received '$jgot', expected '$jexpect' for test #$idx, round $round");
+
+                        if($round>1) {
+                            $self->assert($got ne $expect,
+                                "Expected to receive a copy, not the original reference on test #$idx, round $round");
+                        }
+                    }
+                    elsif(defined $expect) {
+                        $self->assert(defined $got,
+                            "Received 'undef' on test $idx (expected '$expect')");
+                        $self->assert($got eq $expect,
+                            "Received '$got' on test $idx (expected '$expect')");
+                    }
+                    else {
+                        $self->assert(!defined $got,
+                            "Received '$got' on test $idx (expected 'undef')");
                     }
                 }
-                elsif(defined $expect) {
-                    $self->assert(defined $got,
-                        "Received 'undef' on test $idx (expected '$expect')");
-                    $self->assert($got eq $expect,
-                        "Received '$got' on test $idx (expected '$expect')");
-                }
-                else {
-                    $self->assert(!defined $got,
-                        "Received '$got' on test $idx (expected 'undef')");
-                }
             }
-        }
 
-        # Checking force_update
-        #
-        my $idx=(keys %tests)[2];
-        my $count_before=$buildcount{$idx};
-        my $got=$cache->get(idx => $idx, force_update => 1);
-        my $count_after=$buildcount{$idx};
-        $self->assert($count_after == $count_before + 1,
-            "Count update with force_update expected to be ".($count_before+1).", got $count_after");
+            # Checking force_update
+            #
+            my $idx=(keys %tests)[0];
+            my $count_before=$buildcount{$idx};
+            my $got=$cache->get(idx => $idx, force_update => 1);
+            my $count_after=$buildcount{$idx};
+            $self->assert($count_after == $count_before + 1,
+                "Count update with force_update expected to be ".($count_before+1).", got $count_after");
+        }
     }
 }
 

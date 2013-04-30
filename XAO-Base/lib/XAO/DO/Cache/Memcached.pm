@@ -139,7 +139,7 @@ Makes a key from the given reference to a list of coordinates.
 sub make_key ($$) {
     my $self=shift;
 
-    my $key=join($self->{'separator'},$self->{'name'},map { defined($_) ? $_ : '' } @{$_[0]});
+    my $key=join($self->{'separator'},map { defined($_) ? $_ : '' } @{$_[0]});
 
     # Ascii memcached protocol cannot handle whitespace in keys
     #
@@ -148,7 +148,7 @@ sub make_key ($$) {
     # Memcached has a 250 character limit on key length. Compacting it
     # if it's over the limit, or if we are told to compact all keys.
     #
-    if(length($key)>=250 || $self->{'digest_keys'}) {
+    if(length($key)>=$self->{'key_maxlength'} || $self->{'digest_keys'}) {
         ### dprint "...changing key (length=".length($key).") to a digest";
         $key=Digest::SHA::sha1_hex($key);
         ### dprint "....key=$key";
@@ -157,7 +157,7 @@ sub make_key ($$) {
         $key=~s/([\s\r\n])/'%'.unpack('H2',$1)/sge;
     }
 
-    return $key;
+    return $self->{'key_prefix'} . $key;
 }
 
 ###############################################################################
@@ -225,21 +225,69 @@ sub setup ($%) {
 
     $self->{'name'}=$name;
 
+    # Separator for building keys from a set of coordinates
+    #
+    my $separator=$args->{'separator'} || "\001";
+
+    $self->{'separator'}=$separator;
+
+    # We may have a namespace. Typically it is the site name, but can also be
+    # hard-coded in case the cache is shared between multiple differently
+    # named sites.
+    #
+    my $namespace=$args->{'namespace'};
+
+    if(!defined $namespace) {
+        $namespace=$siteconfig->get('/cache/memcached/namespace');
+    }
+
+    if(!defined $namespace) {
+        $namespace=XAO::Projects::get_current_project_name() || '';
+
+        if($self->{'debug'}) {
+            dprint "MEMCACHED: assumed namespace is '$namespace'";
+        }
+    }
+
+    $self->{'namespace'}=$namespace;
+
+    # We need a key prefix for all keys.
+    #
+    my $key_prefix=$namespace . $separator .  $name . $separator;
+
+    $key_prefix=Encode::encode('utf8',$key_prefix) if Encode::is_utf8($key_prefix);
+
+    $key_prefix=~s/([\s\r\n])/'%'.unpack('H2',$1)/sge;
+
+    my $key_maxlength=250 - length($key_prefix);
+
+    # We need at least 40 characters to put the digest into
+    #
+    if($key_maxlength < 40) {
+        my $key_prefix_digest=Digest::SHA::sha1_hex($key_prefix);
+        $key_prefix=$key_prefix_digest . $separator;
+        $key_maxlength=250 - length($key_prefix);
+    }
+
+    $self->{'key_prefix'}=$key_prefix;
+    $self->{'key_maxlength'}=$key_maxlength;
+
     # Additional per-cache configuration
     #
     $self->{'expire'}=$args->{'expire'} || 0;
 
-    $self->{'debug'}=$args->{'debug'};
-
-    $self->{'separator'}=$args->{'separator'} || ($self->{'debug'} ? ":" : "\001");
-
     $self->{'digest_keys'}=$args->{'digest_keys'};
 
+    $self->{'debug'}=$args->{'debug'};
+
     if($self->{'debug'}) {
-        dprint "MEMCACHED:name=       ",$self->{'name'};
-        dprint "MEMCACHED:expire=     ",$self->{'expire'};
-        dprint "MEMCACHED:separator=  ",$self->{'separator'};
-        dprint "MEMCACHED:digest_keys=",$self->{'digest_keys'};
+        dprint "MEMCACHED:namespace=    ",$self->{'namespace'};
+        dprint "MEMCACHED:name=         ",$self->{'name'};
+        dprint "MEMCACHED:expire=       ",$self->{'expire'};
+        dprint "MEMCACHED:separator=    ",$self->{'separator'};
+        dprint "MEMCACHED:digest_keys=  ",$self->{'digest_keys'};
+        dprint "MEMCACHED:key_prefix=   ",$self->{'key_prefix'};
+        ### dprint "MEMCACHED:key_maxlength=",$self->{'key_maxlength'};
     }
 }
 
@@ -255,16 +303,15 @@ sub memcached ($) {
     my $cfg=XAO::Projects::get_current_project()->get('/cache/memcached') ||
         throw $self "- need a /config/memcached in the site configuration";
 
-    if(!exists $cfg->{'namespace'}) {
-        $cfg=merge_refs($cfg,{
-            namespace   => XAO::Projects::get_current_project_name().':',
-        });
-
-        if($self->{'debug'}) {
-            dprint "MEMCACHED: assumed namespace is '$cfg->{'namespace'}'";
-        }
+    # We deal with namespace locally, must not also give it to the module!
+    #
+    if(exists $cfg->{'namespace'}) {
+        $cfg=merge_refs($cfg);
+        delete $cfg->{'namespace'};
     }
 
+    # Creating the cache interface.
+    #
     $memcached=Cache::Memcached->new($cfg) ||
         throw $self "- unable to instantiate Cache::Memcached";
 

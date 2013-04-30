@@ -70,12 +70,12 @@ method.
 
 sub drop ($%) {
     my $self=shift;
-    my $backend=$self->{backend};
+    my $backend=$self->{'backend'};
     
     my $object=ref($_[0]) && ref($_[0]) ne 'HASH' ? shift(@_) : undef;
     my $args=get_args(\@_);
 
-    my @c=map { $args->{$_} } @{$self->{coords}};
+    my @c=map { $args->{$_} } @{$self->{'coords'}};
     defined($c[0]) ||
         throw XAO::E::Cache "get - no first coordinate ($args->{coords}->[0])";
 
