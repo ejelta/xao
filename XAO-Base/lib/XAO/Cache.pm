@@ -18,6 +18,11 @@ XAO::Cache - generic interface for caching various data
 
 =head1 DESCRIPTION
 
+NOTE: It is almost always better to use Config::cache() method instead
+of creating a cache directly with its new() method.  That will also save
+on the initialization step - cache object themselves are cached and
+reused in that case.
+
 XAO::Cache is a generic cache implementation for caching various "slow"
 data such as database content, results of remote requests and so on.
 
@@ -202,27 +207,61 @@ of cache.
 
 =back
 
+If there is a current project and that project Config object holds a
+/cache/config data then that data is used for default values, providing
+a way to, for instance, change cache backend globally for all project
+caches.
+
+The configuration is structured like this:
+
+    cache => {
+        config => {
+            common => {
+                backend => 'Cache::Memcached',
+            },
+            foo_cache => {
+                backend => 'Cache::Memory',
+                size    => 1_000_000,
+            },
+        },
+    },
+
+For a cache named foo_cache the backend would be 'Cache::Memory' and for
+all other caches -- 'Cache::Memcached' in that case.
+
 =cut
 
 sub new ($%) {
     my $proto=shift;
     my $args=get_args(\@_);
 
+    # Checking if there is a site configuration and some default
+    # parameters in it.
+    #
+    my $config=XAO::Projects::get_current_project_name() && XAO::Projects::get_current_project();
+    if($config && $config->can('get')) {
+        $args=merge_refs(
+            $config->get('/cache/config/common') || { },
+            ($args->{'name'} ? ($config->get('/cache/config/'.$args->{'name'})) : ()),
+            $args,
+        );
+    }
+
     # Backend -- can be an object reference or an object name
     #
-    my $backend=$args->{backend} || 'Cache::Memory';
+    my $backend=$args->{'backend'} || 'Cache::Memory';
     $backend=XAO::Objects->new(objname => $backend) unless ref($backend);
 
     # Retrieve function must be a code reference
     #
-    my $retrieve=$args->{retrieve} ||
+    my $retrieve=$args->{'retrieve'} ||
         throw XAO::E::Cache "new - no 'retrive' argument";
     ref($retrieve) eq 'CODE' ||
         throw XAO::E::Cache "new - 'retrive' must be a code reference";
 
     # Coords must be an array reference or a single scalar
     #
-    my $coords=$args->{coords} ||
+    my $coords=$args->{'coords'} ||
         throw XAO::E::Cache "new - no 'coords' argument";
     $coords=[ $coords ] if !ref($coords);
     ref($coords) eq 'ARRAY' ||
@@ -239,11 +278,7 @@ sub new ($%) {
 
     # Setting up back-end parameters
     #
-    $backend->setup(
-        expire      => $self->{'expire'},
-        size        => $self->{'size'},
-        name        => $self->{'name'},
-    );
+    $backend->setup($args);
 
     # Old caches used to have 'exists' method, which is now obsolete.
     # It requires at least a double key calculation, and in the case of 

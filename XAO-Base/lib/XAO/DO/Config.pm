@@ -70,12 +70,12 @@ sub new ($);
 
 Creates or retrieves a cache for use in various other XAO objects.
 Arguments are directly passed to XAO::Cache's new() method (see
-L<XAO::Cache>) with the exception of 'name' argument which is used to
-identify the requested cache.
+L<XAO::Cache>).
 
-If a cache with that name was already initialized before it
-is not re-created, but previously created version is returned
-instead.
+The 'name' argument is required and is used to identify the requested
+cache. If a cache with the same name was requested before its previously
+created object is returned and all new arguments are silently ignored
+without making sure they match the previous request.
 
 B<Note:> Retrieve method SHOULD NOT rely on any locally available
 lexical variables, they will be taken from whatever scope existed first
@@ -89,24 +89,6 @@ Example:
      coords      => ['foo','bar'],
      expire      => 60
  );
-
-It will also look for default values under /cache/config/common and
-/cache/config/NAME in the site configuration.
-
- cache => {
-    config  => {
-        common  => {
-            backend     => 'Cache::Memory',
-            size        => 1_000_000,
-        },
-        fubar   => {
-            size        => 500_000,
-        },
-    },
- },
-
-For the call above and the configuration data above the cache will be
-called on 'Cache::Memory' backend with size set to 500_000.
 
 Caches are kept between executions in mod_perl environment.
 
@@ -127,18 +109,7 @@ sub cache ($%) {
     my $cache=$cache_list->{$name};
 
     if(! $cache) {
-
-        # Looking for default values in the site configuration
-        #
-        my $cfg=($self->{'methods'}->{'get'} ? $self->get('/cache/config') : undef) || { };
-
-        $cache=XAO::Cache->new(merge_refs(
-            $cfg->{'common'} || { },
-            $cfg->{$name} || { },
-            $args,
-        ));
-
-        $cache_list->{$name}=$cache;
+        $cache=$cache_list->{$name}=XAO::Cache->new($args);
     }
 
     return $cache;

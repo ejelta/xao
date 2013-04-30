@@ -45,6 +45,11 @@ The XAO::Cache "size" parameter is ignored and must be controlled in
 memcached configuration. The "expire" argument is given to MemCacheD to
 honor and is not locally enforced.
 
+Two additional cache parameters are accepted on a per-cache level:
+
+   separator => used for building cache keys from coordinates
+   debug     => if set then dprint is used for extra logging
+
 =head1 METHODS
 
 =over
@@ -58,6 +63,7 @@ use XAO::Utils;
 use XAO::Objects;
 use XAO::Projects;
 use JSON;
+use Encode;
 use Cache::Memcached;
 
 use base XAO::Objects->load(objname => 'Atom');
@@ -103,9 +109,12 @@ sub get ($$) {
     # We need to support storing undefs. All data is stored as JSON.
     #
     my $key=$self->make_key(shift);
+
     my $json_text=$self->memcached->get($key);
 
-    ### dprint "..get('$key') = '",$json_text,"'"; 
+    if($self->{'debug'}) {
+        dprint "MEMCACHED:get('$key') = '",$json_text,"'";
+    }
 
     if(defined $json_text) {
         my $data=decode_json($json_text)->[0];
@@ -126,7 +135,16 @@ Makes a key from the given reference to a list of coordinates.
 
 sub make_key ($$) {
     my $self=shift;
-    return join("\001",$self->{'name'},map { defined($_) ? $_ : '' } @{$_[0]});
+
+    my $key=join($self->{'separator'},$self->{'name'},map { defined($_) ? $_ : '' } @{$_[0]});
+
+    # Ascii memcached protocol cannot handle whitespace in keys
+    #
+    $key=Encode::encode('utf8',$key) if Encode::is_utf8($key);
+
+    $key=~s/([\s\r\n])/'%'.unpack('H2',$1)/sge;
+
+    return $key;
 }
 
 ###############################################################################
@@ -147,7 +165,9 @@ sub put ($$$) {
     #
     my $json_text=encode_json([$$data]);
 
-    ### dprint "..put('$key' => '$json_text')"; 
+    if($self->{'debug'}) {
+        dprint "MEMCACHED:put('$key' => '$json_text')"; 
+    }
 
     my $expire=$self->{'expire'};
 
@@ -166,10 +186,22 @@ sub setup ($%) {
     my $self=shift;
     my $args=get_args(\@_);
 
-    $self->{'expire'}=$args->{'expire'} || 0;
+    ### use Data::Dumper;
+    ### dprint Dumper($args);
+
+    # Checking if we have a configuration
+    #
+    my $siteconfig=XAO::Projects::get_current_project();
+
+    $siteconfig->can('get') ||
+        throw $self "- site configuration needs to support a get() method";
+
+    $siteconfig->get('/cache/memcached/servers') ||
+        throw $self "- need at least /cache/memcached/servers in the site config";
 
     # Having a name is really advisable. Showing a warning if it's not
-    # given.
+    # given. Without a name the cache degrades to a per-process cache,
+    # losing all of memcached benefits.
     #
     my $name=$args->{'name'};
 
@@ -180,13 +212,19 @@ sub setup ($%) {
 
     $self->{'name'}=$name;
 
-    # Checking if we have a configuration
+    # Additional per-cache configuration
     #
-    my $config=XAO::Projects::get_current_project() ||
-        throw $self "- need a site configuration";
+    $self->{'expire'}=$args->{'expire'} || 0;
 
-    $config->get('/cache/memcached/servers') ||
-        throw $self "- need at least /cache/memcached/servers in the site config";
+    $self->{'debug'}=$args->{'debug'};
+
+    $self->{'separator'}=$args->{'separator'} || ($self->{'debug'} ? ":" : "\001");
+
+    if($self->{'debug'}) {
+        dprint "MEMCACHED:name=     ",$self->{'name'};
+        dprint "MEMCACHED:expire=   ",$self->{'expire'};
+        dprint "MEMCACHED:separator=",$self->{'separator'};
+    }
 }
 
 ###############################################################################
@@ -205,11 +243,11 @@ sub memcached ($) {
         $cfg=merge_refs($cfg,{
             namespace   => XAO::Projects::get_current_project_name().':',
         });
-        ### dprint "..assumed namespace is '$cfg->{'namespace'}'";
-    }
 
-    ### use Data::Dumper;
-    ### dprint Dumper($cfg);
+        if($self->{'debug'}) {
+            dprint "MEMCACHED: assumed namespace is '$cfg->{'namespace'}'";
+        }
+    }
 
     $memcached=Cache::Memcached->new($cfg) ||
         throw $self "- unable to instantiate Cache::Memcached";

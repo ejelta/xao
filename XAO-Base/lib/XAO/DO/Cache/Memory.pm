@@ -135,6 +135,8 @@ sub get ($$) {
 
     my $key=$self->make_key($_[0]);
 
+    ### dprint "MEMORY: get(",$key,")";
+
     my $ed=$self->{'data'}->{$key};
 
     my $expire=$self->{'expire'};
@@ -201,6 +203,8 @@ sub put ($$$) {
         next        => $self->{most_recent},
     };
 
+    ### dprint "MEMORY: put(",$key," => ",$element,") size=",$self->{'size'}," expire=",$self->{'expire'};
+
     $data->{$self->{most_recent}}->{previous}=$key
         if defined($self->{most_recent});
 
@@ -208,7 +212,7 @@ sub put ($$$) {
     $self->{least_recent}=$key unless defined($self->{least_recent});
     $self->{current_size}+=$nsz;
 
-    undef;
+    return undef;
 }
 
 ###############################################################################
@@ -224,7 +228,7 @@ sub setup ($%) {
     my $args=get_args(\@_);
 
     $self->{'expire'}=$args->{'expire'} || 0;
-    $self->{'size'}=$args->{'size'} || 0;
+    $self->{'size'}=($args->{'size'} || 0) * 1024;
 
     $self->drop_all();
 }
@@ -248,6 +252,8 @@ Drops oldest element from the cache using supplied key and element.
 sub drop_oldest ($$$) {
     my ($self,$key,$ed)=@_;
 
+    ### dprint "drop_oldest()";
+
     $self->{most_recent}=undef if defined($self->{most_recent}) &&
                                   $self->{most_recent} eq $key;
 
@@ -262,7 +268,7 @@ sub drop_oldest ($$$) {
 
     delete $data->{$key};
 
-    # $self->print_chain();
+    ### $self->print_chain();
 
     return $previous;
 }
@@ -331,7 +337,7 @@ sub touch ($$$) {
         $self->{most_recent}=$data->{$ed->{next}}->{previous}=$key;
     }
 
-    # $self->print_chain;
+    ### $self->print_chain;
 }
 
 ###############################################################################

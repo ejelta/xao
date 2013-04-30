@@ -8,6 +8,8 @@ use XAO::Cache;
 
 use base qw(testcases::base);
 
+###############################################################################
+
 sub test_backends {
     my $self=shift;
 
@@ -22,10 +24,11 @@ sub test_backends {
 
     my @backends=('Cache::Memory');
 
+    my $config;
     eval {
         require Cache::Memcached;
 
-        my $config=XAO::Objects->new(
+        $config=XAO::Objects->new(
             objname     => 'Config',
             sitename    => 'cachetest',
         );
@@ -45,6 +48,12 @@ sub test_backends {
                 servers => [ '127.0.0.1:11211' ],
                 debug   => 0,
             },
+            config      => {
+                common  => {
+                    ### debug       => 1,
+                    ### separator   => '!',
+                },
+            },
         });
 
         if($config->get('/cache/memcached')) {
@@ -59,20 +68,25 @@ sub test_backends {
         warn "Skipping Cache::Memcached: $@\n";
     }
 
-    my @tests=(
-        undef,
-        "",
-        "string",
-        Encode::encode("utf8","binary:\x01\x02\x{2345}"),
-        { hash => 'reference' },
-        [ qw(simple array of data) ],
-        { complex => [ qw(data) ], with => undef, values => { foo => 'bar' } },
+    use utf8;
+
+    my %tests=(
+        'null'          => undef,
+        1               => "",
+        2               => "string",
+        3               => Encode::encode("utf8","binary:\x01\x02\x{2122}"),
+        'hash'          => { hash => 'reference' },
+        'array'         => [ qw(simple array of data) ],
+        'data'          => { complex => [ qw(data) ], with => undef, values => { foo => 'bar' } },
+        ''              => 'emptykey',
+        0               => 'zero',
+        "\x{2122}"      => 'unicode key',
     );
 
     foreach my $backend (@backends) {
         dprint "Testing backend '$backend'";
 
-        my @buildcount;
+        my %buildcount;
 
         my $cache=XAO::Cache->new(
             backend     => $backend,
@@ -80,9 +94,9 @@ sub test_backends {
             retrieve    => sub {
                 my $args=get_args(\@_);
                 my $idx=$args->{'idx'};
-                ### dprint "..RETRIEVE $idx : ",$tests[$idx];
-                ++$buildcount[$idx];
-                return $tests[$idx];
+                ### dprint "..RETRIEVE $idx : ",$tests{$idx};
+                ++$buildcount{$idx};
+                return $tests{$idx};
             },
             coords      => ['idx'],
         );
@@ -94,35 +108,39 @@ sub test_backends {
         foreach my $round (1..5) {
             dprint ".test round $round";
 
-            for(my $i=0; $i<@tests; ++$i) {
-                my $got=$cache->get(idx => $i);
+            foreach my $idx (keys %tests) {
 
-                my $expect=$tests[$i];
+                my $got=$cache->get(idx => $idx);
 
-                $self->assert($buildcount[$i] == 1,
-                    "Expected build count to be 1, got $buildcount[$i] on test #$i, round $round (MEMCACHED not running?)");
+                $self->assert($buildcount{$idx} == 1,
+                    "Expected build count to be 1, got $buildcount{$idx} on test #$idx, round $round (MEMCACHED not running?)");
+
+                my $expect=$tests{$idx};
+
+                ### dprint "got=",$got;
+                ### dprint "exp=",$expect;
 
                 if(ref $expect) {
                     my $jgot=JSON::to_json($got,{ canonical => 1, utf8 => 0 });
                     my $jexpect=JSON::to_json($expect,{ canonical => 1, utf8 => 0 });
 
                     $self->assert($jgot eq $jexpect,
-                        "Received '$jgot', expected '$jexpect' for test #$i, round $round");
+                        "Received '$jgot', expected '$jexpect' for test #$idx, round $round");
 
                     if($round>1) {
                         $self->assert($got ne $expect,
-                            "Expected to receive a copy, not the original reference on test #$i, round $round");
+                            "Expected to receive a copy, not the original reference on test #$idx, round $round");
                     }
                 }
                 elsif(defined $expect) {
                     $self->assert(defined $got,
-                        "Received 'undef' on test $i (expected '$expect')");
+                        "Received 'undef' on test $idx (expected '$expect')");
                     $self->assert($got eq $expect,
-                        "Received '$got' on test $i (expected '$expect')");
+                        "Received '$got' on test $idx (expected '$expect')");
                 }
                 else {
                     $self->assert(!defined $got,
-                        "Received '$got' on test $i (expected 'undef')");
+                        "Received '$got' on test $idx (expected 'undef')");
                 }
             }
         }
@@ -139,9 +157,11 @@ sub test_everything {
         retrieve    => sub {
             my $self=ref($_[0]) && ref($_[0]) ne 'HASH' ? shift : '';
             my $args=get_args(\@_);
-            return $count++ . '-' .
+            my $value=$count++ . '-' .
                    $args->{name} . '-' .
                    ($args->{subname} || '');
+            ### dprint "RETRIEVE: count=$count value=$value name=",$args->{'name'}," subname=",$args->{'subname'};
+            return $value;
         },
         coords      => ['name','subname'],
         size        => 2,
@@ -170,7 +190,6 @@ sub test_everything {
     $self->assert($d2 eq '1-d2-s2',
                   "Got wrong value for d2 (expected '1-d2-s2', got '$d2')");
 
-    ##
     # Checking if it is expired
     #
     sleep(4);
@@ -190,14 +209,12 @@ sub test_everything {
         $d2=$cache->get(name => 'd2', subname => $i);
     }
 
-    ##
     # At that point it should be thrown out because of size
     #
     $d1=$cache->get(name => 'd1', bar => 234);
     $self->assert($d1 eq '304-d1-',
                   "Got wrong value for d1 (expected '304-d1-', got '$d1')");
 
-    ##
     # Rechecking that after removals the cache still works fine.
     #
     $d2=$cache->get($self, name => 'd2', subname => 's2', foo => 123);
@@ -216,6 +233,8 @@ sub test_everything {
     $self->assert($d2 eq '305-d2-s2',
                   "Got wrong value for d2 (expected '305-d2-s2', got '$d2')");
 }
+
+###############################################################################
 
 sub test_size {
     my $self=shift;
@@ -259,6 +278,8 @@ sub test_size {
                       "Test ".($i/2)." failed (expected '$expect', got '$got')");
     }
 }
+
+###############################################################################
 
 sub test_drop {
     my $self=shift;
