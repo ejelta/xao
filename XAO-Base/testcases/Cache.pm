@@ -23,6 +23,7 @@ sub test_backends {
     }
 
     my @backends=('Cache::Memory');
+    ### my @backends=();
 
     my $config;
     eval {
@@ -81,6 +82,10 @@ sub test_backends {
         ''              => 'emptykey',
         0               => 'zero',
         "\x{2122}"      => 'unicode key',
+        "one two"       => 'key with a space',
+        ('.' x 300)     => 'very long key 1',
+        ('.' x 400)     => 'very long key 2',
+        ('.' x 500)     => 'very long key 3',
     );
 
     foreach my $backend (@backends) {

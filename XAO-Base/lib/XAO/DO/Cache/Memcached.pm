@@ -47,8 +47,10 @@ honor and is not locally enforced.
 
 Two additional cache parameters are accepted on a per-cache level:
 
-   separator => used for building cache keys from coordinates
-   debug     => if set then dprint is used for extra logging
+   separator    => used for building cache keys from coordinates
+   digest_keys  => if set SHA-1 digests are used instead of actual
+                   concatenated coordinate keys
+   debug        => if set then dprint is used for extra logging
 
 =head1 METHODS
 
@@ -65,6 +67,7 @@ use XAO::Projects;
 use JSON;
 use Encode;
 use Cache::Memcached;
+use Digest::SHA;
 
 use base XAO::Objects->load(objname => 'Atom');
 
@@ -142,7 +145,17 @@ sub make_key ($$) {
     #
     $key=Encode::encode('utf8',$key) if Encode::is_utf8($key);
 
-    $key=~s/([\s\r\n])/'%'.unpack('H2',$1)/sge;
+    # Memcached has a 250 character limit on key length. Compacting it
+    # if it's over the limit, or if we are told to compact all keys.
+    #
+    if(length($key)>=250 || $self->{'digest_keys'}) {
+        ### dprint "...changing key (length=".length($key).") to a digest";
+        $key=Digest::SHA::sha1_hex($key);
+        ### dprint "....key=$key";
+    }
+    else {
+        $key=~s/([\s\r\n])/'%'.unpack('H2',$1)/sge;
+    }
 
     return $key;
 }
@@ -220,10 +233,13 @@ sub setup ($%) {
 
     $self->{'separator'}=$args->{'separator'} || ($self->{'debug'} ? ":" : "\001");
 
+    $self->{'digest_keys'}=$args->{'digest_keys'};
+
     if($self->{'debug'}) {
-        dprint "MEMCACHED:name=     ",$self->{'name'};
-        dprint "MEMCACHED:expire=   ",$self->{'expire'};
-        dprint "MEMCACHED:separator=",$self->{'separator'};
+        dprint "MEMCACHED:name=       ",$self->{'name'};
+        dprint "MEMCACHED:expire=     ",$self->{'expire'};
+        dprint "MEMCACHED:separator=  ",$self->{'separator'};
+        dprint "MEMCACHED:digest_keys=",$self->{'digest_keys'};
     }
 }
 
