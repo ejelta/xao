@@ -158,9 +158,9 @@ sub make_key ($$) {
 
     $key=$self->{'key_prefix'} . $key;
 
-    if($self->{'debug'}) {
-        dprint "MEMCACHED:key length=".length($key)." $key";
-    }
+    ### if($self->{'debug'}) {
+    ###     dprint "MEMCACHED:key length=".length($key)." $key";
+    ### }
 
     return $key;
 }
