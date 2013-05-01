@@ -13,8 +13,9 @@ XAO::Cache.
 
 =head1 DESCRIPTION
 
-This back end uses Cache::Memcached to store and access distributed data
-in memcached servers.
+This back end uses either Memcached::Client (preferred) or
+Cache::Memcached modules to store and access distributed data in
+memcached servers.
 
 It does not work without special support data stored in the site
 configuration:
@@ -66,7 +67,6 @@ use XAO::Objects;
 use XAO::Projects;
 use JSON;
 use Encode;
-use Cache::Memcached;
 use Digest::SHA;
 
 use base XAO::Objects->load(objname => 'Atom');
@@ -116,7 +116,7 @@ sub get ($$) {
     my $json_text=$self->memcached->get($key);
 
     if($self->{'debug'}) {
-        dprint "MEMCACHED:get('$key') = '",$json_text,"'";
+        dprint "MEMCACHED:get('$key') = ",(defined $json_text ? "'".substr($json_text,0,30)."...'" : '<UNDEF>');
     }
 
     if(defined $json_text) {
@@ -145,6 +145,8 @@ sub make_key ($$) {
     #
     $key=Encode::encode('utf8',$key) if Encode::is_utf8($key);
 
+    $key=~s/([\s\r\n])/'%'.unpack('H2',$1)/sge;
+
     # Memcached has a 250 character limit on key length. Compacting it
     # if it's over the limit, or if we are told to compact all keys.
     #
@@ -153,11 +155,14 @@ sub make_key ($$) {
         $key=Digest::SHA::sha1_hex($key);
         ### dprint "....key=$key";
     }
-    else {
-        $key=~s/([\s\r\n])/'%'.unpack('H2',$1)/sge;
+
+    $key=$self->{'key_prefix'} . $key;
+
+    if($self->{'debug'}) {
+        dprint "MEMCACHED:key length=".length($key)." $key";
     }
 
-    return $self->{'key_prefix'} . $key;
+    return $key;
 }
 
 ###############################################################################
@@ -179,7 +184,7 @@ sub put ($$$) {
     my $json_text=encode_json([$$data]);
 
     if($self->{'debug'}) {
-        dprint "MEMCACHED:put('$key' => '$json_text')"; 
+        dprint "MEMCACHED:put('$key' => ",(defined $json_text ? "'".substr($json_text,0,30)."...'" : '<UNDEF>');
     }
 
     my $expire=$self->{'expire'};
@@ -287,7 +292,7 @@ sub setup ($%) {
         dprint "MEMCACHED:separator=    ",$self->{'separator'};
         dprint "MEMCACHED:digest_keys=  ",$self->{'digest_keys'};
         dprint "MEMCACHED:key_prefix=   ",$self->{'key_prefix'};
-        ### dprint "MEMCACHED:key_maxlength=",$self->{'key_maxlength'};
+        dprint "MEMCACHED:key_maxlength=",$self->{'key_maxlength'};
     }
 }
 
@@ -312,10 +317,39 @@ sub memcached ($) {
 
     # Creating the cache interface.
     #
-    $memcached=Cache::Memcached->new($cfg) ||
+    my $have_memcached_client;
+    my $have_cache_memcached;
+    eval {
+        require Memcached::Client;
+        $self->{'client'}='Memcached::Client';
+        $have_memcached_client=1;
+    };
+    if($@) {
+        eval {
+            require Cache::Memcached;
+            $self->{'client'}='Cache::Memcached';
+            $have_cache_memcached=1;
+        };
+    }
+
+    if($have_memcached_client) {
+        $memcached=Memcached::Client->new($cfg);
+    }
+    elsif($have_cache_memcached) {
+        $memcached=Cache::Memcached->new($cfg);
+    }
+    else {
+        throw $self "- no  Memcached::Client and no Cache::Memcached available";
+    }
+
+    $memcached ||
         throw $self "- unable to instantiate Cache::Memcached";
 
     $self->{'memcached'}=$memcached;
+
+    if($self->{'debug'}) {
+        dprint "MEMCACHED:client=       $self->{'client'}";
+    }
 
     return $memcached;
 }

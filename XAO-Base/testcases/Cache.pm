@@ -22,68 +22,71 @@ sub test_backends {
         return;
     }
 
+    my $have_memcached;
+    eval {
+        require Memcached::Client;
+        $have_memcached=1;
+    };
+    if($@) {
+        eval {
+            require Cache::Memcached;
+            $have_memcached=1;
+        };
+    }
+
     my @backends=('Cache::Memory');
     ### my @backends=();
 
-    my $config;
-    eval {
-        require Cache::Memcached;
-
-        $config=XAO::Objects->new(
-            objname     => 'Config',
-            sitename    => 'cachetest',
-        );
-
-        XAO::Projects::create_project(
-            name        => 'cachetest',
-            object      => $config,
-            set_current => 1,
-        );
-
-        $config->init();
-
-        $config->embed('hash' => new XAO::SimpleHash());
-        
-        $config->embedded('hash')->put('cache' => {
-            memcached   => {
-                servers => [ '127.0.0.1:11211' ],
-                debug   => 0,
-            },
-            config      => {
-                common  => {
-                    debug       => 0,
-                },
-                withsep => {
-                    separator   => '!',
-                },
-                withns1 => {
-                    namespace   => '',
-                },
-                withns2 => {
-                    namespace   => ("Ns" x 100),
-                    separator   => ':',
-                },
-                withns3 => {
-                    namespace   => ("Lg" x 110),
-                    separator   => ':',
-                },
-                withdig => {
-                    digest_keys => 1,
-                },
-            },
-        });
-
-        if($config->get('/cache/memcached')) {
-            push(@backends,'Cache::Memcached');
-        }
-        else {
-            warn "No /cache/memcached configuration in the site config\n";
-        }
-    };
-
-    if($@) {
-        warn "Skipping Cache::Memcached: $@\n";
+    if($have_memcached) {
+        push(@backends,'Cache::Memcached');
     }
+    else {
+        warn "Install Cache::Memcached for XAO::DO::Cache::Memcached backend\n";
+    }
+
+    my $config=XAO::Objects->new(
+        objname     => 'Config',
+        sitename    => 'cachetest',
+    );
+
+    XAO::Projects::create_project(
+        name        => 'cachetest',
+        object      => $config,
+        set_current => 1,
+    );
+
+    $config->init();
+
+    $config->embed('hash' => new XAO::SimpleHash());
+    
+    $config->embedded('hash')->put('cache' => {
+        memcached   => {
+            servers => [ '127.0.0.1:11211' ],
+            ### debug   => 99,
+        },
+        config      => {
+            common  => {
+                ### debug       => 1,
+            },
+            withsep => {
+                separator   => '!',
+            },
+            withns1 => {
+                namespace   => '',
+            },
+            withns2 => {
+                namespace   => ("Ns" x 100),
+                separator   => ':',
+            },
+            withns3 => {
+                namespace   => ("Lg" x 110),
+                separator   => ':',
+            },
+            withdig => {
+                digest_keys => 1,
+            },
+        },
+    });
 
     use utf8;
 
