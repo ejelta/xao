@@ -724,14 +724,13 @@ my %parsed_cache;
 sub parse ($%) {
     my $self=shift;
     my $args=get_args(\@_);
-    my $sitename;
 
-    ##
     # Getting template text
     #
-    my $template;
     my $unparsed=$args->{'unparsed'};
+    my $template;
     my $path;
+    my $sitename;
     if(defined($args->{'template'})) {
         $template=$args->{'template'};
         if(ref($template)) {
@@ -742,17 +741,35 @@ sub parse ($%) {
         $path=$args->{'path'} ||
             throw $self "parse - no 'path' and no 'template' given to a Page object";
 
-        $sitename=$self->{'sitename'} || get_current_project_name();
-
-        if(!$unparsed && exists $parsed_cache{$sitename}->{$path}) {
-            return $parsed_cache{$sitename}->{$path};
-        }
-
         if($self->debug_check('show-path')) {
             dprint $self->{'objname'}."::parse - path='$path'";
         }
 
+        if(!$unparsed && !$args->{'uncached'}) {
+            $sitename=$self->{'sitename'} || get_current_project_name();
+
+            # Having a local parsed templates cache allocates memory for
+            # every on disk template per process. But it speeds up
+            # execution about 16 times:
+            #
+            my $parsed=$parsed_cache{$sitename}->{$path};
+
+            #$self->siteconfig->cache(
+            #    name        => 'page_parsed',
+            #    coords      => [ 'path' ],
+            #    retrieve    => sub {
+            #        my $a=get_args(
+
+            if(defined $parsed) {
+                ref $parsed ||
+                    throw $self "parse - $parsed";
+
+                return $parsed;
+            }
+        }
+
         $template=XAO::Templates::get(path => $path);
+
         defined($template) ||
             throw $self "parse - no template found (path=$path)";
     }
@@ -782,10 +799,20 @@ sub parse ($%) {
     # Parsing. If a scalar is returned it is an indicator of an error.
     #
     my $parsed=XAO::PageSupport::parse($template);
+
     ref $parsed ||
         throw $self "parse - $parsed";
 
-    $parsed_cache{$sitename}->{$path}=$parsed if $path;
+    # Caching the parsed template.
+    #
+    if($path && $sitename) {
+
+        $parsed_cache{$sitename}->{$path}=$parsed if $path;
+
+        if($self->debug_check('page-cache-size')) {
+            $self->cache_show_size($path);
+        }
+    }
 
     return $parsed;
 }
@@ -1258,10 +1285,48 @@ sub pass_args ($$;$) {
 
 ###############################################################################
 
+sub cache_show_size ($$) {
+    my ($self,$path)=@_;
+
+    eval {
+        require Devel::Size;
+    };
+
+    if($@) {
+        eprint "Devel::Size not available, disabling debug 'show-caching'";
+        $self->debug_set('cache-size' => 0);
+        return;
+    }
+
+    my $size=Devel::Size::total_size(\%parsed_cache);
+
+    eprint "Web::Page cache size ".sprintf('%.3f',$size/1024.0)." KB - ",$path;
+}
+
+###############################################################################
+
 sub debug_check ($$) {
-    my $self=shift;
-    my $type=shift;
-    return $self->clipboard->get("debug/Web/Page/$type");
+    my ($self,$type)=@_;
+
+    # This is a speed up (makes the parsing more than twice faster when a
+    # local parsing cache is also used).
+    #
+    #   8 wallclock secs ( 8.78 usr +  0.01 sys =  8.79 CPU) @ 113765.64/s (n=1000000)
+    #  19 wallclock secs (18.97 usr +  0.00 sys = 18.97 CPU) @ 52714.81/s (n=1000000)
+    # 
+    ### return $self->clipboard->get("debug/Web/Page/$type");
+
+    my $debug_hash=$self->{'debug_hash'};
+
+    if(!$debug_hash) {
+        $debug_hash=$self->clipboard->get('/debug/Web/Page');
+        if(!$debug_hash) {
+            $self->{'debug_hash'}=$debug_hash={ };
+            $self->clipboard->put('/debug/Web/Page' => $debug_hash);
+        }
+    }
+
+    return $debug_hash->{$type};
 }
 
 ###############################################################################

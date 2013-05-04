@@ -95,6 +95,8 @@ Closes connection to the database.
 sub sql_do ($$;@) {
     my $rc;
 
+    ### dprint "SQL_DO: $_[1] ||| ".join(' ',map { my @a=caller($_); $a[0] ? ("$a[0]:$a[2]") : (); } (0,1,2,3));
+
     if(@_>2 && ref($_[2])) {
         $rc=sql_real_do(@_);
     }
@@ -113,6 +115,8 @@ sub sql_do_no_error ($$) {
 
 sub sql_execute ($$;@) {
     my $r;
+
+    ### dprint "SQL_EX: $_[1] ||| ".join(' ',map { my @a=caller($_); $a[0] ? ("$a[0]:$a[2]") : (); } (0,1,2,3));
 
     if(scalar(@_)==2) {
         $r=sql_real_execute(@_,[]);
