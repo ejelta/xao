@@ -245,7 +245,10 @@ sub new ($%) {
     # Checking if there is a site configuration and some default
     # parameters in it.
     #
-    my $config=XAO::Projects::get_current_project_name() && XAO::Projects::get_current_project();
+    my $config=$args->{'sitename'}
+            ? XAO::Projects::get_project($args->{'sitename'})
+            : (XAO::Projects::get_current_project_name() && XAO::Projects::get_current_project());
+
     if($config && $config->can('get')) {
         $args=merge_refs(
             $config->get('/cache/config/common') || { },
@@ -257,6 +260,7 @@ sub new ($%) {
     # Backend -- can be an object reference or an object name
     #
     my $backend=$args->{'backend'} || 'Cache::Memory';
+    ### dprint "Created cache '",$args->{'name'},"', backend='$backend'";
     $backend=XAO::Objects->new(objname => $backend) unless ref($backend);
 
     # Retrieve function must be a code reference

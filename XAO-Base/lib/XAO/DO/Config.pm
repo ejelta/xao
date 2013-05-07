@@ -109,7 +109,9 @@ sub cache ($%) {
     my $cache=$cache_list->{$name};
 
     if(! $cache) {
-        $cache=$cache_list->{$name}=XAO::Cache->new($args);
+        $cache=$cache_list->{$name}=XAO::Cache->new($args,{
+            sitename    => $self->{'sitename'},
+        });
     }
 
     return $cache;

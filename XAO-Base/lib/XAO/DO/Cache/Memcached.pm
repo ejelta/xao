@@ -209,13 +209,20 @@ sub setup ($%) {
 
     # Checking if we have a configuration
     #
-    my $siteconfig=XAO::Projects::get_current_project();
+    my $siteconfig=$args->{'sitename'}
+            ? XAO::Projects::get_project($args->{'sitename'})
+            : (XAO::Projects::get_current_project_name() && XAO::Projects::get_current_project());
+
+    $siteconfig ||
+        throw $self "- can only be used within a site context";
 
     $siteconfig->can('get') ||
         throw $self "- site configuration needs to support a get() method";
 
     $siteconfig->get('/cache/memcached/servers') ||
         throw $self "- need at least /cache/memcached/servers in the site config";
+
+    $self->{'siteconfig'}=$siteconfig;
 
     # Having a name is really advisable. Showing a warning if it's not
     # given. Without a name the cache degrades to a per-process cache,
@@ -305,7 +312,7 @@ sub memcached ($) {
 
     return $memcached if $memcached;
 
-    my $cfg=XAO::Projects::get_current_project()->get('/cache/memcached') ||
+    my $cfg=$self->{'siteconfig'}->get('/cache/memcached') ||
         throw $self "- need a /config/memcached in the site configuration";
 
     # We deal with namespace locally, must not also give it to the module!
