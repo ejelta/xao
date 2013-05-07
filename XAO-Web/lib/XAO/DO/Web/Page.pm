@@ -393,6 +393,7 @@ from Page unless overwritten) are:
 package XAO::DO::Web::Page;
 use strict;
 use Encode;
+use Digest::SHA qw(sha1_hex);
 use XAO::Utils;
 use XAO::Cache;
 use XAO::Templates;
@@ -713,59 +714,172 @@ It will return a reference to the array of the following structure:
         },
     ]
 
-Templates from disk files are cached for the lifetime of the process and
-are never re-parsed.
+With "unparsed" parameter the content of the template is not analyzed
+and is returned as a single 'text' node.
 
-Always returns with a correct array or throws an error.
+Templates are only parsed once, unless an "uncached" parameter is set to
+true.
+
+Normally the parsed templates cache uses a local perl hash. If
+desired a XAO::Cache based implementation can be used by setting
+/web_page/cache_name parameter in the site configuration to the desired
+site name (e.g. "web-page-parsed").
+
+Statistics of various ways of calling:
+
+    memcached-cache-path       1866/s
+    memcached-cache-template   2407/s
+    no-cache-path              5229/s
+    no-cache-template          5572/s
+    memory-cache-template     26699/s
+    memory-cache-path         45253/s
+    local-cache-template      49681/s
+    local-cache-path         149806/s
+
+Unless the site has a huge number of templates there is really no
+compelling reason to use anything but the default local cache. The
+performance of memcached is worse than no caching at all for example.
+
+The method always returns with a correct array or throws an error.
 
 =cut
 
+sub parse_retrieve ($@);
+
 my %parsed_cache;
+
 sub parse ($%) {
     my $self=shift;
     my $args=get_args(\@_);
 
+    my $unparsed=$args->{'unparsed'};
+
+    my $uncached=$args->{'uncached'};
+
     # Getting template text
     #
-    my $unparsed=$args->{'unparsed'};
     my $template;
     my $path;
-    my $sitename;
+    my $cache_key;
     if(defined($args->{'template'})) {
         $template=$args->{'template'};
+
         if(ref($template)) {
             return $template;       # Pre-parsed as an argument of some upper class
+        }
+
+        $template=Encode::encode('utf8',$template) if Encode::is_utf8($template);
+
+        if(length $template < 80) {
+            $cache_key=($unparsed ? 'T' : 't').':'.$template;
+        }
+        else {
+            $cache_key=($unparsed ? 'H' : 'h').':'.sha1_hex($template);
         }
     }
     else {
         $path=$args->{'path'} ||
             throw $self "parse - no 'path' and no 'template' given to a Page object";
 
-        if($self->debug_check('show-path')) {
-            dprint $self->{'objname'}."::parse - path='$path'";
+        $cache_key=($unparsed ? 'P' : 'p').':'.$path;
+    }
+
+    # Reading and parsing
+    #
+    # With uncached we don't even try to use any caches
+    #
+    my $parsed;
+    if($uncached) {
+
+        # Reading and parsing.
+        # 
+        $parsed=$self->parse_retrieve($args);
+    }
+
+    # Caching either locally, or in a standard cache
+    #
+    else {
+
+        # Setup, only executed once.
+        #
+        my $cache_name=$self->{'cache_name'};
+        if(!defined $cache_name) {
+            $cache_name=$self->{'cache_name'}=$self->siteconfig->get('/web_page/cache_name') || '';
         }
 
-        if(!$unparsed && !$args->{'uncached'}) {
-            $sitename=$self->{'sitename'} || get_current_project_name();
+        # A fast totally local implementation.
+        #
+        # About two times faster than a memcached, but grows a template
+        # cache per-process.
+        #
+        if(!$cache_name) {
 
-            # Having a local parsed templates cache allocates memory for
-            # every on disk template per process. But it speeds up
-            # execution about 16 times:
+            # Making it unique per site
             #
-            my $parsed=$parsed_cache{$sitename}->{$path};
+            my $sitename=$self->{'sitename'} || get_current_project_name() || '';
+            $cache_key=$sitename . ':' . $cache_key;
 
-            #$self->siteconfig->cache(
-            #    name        => 'page_parsed',
-            #    coords      => [ 'path' ],
-            #    retrieve    => sub {
-            #        my $a=get_args(
+            # Checking if we have parsed and cached this before
+            #
+            $parsed=$parsed_cache{$cache_key};
 
-            if(defined $parsed) {
-                ref $parsed ||
-                    throw $self "parse - $parsed";
+            return $parsed if defined $parsed;
 
-                return $parsed;
+            # Reading and parsing.
+            # 
+            $parsed=$self->parse_retrieve($args);
+
+            # Caching the parsed template.
+            #
+            $parsed_cache{$cache_key}=$parsed;
+
+            # Logging the size
+            #
+            if($self->debug_check('page-cache-size')) {
+                $self->cache_show_size($cache_key);
             }
+        }
+
+        # More generic implementation that can be switched from local to
+        # memcached to anything else
+        #
+        else {
+            my $cache=$self->{'parse_cache'};
+            if(!$cache) {
+                dprint "Using a named cache '$cache_name' for parsed templates";
+
+                $cache=$self->{'parse_cache'}=$self->siteconfig->cache(
+                    name        => $cache_name,
+                    coords      => [ 'cache_key' ],
+                    retrieve    => \&parse_retrieve,
+                );
+            }
+
+            $parsed=$cache->get($self,$args,{
+                cache_key       => $cache_key,
+                force_update    => $uncached,
+            });
+        }
+    }
+
+    return $parsed;
+}
+
+###############################################################################
+
+sub parse_retrieve ($@) {
+    my $self=shift;
+    my $args=get_args(\@_);
+
+    my $path=$args->{'path'};
+    my $template=$args->{'template'};
+    my $unparsed=$args->{'unparsed'};
+
+    # Reading and parsing.
+    #
+    if($path && !defined $template) {
+        if($self->debug_check('show-read')) {
+            dprint $self->{'objname'}."::parse - read path='$path'";
         }
 
         $template=XAO::Templates::get(path => $path);
@@ -774,44 +888,36 @@ sub parse ($%) {
             throw $self "parse - no template found (path=$path)";
     }
 
-    # Checking if we do not need to parse that template.
+    # Unless we need an unparsed template - parse it
     #
+    my $parsed;
     if($unparsed) {
-        return [ { text => $template } ];
+        $parsed=[ { text => $template } ];
     }
+    else {
 
-    # Logging the template or path if requested.
-    #
-    if($self->debug_check('show-parse')) {
-        if($path) {
-            dprint $self->{'objname'}."::parse - parsing path='$path'"
+        # Logging the template or path if requested.
+        #
+        if($self->debug_check('show-parse')) {
+            if($path) {
+                dprint $self->{'objname'}."::parse - parsing path='$path'"
+            }
+            else {
+                my $te=substr($template,0,20);
+                $te=~s/\r/\\r/sg;
+                $te=~s/\n/\\n/sg;
+                $te=~s/\t/\\t/sg;
+                $te.='...' if length($template)>20;
+                dprint $self->{'objname'}."::parse - parsing template='$te'";
+            }
         }
-        else {
-            my $te=substr($template,0,20);
-            $te=~s/\r/\\r/sg;
-            $te=~s/\n/\\n/sg;
-            $te=~s/\t/\\t/sg;
-            $te.='...' if length($template)>20;
-            dprint $self->{'objname'}."::parse - parsing inline template ($te)";
-        }
-    }
 
-    # Parsing. If a scalar is returned it is an indicator of an error.
-    #
-    my $parsed=XAO::PageSupport::parse($template);
+        # Parsing. If a scalar is returned it is an indicator of an error.
+        #
+        $parsed=XAO::PageSupport::parse($template);
 
-    ref $parsed ||
-        throw $self "parse - $parsed";
-
-    # Caching the parsed template.
-    #
-    if($path && $sitename) {
-
-        $parsed_cache{$sitename}->{$path}=$parsed if $path;
-
-        if($self->debug_check('page-cache-size')) {
-            $self->cache_show_size($path);
-        }
+        ref $parsed ||
+            throw $self "- $parsed";
     }
 
     return $parsed;
@@ -1047,9 +1153,13 @@ data between objects. See L<XAO::Projects> for more details.
 
 sub siteconfig ($) {
     my $self=shift;
-    return $self->{siteconfig} if $self->{siteconfig};
-    $self->{siteconfig}=$self->{sitename} ? get_project($self->{sitename})
-                                          : get_current_project();
+    my $siteconfig=$self->{'siteconfig'};
+    if(!$siteconfig) {
+        $siteconfig=$self->{'siteconfig'}=
+            $self->{'sitename'} ? get_project($self->{'sitename'})
+                                : get_current_project();
+    }
+    return $siteconfig;
 }
 
 ###############################################################################
@@ -1293,7 +1403,7 @@ sub cache_show_size ($$) {
     };
 
     if($@) {
-        eprint "Devel::Size not available, disabling debug 'show-caching'";
+        eprint "Devel::Size not available, disabling debug 'page-cache-size'";
         $self->debug_set('cache-size' => 0);
         return;
     }
