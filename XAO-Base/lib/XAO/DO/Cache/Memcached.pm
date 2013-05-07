@@ -46,13 +46,14 @@ The XAO::Cache "size" parameter is ignored and must be controlled in
 memcached configuration. The "expire" argument is given to MemCacheD to
 honor and is not locally enforced.
 
-Two additional cache parameters are accepted on a per-cache level:
+A couple additional cache parameters are accepted on a per-cache level:
 
-   separator    => used for building cache keys from coordinates
-   digest_keys  => if set SHA-1 digests are used instead of actual
-                   concatenated coordinate keys
-   debug        => if set then dprint is used for extra logging
-
+   separator       => used for building cache keys from coordinates
+   digest_keys     => if set SHA-1 digests are used instead of actual
+                      concatenated coordinate keys
+   debug           => if set then dprint is used for extra logging
+   value_maxlength => maximum length of an individual value
+   
 =head1 METHODS
 
 =over
@@ -183,8 +184,18 @@ sub put ($$$) {
     #
     my $json_text=encode_json([$$data]);
 
+    # If the value is too large we silently ignore it and do not
+    # store. It is going to be rejected by the cache anyway.
+    #
+    if(length($json_text) > $self->{'value_maxlength'}) {
+        if($self->{'debug'}) {
+            eprint "MEMCACHED:put('$key' => ",(defined $json_text ? "'".substr($json_text,0,30)."...'" : '<UNDEF>')." len=".length($json_text).">".$self->{'value_maxlength'}." NOT STORED";
+        }
+        return;
+    }
+
     if($self->{'debug'}) {
-        dprint "MEMCACHED:put('$key' => ",(defined $json_text ? "'".substr($json_text,0,30)."...'" : '<UNDEF>');
+        dprint "MEMCACHED:put('$key' => ",(defined $json_text ? "'".substr($json_text,0,30)."...'" : '<UNDEF>')." len=".length($json_text);
     }
 
     my $expire=$self->{'expire'};
@@ -292,14 +303,19 @@ sub setup ($%) {
 
     $self->{'debug'}=$args->{'debug'};
 
+    # Maximum size of a stored element, memcached default.
+    #
+    $self->{'value_maxlength'}=$args->{'value_maxlength'} || 1*1024*1024-1;
+
     if($self->{'debug'}) {
-        dprint "MEMCACHED:namespace=    ",$self->{'namespace'};
-        dprint "MEMCACHED:name=         ",$self->{'name'};
-        dprint "MEMCACHED:expire=       ",$self->{'expire'};
-        dprint "MEMCACHED:separator=    ",$self->{'separator'};
-        dprint "MEMCACHED:digest_keys=  ",$self->{'digest_keys'};
-        dprint "MEMCACHED:key_prefix=   ",$self->{'key_prefix'};
-        dprint "MEMCACHED:key_maxlength=",$self->{'key_maxlength'};
+        dprint "MEMCACHED:namespace=      ",$self->{'namespace'};
+        dprint "MEMCACHED:name=           ",$self->{'name'};
+        dprint "MEMCACHED:expire=         ",$self->{'expire'};
+        dprint "MEMCACHED:separator=      ",$self->{'separator'};
+        dprint "MEMCACHED:digest_keys=    ",$self->{'digest_keys'};
+        dprint "MEMCACHED:key_prefix=     ",$self->{'key_prefix'};
+        dprint "MEMCACHED:key_maxlength=  ",$self->{'key_maxlength'};
+        dprint "MEMCACHED:value_maxlength=",$self->{'value_maxlength'};
     }
 }
 

@@ -212,6 +212,15 @@ Optional maximum size of the cache in Kbytes. If not specified then only
 expiration time will be used as a criteria to throw a data element out
 of cache.
 
+=item value_maxlength
+
+Maximum length of an individual value to be stored. Values longer than
+this size may be ignored by the cache, but it is still safe to return
+then from the retrieve() method. They MAY just not be cached.
+
+Primarily this is useful for memcached configuration to match what the
+memcached server is going to reject anyway.
+
 =back
 
 If there is a current project and that project Config object holds a
