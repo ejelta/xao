@@ -31,9 +31,9 @@
 #define	CHUNK_SIZE	1000
 
 static char *buffer=NULL;
-static unsigned long bufsize=0;
-static unsigned long bufpos=0;
-static unsigned long pstack[MAX_STACK];
+static STRLEN bufsize=0;
+static STRLEN bufpos=0;
+static STRLEN pstack[MAX_STACK];
 static unsigned stacktop=0;
 
 /************************************************************************/
@@ -48,7 +48,7 @@ isalnum_dot(int c) {
 /* Parsing template into an array suitable for Web::Page
 */
 static SV*
-parse_text(pTHX_ char * template, unsigned length) {
+parse_text(pTHX_ char * template, STRLEN length) {
     AV* parsed=newAV();
 
     char *str=template;
@@ -372,6 +372,8 @@ parse_text(pTHX_ char * template, unsigned length) {
 
 MODULE = XAO::PageSupport		PACKAGE = XAO::PageSupport		
 
+###############################################################################
+
 unsigned
 level()
 	CODE:
@@ -379,10 +381,12 @@ level()
 	OUTPUT:
 		RETVAL
 
+
 void
 reset()
 	CODE:
-		pstack[stacktop=0]=0;
+		bufpos=pstack[stacktop=0]=0;
+
 
 void
 push()
@@ -393,11 +397,12 @@ push()
         }
 		pstack[stacktop++]=bufpos;
 
+
 SV *
 pop()
 	CODE:
 		char *text;
-		unsigned long len;
+		STRLEN len;
 		if(!buffer) {
 		    text="";
 		    len=0;
@@ -415,9 +420,32 @@ pop()
 	OUTPUT:
 	    RETVAL
 
+
+unsigned long
+bookmark()
+    CODE:
+        RETVAL=bufpos;
+    OUTPUT:
+        RETVAL
+
+
+SV *
+peek(len)
+        unsigned long len;
+    CODE:
+        if(!buffer || len>bufpos) {
+            RETVAL=newSVpvn("",0);
+        }
+        else {
+		    RETVAL=newSVpvn(buffer+len,bufpos-len);
+        }
+	OUTPUT:
+	    RETVAL
+
+
 void
 addtext(text)
-        unsigned int len=0;
+        STRLEN len=0;
 		char * text=SvPV(ST(0),len);
 	CODE:
 		if(text && len) {
@@ -425,8 +453,8 @@ addtext(text)
 	            buffer=realloc(buffer,sizeof(*buffer)*(bufsize+=len+CHUNK_SIZE));
 		        if(! buffer) {
 		            fprintf(stderr,
-                            "XAO::PageSupport - out of memory, length=%u, bufsize=%lu, bufpos=%lu\n",
-                            len,bufsize,bufpos);
+                            "XAO::PageSupport - out of memory, length=%lu, bufsize=%lu, bufpos=%lu\n",
+                            (unsigned long)len,(unsigned long)bufsize,(unsigned long)bufpos);
                     return;
 		        }
 		    }
@@ -434,9 +462,10 @@ addtext(text)
 	        bufpos+=len;
 		}
 
+
 SV *
 parse(text)
-        unsigned int length=0;
+        STRLEN length=0;
         char *template=SvPV(ST(0),length);
     CODE:
         RETVAL=parse_text(aTHX_ template, length);

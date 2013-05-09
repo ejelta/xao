@@ -114,7 +114,7 @@ WriteMakefile(
         'XAO::Base'         => 1.06,
         'XAO::FS'           => 1.06,
         'Text::FormatTable' => 0.01,
-        'Digest::SHA'       => 5.82,
+        'Digest::SHA'       => 5.63,
     },
     'INSTALLBIN'	=> $homedir . '/bin',
     'INSTALLSCRIPT'	=> $homedir . '/handlers',

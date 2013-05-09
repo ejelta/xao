@@ -404,10 +404,6 @@ use Error qw(:try);
 
 use base XAO::Objects->load(objname => 'Atom');
 
-use vars qw($VERSION);
-$VERSION=(0+sprintf('%u.%03u',(q$Id: Page.pm,v 2.7 2008/07/06 23:14:26 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
-
-##
 # Prototypes
 #
 sub cache ($%);
@@ -528,7 +524,7 @@ sub display ($%) {
             my $varname=$item->{'varname'};
             $text=$args->{$varname};
             defined $text ||
-                throw $self "display - undefined argument '$varname'";
+                throw $self "- undefined argument '$varname'";
             $itemflag=$item->{'flag'};
         }
 
@@ -663,14 +659,15 @@ the same arguments as display(). Here is an example:
 sub expand ($%) {
     my $self=shift;
 
-    ##
     # First it prepares a place in stack for new text (push) and after
     # display it calls pop to get back whatever was written. The sole
     # reason for all this is speed optimization - XAO::PageSupport is
     # implemented in C in quite optimal way.
     #
     XAO::PageSupport::push();
+
     $self->display(@_);
+
     return XAO::PageSupport::pop();
 }
 
@@ -681,9 +678,9 @@ sub expand ($%) {
 Takes template from either 'path' or 'template' and parses it. If given
 the following template:
 
-    Text <%Object a=A b="B" c={<%C/f ca={CA}%>} d='D' e={'<$E$>'}%>
+    Text <%Object a=A b="B" c={X<%C/f ca={CA}%>} d='D' e={'<$E$>'}%>
 
-It will return a reference to the array of the following structure:
+It will return a reference to an array of the following structure:
 
     [   {   text    => 'Text ',
         },
@@ -698,6 +695,8 @@ It will return a reference to the array of the following structure:
                     },
                 ],
                 c => [
+                    {   text    => 'X',
+                    },
                     {   objname => 'C',
                         flag    => 'f',
                         args    => {
@@ -756,7 +755,10 @@ sub parse ($%) {
 
     my $uncached=$args->{'uncached'};
 
-    # Getting template text
+    # Preparing a short key that uniquely identifies the template given
+    # (by either a path or an inline text). Uniqueness is only needed
+    # within the site context. Global scope uniqueness is dealt with by
+    # cache implementations below.
     #
     my $template;
     my $path;
@@ -779,20 +781,15 @@ sub parse ($%) {
     }
     else {
         $path=$args->{'path'} ||
-            throw $self "parse - no 'path' and no 'template' given to a Page object";
+            throw $self "- no 'path' and no 'template' given to a Page object";
 
         $cache_key=($unparsed ? 'P' : 'p').':'.$path;
     }
 
-    # Reading and parsing
-    #
-    # With uncached we don't even try to use any caches
+    # With uncached we don't even try to use any caches.
     #
     my $parsed;
     if($uncached) {
-
-        # Reading and parsing.
-        # 
         $parsed=$self->parse_retrieve($args);
     }
 
@@ -885,7 +882,7 @@ sub parse_retrieve ($@) {
         $template=XAO::Templates::get(path => $path);
 
         defined($template) ||
-            throw $self "parse - no template found (path=$path)";
+            throw $self "- no template found (path=$path)";
     }
 
     # Unless we need an unparsed template - parse it
@@ -1066,7 +1063,7 @@ sub dbh ($) {
     return $self->{dbh} if $self->{dbh};
     $self->{dbh}=$self->siteconfig->dbh;
     return $self->{dbh} if $self->{dbh};
-    throw $self "dbh - no database connection";
+    throw $self "- no database connection";
 }
 
 ###############################################################################
@@ -1094,7 +1091,7 @@ sub odb ($) {
     $self->{odb}=$self->siteconfig->odb;
     return $self->{odb} if $self->{odb};
 
-    throw $self "odb - requires object database connection";
+    throw $self "- requires object database connection";
 }
 
 ###############################################################################
@@ -1244,7 +1241,7 @@ sub pageurl ($;%) {
     my $self=shift;
 
     my $pagedesc=$self->clipboard->get('pagedesc') ||
-        throw $self "pageurl - no Web context, needs clipboard->'pagedesc'";
+        throw $self "- no Web context, needs clipboard->'pagedesc'";
 
     my $url=$self->base_url(@_);
     my $uri=$pagedesc->{fullpath} || '/';

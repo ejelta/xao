@@ -95,7 +95,7 @@ Closes connection to the database.
 sub sql_do ($$;@) {
     my $rc;
 
-    ### dprint "SQL_DO: $_[1] ||| ".join(' ',map { my @a=caller($_); $a[0] ? ("$a[0]:$a[2]") : (); } (0,1,2,3));
+    ### dprint "SQL_DO: $_[1] ||| ".join(' ',map { my @a=caller($_); $a[0] ? ("$a[0]:$a[2]") : (); } (2,3,4,5));
 
     if(@_>2 && ref($_[2])) {
         $rc=sql_real_do(@_);
@@ -116,7 +116,10 @@ sub sql_do_no_error ($$) {
 sub sql_execute ($$;@) {
     my $r;
 
-    ### dprint "SQL_EX: $_[1] ||| ".join(' ',map { my @a=caller($_); $a[0] ? ("$a[0]:$a[2]") : (); } (0,1,2,3));
+    ### dprint "SQL_EX: $_[1] ||| ".join(' ',map { my @a=caller($_); $a[0] ? ("$a[0]:$a[2]") : (); } (2,3,4,5));
+
+    ### require Time::HiRes;
+    ### my $ts=[Time::HiRes::gettimeofday()];
 
     if(scalar(@_)==2) {
         $r=sql_real_execute(@_,[]);
@@ -127,6 +130,14 @@ sub sql_execute ($$;@) {
     else {
         $r=sql_real_execute($_[0],$_[1],[ @_[2..$#_] ]);
     }
+
+    ### my $te=Time::HiRes::tv_interval($ts);
+    ### if($te>1.0) {
+    ###     dprint "SQL_SLOW($te): $_[1]";
+    ###     my $arg=(@_==2 ? [ ] : (ref $_[2] ? $_[2] : [ @_[2..$#_] ]));
+    ###     dprint "   --> ARG: ('".join("','",map { defined $_ ? ($_) : () } @$arg)."')";
+    ###     dprint "   --> STK: ".join(' ',map { my @a=caller($_); $a[0] ? ("$a[0]:$a[2]") : (); } (2,3,4,5));
+    ### }
 
     defined($r) ||
         $_[0]->throw("sql_execute - SQL error: " . sql_error_text($_[0]));
