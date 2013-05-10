@@ -1,0 +1,51 @@
+<%SetArg
+  name='FOO'
+  value={<%Object/f
+           param1='value1'
+           param2="value2"
+           param3={<%Another param='value' foo="<%Date%>"%>}
+           param4={'<%Another param='value' foo="<%Date%>"%>'}
+           %>}
+%>
+
+Some text
+
+<%Condition
+  a.arg='FOO'
+  a.template="Another text"
+%>
+
+And finally more text <!-- with a comment -->
+
+A bunch of variables:
+
+<$VAR1/f$> <$VAR2/h$> <$VAR3/q$> <$VAR4$>
+<$VAR1/f$> <$VAR2/h$> <$VAR3/q$> <$VAR4$>
+<$VAR1/f$> <$VAR2/h$> <$VAR3/q$> <$VAR4$>
+<$VAR1/f$> <$VAR2/h$> <$VAR3/q$> <$VAR4$>
+<$VAR1/f$> <$VAR2/h$> <$VAR3/q$> <$VAR4$>
+<$VAR1/f$> <$VAR2/h$> <$VAR3/q$> <$VAR4$>
+<$VAR1/f$> <$VAR2/h$> <$VAR3/q$> <$VAR4$>
+<$VAR1/f$> <$VAR2/h$> <$VAR3/q$> <$VAR4$>
+<$VAR1/f$> <$VAR2/h$> <$VAR3/q$> <$VAR4$>
+<$VAR1/f$> <$VAR2/h$> <$VAR3/q$> <$VAR4$>
+<$VAR1/f$> <$VAR2/h$> <$VAR3/q$> <$VAR4$>
+<$VAR1/f$> <$VAR2/h$> <$VAR3/q$> <$VAR4$>
+<$VAR1/f$> <$VAR2/h$> <$VAR3/q$> <$VAR4$>
+<$VAR1/f$> <$VAR2/h$> <$VAR3/q$> <$VAR4$>
+<$VAR1/f$> <$VAR2/h$> <$VAR3/q$> <$VAR4$>
+
+And a bunch of objects
+
+<%Date format='%Y-%m-%d'%> - Date - <%Date format='%Y-%m-%d'%> - Date -
+<%Date format='%Y-%m-%d'%> - Date - <%Date format='%Y-%m-%d'%> - Date -
+<%Date format='%Y-%m-%d'%> - Date - <%Date format='%Y-%m-%d'%> - Date -
+<%Date format='%Y-%m-%d'%> - Date - <%Date format='%Y-%m-%d'%> - Date -
+<%Date format='%Y-%m-%d'%> - Date - <%Date format='%Y-%m-%d'%> - Date -
+<%Date format='%Y-%m-%d'%> - Date - <%Date format='%Y-%m-%d'%> - Date -
+<%Date format='%Y-%m-%d'%> - Date - <%Date format='%Y-%m-%d'%> - Date -
+<%Date format='%Y-%m-%d'%> - Date - <%Date format='%Y-%m-%d'%> - Date -
+<%Date format='%Y-%m-%d'%> - Date - <%Date format='%Y-%m-%d'%> - Date -
+<%Date format='%Y-%m-%d'%> - Date - <%Date format='%Y-%m-%d'%> - Date -
+
+That's it.

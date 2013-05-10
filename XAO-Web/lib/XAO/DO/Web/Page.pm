@@ -203,6 +203,7 @@ into the string matching pairs of {' and '} can be used:
 
 =back
 
+
 =head2 EMBEDDING SPECIAL CHARACTERS
 
 Sometimes it is necessary to include various special symbols into
@@ -227,6 +228,7 @@ re-written as follows to make it legal:
  name={single &#123; inside}
 
 =back
+
 
 =head2 OUTPUT CONVERSION
 
@@ -359,6 +361,77 @@ example of JavaScript code:
  //-->
  </SCRIPT>
 
+
+=head2 CACHING
+
+Parsed templates are always cached either locally or using a configured
+cache. The cache is keyed on 'path' or 'template' parameters value (two
+identical 'template's will only parse once). Parse cache can be disabled
+by giving an "xao.uncached" parameter. See parse() method description
+for details.
+
+The fully rendered content can also be cached if a couple of conditions
+are met:
+
+=over
+
+=item *
+
+/xao/page/render_cache in the config -- this should contain a name of
+the cache to be used for rendered page components.
+
+=item * 
+
+"xao.cacheable" parameter given -- e.g. something like <%Page ... xao.cacheable%>.
+
+=item *
+
+There is no "/xao/page/uncached" in the clipboard. This can be used to
+force cache reload by checking some environmental variable early in the
+flow and setting the clipboard to disable all render caches for that one
+render. Cached content is not used, but is updated -- so subsequent
+cached calls with the same parameters will return new content.
+
+=item *
+
+TODO: IMPLEMENT THIS!
+
+None of sub-components included in the rendered page indicated that they
+are non-cacheable. This includes <%Date%>, <%CgiParam%>, <%Cookie%> and
+can be used in custom objects too. See set_not_cacheable() method.
+
+=back
+
+Properly used render cache can speed up pages significantly, but if
+used incorrectly it can also introduce very hard to find issues in the
+rendered content.
+
+Carefully consider what pages to tag with "cacheable" tag. Benchmarking
+reports can be of great help for that.
+
+
+=head2 BENCHMARKING
+
+When a /xao/page/benchmark parameter is present in the site
+configuration the pages are timed and are also analyzed for potential
+cacheability -- if rendered content is repeatedly the same for some set
+of parameters.
+
+Benchmarking can also be started and stopped by using benchmark_start()
+and benchmark_stop() calls. The hash with current benchmarking data can
+be retrieved with benchmark_data() call.
+
+Custom execution paths spanning multiple templates can be tracked by
+using benchmark_enter($tag) and benchmark_leave($tag) calls.
+
+The data is "static", not specific to a particular Page object.
+
+Benchmarking slows down processing. Do not use it in production.
+
+For an easy way to control benchmarking from templates use <%Benchmark%>
+object.
+
+
 =head2 NOTE FOR HARD-BOILED HACKERS
 
 If you do not like something in the parser behavior you can define
@@ -392,14 +465,16 @@ from Page unless overwritten) are:
 ###############################################################################
 package XAO::DO::Web::Page;
 use strict;
-use Encode;
 use Digest::SHA qw(sha1_hex);
-use XAO::Utils;
+use Encode;
+use Time::HiRes qw(gettimeofday tv_interval);
+use JSON qw(to_json);
 use XAO::Cache;
-use XAO::Templates;
 use XAO::Objects;
-use XAO::Projects qw(:all);
 use XAO::PageSupport;
+use XAO::Projects qw(:all);
+use XAO::Templates;
+use XAO::Utils;
 use Error qw(:try);
 
 use base XAO::Objects->load(objname => 'Atom');
@@ -418,94 +493,42 @@ sub odb ($);
 sub parse ($%);
 sub siteconfig ($);
 sub textout ($%);
+sub benchmark_data ($;$);
+sub benchmark_enabled ($);
+sub benchmark_enter ($$);
+sub benchmark_leave ($$);
+sub benchmark_start ($);
+sub benchmark_stop ($);
 
 ###############################################################################
 
-=item display (%)
-
-Displays given template to the current output buffer. The system uses
-buffers to collect all text displayed by various objects in a rather
-optimal way using XAO::PageSupport (see L<XAO::PageSupport>)
-module. In XAO::Web handler the global buffer is initialized and after all
-displayable objects have worked their way it retrieves whatever was
-accumulated in that buffer and displays it.
-
-This way you do not have to think about where your output goes as long
-as you do not "print" anything by yourself - you should always call
-either display() or textout() to print any piece of text.
-
-Display() accepts the following arguments:
-
-=over
-
-=item pass
-
-Passes arguments from calling context into the template.
-
-The syntax allows to map parent arguments into new names,
-and/or to limit what is passed. Multiple semi-colon separated rules are
-allowed. Rules are processed from left to right.
-
-  NEWNAME=OLDNAME  - pass the value of OLDNAME as NEWNAME
-  NEW*=OLD*        - pass all old values starting with OLD as NEW*
-  VAR;VAR.*        - pass VAR and VAR.* under their own names
-  *;!VAR*          - pass everything except VAR*
-
-The default, when the value of 'pass' is 'on' or '1', is the same as
-passing '*' -- meaning that all parent arguments are passed literally
-under their own names.
-
-There are exceptions, that are never passed from parent arguments:
-'pass', 'objname', 'path', and 'template'.
-
-Arguments given to display() override those inherited from the caller
-using 'pass'.
-
-=item path => 'path/to/the/template'
-
-Gives Page a path to the template that should be processed and
-displayed.
-
-=item template => 'template text'
-
-Provides Page with the actual template text.
-
-=item unparsed => 1
-
-If set it does not parse template, just displays it literally.
-
-=back
-
-Any other argument given is passed into template unmodified as a
-variable. Remember that it is recommended to pass variables using
-all-capital names for better visual recognition.
-
-Example:
-
- $obj->display(path => "/bits/left-menu", ITEM => "main");
-
-For security reasons it is also recommended to put all sub-templates
-into /bits/ directory under templates tree or into "bits" subdirectory
-of some tree inside of templates (like /admin/bits/admin-menu). Such
-templates cannot be displayed from XAO::Web handler by passing their
-path in URL.
-
-=cut
-
-sub display ($%) {
+sub _do_display ($@) {
     my $self=shift;
-    my $args=$self->{'args'}=get_args(\@_);
 
-    # Merging parent's args in if requested.
+    # We need to operate on this specific hash because it can get
+    # modified during template processing.
     #
-    if($args->{'pass'}) {
-        $args=$self->{'args'}=$self->pass_args($args->{'pass'},$args);
-    }
+    my $args=$self->{'args'} || throw $self "- no 'args' in self";
+
+    # Preparing to benchmark if requested
+    #
+    my $benchmark=$self->benchmark_enabled();
+    my $benchmark_tag;
+
+    # We need to bookmark buffer position to analyze content data later
+    # for cacheability later.
+    #
+    my $bookmark=$benchmark ?  XAO::PageSupport::bookmark() : 0;
 
     # Parsing template or getting already pre-parsed template when it is
     # available.
     #
-    my $page=$self->parse($args);
+    my $page=$benchmark ? $self->parse($args,{ cache_key_ref => \$benchmark_tag })
+                        : $self->parse($args);
+
+    # Starting the stopwatch if needed.
+    #
+    $self->benchmark_enter($benchmark_tag) if $benchmark;
 
     # Template processing itself. Pretty simple, huh? :)
     #
@@ -643,6 +666,147 @@ sub display ($%) {
         #
         last if $stop_after;
     }
+
+    ### # When benchmarking we stop the timer and we also remember the
+    ### # content for cacheability analysis.
+    ### #
+    ### if($benchmark) {
+    ###     $self->benchmark_leave($benchmark_tag);
+
+    ### #    # Page content during this template parsing with all arguments,
+    ### #    # sub-templates, etc.
+    ### #    #
+    ### #    my $digest=sha1_hex(XAO::PageSupport::peek($bookmark));
+
+    ### #    # The content may depend on all parameters
+    ### #    #
+    ### #    my 
+    ### }
+}
+
+###############################################################################
+
+=item display (%)
+
+Displays given template to the current output buffer. The system uses
+buffers to collect all text displayed by various objects in a rather
+optimal way using XAO::PageSupport (see L<XAO::PageSupport>)
+module. In XAO::Web handler the global buffer is initialized and after all
+displayable objects have worked their way it retrieves whatever was
+accumulated in that buffer and displays it.
+
+This way you do not have to think about where your output goes as long
+as you do not "print" anything by yourself - you should always call
+either display() or textout() to print any piece of text.
+
+Display() accepts the following arguments:
+
+=over
+
+=item pass
+
+Passes arguments from calling context into the template.
+
+The syntax allows to map parent arguments into new names,
+and/or to limit what is passed. Multiple semi-colon separated rules are
+allowed. Rules are processed from left to right.
+
+  NEWNAME=OLDNAME  - pass the value of OLDNAME as NEWNAME
+  NEW*=OLD*        - pass all old values starting with OLD as NEW*
+  VAR;VAR.*        - pass VAR and VAR.* under their own names
+  *;!VAR*          - pass everything except VAR*
+
+The default, when the value of 'pass' is 'on' or '1', is the same as
+passing '*' -- meaning that all parent arguments are passed literally
+under their own names.
+
+There are exceptions, that are never passed from parent arguments:
+'pass', 'objname', 'path', and 'template'.
+
+Arguments given to display() override those inherited from the caller
+using 'pass'.
+
+=item path => 'path/to/the/template'
+
+Gives Page a path to the template that should be processed and
+displayed.
+
+=item template => 'template text'
+
+Provides Page with the actual template text.
+
+=item unparsed => 1
+
+If set it does not parse template, just displays it literally.
+
+=back
+
+Any other argument given is passed into template unmodified as a
+variable. Remember that it is recommended to pass variables using
+all-capital names for better visual recognition.
+
+Example:
+
+ $obj->display(path => "/bits/left-menu", ITEM => "main");
+
+For security reasons it is also recommended to put all sub-templates
+into /bits/ directory under templates tree or into "bits" subdirectory
+of some tree inside of templates (like /admin/bits/admin-menu). Such
+templates cannot be displayed from XAO::Web handler by passing their
+path in URL.
+
+=cut
+
+sub display ($%) {
+    my $self=shift;
+    my $args=$self->{'args'}=get_args(\@_);
+
+    # Merging parent's args in if requested.
+    #
+    if($args->{'pass'}) {
+        $args=$self->{'args'}=$self->pass_args($args->{'pass'},$args);
+    }
+
+    # Is this page cacheable?
+    #
+    if($args->{'xao.cacheable'}) {
+        my $cache_name=$self->{'render_cache_name'};
+        if(!defined $cache_name) {
+            $cache_name=$self->{'render_cache_name'}=$self->siteconfig->get('/xao/page/render_cache') || '';
+        }
+
+        if($cache_name) {
+
+            my $cache=$self->{'render_cache_obj'};
+            if(!$cache) {
+                dprint "Using a cache '$cache_name' for rendered templates";
+
+                $cache=$self->{'render_cache_obj'}=$self->siteconfig->cache(
+                    name        => $cache_name,
+                    coords      => [ 'cache_key' ],
+                    retrieve    => \&_do_display,
+                );
+            }
+
+            # The key depends on all arguments
+            #
+            my $cache_key=sha1_hex(to_json($args,{ utf8 => 1, canonical => 1 }));
+
+            # Building the content. Real arguments for displaying are in
+            # $self->{'args'}.
+            #
+            $cache->get($self,{
+                cache_key       => $cache_key,
+                force_update    => $self->clipboard->get('/xao/page/uncached'),
+            });
+
+            return;
+        }
+    }
+
+    # We get here if the page cannot be cached
+    #
+    $self->_do_display();
 }
 
 ###############################################################################
@@ -716,13 +880,13 @@ It will return a reference to an array of the following structure:
 With "unparsed" parameter the content of the template is not analyzed
 and is returned as a single 'text' node.
 
-Templates are only parsed once, unless an "uncached" parameter is set to
-true.
+Templates are only parsed once, unless an "xao.uncached" parameter is
+set to true.
 
 Normally the parsed templates cache uses a local perl hash. If
 desired a XAO::Cache based implementation can be used by setting
-/web_page/cache_name parameter in the site configuration to the desired
-site name (e.g. "web-page-parsed").
+/xao/page/parse_cache parameter in the site configuration to the desired
+cache name (e.g. "web-page-parsed").
 
 Statistics of various ways of calling:
 
@@ -753,7 +917,7 @@ sub parse ($%) {
 
     my $unparsed=$args->{'unparsed'};
 
-    my $uncached=$args->{'uncached'};
+    my $uncached=$args->{'xao.uncached'};
 
     # Preparing a short key that uniquely identifies the template given
     # (by either a path or an inline text). Uniqueness is only needed
@@ -799,9 +963,9 @@ sub parse ($%) {
 
         # Setup, only executed once.
         #
-        my $cache_name=$self->{'cache_name'};
+        my $cache_name=$self->{'parse_cache_name'};
         if(!defined $cache_name) {
-            $cache_name=$self->{'cache_name'}=$self->siteconfig->get('/web_page/cache_name') || '';
+            $cache_name=$self->{'parse_cache_name'}=$self->siteconfig->get('/xao/page/parse_cache') || '';
         }
 
         # A fast totally local implementation.
@@ -841,11 +1005,11 @@ sub parse ($%) {
         # memcached to anything else
         #
         else {
-            my $cache=$self->{'parse_cache'};
+            my $cache=$self->{'parse_cache_obj'};
             if(!$cache) {
                 dprint "Using a named cache '$cache_name' for parsed templates";
 
-                $cache=$self->{'parse_cache'}=$self->siteconfig->cache(
+                $cache=$self->{'parse_cache_obj'}=$self->siteconfig->cache(
                     name        => $cache_name,
                     coords      => [ 'cache_key' ],
                     retrieve    => \&parse_retrieve,
@@ -969,7 +1133,7 @@ Getting FilloutForm object:
   }
 
 Object() method always returns object reference or throws an exception
--- meaning that under normal circumstances you do not need to worry
+- meaning that under normal circumstances you do not need to worry
 about returned object correctness. If you get past the call to object()
 method then you have valid object reference on hands.
 
@@ -1060,7 +1224,7 @@ Example:
 
 sub dbh ($) {
     my $self=shift;
-    return $self->{dbh} if $self->{dbh};
+    return $self->{dbh} if $self->{'dbh'};
     $self->{dbh}=$self->siteconfig->dbh;
     return $self->{dbh} if $self->{dbh};
     throw $self "- no database connection";
@@ -1135,7 +1299,11 @@ produce a page. Clipboard is cleaned before starting every new session.
 
 sub clipboard ($) {
     my $self=shift;
-    $self->siteconfig->clipboard;
+    my $clipboard=$self->{'clipboard'};
+    if(!$clipboard) {
+        $clipboard=$self->{'clipboard'}=$self->siteconfig->clipboard;
+    }
+    return $clipboard;
 }
 
 ###############################################################################
@@ -1392,6 +1560,66 @@ sub pass_args ($$;$) {
 
 ###############################################################################
 
+=item benchmark_data
+
+Return a hash with accumulated benchmark statistics.
+
+=cut
+
+sub benchmark_data ($;$) {
+    my $self=shift;
+    throw $self "- not implemented";
+}
+
+###############################################################################
+
+sub benchmark_enabled ($) {
+    my $self=shift;
+    $self->clipboard->get('_page_benchmark_enabled');
+}
+
+###############################################################################
+
+sub benchmark_enter ($$) {
+    my $self=shift;
+    throw $self "- not implemented";
+}
+
+###############################################################################
+
+sub benchmark_leave ($$) {
+    my $self=shift;
+    throw $self "- not implemented";
+}
+
+###############################################################################
+
+=item benchmark_start()
+
+Start automatic system-wide template benchmarking.
+
+=cut
+
+sub benchmark_start ($) {
+    my $self=shift;
+    $self->clipboard->put('_page_benchmark_enabled' => 1);
+}
+
+###############################################################################
+
+=item benchmark_stop()
+
+Stop automatic system-wide template benchmarking.
+
+=cut
+
+sub benchmark_stop ($) {
+    my $self=shift;
+    $self->clipboard->put('_page_benchmark_enabled' => 0);
+}
+
+###############################################################################
+
 sub cache_show_size ($$) {
     my ($self,$path)=@_;
 
@@ -1442,7 +1670,7 @@ sub debug_set ($%) {
     my $self=shift;
     my $args=get_args(\@_);
     foreach my $type (keys %$args) {
-        $self->clipboard->put("debug/Web/Page/$type",$args->{$type} ? 1 : 0);
+        $self->clipboard->put("/debug/Web/Page/$type",$args->{$type} ? 1 : 0);
     }
 }
 
@@ -1471,5 +1699,6 @@ L<XAO::Web>,
 L<XAO::Objects>,
 L<XAO::Projects>,
 L<XAO::Templates>.
+L<XAO::DO::Web::Benchmark>.
 
 =cut
