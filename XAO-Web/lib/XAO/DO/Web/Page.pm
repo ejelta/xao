@@ -412,14 +412,13 @@ reports can be of great help for that.
 
 =head2 BENCHMARKING
 
-When a /xao/page/benchmark parameter is present in the site
-configuration the pages are timed and are also analyzed for potential
-cacheability -- if rendered content is repeatedly the same for some set
-of parameters.
-
-Benchmarking can also be started and stopped by using benchmark_start()
+Benchmarking can be started and stopped by using benchmark_start()
 and benchmark_stop() calls. The hash with current benchmarking data can
-be retrieved with benchmark_data() call.
+be retrieved with benchmark_stats() call.
+
+When benchmarking is started all rendered paths (and optionally all
+templates) are timed and are also analyzed for potential cacheability --
+if rendered content is repeatedly the same for some set of parameters.
 
 Custom execution paths spanning multiple templates can be tracked by
 using benchmark_enter($tag) and benchmark_leave($tag) calls.
@@ -493,11 +492,11 @@ sub odb ($);
 sub parse ($%);
 sub siteconfig ($);
 sub textout ($%);
-sub benchmark_data ($;$);
 sub benchmark_enabled ($);
 sub benchmark_enter ($$);
 sub benchmark_leave ($$);
-sub benchmark_start ($);
+sub benchmark_start ($;$);
+sub benchmark_stats ($;$);
 sub benchmark_stop ($);
 
 ###############################################################################
@@ -513,7 +512,6 @@ sub _do_display ($@) {
     # Preparing to benchmark if requested
     #
     my $benchmark=$self->benchmark_enabled();
-    my $benchmark_tag;
 
     # We need to bookmark buffer position to analyze content data later
     # for cacheability later.
@@ -523,12 +521,26 @@ sub _do_display ($@) {
     # Parsing template or getting already pre-parsed template when it is
     # available.
     #
-    my $page=$benchmark ? $self->parse($args,{ cache_key_ref => \$benchmark_tag })
-                        : $self->parse($args);
-
-    # Starting the stopwatch if needed.
+    # Also defining the tag for benchmarking. Normally it is only
+    # defined for paths, but can also be defined for templates.
     #
-    $self->benchmark_enter($benchmark_tag) if $benchmark;
+    my $benchmark_tag;
+    my $page;
+    if($benchmark) {
+        $page=$self->parse($args,{ cache_key_ref => \$benchmark_tag });
+
+        if($benchmark<2 && $benchmark_tag && substr($benchmark_tag,0,2) ne 'p:') {
+            $benchmark_tag=undef;
+        }
+    }
+    else {
+        $page=$self->parse($args);
+    }
+
+    # Starting the stopwatch if needed. We may not get a tag if this is
+    # an inner pre-parsed template.
+    #
+    $self->benchmark_enter($benchmark_tag) if $benchmark_tag;
 
     # Template processing itself. Pretty simple, huh? :)
     #
@@ -667,13 +679,13 @@ sub _do_display ($@) {
         last if $stop_after;
     }
 
-    ### # When benchmarking we stop the timer and we also remember the
-    ### # content for cacheability analysis.
-    ### #
-    ### if($benchmark) {
-    ###     $self->benchmark_leave($benchmark_tag);
+    # When benchmarking we stop the timer and we also remember the
+    # content for cacheability analysis.
+    #
+    if($benchmark) {
+        $self->benchmark_leave($benchmark_tag) if $benchmark_tag;
 
-    ### #    # Page content during this template parsing with all arguments,
+    #    # Page content during this template parsing with all arguments,
     ### #    # sub-templates, etc.
     ### #    #
     ### #    my $digest=sha1_hex(XAO::PageSupport::peek($bookmark));
@@ -681,7 +693,7 @@ sub _do_display ($@) {
     ### #    # The content may depend on all parameters
     ### #    #
     ### #    my 
-    ### }
+    }
 }
 
 ###############################################################################
@@ -949,6 +961,11 @@ sub parse ($%) {
 
         $cache_key=($unparsed ? 'P' : 'p').':'.$path;
     }
+
+    # Remembering the key if needed. It is used for benchmark cache.
+    #
+    my $cache_key_ref=$args->{'cache_key_ref'};
+    $$cache_key_ref=$cache_key if $cache_key_ref;
 
     # With uncached we don't even try to use any caches.
     #
@@ -1560,62 +1577,133 @@ sub pass_args ($$;$) {
 
 ###############################################################################
 
-=item benchmark_data
-
-Return a hash with accumulated benchmark statistics.
-
-=cut
-
-sub benchmark_data ($;$) {
-    my $self=shift;
-    throw $self "- not implemented";
-}
-
-###############################################################################
-
 sub benchmark_enabled ($) {
     my $self=shift;
-    $self->clipboard->get('_page_benchmark_enabled');
+    $self->clipboard->get('_page_benchmark_enabled') || 0;
 }
 
 ###############################################################################
 
-sub benchmark_enter ($$) {
-    my $self=shift;
-    throw $self "- not implemented";
+sub benchmark_tag_data ($$) {
+    my ($self,$tag)=@_;
+
+    $tag || throw $self "- no 'tag'";
+
+    ref $tag && throw $self "- tag '$tag' is not a scalar";
+
+    my $stats=$self->benchmark_stats();
+
+    my $tagdata=$stats->{$tag};
+
+    if(!$tagdata) {
+        $tagdata=$stats->{$tag}={
+            count   => 0,
+            elapsed => 0,
+            started => undef,
+        };
+    }
+
+    return $tagdata;
 }
 
 ###############################################################################
 
-sub benchmark_leave ($$) {
-    my $self=shift;
-    throw $self "- not implemented";
-}
+=item benchmark_enter($)
 
-###############################################################################
-
-=item benchmark_start()
-
-Start automatic system-wide template benchmarking.
+Start tracking the given tag execution time until benchmark_leave() is
+called on the same tag.
 
 =cut
 
-sub benchmark_start ($) {
-    my $self=shift;
-    $self->clipboard->put('_page_benchmark_enabled' => 1);
+sub benchmark_enter ($$) {
+    my ($self,$tag)=@_;
+
+    my $tagdata=$self->benchmark_tag_data($tag);
+
+    if($tagdata->{'started'}) {
+        eprint "Benchmark for '$tag' not finished, discarding";
+    }
+
+    $tagdata->{'started'}=[ gettimeofday ];
+}
+
+###############################################################################
+
+=item benchmark_leave ($)
+
+Stop time tracking for the given tag and record tracking results in the
+history.
+
+=cut
+
+sub benchmark_leave ($$) {
+    my ($self,$tag)=@_;
+
+    my $tagdata=$self->benchmark_tag_data($tag);
+
+    my $started=$tagdata->{'started'};
+    if(!$started) {
+        eprint "Benchmark for '$tag' was not started";
+        return;
+    }
+
+    ++$tagdata->{'count'};
+    $tagdata->{'elapsed'}+=tv_interval($started);
+    $tagdata->{'started'}=undef;
+}
+
+###############################################################################
+
+=item benchmark_start(;$)
+
+Start automatic system-wide page rendering benchmarking.
+
+By default only 'path' based rendering is benchmarked. If an optional
+single argument is set to '2' then templates are also benchmarked (this
+may demand a lot of extra memory!).
+
+=cut
+
+sub benchmark_start ($;$) {
+    my ($self,$level)=@_;
+    $self->clipboard->put('_page_benchmark_enabled' => ($level || 1));
 }
 
 ###############################################################################
 
 =item benchmark_stop()
 
-Stop automatic system-wide template benchmarking.
+Stop automatic system-wide rendering benchmarking.
 
 =cut
 
 sub benchmark_stop ($) {
     my $self=shift;
     $self->clipboard->put('_page_benchmark_enabled' => 0);
+}
+
+###############################################################################
+
+=item benchmark_stats
+
+Return a hash with accumulated benchmark statistics.
+
+=cut
+
+sub benchmark_stats ($;$) {
+    my $self=shift;
+
+    my $stats=$self->{'benchmark_stats'};
+
+    if(!$stats) {
+        $stats=$self->clipboard->get('_page_benchmark_stats');
+        if(!$stats) {
+            $stats=$self->{'benchmark_stats'}={ };
+            $self->clipboard->put('_page_benchmark_stats' => $stats);
+        }
+    }
+
+    return $stats;
 }
 
 ###############################################################################

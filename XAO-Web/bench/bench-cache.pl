@@ -22,8 +22,8 @@ my $page2=XAO::Objects->new(objname => 'Web::Page', sitename => 'test1');
 XAO::Web->new(sitename => 'test3');
 my $page3=XAO::Objects->new(objname => 'Web::Page', sitename => 'test3');
 
-$page3->siteconfig->put('/page/cache_name' => 'web-page-parsed');
-$page3->siteconfig->get('/page/cache_name') ||
+$page3->siteconfig->put('/page/parse_cache' => 'web-page-parsed');
+$page3->siteconfig->get('/page/parse_cache') ||
     die "Unable to set site configuration";
 
 $page3->siteconfig->put('/cache/config/common/backend' => 'Cache::Memory');
@@ -33,8 +33,8 @@ $page3->siteconfig->get('/cache/config/common/backend') ||
 XAO::Web->new(sitename => 'test4');
 my $page4=XAO::Objects->new(objname => 'Web::Page', sitename => 'test4');
 
-$page4->siteconfig->put('/xao/page/cache_name' => 'web-page-parsed');
-$page4->siteconfig->get('/xao/page/cache_name') ||
+$page4->siteconfig->put('/xao/page/parse_cache' => 'web-page-parsed');
+$page4->siteconfig->get('/xao/page/parse_cache') ||
     die "Unable to set site configuration";
 
 $page4->siteconfig->put('/cache/config/common/backend' => 'Cache::Memcached');
@@ -70,7 +70,7 @@ XAO::Utils::set_logprint_handler(sub {
 my $template=$page1->expand(path => '/bits/complex-template', unparsed => 1);
 
 print "\n====== Timing:\n";
-my $bm=timethese($ARGV[0] || 100000, {
+my $bm=timethese($ARGV[0] || -5, {
     'local-cache-path' => sub {
         $page1->parse(
             path        => '/bits/complex-template',
