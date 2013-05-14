@@ -94,9 +94,27 @@ sub display_stats ($@) {
 
     my $stats=$args->{'data'}->{'benchmarks'} || throw $self "- no 'data' (INTERNAL)";
 
-    my @tags=sort {
-        $stats->{$b}->{'average'} <=> $stats->{$a}->{'average'}
-    } keys %$stats;
+    my @tags;
+    my $orderby=$args->{'orderby'} || 'total';
+
+    if($orderby eq 'total') {
+        @tags=sort { $stats->{$b}->{'total'} <=> $stats->{$a}->{'total'} } keys %$stats;
+    }
+    elsif($orderby eq 'average') {
+        @tags=sort { $stats->{$b}->{'average'} <=> $stats->{$a}->{'average'} } keys %$stats;
+    }
+    elsif($orderby eq 'median') {
+        @tags=sort { $stats->{$b}->{'median'} <=> $stats->{$a}->{'median'} } keys %$stats;
+    }
+    elsif($orderby eq 'count') {
+        @tags=sort { ($stats->{$b}->{'count'} <=> $stats->{$a}->{'count'}) || ($stats->{$b}->{'average'} <=> $stats->{$a}->{'average'}) } keys %$stats;
+    }
+    elsif($orderby eq 'tag') {
+        @tags=sort { $a cmp $b } keys %$stats;
+    }
+    else {
+        throw $self "- unknown orderby";
+    }
 
     if($args->{'limit'} && scalar(@tags)>$args->{'limit'}) {
         splice(@tags,$args->{'limit'})
@@ -121,11 +139,12 @@ sub display_stats ($@) {
             AVERAGE     => $d->{'average'},
             MEDIAN      => $d->{'median'},
             TOTAL       => $d->{'total'},
-            CACHEABLE   => $d->{'cacheable'},
+            CACHEABLE   => $d->{'cacheable'} || 0,
+            CACHE_FLAG  => $d->{'cache_flag'} || 0,
         }) if $args->{'path'} || defined $args->{'template'};
 
         if($args->{'dprint'} || $args->{'eprint'}) {
-            my $str="BENCHMARK($tag): COUNT=$d->{'count'} AVERAGE=$d->{'average'} MEDIAN=$d->{'median'} TOTAL=$d->{'total'} CACHEABLE=$d->{'cacheable'}";
+            my $str="BENCHMARK($tag): COUNT=$d->{'count'} AVERAGE=$d->{'average'} MEDIAN=$d->{'median'} TOTAL=$d->{'total'} CACHEABLE=$d->{'cacheable'} CACHE_FLAG=$d->{'cache_flag'}";
             dprint $str if $args->{'dprint'};
             eprint $str if $args->{'eprint'};
         }

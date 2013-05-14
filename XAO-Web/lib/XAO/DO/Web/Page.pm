@@ -382,23 +382,23 @@ the cache to be used for rendered page components.
 
 =item * 
 
-"xao.cacheable" parameter given -- e.g. something like <%Page ... xao.cacheable%>.
+"xao.cacheable" parameter given -- e.g. something like
+<%Page ... xao.cacheable%>.
 
 =item *
 
-There is no "/xao/page/uncached" in the clipboard. This can be used to
-force cache reload by checking some environmental variable early in the
-flow and setting the clipboard to disable all render caches for that one
-render. Cached content is not used, but is updated -- so subsequent
+There is no "/xao/page/cache_update" in the clipboard. This can be used
+to force cache reload by checking some environmental variable early in
+the flow and setting the clipboard to disable all render caches for that
+one render. Cached content is not used, but is updated -- so subsequent
 cached calls with the same parameters will return new content.
 
 =item *
 
-TODO: IMPLEMENT THIS!
-
-None of sub-components included in the rendered page indicated that they
-are non-cacheable. This includes <%Date%>, <%CgiParam%>, <%Cookie%> and
-can be used in custom objects too. See set_not_cacheable() method.
+There is no "/xao/page/cache_skip" in the clipboard. This can be used to
+skip cache altogether if it is known that pages rendered in this session
+are different from cached and the cache does not want to be contaminated
+with them.
 
 =back
 
@@ -493,11 +493,12 @@ sub parse ($%);
 sub siteconfig ($);
 sub textout ($%);
 sub benchmark_enabled ($);
-sub benchmark_enter ($$;$$);
+sub benchmark_enter ($$;$$$);
 sub benchmark_leave ($$;$$);
 sub benchmark_start ($;$);
 sub benchmark_stats ($;$);
 sub benchmark_stop ($);
+sub page_clipboard ($);
 
 ###############################################################################
 
@@ -534,8 +535,7 @@ sub _do_display ($@) {
         if($benchmark<2 && $benchmark_tag && substr($benchmark_tag,0,2) ne 'p:') {
             $benchmark_tag=undef;
         }
-
-           }
+    }
     else {
         $parsed=$self->parse($args);
     }
@@ -552,7 +552,7 @@ sub _do_display ($@) {
 
         $args_digest=sha1_hex($args_json);
 
-        $self->benchmark_enter($benchmark_tag,$args_digest,$args_json);
+        $self->benchmark_enter($benchmark_tag,$args_digest,$args_json,$args->{'xao.cacheable'});
     }
 
     # Template processing itself. Pretty simple, huh? :)
@@ -789,10 +789,13 @@ sub display ($%) {
         $args=$self->{'args'}=$self->pass_args($args->{'pass'},$args);
     }
 
-    # Is this page cacheable?
+    # Is this page cacheable? There is a distinction between page not
+    # being cached with '/xao/page/cache_skip' and page being flushed in
+    # cache with '/xao/page/cache_update'.
     #
-    if($args->{'xao.cacheable'}) {
+    if($args->{'xao.cacheable'} && !$self->page_clipboard->{'cache_skip'}) {
         my $cache_name=$self->{'render_cache_name'};
+
         if(!defined $cache_name) {
             $cache_name=$self->{'render_cache_name'}=$self->siteconfig->get('/xao/page/render_cache') || '';
         }
@@ -819,7 +822,7 @@ sub display ($%) {
             #
             $cache->get($self,{
                 cache_key       => $cache_key,
-                force_update    => ($args->{'xao.uncached'} || $self->clipboard->get('/xao/page/uncached')),
+                force_update    => ($self->page_clipboard->{'cache_update'} || $args->{'xao.uncached'}),
             });
 
             return;
@@ -1640,7 +1643,7 @@ sub benchmark_tag_data ($$) {
 
 ###############################################################################
 
-=item benchmark_enter($;$$)
+=item benchmark_enter($;$$$)
 
 Start tracking the given tag execution time until benchmark_leave() is
 called on the same tag.
@@ -1651,8 +1654,8 @@ optional argument is a description of this run.
 
 =cut
 
-sub benchmark_enter ($$;$$) {
-    my ($self,$tag,$key,$description)=@_;
+sub benchmark_enter ($$;$$$) {
+    my ($self,$tag,$key,$description,$cache_flag)=@_;
 
     my ($tagdata,$rundata);
     ($tagdata,$rundata,$key)=$self->benchmark_tag_data($tag,$key);
@@ -1664,6 +1667,8 @@ sub benchmark_enter ($$;$$) {
     $rundata->{'started'}=[ gettimeofday ];
 
     $rundata->{'description'}=$description || '';
+
+    $rundata->{'cache_flag'}=$cache_flag;
 }
 
 ###############################################################################
@@ -1774,6 +1779,12 @@ sub benchmark_stats ($;$) {
             scalar(keys %{$d->{'runs'}->{$_}->{'content'}}) != 1
         } keys %{$d->{'runs'}}) ? 0 : 1;
 
+        # Current cacheable flag, if it's shared across all runs
+        #
+        $d->{'cache_flag'}=scalar(grep {
+            ! $d->{'runs'}->{$_}->{'cache_flag'}
+        } keys %{$d->{'runs'}}) ? 0 : 1;
+
         $analyzed{$tag}=$d;
     }
 
@@ -1836,6 +1847,24 @@ sub debug_set ($%) {
     foreach my $type (keys %$args) {
         $self->clipboard->put("/debug/Web/Page/$type",$args->{$type} ? 1 : 0);
     }
+}
+
+###############################################################################
+
+sub page_clipboard ($) {
+    my $self=shift;
+
+    my $cb_hash=$self->{'page_clipboard'};
+
+    if(!$cb_hash) {
+        $cb_hash=$self->clipboard->get('/xao/page');
+        if(!$cb_hash) {
+            $self->{'page_clipboard'}=$cb_hash={ };
+            $self->clipboard->put('/xao/page' => $cb_hash);
+        }
+    }
+
+    return $cb_hash;
 }
 
 ###############################################################################

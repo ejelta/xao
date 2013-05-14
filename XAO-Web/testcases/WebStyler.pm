@@ -71,6 +71,10 @@ sub test_all {
             template => '<%Styler number="6" format="%02u"%>',
             result => '06',
         },
+        t21 => {
+            template => '<%Styler real="0.00012" format="//%0.4f"%>',
+            result => '//0.0001',
+        },
     );
 
     my $page=XAO::Objects->new(objname => 'Web::Page');

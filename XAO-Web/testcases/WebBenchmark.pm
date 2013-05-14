@@ -36,7 +36,7 @@ sub test_all {
     $benchmark->expand('mode' => 'enter', tag => 'test');
 
     for(1..10) {
-        $page->expand(path => '/bits/system-test', TEST => 'foo', RUN => ($_ <= 5 ? $_ : 'X'));
+        $page->expand(path => '/bits/system-test', 'xao.cacheable' => 1, TEST => 'foo', RUN => ($_ <= 5 ? $_ : 'X'));
         $page->expand(path => '/bits/complex-template', RUN => ($_ <= 5 ? $_ : 'X'));
         $page->expand(path => '/bits/test-recurring', RUN => ($_ <= 5 ? $_ : 'X'));
         $page->clipboard->put('test_clipboard' => $_ * 10);
@@ -68,11 +68,11 @@ sub test_all {
         "Expected to get identical stats from two web objects ($json1 != $json2)");
 
     my %counts=(
-        'test'                      => [ 1,  1,  1 ],
-        'p:/bits/system-test'       => [ 10, 6,  1 ],
-        'p:/bits/complex-template'  => [ 30, 7,  1 ],
-        'p:/bits/test-recurring'    => [ 20, 7,  1 ],
-        'p:/bits/test-non-cacheable'=> [ 10, 2,  0 ],
+        'test'                      => [ 1,  1,  1, 0 ],
+        'p:/bits/system-test'       => [ 10, 6,  1, 1 ],
+        'p:/bits/complex-template'  => [ 30, 7,  1, 0 ],
+        'p:/bits/test-recurring'    => [ 20, 7,  1, 0 ],
+        'p:/bits/test-non-cacheable'=> [ 10, 2,  0, 0 ],
     );
 
     foreach my $tag (keys %counts) {
@@ -106,6 +106,10 @@ sub test_all {
         $self->assert($cacheable == $counts{$tag}->[2],
             "Expected 'cacheable' for '$tag' to be $counts{$tag}->[2], got $cacheable");
 
+        my $cache_flag=$tagdata->{'cache_flag'} ? 1 : 0;
+        $self->assert($cache_flag == $counts{$tag}->[3],
+            "Expected 'cache_flag' for '$tag' to be $counts{$tag}->[3], got $cache_flag");
+
         my $rundata=$tagdata->{'runs'};
         $self->assert(ref $rundata,
             "Expected to have 'runs' ref on '$tag'");
@@ -130,26 +134,56 @@ sub test_all {
     my $text=$benchmark2->expand(
         'mode'              => 'stats',
         'header.template'   => '<$TOTAL_ITEMS$>|',
-        'template'          => '(<$TAG$>:<$COUNT$>:<$CACHEABLE$>)',
+        'template'          => '(<$TAG$>:<$COUNT$>:<$CACHEABLE$>:<$CACHE_FLAG$>)',
         'footer.template'   => '|<$TOTAL_ITEMS$>',
     );
 
     ### dprint $text;
 
-    my $expect='5|(test:1:1)(p:/bits/complex-template:30:1)(p:/bits/test-recurring:20:1)(p:/bits/test-non-cacheable:10:0)(p:/bits/system-test:10:1)|5';
+    my $expect='5|(test:1:1:0)(p:/bits/complex-template:30:1:0)(p:/bits/test-recurring:20:1:0)(p:/bits/test-non-cacheable:10:0:0)(p:/bits/system-test:10:1:1)|5';
+    $self->assert($text eq $expect,
+        "Expected to render into '$expect', got '$text'");
+
+    $text=$benchmark2->expand(
+        'mode'              => 'stats',
+        'limit'             => 3,
+        'orderby'           => 'tag',
+        'header.template'   => '<$TOTAL_ITEMS$>|',
+        'template'          => '(<$TAG$>:<$COUNT$>:<$CACHEABLE$>:<$CACHE_FLAG$>)',
+        'footer.template'   => '|<$TOTAL_ITEMS$>',
+    );
+
+    ### dprint $text;
+
+    $expect='3|(p:/bits/complex-template:30:1:0)(p:/bits/system-test:10:1:1)(p:/bits/test-non-cacheable:10:0:0)|3';
+    $self->assert($text eq $expect,
+        "Expected to render into '$expect', got '$text'");
+
+    $text=$benchmark2->expand(
+        'mode'              => 'stats',
+        'limit'             => 2,
+        'orderby'           => 'count',
+        'header.template'   => '<$TOTAL_ITEMS$>|',
+        'template'          => '(<$TAG$>:<$COUNT$>:<$CACHEABLE$>:<$CACHE_FLAG$>)',
+        'footer.template'   => '|<$TOTAL_ITEMS$>',
+    );
+
+    ### dprint $text;
+
+    $expect='2|(p:/bits/complex-template:30:1:0)(p:/bits/test-recurring:20:1:0)|2';
     $self->assert($text eq $expect,
         "Expected to render into '$expect', got '$text'");
 
     $text=$benchmark2->expand(
         'mode'              => 'stats',
         'tag'               => 'test',
-        'template'          => '(<$TAG$>:<$COUNT$>:<$CACHEABLE$>)',
+        'template'          => '(<$TAG$>:<$COUNT$>:<$CACHEABLE$>:<$CACHE_FLAG$>)',
         'footer.template'   => '|<$TOTAL_ITEMS$>',
     );
 
     ### dprint $text;
 
-    $expect='(test:1:1)|1';
+    $expect='(test:1:1:0)|1';
     $self->assert($text eq $expect,
         "Expected to render into '$expect', got '$text'");
 
