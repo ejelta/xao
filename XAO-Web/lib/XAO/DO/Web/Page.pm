@@ -377,7 +377,7 @@ are met:
 
 =item *
 
-/xao/page/render_cache in the config -- this should contain a name of
+/xao/page/render_cache_name in the config -- this should contain a name of
 the cache to be used for rendered page components.
 
 =item * 
@@ -518,6 +518,7 @@ sub _params_digest ($) {
 
 sub _do_display ($@) {
     my $self=shift;
+    my $cache_args=get_args(\@_);
 
     # We need to operate on this specific hash because it can get
     # modified during template processing.
@@ -531,7 +532,14 @@ sub _do_display ($@) {
     # We need to bookmark buffer position to analyze content data later
     # for cacheability later.
     #
-    my $bookmark=$benchmark ?  XAO::PageSupport::bookmark() : 0;
+    my $bookmark=$benchmark ? XAO::PageSupport::bookmark() : 0;
+
+    # When called from a cache retrieve we have a cache_key parameter.
+    #
+    my $from_cache_retrieve=$cache_args->{'cache_key'};
+    if($from_cache_retrieve) {
+        XAO::PageSupport::push();
+    }
 
     # Parsing template or getting already pre-parsed template when it is
     # available.
@@ -563,8 +571,7 @@ sub _do_display ($@) {
     #
     if($benchmark_tag) {
         ($args_digest,$args_json)=_params_digest($args);
-
-        $self->benchmark_enter($benchmark_tag,$args_digest,$args_json,$args->{'xao.cacheable'});
+        $self->benchmark_enter($benchmark_tag,$args_digest,$args_json,$self->can_cache_render($args));
     }
 
     # Template processing itself. Pretty simple, huh? :)
@@ -704,18 +711,58 @@ sub _do_display ($@) {
         last if $stop_after;
     }
 
+    # We need to return the actual rendered content if this is called
+    # from cache render.
+    #
+    my $content=undef;
+    if($from_cache_retrieve) {
+        $content=XAO::PageSupport::pop();
+    }
+    elsif($benchmark_tag) {
+        $content=XAO::PageSupport::peek($bookmark);
+    }
+
     # When benchmarking we stop the timer and we also remember the
     # content for cacheability analysis.
     #
     if($benchmark_tag) {
-
-        # Page content during this template parsing with all arguments,
-        # sub-templates, etc.
-        #
-        my $content_digest=sha1_hex(XAO::PageSupport::peek($bookmark));
-
+        my $content_digest=sha1_hex($content);
         $self->benchmark_leave($benchmark_tag,$args_digest,$content_digest);
     }
+
+    # This will be an undef if the call is not from cache. That is fine.
+    #
+    return $content;
+}
+
+###############################################################################
+
+sub can_cache_render ($$) {
+    my ($self,$args)=@_;
+
+    return 0 if $self->page_clipboard->{'cache_skip'};
+
+    return 1 if $args->{'xao.cacheable'};
+
+    my $path=!defined $args->{'template'} && $args->{'path'};
+
+    return 0 unless $path;
+
+    my $cache_key='p:' . $path;
+
+    my $cache_allow=$self->{'cache_allow'};
+    if(!$cache_allow) {
+        $cache_allow=$self->siteconfig->get('/xao/page/render_cache_allow');
+        if($cache_allow) {
+            $self->{'cache_allow'}=$cache_allow;
+        }
+        else {
+            $cache_allow=$self->{'cache_allow'}={ };
+            $self->siteconfig->put('/xao/page/render_cache_allow' => $cache_allow);
+        }
+    }
+
+    return $cache_allow->{$cache_key};
 }
 
 ###############################################################################
@@ -805,11 +852,11 @@ sub display ($%) {
     # being cached with '/xao/page/cache_skip' and page being flushed in
     # cache with '/xao/page/cache_update'.
     #
-    if($args->{'xao.cacheable'} && !$self->page_clipboard->{'cache_skip'}) {
+    if($self->can_cache_render($args)) {
         my $cache_name=$self->{'render_cache_name'};
 
         if(!defined $cache_name) {
-            $cache_name=$self->{'render_cache_name'}=$self->siteconfig->get('/xao/page/render_cache') || '';
+            $cache_name=$self->{'render_cache_name'}=$self->siteconfig->get('/xao/page/render_cache_name') || '';
         }
 
         if($cache_name) {
@@ -832,10 +879,12 @@ sub display ($%) {
             # Building the content. Real arguments for displaying are in
             # $self->{'args'}.
             #
-            $cache->get($self,{
+            my $content=$cache->get($self,{
                 cache_key       => $cache_key,
                 force_update    => ($self->page_clipboard->{'cache_update'} || $args->{'xao.uncached'}),
             });
+
+            XAO::PageSupport::addtext($content);
 
             return;
         }
@@ -922,8 +971,8 @@ set to true.
 
 Normally the parsed templates cache uses a local perl hash. If
 desired a XAO::Cache based implementation can be used by setting
-/xao/page/parse_cache parameter in the site configuration to the desired
-cache name (e.g. "web-page-parsed").
+/xao/page/parse_cache_name parameter in the site configuration to the desired
+cache name (e.g. "xao_parse_cache").
 
 Statistics of various ways of calling:
 
@@ -1007,7 +1056,7 @@ sub parse ($%) {
         #
         my $cache_name=$self->{'parse_cache_name'};
         if(!defined $cache_name) {
-            $cache_name=$self->{'parse_cache_name'}=$self->siteconfig->get('/xao/page/parse_cache') || '';
+            $cache_name=$self->{'parse_cache_name'}=$self->siteconfig->get('/xao/page/parse_cache_name') || '';
         }
 
         # A fast totally local implementation.
@@ -1613,7 +1662,10 @@ sub _benchmark_hash ($) {
 
     if(!$stats) {
         $stats=$self->siteconfig->get('_page_benchmark_stats');
-        if(!$stats) {
+        if($stats) {
+            $self->{'benchmark_stats'}=$stats;
+        }
+        else {
             $stats=$self->{'benchmark_stats'}={ };
             $self->siteconfig->put('_page_benchmark_stats' => $stats);
         }
@@ -1843,7 +1895,10 @@ sub debug_check ($$) {
 
     if(!$debug_hash) {
         $debug_hash=$self->clipboard->get('/debug/Web/Page');
-        if(!$debug_hash) {
+        if($debug_hash) {
+            $self->{'debug_hash'}=$debug_hash;
+        }
+        else {
             $self->{'debug_hash'}=$debug_hash={ };
             $self->clipboard->put('/debug/Web/Page' => $debug_hash);
         }
@@ -1871,7 +1926,10 @@ sub page_clipboard ($) {
 
     if(!$cb_hash) {
         $cb_hash=$self->clipboard->get('/xao/page');
-        if(!$cb_hash) {
+        if($cb_hash) {
+            $self->{'page_clipboard'}=$cb_hash;
+        }
+        else {
             $self->{'page_clipboard'}=$cb_hash={ };
             $self->clipboard->put('/xao/page' => $cb_hash);
         }

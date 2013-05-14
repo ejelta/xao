@@ -10,6 +10,72 @@ use base qw(XAO::testcases::Web::base);
 
 ###############################################################################
 
+sub test_render_cache {
+    my $self=shift;
+
+    my $page=XAO::Objects->new(objname => 'Web::Page');
+    $self->assert(ref($page),
+                  "Can't load Page object");
+
+
+    # Setting up the cache
+    #
+    $page->siteconfig->put('/xao/page/render_cache_name' => 'xao_render_cache');
+    $page->siteconfig->put('/xao/page/render_cache_allow' => {
+        'p:/bits/system-test'       => 1,
+        'p:/bits/complex-template'  => 0,
+        'p:/bits/test-recurring'    => 1,
+    });
+
+    $self->assert($page->siteconfig->get('/xao/page/render_cache_name'),
+        "Failed to modify site configuration");
+
+    ### foreach my $path (qw(/bits/system-test /bits/complex-template /bits/test-recurring)) {
+    foreach my $path (qw(/bits/system-test /bits/test-recurring)) {
+        my $text1=$page->expand(
+            path    => $path,
+            RUN     => 'foo',
+            TEST    => 'test',
+        );
+
+        $self->assert(defined $text1,
+            "Got undef for text2");
+
+        ### dprint "path=$path text=$text1";
+
+        my $text2=$page->expand(
+            path    => $path,
+            RUN     => 'foo',
+            TEST    => 'test',
+        );
+
+        ### dprint "path=$path text=$text2";
+
+        $self->assert(defined $text2,
+            "Got undef for text2");
+
+        $self->assert($text1 eq $text2,
+            "Expected to get identical text, got '$text1' != '$text2'");
+
+        my $text3=$page->expand(
+            path    => $path,
+            RUN     => 'foo',
+            TEST    => 'test',
+        );
+
+        ### dprint "path=$path text=$text3";
+
+        $self->assert(defined $text3,
+            "Got undef for text3");
+
+        $self->assert($text1 eq $text3,
+            "Expected to get identical text, got '$text1' != '$text3'");
+
+    }
+}
+
+###############################################################################
+
 sub test_cgi_param_charsets {
     my $self=shift;
 
@@ -448,6 +514,8 @@ sub test_throw {
     $self->assert(!$error,
                   "Page::throw error - $error");
 }
+
+###############################################################################
 
 sub test_cache {
     my $self=shift;
