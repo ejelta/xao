@@ -1600,10 +1600,10 @@ sub _benchmark_hash ($) {
     my $stats=$self->{'benchmark_stats'};
 
     if(!$stats) {
-        $stats=$self->clipboard->get('_page_benchmark_stats');
+        $stats=$self->siteconfig->get('_page_benchmark_stats');
         if(!$stats) {
             $stats=$self->{'benchmark_stats'}={ };
-            $self->clipboard->put('_page_benchmark_stats' => $stats);
+            $self->siteconfig->put('_page_benchmark_stats' => $stats);
         }
     }
 
