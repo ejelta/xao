@@ -67,6 +67,7 @@ use XAO::Utils;
 use XAO::Objects;
 use XAO::Projects;
 use JSON;
+use Storable qw(freeze thaw);
 use Encode;
 use Digest::SHA;
 
@@ -110,18 +111,26 @@ trusts memcached on that.
 sub get ($$) {
     my $self=shift;
 
-    # We need to support storing undefs. All data is stored as JSON.
-    #
     my $key=$self->make_key(shift);
 
-    my $json_text=$self->memcached->get($key);
+    # We need to support storing undefs. All data is stored as JSON.
+    #
+    my $frozen_text=$self->memcached->get($key);
 
     if($self->{'debug'}) {
-        dprint "MEMCACHED:get('$key') = ",(defined $json_text ? "'".substr($json_text,0,30)."...'" : '<UNDEF>');
+        dprint "MEMCACHED:get('$key')=",(defined $frozen_text ? "'".substr($frozen_text,0,30)."...'" : '<UNDEF>')," length=".length(defined $frozen_text ? $frozen_text : '');
     }
 
-    if(defined $json_text) {
-        my $data=decode_json($json_text)->[0];
+    if(defined $frozen_text) {
+
+        my $data;
+        if(substr($frozen_text,0,1) eq '[') {
+            $data=decode_json($frozen_text)->[0];
+        }
+        else {
+            $data=thaw($frozen_text)->[0];
+        }
+
         return \$data;
     }
     else {
@@ -179,28 +188,60 @@ sub put ($$$) {
     my $key=$self->make_key(shift);
     my $data=shift;
 
-    # We need to support storing complex data and undefs. Using JSON to
-    # accomplish both.
+    # JSON destroys information about UNICODE/OCTETS status of strings,
+    # always returning perl UNICODE. Freeze/Thaw does not have that
+    # problem, but stored strings are not human readable.
     #
-    my $json_text=encode_json([$$data]);
+    if(1) {
 
-    # If the value is too large we silently ignore it and do not
-    # store. It is going to be rejected by the cache anyway.
-    #
-    if(length($json_text) > $self->{'value_maxlength'}) {
-        if($self->{'debug'}) {
-            eprint "MEMCACHED:put('$key' => ",(defined $json_text ? "'".substr($json_text,0,30)."...'" : '<UNDEF>')." len=".length($json_text).">".$self->{'value_maxlength'}." NOT STORED";
+        # We need to support storing complex data and undefs.
+        #
+        my $frozen_text=freeze([$$data]);
+
+        # If the value is too large we silently ignore it and do not
+        # store. It is going to be rejected by the cache anyway.
+        #
+        if(length($frozen_text) > $self->{'value_maxlength'}) {
+            if($self->{'debug'}) {
+                eprint "MEMCACHED:put('$key'=>",(defined $frozen_text ? "'".substr($frozen_text,0,30)."...'" : '<UNDEF>')." length=".length($frozen_text).">".$self->{'value_maxlength'}." NOT STORED";
+            }
+            return;
         }
-        return;
+
+        if($self->{'debug'}) {
+            dprint "MEMCACHED:put('$key'=>",(defined $frozen_text ? "'".substr($frozen_text,0,30)."...'" : '<UNDEF>')." length=".length($frozen_text);
+        }
+
+        my $expire=$self->{'expire'};
+
+        $self->memcached->set($key,$frozen_text,($expire ? time + $expire : 0));
     }
 
-    if($self->{'debug'}) {
-        dprint "MEMCACHED:put('$key' => ",(defined $json_text ? "'".substr($json_text,0,30)."...'" : '<UNDEF>')." len=".length($json_text);
+    else {
+
+        # We need to support storing complex data and undefs. Using JSON to
+        # accomplish both.
+        #
+        my $json_text=encode_json([$$data]);
+
+        # If the value is too large we silently ignore it and do not
+        # store. It is going to be rejected by the cache anyway.
+        #
+        if(length($json_text) > $self->{'value_maxlength'}) {
+            if($self->{'debug'}) {
+                eprint "MEMCACHED:put('$key'=>",(defined $json_text ? "'".substr($json_text,0,30)."...'" : '<UNDEF>')." length=".length($json_text).">".$self->{'value_maxlength'}." NOT STORED";
+            }
+            return;
+        }
+
+        if($self->{'debug'}) {
+            dprint "MEMCACHED:put('$key'=>",(defined $json_text ? "'".substr($json_text,0,30)."...'" : '<UNDEF>')." length=".length($json_text);
+        }
+
+        my $expire=$self->{'expire'};
+
+        $self->memcached->set($key,$json_text,($expire ? time + $expire : 0));
     }
-
-    my $expire=$self->{'expire'};
-
-    $self->memcached->set($key,$json_text,($expire ? time + $expire : 0));
 }
 
 ###############################################################################
