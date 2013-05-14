@@ -177,7 +177,7 @@ sub test_all {
     $text=$benchmark2->expand(
         'mode'              => 'stats',
         'tag'               => 'test',
-        'template'          => '(<$TAG$>:<$COUNT$>:<$CACHEABLE$>:<$CACHE_FLAG$>)',
+        'path'              => '/bits/bench-row',
         'footer.template'   => '|<$TOTAL_ITEMS$>',
     );
 

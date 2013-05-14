@@ -115,7 +115,7 @@ WriteMakefile(
         'MIME::Lite'        => 2.117,
         'Text::FormatTable' => 0.01,
         'Time::HiRes'       => 1.9719,
-        'XAO::Base'         => 1.08,
+        'XAO::Base'         => 1.10,
         'XAO::FS'           => 1.06,
     },
     'INSTALLBIN'	=> $homedir . '/bin',
