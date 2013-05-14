@@ -502,6 +502,20 @@ sub page_clipboard ($);
 
 ###############################################################################
 
+sub _params_digest ($) {
+    my $args=$_[0];
+
+    my %params=map { ref $args->{$_} ? () : ($_ => $args->{$_}) } keys %$args;
+
+    my $params_json=to_json(\%params,{ utf8 => 1, canonical => 1 });
+
+    my $digest=sha1_hex($params_json);
+
+    return wantarray ? ($digest,$params_json) : $digest;
+}
+
+###############################################################################
+
 sub _do_display ($@) {
     my $self=shift;
 
@@ -548,9 +562,7 @@ sub _do_display ($@) {
     # and benchmarking self-referencing recurrent templates.
     #
     if($benchmark_tag) {
-        $args_json=to_json($args,{ utf8 => 1, canonical => 1 });
-
-        $args_digest=sha1_hex($args_json);
+        ($args_digest,$args_json)=_params_digest($args);
 
         $self->benchmark_enter($benchmark_tag,$args_digest,$args_json,$args->{'xao.cacheable'});
     }
@@ -813,9 +825,9 @@ sub display ($%) {
                 );
             }
 
-            # The key depends on all arguments
+            # The key depends on all arguments.
             #
-            my $cache_key=sha1_hex(to_json($args,{ utf8 => 1, canonical => 1 }));
+            my $cache_key=_params_digest($args);
 
             # Building the content. Real arguments for displaying are in
             # $self->{'args'}.
@@ -1666,7 +1678,8 @@ sub benchmark_enter ($$;$$$) {
 
     $rundata->{'started'}=[ gettimeofday ];
 
-    $rundata->{'description'}=$description || '';
+    $description||='';
+    $rundata->{'description'}=length $description > 100 ? substr($description,0,100) : $description;
 
     $rundata->{'cache_flag'}=$cache_flag;
 }

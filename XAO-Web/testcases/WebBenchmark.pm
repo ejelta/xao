@@ -197,6 +197,13 @@ sub test_all {
     $expect='';
     $self->assert($text eq $expect,
         "Expected to render into '$expect', got '$text'");
+
+    # This resulted in a memory overflow until only scalar
+    # parameters started to be digested for cache keys.
+    #
+    $text=$benchmark->expand('mode' => 'stats', 'path' => '/bits/bench-row');
+    $text=$benchmark->expand('mode' => 'stats', 'path' => '/bits/bench-row');
+    $text=$benchmark->expand('mode' => 'stats', 'path' => '/bits/bench-row');
 }
 
 ###############################################################################

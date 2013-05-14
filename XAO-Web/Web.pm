@@ -477,7 +477,7 @@ sub _expand_list ($$) {
     my $content='';
 
     if(!$autolist) {
-        return;
+        return '';
     }
     elsif(ref($autolist) eq 'ARRAY') {
         for(my $i=0; $i<@$autolist; $i+=2) {
