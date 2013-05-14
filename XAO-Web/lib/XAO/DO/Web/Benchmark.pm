@@ -10,12 +10,12 @@ XAO::DO::Web::Benchmark - benchmarking helper
   ...
   <%Benchmark mode='stats' tag='main'
     dprint
-    template={'Count: <$COUNT$> Total: <$TIME_TOTAL$> Avg: <$TIME_AVERAGE$>'}
+    template={'Count: <$COUNT$> Total: <$TOTAL$> Avg: <$AVERAGE$>'}
   %>
   ...
   <%Benchmark mode='stats'
     header.template='<ul>'
-    template=       '<li>Tag: <$TAG/h$> Avg: <$TIME_AVERAGE/h$></li>'
+    template=       '<li>Tag: <$TAG/h$> Avg: <$AVERAGE$> Med: <$MEDIAN$></li>'
     footer.template='</ul>'
   %>
 
@@ -49,19 +49,19 @@ use base XAO::Objects->load(objname => 'Web::Action');
 ###############################################################################
 
 sub display_enter ($@) {
-    my $self = shift;
-    my $args = get_args(\@_);
+    my $self=shift;
+    my $args=get_args(\@_);
     my $tag=$args->{'tag'} || throw $self "- no tag";
-    $self->benchmark_enter('tag');
+    $self->benchmark_enter($tag,$args->{'key'},$args->{'description'});
 }
 
 ###############################################################################
 
 sub display_leave ($@) {
-    my $self = shift;
-    my $args = get_args(\@_);
+    my $self=shift;
+    my $args=get_args(\@_);
     my $tag=$args->{'tag'} || throw $self "- no tag";
-    $self->benchmark_leave('tag');
+    $self->benchmark_leave($tag,$args->{'key'});
 }
 
 ###############################################################################
@@ -81,10 +81,61 @@ sub display_system_stop ($) {
 ###############################################################################
 
 sub data_stats ($@) {
-    my $self = shift;
-    my $args = get_args(\@_);
-    my $tag=$args->{'tag'};
-    throw $self "- not implemented"
+    my $self=shift;
+    my $args=get_args(\@_);
+    return { benchmarks => $self->benchmark_stats($args->{'tag'}) };
+}
+
+###############################################################################
+
+sub display_stats ($@) {
+    my $self=shift;
+    my $args=get_args(\@_);
+
+    my $stats=$args->{'data'}->{'benchmarks'} || throw $self "- no 'data' (INTERNAL)";
+
+    my @tags=sort {
+        $stats->{$b}->{'average'} <=> $stats->{$a}->{'average'}
+    } keys %$stats;
+
+    if($args->{'limit'} && scalar(@tags)>$args->{'limit'}) {
+        splice(@tags,$args->{'limit'})
+    }
+
+    my $page=$self->object;
+
+    $page->display($args,{
+        path        => $args->{'header.path'},
+        template    => $args->{'header.template'},
+        TOTAL_ITEMS => scalar(@tags),
+    }) if $args->{'header.path'} || defined $args->{'header.template'};
+
+    foreach my $tag (@tags) {
+        my $d=$stats->{$tag};
+
+        next unless $d->{'count'};
+
+        $page->display($args,{
+            TAG         => $tag,
+            COUNT       => $d->{'count'},
+            AVERAGE     => $d->{'average'},
+            MEDIAN      => $d->{'median'},
+            TOTAL       => $d->{'total'},
+            CACHEABLE   => $d->{'cacheable'},
+        }) if $args->{'path'} || defined $args->{'template'};
+
+        if($args->{'dprint'} || $args->{'eprint'}) {
+            my $str="BENCHMARK($tag): COUNT=$d->{'count'} AVERAGE=$d->{'average'} MEDIAN=$d->{'median'} TOTAL=$d->{'total'} CACHEABLE=$d->{'cacheable'}";
+            dprint $str if $args->{'dprint'};
+            eprint $str if $args->{'eprint'};
+        }
+    }
+
+    $page->display($args,{
+        path        => $args->{'footer.path'},
+        template    => $args->{'footer.template'},
+        TOTAL_ITEMS => scalar(@tags),
+    }) if $args->{'footer.path'} || defined $args->{'footer.template'};
 }
 
 ###############################################################################

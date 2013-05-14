@@ -14,6 +14,7 @@ sub test_all {
 
     my $page=XAO::Objects->new(objname => 'Web::Page');
     my $benchmark=XAO::Objects->new(objname => 'Web::Benchmark');
+    my $benchmark2=XAO::Objects->new(objname => 'Web::Benchmark');
 
     $benchmark->expand('mode' => 'system-start');
 
@@ -32,15 +33,25 @@ sub test_all {
 
     $page->expand(template => 'blah');
 
-    $page->expand(path => '/bits/system-test', TEST => 'foo');
+    $benchmark->expand('mode' => 'enter', tag => 'test');
 
-    $page->expand(path => '/bits/complex-template');
-    $page->expand(path => '/bits/complex-template');
+    for(1..10) {
+        $page->expand(path => '/bits/system-test', TEST => 'foo', RUN => ($_ <= 5 ? $_ : 'X'));
+        $page->expand(path => '/bits/complex-template', RUN => ($_ <= 5 ? $_ : 'X'));
+        $page->expand(path => '/bits/test-recurring', RUN => ($_ <= 5 ? $_ : 'X'));
+        $page->clipboard->put('test_clipboard' => $_ * 10);
+        $page->expand(path => '/bits/test-non-cacheable', FOO => ($_ <= 5 ? 'A' : 'B'));
+    }
+
+    for(1..20) {
+        $page->expand(path => '/bits/complex-template');
+    }
+
+    $benchmark2->expand('mode' => 'leave', tag => 'test');
 
     my $stats=$page->benchmark_stats();
 
-    use Data::Dumper;
-    dprint "STATS: ".Dumper($stats);
+    ### dprint "STATS: ".to_json($stats,{pretty => 1, utf8 => 1, canonical => 1});
 
     $self->assert(ref $stats eq 'HASH',
         "Expected to get a HASH from benchmark_stats()");
@@ -56,13 +67,102 @@ sub test_all {
     $self->assert($json1 eq $json2,
         "Expected to get identical stats from two web objects ($json1 != $json2)");
 
-    my $count=$stats->{'p:/bits/system-test'}->{'count'} || 0;
-    $self->assert($count == 1,
-        "Expected p:/bits/system-test count to be 1, got $count");
+    my %counts=(
+        'test'                      => [ 1,  1,  1 ],
+        'p:/bits/system-test'       => [ 10, 6,  1 ],
+        'p:/bits/complex-template'  => [ 30, 7,  1 ],
+        'p:/bits/test-recurring'    => [ 20, 7,  1 ],
+        'p:/bits/test-non-cacheable'=> [ 10, 2,  0 ],
+    );
 
-    $count=$stats->{'p:/bits/complex-template'}->{'count'} || 0;
-    $self->assert($count == 2,
-        "Expected p:/bits/complex-template count to be 2, got $count");
+    foreach my $tag (keys %counts) {
+        my $tag_stats=$page->benchmark_stats($tag);
+
+        $json1=to_json({ $tag => $stats->{$tag}},{ canonical => 1 });
+        $json2=to_json($tag_stats,{ canonical => 1 });
+
+        $self->assert($json1 eq $json2,
+            "Expected tag-specific stats ($json2) be the same as global value ($json1)");
+
+        my $tagdata=$stats->{$tag};
+
+        my $count=$tagdata->{'count'} || 0;
+        $self->assert($count == $counts{$tag}->[0],
+            "Expected '$tag' count to be $counts{$tag}->[0], got $count");
+
+        $self->assert($tagdata->{'average'} > 0,
+            "Expected 'average' for '$tag' to be positive");
+
+        $self->assert($tagdata->{'median'} > 0,
+            "Expected 'median' for '$tag' to be positive");
+
+        $self->assert(ref $tagdata->{'last'} eq 'ARRAY',
+            "Expected 'last' for '$tag' to be an array");
+
+        $self->assert(scalar(@{$tagdata->{'last'}}) > 0,
+            "Expected 'last' for '$tag' to have elements");
+
+        my $cacheable=$tagdata->{'cacheable'} ? 1 : 0;
+        $self->assert($cacheable == $counts{$tag}->[2],
+            "Expected 'cacheable' for '$tag' to be $counts{$tag}->[2], got $cacheable");
+
+        my $rundata=$tagdata->{'runs'};
+        $self->assert(ref $rundata,
+            "Expected to have 'runs' ref on '$tag'");
+            
+        $self->assert(scalar(keys %$rundata) == $counts{$tag}->[1],
+            "Expected to have $counts{$tag}->[1] unique runs on '$tag', got ".scalar(keys %$rundata));
+
+        ### dprint to_json($rundata,{pretty => 1});
+
+        foreach my $run_key (keys %$rundata) {
+            $self->assert(ref $rundata->{$run_key}->{'content'},
+                "Expected to have 'content' data for run $run_key of '$tag'");
+        }
+    }
+
+    $self->assert($stats->{'p:/bits/complex-template'}->{'total'} > $stats->{'p:/bits/system-test'}->{'total'},
+        "Expected 'p:/bits/complex-template' to take longer than 'p:/bits/system-test'");
+
+    $self->assert($stats->{'test'}->{'total'} > $stats->{'p:/bits/system-test'}->{'total'},
+        "Expected 'test' to take longer than 'p:/bits/system-test'");
+
+    my $text=$benchmark2->expand(
+        'mode'              => 'stats',
+        'header.template'   => '<$TOTAL_ITEMS$>|',
+        'template'          => '(<$TAG$>:<$COUNT$>:<$CACHEABLE$>)',
+        'footer.template'   => '|<$TOTAL_ITEMS$>',
+    );
+
+    ### dprint $text;
+
+    my $expect='5|(test:1:1)(p:/bits/complex-template:30:1)(p:/bits/test-recurring:20:1)(p:/bits/test-non-cacheable:10:0)(p:/bits/system-test:10:1)|5';
+    $self->assert($text eq $expect,
+        "Expected to render into '$expect', got '$text'");
+
+    $text=$benchmark2->expand(
+        'mode'              => 'stats',
+        'tag'               => 'test',
+        'template'          => '(<$TAG$>:<$COUNT$>:<$CACHEABLE$>)',
+        'footer.template'   => '|<$TOTAL_ITEMS$>',
+    );
+
+    ### dprint $text;
+
+    $expect='(test:1:1)|1';
+    $self->assert($text eq $expect,
+        "Expected to render into '$expect', got '$text'");
+
+    $text=$benchmark2->expand(
+        'mode'              => 'stats',
+        'dprint'            => 1,
+    );
+
+    ### dprint $text;
+
+    $expect='';
+    $self->assert($text eq $expect,
+        "Expected to render into '$expect', got '$text'");
 }
 
 ###############################################################################

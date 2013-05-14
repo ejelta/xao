@@ -493,8 +493,8 @@ sub parse ($%);
 sub siteconfig ($);
 sub textout ($%);
 sub benchmark_enabled ($);
-sub benchmark_enter ($$);
-sub benchmark_leave ($$);
+sub benchmark_enter ($$;$$);
+sub benchmark_leave ($$;$$);
 sub benchmark_start ($;$);
 sub benchmark_stats ($;$);
 sub benchmark_stop ($);
@@ -525,26 +525,39 @@ sub _do_display ($@) {
     # defined for paths, but can also be defined for templates.
     #
     my $benchmark_tag;
-    my $page;
+    my $args_digest;
+    my $args_json;
+    my $parsed;
     if($benchmark) {
-        $page=$self->parse($args,{ cache_key_ref => \$benchmark_tag });
+        $parsed=$self->parse($args,{ cache_key_ref => \$benchmark_tag });
 
         if($benchmark<2 && $benchmark_tag && substr($benchmark_tag,0,2) ne 'p:') {
             $benchmark_tag=undef;
         }
-    }
+
+           }
     else {
-        $page=$self->parse($args);
+        $parsed=$self->parse($args);
     }
 
     # Starting the stopwatch if needed. We may not get a tag if this is
     # an inner pre-parsed template.
     #
-    $self->benchmark_enter($benchmark_tag) if $benchmark_tag;
+    # Calculating a 'run' key that uniquely identifies a specific set of
+    # parameters.  Used for two purposes: identifying cacheable pages
+    # and benchmarking self-referencing recurrent templates.
+    #
+    if($benchmark_tag) {
+        $args_json=to_json($args,{ utf8 => 1, canonical => 1 });
+
+        $args_digest=sha1_hex($args_json);
+
+        $self->benchmark_enter($benchmark_tag,$args_digest,$args_json);
+    }
 
     # Template processing itself. Pretty simple, huh? :)
     #
-    foreach my $item (@{$page}) {
+    foreach my $item (@$parsed) {
 
         my $stop_after;
         my $itemflag;
@@ -682,17 +695,14 @@ sub _do_display ($@) {
     # When benchmarking we stop the timer and we also remember the
     # content for cacheability analysis.
     #
-    if($benchmark) {
-        $self->benchmark_leave($benchmark_tag) if $benchmark_tag;
+    if($benchmark_tag) {
 
-    #    # Page content during this template parsing with all arguments,
-    ### #    # sub-templates, etc.
-    ### #    #
-    ### #    my $digest=sha1_hex(XAO::PageSupport::peek($bookmark));
+        # Page content during this template parsing with all arguments,
+        # sub-templates, etc.
+        #
+        my $content_digest=sha1_hex(XAO::PageSupport::peek($bookmark));
 
-    ### #    # The content may depend on all parameters
-    ### #    #
-    ### #    my 
+        $self->benchmark_leave($benchmark_tag,$args_digest,$content_digest);
     }
 }
 
@@ -809,7 +819,7 @@ sub display ($%) {
             #
             $cache->get($self,{
                 cache_key       => $cache_key,
-                force_update    => $self->clipboard->get('/xao/page/uncached'),
+                force_update    => ($args->{'xao.uncached'} || $self->clipboard->get('/xao/page/uncached')),
             });
 
             return;
@@ -1567,9 +1577,6 @@ sub pass_args ($$;$) {
     #
     delete @{$hash}{'pass','objname','path','template'};
 
-    ### use Data::Dumper;
-    ### dprint Dumper($hash);
-
     # This is it, merging with the arguments given to us and returning
     #
     return merge_refs($hash,$args);
@@ -1584,47 +1591,79 @@ sub benchmark_enabled ($) {
 
 ###############################################################################
 
+sub _benchmark_hash ($) {
+    my $self=shift;
+
+    my $stats=$self->{'benchmark_stats'};
+
+    if(!$stats) {
+        $stats=$self->clipboard->get('_page_benchmark_stats');
+        if(!$stats) {
+            $stats=$self->{'benchmark_stats'}={ };
+            $self->clipboard->put('_page_benchmark_stats' => $stats);
+        }
+    }
+
+    return $stats;
+}
+
+###############################################################################
+
 sub benchmark_tag_data ($$) {
-    my ($self,$tag)=@_;
+    my ($self,$tag,$key)=@_;
 
     $tag || throw $self "- no 'tag'";
 
+    $key||='-';
+
     ref $tag && throw $self "- tag '$tag' is not a scalar";
 
-    my $stats=$self->benchmark_stats();
+    my $stats=$self->_benchmark_hash();
 
     my $tagdata=$stats->{$tag};
 
     if(!$tagdata) {
         $tagdata=$stats->{$tag}={
             count   => 0,
-            elapsed => 0,
-            started => undef,
+            total   => 0,
+            last    => [ ],
+            runs    => { },
         };
     }
 
-    return $tagdata;
+    my $rundata=$tagdata->{'runs'};
+    $rundata->{$key}||={ };
+    $rundata=$rundata->{$key};
+
+    return wantarray ? ($tagdata,$rundata,$key) : $tagdata;
 }
 
 ###############################################################################
 
-=item benchmark_enter($)
+=item benchmark_enter($;$$)
 
 Start tracking the given tag execution time until benchmark_leave() is
 called on the same tag.
 
+An optional second argument can contain a unique key that identifies a
+specific run for the tag (in case of recurrent tag execution). The third
+optional argument is a description of this run.
+
 =cut
 
-sub benchmark_enter ($$) {
-    my ($self,$tag)=@_;
+sub benchmark_enter ($$;$$) {
+    my ($self,$tag,$key,$description)=@_;
 
-    my $tagdata=$self->benchmark_tag_data($tag);
+    my ($tagdata,$rundata);
+    ($tagdata,$rundata,$key)=$self->benchmark_tag_data($tag,$key);
 
-    if($tagdata->{'started'}) {
-        eprint "Benchmark for '$tag' not finished, discarding";
+    if($rundata->{'started'}) {
+        eprint "Benchmark for '$tag' (key '$key') not finished, discarding";
     }
 
-    $tagdata->{'started'}=[ gettimeofday ];
+    $rundata->{'started'}=[ gettimeofday ];
+
+    $rundata->{'description'}=$description || '';
 }
 
 ###############################################################################
@@ -1636,20 +1675,42 @@ history.
 
 =cut
 
-sub benchmark_leave ($$) {
-    my ($self,$tag)=@_;
+sub benchmark_leave ($$;$$) {
+    my ($self,$tag,$key,$content_digest)=@_;
 
-    my $tagdata=$self->benchmark_tag_data($tag);
+    my ($tagdata,$rundata);
+    ($tagdata,$rundata,$key)=$self->benchmark_tag_data($tag,$key);
 
-    my $started=$tagdata->{'started'};
+    ### dprint to_json($tagdata);
+
+    my $started=$rundata->{'started'};
     if(!$started) {
-        eprint "Benchmark for '$tag' was not started";
+        eprint "Benchmark for '$tag' (key '$key') was not started";
         return;
     }
 
+    my $taken=tv_interval($started);
+
+    # For median calculation
+    #
+    my $last=$tagdata->{'last'};
+    push(@$last,$taken);
+    shift(@$last) if scalar(@$last) > 50;
+
     ++$tagdata->{'count'};
-    $tagdata->{'elapsed'}+=tv_interval($started);
-    $tagdata->{'started'}=undef;
+    ++$rundata->{'count'};
+
+    $tagdata->{'total'}+=$taken;
+    $rundata->{'total'}+=$taken;
+
+    # Remembering the content for cacheability analysis.
+    #
+    $content_digest||='-';
+    ++$rundata->{'content'}->{$content_digest};
+
+    # Resetting for the next run
+    #
+    $rundata->{'started'}=undef;
 }
 
 ###############################################################################
@@ -1691,19 +1752,34 @@ Return a hash with accumulated benchmark statistics.
 =cut
 
 sub benchmark_stats ($;$) {
-    my $self=shift;
+    my ($self,$desired_tag)=@_;
 
-    my $stats=$self->{'benchmark_stats'};
+    my $stats=$self->_benchmark_hash();
 
-    if(!$stats) {
-        $stats=$self->clipboard->get('_page_benchmark_stats');
-        if(!$stats) {
-            $stats=$self->{'benchmark_stats'}={ };
-            $self->clipboard->put('_page_benchmark_stats' => $stats);
-        }
+    my %analyzed;
+
+    foreach my $tag (keys %$stats) {
+        my $d=$stats->{$tag};
+        next unless $d->{'count'};
+        next if $desired_tag && $tag ne $desired_tag;
+
+        $d->{'average'}=$d->{'total'} / $d->{'count'};
+        $d->{'median'}=$d->{'last'}->[scalar(@{$d->{'last'}})/2];
+
+        # The page is cacheable if the content only depends on
+        # parameters and not on clipboard, cookies, CGI, time, or other
+        # environment.
+        #
+        $d->{'cacheable'}=scalar(grep {
+            scalar(keys %{$d->{'runs'}->{$_}->{'content'}}) != 1
+        } keys %{$d->{'runs'}}) ? 0 : 1;
+
+        $analyzed{$tag}=$d;
     }
 
-    return $stats;
+    ### dprint to_json(\%analyzed,{ utf8 => 1, canonical => 1, pretty => 1 });
+
+    return \%analyzed;
 }
 
 ###############################################################################

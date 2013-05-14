@@ -70,7 +70,7 @@ XAO::Utils::set_logprint_handler(sub {
 my $template=$page1->expand(path => '/bits/complex-template', unparsed => 1);
 
 print "\n====== Timing:\n";
-my $bm=timethese($ARGV[0] || -5, {
+my $bm=timethese($ARGV[0] || -8, {
     'local-cache-path' => sub {
         $page1->parse(
             path        => '/bits/complex-template',
