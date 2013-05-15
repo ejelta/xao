@@ -737,6 +737,44 @@ sub _do_display ($@) {
 
 ###############################################################################
 
+sub _render_cache ($) {
+    my $self=$_[0];
+
+    return $self->{'render_cache_obj'} if exists $self->{'render_cache_obj'};
+
+    my $cache_name=$self->siteconfig->get('/xao/page/render_cache_name') || '';
+
+    my $cache_obj;
+
+    if($cache_name) {
+        dprint "Using a cache '$cache_name' for rendered templates";
+
+        $cache_obj=$self->cache(
+            name        => $cache_name,
+            coords      => [ 'cache_key' ],
+            retrieve    => \&_do_display,
+        );
+    }
+
+    $self->{'render_cache_obj'}=$cache_obj;
+
+    return $cache_obj;
+}
+
+###############################################################################
+
+# In case of memcached this clears ALL caches, not just render!
+
+sub render_cache_clear ($) { 
+    my $self=$_[0];
+
+    my $cache=$self->_render_cache;
+
+    $cache->drop_all if $cache;
+}
+
+###############################################################################
+
 sub can_cache_render ($$) {
     my ($self,$args)=@_;
 
@@ -853,24 +891,7 @@ sub display ($%) {
     # cache with '/xao/page/cache_update'.
     #
     if($self->can_cache_render($args)) {
-        my $cache_name=$self->{'render_cache_name'};
-
-        if(!defined $cache_name) {
-            $cache_name=$self->{'render_cache_name'}=$self->siteconfig->get('/xao/page/render_cache_name') || '';
-        }
-
-        if($cache_name) {
-
-            my $cache=$self->{'render_cache_obj'};
-            if(!$cache) {
-                dprint "Using a cache '$cache_name' for rendered templates";
-
-                $cache=$self->{'render_cache_obj'}=$self->siteconfig->cache(
-                    name        => $cache_name,
-                    coords      => [ 'cache_key' ],
-                    retrieve    => \&_do_display,
-                );
-            }
+        if(my $cache=$self->_render_cache()) {
 
             # The key depends on all arguments.
             #

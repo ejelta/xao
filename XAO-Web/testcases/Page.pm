@@ -17,21 +17,33 @@ sub test_render_cache {
     $self->assert(ref($page),
                   "Can't load Page object");
 
-
     # Setting up the cache
     #
     $page->siteconfig->put('/xao/page/render_cache_name' => 'xao_render_cache');
     $page->siteconfig->put('/xao/page/render_cache_allow' => {
         'p:/bits/system-test'       => 1,
-        'p:/bits/complex-template'  => 0,
         'p:/bits/test-recurring'    => 1,
+        'p:/bits/test-unicode'      => 1,
     });
 
     $self->assert($page->siteconfig->get('/xao/page/render_cache_name'),
         "Failed to modify site configuration");
 
-    ### foreach my $path (qw(/bits/system-test /bits/complex-template /bits/test-recurring)) {
-    foreach my $path (qw(/bits/system-test /bits/test-recurring)) {
+    $page->siteconfig->put('/cache' => {
+        memcached   => {
+            servers => [ '127.0.0.1:11211' ],
+        },
+        config => {
+            common => {
+                backend => 'Cache::Memcached',
+                ### debug   => 1,
+            },
+        },
+    });
+
+    $page->render_cache_clear();
+
+    foreach my $path (qw(/bits/system-test /bits/test-recurring /bits/test-unicode)) {
         my $text1=$page->expand(
             path    => $path,
             RUN     => 'foo',
@@ -39,9 +51,12 @@ sub test_render_cache {
         );
 
         $self->assert(defined $text1,
-            "Got undef for text2");
+            "Got undef for text1");
 
-        ### dprint "path=$path text=$text1";
+        $self->assert(!utf8::is_utf8($text1),
+            "Expected to get bytes, got UNICODE for text1");
+
+        ### dprint "path=$path text=$text1 utf8=".Encode::is_utf8($text1);
 
         my $text2=$page->expand(
             path    => $path,
@@ -49,10 +64,13 @@ sub test_render_cache {
             TEST    => 'test',
         );
 
-        ### dprint "path=$path text=$text2";
+        ### dprint "path=$path text=$text2 utf8=".Encode::is_utf8($text1);
 
         $self->assert(defined $text2,
             "Got undef for text2");
+
+        $self->assert(!utf8::is_utf8($text2),
+            "Expected to get bytes, got UNICODE for text2");
 
         $self->assert($text1 eq $text2,
             "Expected to get identical text, got '$text1' != '$text2'");
@@ -63,14 +81,16 @@ sub test_render_cache {
             TEST    => 'test',
         );
 
-        ### dprint "path=$path text=$text3";
+        ### dprint "path=$path text=$text3 utf8=".Encode::is_utf8($text1);
 
         $self->assert(defined $text3,
             "Got undef for text3");
 
+        $self->assert(!utf8::is_utf8($text3),
+            "Expected to get bytes, got UNICODE for text3");
+
         $self->assert($text1 eq $text3,
             "Expected to get identical text, got '$text1' != '$text3'");
-
     }
 }
 

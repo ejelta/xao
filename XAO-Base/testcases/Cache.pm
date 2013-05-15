@@ -94,7 +94,7 @@ sub test_backends {
         'null'          => undef,
         1               => "",
         2               => "string",
-        3               => Encode::encode("utf8","binary:\x01\x02\x{2122}"),
+        binary           => Encode::encode("utf8","binary:\x01\x02\x{2122}"),
         'hash'          => { hash => 'reference' },
         'array'         => [ qw(simple array of data) ],
         'data'          => { complex => [ qw(data) ], with => undef, values => { foo => 'bar' } },
@@ -102,6 +102,8 @@ sub test_backends {
         0               => 'zero',
         "\x{2122}"      => 'unicode key',
         'one two'       => 'key with a space',
+        'unicode'       => "проверка",
+        'zerochr'       => "\x00",
         ('.' x 50)      => 'very long key  50',
         ('.' x 230)     => 'very long key 230',
         ('.' x 240)     => 'very long key 240',
@@ -110,6 +112,14 @@ sub test_backends {
         ('.' x 300)     => 'very long key 300',
         ('.' x 400)     => 'very long key 400',
         ('.' x 500)     => 'very long key 500',
+        'text00010'     => join('',map { chr(65+int(rand(26))) } (1..10)),
+        'text00100'     => join('',map { chr(65+int(rand(26))) } (1..100)),
+        'text01000'     => join('',map { chr(65+int(rand(26))) } (1..1000)),
+        'text10000'     => join('',map { chr(65+int(rand(26))) } (1..10000)),
+        'binr00010'     => join('',map { chr(int(rand(2000))) } (1..10)),
+        'binr00100'     => join('',map { chr(int(rand(2000))) } (1..100)),
+        'binr01000'     => join('',map { chr(int(rand(2000))) } (1..1000)),
+        'binr10000'     => join('',map { chr(int(rand(2000))) } (1..10000)),
     );
 
     foreach my $backend (@backends) {
@@ -157,12 +167,9 @@ sub test_backends {
 
                     my $expect=$tests{$idx};
 
-                    ### dprint "got=",$got;
-                    ### dprint "exp=",$expect;
-
                     if(ref $expect) {
-                        my $jgot=JSON::to_json($got,{ canonical => 1, utf8 => 0 });
-                        my $jexpect=JSON::to_json($expect,{ canonical => 1, utf8 => 0 });
+                        my $jgot=JSON::to_json($got,{ canonical => 1, utf8 => 1 });
+                        my $jexpect=JSON::to_json($expect,{ canonical => 1, utf8 => 1 });
 
                         $self->assert($jgot eq $jexpect,
                             "Received '$jgot', expected '$jexpect' for test #$idx, round $round");
@@ -173,8 +180,21 @@ sub test_backends {
                         }
                     }
                     elsif(defined $expect) {
+                        ### dprint "got=",$got," utf8=",utf8::is_utf8($got);
+                        ### dprint "exp=",$expect," utf8=",utf8::is_utf8($expect);
+
+                        if(utf8::is_utf8($expect)) {
+                            $self->assert(utf8::is_utf8($got),
+                                "Expected '$got' to be UNICODE on test $idx");
+                        }
+                        else {
+                            $self->assert(!utf8::is_utf8($got),
+                                "Expected '$got' to NOT be UNICODE on test $idx");
+                        }
+
                         $self->assert(defined $got,
                             "Received 'undef' on test $idx (expected '$expect')");
+
                         $self->assert($got eq $expect,
                             "Received '$got' on test $idx (expected '$expect')");
                     }

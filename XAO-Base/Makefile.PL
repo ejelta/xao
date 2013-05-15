@@ -126,6 +126,7 @@ WriteMakefile(
         'Error'         => '0.13',
         'Test::Unit'    => '0.14',
         'Clone'         => '0.34',
+        'Storable'      => '2.39',
     },
     'PL_FILES'      => {
         'BaseConfig.PL' => '$(INST_LIB)/XAO/BaseConfig.pm',
