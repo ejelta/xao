@@ -3,6 +3,7 @@ use strict;
 use Encode;
 use XAO::Objects;
 use XAO::Utils;
+use JSON;
 use Error qw(:try);
 use XAO::Errors qw(XAO::DO::Web::Page XAO::DO::Web::MyPage);
 
@@ -22,8 +23,8 @@ sub test_render_cache {
     $page->siteconfig->put('/xao/page/render_cache_name' => 'xao_render_cache');
     $page->siteconfig->put('/xao/page/render_cache_allow' => {
         'p:/bits/system-test'       => 1,
-        'p:/bits/test-recurring'    => 1,
-        'p:/bits/test-unicode'      => 1,
+        'p:/bits/test-recurring'    => 'on',
+        'p:/bits/test-unicode'      => { param  => [ '*','!*' ] },
     });
 
     $self->assert($page->siteconfig->get('/xao/page/render_cache_name'),
@@ -91,6 +92,150 @@ sub test_render_cache {
 
         $self->assert($text1 eq $text3,
             "Expected to get identical text, got '$text1' != '$text3'");
+    }
+}
+
+###############################################################################
+
+sub test_params_digest {
+    my $self=shift;
+
+    my $page=XAO::Objects->new(objname => 'Web::Page');
+    $self->assert(ref($page),
+                  "Can't load Page object");
+
+    # Checking how parameters are processed
+    #
+    my @ptests=(
+        {   setup       => {
+                param       => { foo => 'bar', path => '/bits/foo' },
+            },
+            spec        => '1',
+            expect      => q(["/bits/foo",null,{"foo":"bar"},null,null]),
+        },
+        {   setup       => {
+                param       => { foo => 'bar', 'xao.cacheable' => 'on' },
+            },
+            spec        => undef,
+            expect      => q([null,null,{"foo":"bar","xao.cacheable":"on"},null,null]),
+        },
+        {   setup       => {
+                param       => { foo => 'bar' },
+                cgi         => { cgiparam => 'cgivalue', cgimult => [ 'p1','p2','p3' ] },
+                cookie      => { sugar => 'cane' },
+            },
+            spec        => '1',
+            expect      => q([null,null,{"foo":"bar"},null,null]),
+        },
+        {   setup       => {
+                param       => { foo => 'bar', template => 'foo' },
+                cgi         => { cgiparam => 'cgivalue', cgimult => [ 'p1','p2','p3' ] },
+                cookie      => { sugar => 'cane' },
+            },
+            spec        => {
+                param       => [ '*' ],
+                cgi         => [ '*' ],
+                cookie      => [ '*' ],
+            },
+            expect      => q([null,"foo",{"foo":"bar"},{"cgimult":["p1","p2","p3"],"cgiparam":["cgivalue"]},{"sugar":"cane"}]),
+        },
+        {   setup       => {
+                param       => { foo => 'bar', moo => 'cow', template => 'Template', path => '/bits/foo-bar' },
+                cgi         => { cgiparam => 'cgivalue', cgimult => [ 'p1','p2','p3' ] },
+                cookie      => { sugar => 'cane', 'choco' => 'late' },
+            },
+            spec        => {
+                param       => [ '*','!m*' ],
+                cgi         => [ '*','!cgim*' ],
+                cookie      => [ '*','!su*' ],
+            },
+            expect      => q(["/bits/foo-bar","Template",{"foo":"bar"},{"cgiparam":["cgivalue"]},{"choco":"late"}]),
+        },
+        {   setup       => {
+                param       => { foo => 'bar', moo => 'cow' },
+                cgi         => { cgiparam => 'cgivalue', cgimult => [ 'p1','p2','p3' ] },
+                cookie      => { sugar => 'cane', 'choco' => 'late' },
+            },
+            spec        => {
+                param       => [ '*','!moo' ],
+                cgi         => [ '*','!cgimult' ],
+                cookie      => [ '*','!sugar' ],
+            },
+            expect      => q([null,null,{"foo":"bar"},{"cgiparam":["cgivalue"]},{"choco":"late"}]),
+        },
+        {   setup       => {
+                param       => { foo => 'bar', moo => 'cow' },
+                cgi         => { cgiparam => 'cgivalue', cgimult => [ 'p1','p2','p3' ] },
+                cookie      => { sugar => 'cane', 'choco' => 'late' },
+            },
+            spec        => {
+                param       => [ 'moo' ],
+                cgi         => [ 'cgiparam' ],
+                cookie      => [ 'choco' ],
+            },
+            expect      => q([null,null,{"moo":"cow"},{"cgiparam":["cgivalue"]},{"choco":"late"}]),
+        },
+        {   setup       => {
+                param       => { foo => 'bar', boo => 'baz' },
+            },
+            spec        => { param => [ 'f*' ] },
+            expect      => q([null,null,{"foo":"bar"},null,null]),
+        },
+    );
+
+    foreach my $ptest (@ptests) {
+        $self->siteconfig->cleanup();
+        $self->siteconfig->embedded('web')->enable_special_access();
+
+        my $setup_cookie=$ptest->{'setup'}->{'cookie'} || { };
+        my $baked='';
+        while(my ($k,$v) = each %$setup_cookie) {
+            $baked.="$k=$v; ";
+        }
+        $ENV{'HTTP_COOKIE'}=$baked;
+
+        my $spec_json=to_json($ptest->{'spec'},{ canonical => 1, allow_nonref => 1, utf8 => 1 });
+        dprint "Test $spec_json";
+
+        my $cgi=XAO::Objects->new(objname => 'CGI');
+        $self->siteconfig->cgi($cgi);
+
+        my $setup_cgi=$ptest->{'setup'}->{'cgi'} || { };
+        while(my ($k,$v) = each %$setup_cgi) {
+            if(ref $v) {
+                $cgi->param(-name => $k, -values => $v);
+            }
+            else {
+                $cgi->param(-name => $k, -value => $v);
+            }
+        }
+
+        my $params=$ptest->{'setup'}->{'param'} || { };
+
+        ### dprint "..cgi:    ".$page->cgi->query_string;
+        ### dprint "..cookie: ".join(';',@{$page->siteconfig->cookies});
+        ### dprint "..param:  ".to_json($params,{ canonical => 1, utf8 => 1 });
+
+        my $params_digest_1=$page->params_digest($params,$ptest->{'spec'});
+
+        $self->assert($params_digest_1 && length($params_digest_1)>=40,
+            "Expected a digest, got '$params_digest_1'");
+
+        my ($params_digest_2,$params_json)=$page->params_digest($params,$ptest->{'spec'});
+
+        ### dprint " --> $params_digest_2 // $params_json";
+
+        $self->assert($params_digest_2 && length($params_digest_2)>=40,
+            "Expected a digest, got '$params_digest_2'");
+
+        $self->assert($params_digest_1 eq $params_digest_2,
+            "Expected the same digest on scalar and array calls ($params_digest_1 != $params_digest_2)");
+
+        $self->assert(defined $params_json,
+            "Expected a defined JSON digest for '$spec_json'");
+
+        $self->assert($params_json eq $ptest->{'expect'},
+            "Expected '$ptest->{'expect'}', got '$params_json' for '$spec_json'");
     }
 }
 

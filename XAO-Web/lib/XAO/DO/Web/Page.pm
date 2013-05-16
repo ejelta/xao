@@ -382,8 +382,10 @@ the cache to be used for rendered page components.
 
 =item * 
 
-"xao.cacheable" parameter given -- e.g. something like
-<%Page ... xao.cacheable%>.
+The page is configured to be cacheable with either an entry in
+the configuration under '/xao/page/render_cache_allow' or with a
+'xao.cacheable' parameter given (e.g. something like <%Page ...
+xao.cacheable%>).
 
 =item *
 
@@ -409,6 +411,32 @@ rendered content.
 Carefully consider what pages to tag with "cacheable" tag. Benchmarking
 reports can be of great help for that.
 
+Entries in the config /xao/page/render_cache_allow may include additional
+specifications for what parameters are checked when rendered content is
+cached. By default, if the value is '1' or 'on' all of Page template
+parameters are checked, but none of CGI or cookies. Values for
+parameters 'path' and 'template' are always checked, regardless of the
+configuration.
+
+The configuration can look like this:
+
+ xao => {
+    page => {
+        render_cache_name   => 'xao_page_render',
+        render_cache_allow  => {
+            'p:/bits/complex-template'  => 1,
+            'p:/bits/complex-cgi'       => {
+                param   => [ '*' ],
+                cgi     => [ 'cf*' ],
+            },
+            'p:/bits/complex-cookie'    => {
+                param   => [ '*', '!session*' ],
+                cookie  => [ 'session' ],
+            },
+        },
+    },
+ }
+ 
 
 =head2 BENCHMARKING
 
@@ -500,18 +528,84 @@ sub benchmark_stats ($;$);
 sub benchmark_stop ($);
 sub page_clipboard ($);
 
+sub _do_pass_args ($$$);
+
 ###############################################################################
 
-sub _params_digest ($) {
-    my $args=$_[0];
+sub params_digest ($$;$) {
+    my ($self,$args,$spec)=@_;
 
-    my %params=map { ref $args->{$_} ? () : ($_ => $args->{$_}) } keys %$args;
+    # Dropping non-scalar values from params. They get in by calling
+    # ::Action::data_... methods for example, and in other scenarios
+    # too.
+    #
+    my $params={ map { ref $args->{$_} ? () : ($_ => $args->{$_}) } keys %$args };
 
-    my $params_json=to_json(\%params,{ utf8 => 1, canonical => 1 });
+    # Template and path are always passed along
+    #
+    my $path=delete $params->{'path'};
+    my $template=delete $params->{'template'};
 
-    my $digest=sha1_hex($params_json);
+    # Checking what is considered important for the digest, getting a
+    # specification. It may come from outside in testing.
+    #
+    if(!$spec) {
+        $spec=$args->{'xao.cacheable'};
+    }
 
-    return wantarray ? ($digest,$params_json) : $digest;
+    if(!$spec && !defined $args->{'template'} && (my $path=$args->{'path'})) {
+        my $cache_allow=$self->{'cache_allow'};
+        if($cache_allow) {
+            $spec=$cache_allow->{'p:'.$path};
+        }
+    }
+
+    # It may be a hash of instructions about what to keep and what to
+    # drop for the key:
+    #
+    #   param   => [ 'FOO*', '!FOO.BAR*' ],
+    #   cgi     => [ 'fn', 'fv' ],
+    #   cookie  => [ 'customer_id' ],
+    #
+    # Default is to ignore cookies and CGI and hash all scalar
+    # parameters.
+    #
+    my $cgis;
+    my $cookies;
+    if($spec && ref($spec)) {
+        while(my ($spec_key,$spec_list)=each %$spec) {
+            my $hash;
+            my $target;
+
+            if($spec_key eq 'param') {
+                $hash=$params;
+                $target=\$params;
+            }
+            elsif($spec_key eq 'cgi') {
+                my $cgi=$self->cgi;
+                $hash={ map { $_ => [ $cgi->param($_) ] } $cgi->param };
+                $target=\$cgis;
+            }
+            elsif($spec_key eq 'cookie' || $spec_key eq 'cookies') {
+                my $cgi=$self->cgi;
+                $hash={ map { $_ => $cgi->cookie($_) } $cgi->cookie };
+                $target=\$cookies;
+            }
+            else {
+                throw $self "- unsupported source '$spec_key' for '$args->{'path'}'";
+            }
+
+            $$target=$self->_do_pass_args($hash,$spec_list);
+        }
+    }
+
+    # Converting to a canonical scalar and calculating a unique digest.
+    #
+    my $params_json=to_json([$path,$template,$params,$cgis,$cookies],{ utf8 => 1, canonical => 1 });
+
+    my $params_digest=sha1_hex($params_json);
+
+    return wantarray ? ($params_digest,$params_json) : $params_digest;
 }
 
 ###############################################################################
@@ -539,6 +633,11 @@ sub _do_display ($@) {
     my $from_cache_retrieve=$cache_args->{'cache_key'};
     if($from_cache_retrieve) {
         XAO::PageSupport::push();
+
+        if($self->debug_check('render-cache-add')) {
+            my ($args_digest,$args_json)=$self->params_digest($args);
+            dprint "RENDER_CACHE_ADD: $args_json";
+        }
     }
 
     # Parsing template or getting already pre-parsed template when it is
@@ -570,7 +669,7 @@ sub _do_display ($@) {
     # and benchmarking self-referencing recurrent templates.
     #
     if($benchmark_tag) {
-        ($args_digest,$args_json)=_params_digest($args);
+        ($args_digest,$args_json)=$self->params_digest($args);
         $self->benchmark_enter($benchmark_tag,$args_digest,$args_json,$self->can_cache_render($args));
     }
 
@@ -895,7 +994,11 @@ sub display ($%) {
 
             # The key depends on all arguments.
             #
-            my $cache_key=_params_digest($args);
+            my ($cache_key,$params_json)=$self->params_digest($args);
+
+            if($self->debug_check('render-cache-get')) {
+                dprint "RENDER_CACHE_GET: $params_json";
+            }
 
             # Building the content. Real arguments for displaying are in
             # $self->{'args'}.
@@ -1552,6 +1655,71 @@ sub decode_charset ($$) {
 
 ###############################################################################
 
+sub _do_pass_args ($$$) {
+    my ($self,$pargs,$spec)=@_;
+
+    my $hash={ };
+
+    foreach my $rule (@$spec) {
+        $rule=~s/^\s*(.*?)\s*$/$1/;
+
+        ### dprint "...rule='$rule'";
+
+        if($rule eq '*') {
+            $hash=merge_refs($pargs,$hash);
+        }
+        elsif($rule =~ /^([\w\.]+)\s*=\s*([\w\.]+)$/) {     # VAR=FOO
+            $hash->{$1}=$pargs->{$2};
+        }
+        elsif($rule =~ /^([\w\.]*)\*\s*=\s*([\w\.]+)\*?$/) {# VAR*=FOO* or *=FOO*
+            my ($prnew,$prold)=($1,$2);
+            my $lnew=length($prnew);
+            my $lold=length($prold);
+            foreach my $k (keys %$pargs) {
+                next unless substr($k,0,$lold) eq $prold;
+                $hash->{$prnew.substr($k,$lold)}=$pargs->{$k};
+            }
+        }
+        elsif($rule =~ /^([\w\.]+)$/) {                     # VAR
+            $hash->{$1}=$pargs->{$1};
+        }
+        elsif($rule =~ /^([\w\.]+)\*$/) {                   # VAR*
+            my $pr=$1;
+            my $l=length($pr);
+            foreach my $k (keys %$pargs) {
+                next unless substr($k,0,$l) eq $pr;
+                $hash->{$k}=$pargs->{$k};
+            }
+        }
+        elsif($rule =~ /^!([\w\.]+)$/) {                    # !VAR
+            delete $hash->{$1};
+        }
+        elsif($rule =~ /^!([\w\.]+)\*$/) {                  # !VAR*
+            my $pr=$1;
+            my $l=length($pr);
+            my @todel;
+            foreach my $k (keys %$hash) {
+                next unless substr($k,0,$l) eq $pr;
+                push(@todel,$k);
+            }
+            delete @{$hash}{@todel};
+        }
+        elsif($rule eq '!*') {
+            $hash={};
+        }
+        elsif($rule eq '') {
+            # no-op
+        }
+        else {
+            throw $self "- don't know how to pass for '$rule'";
+        }
+    }
+
+    return $hash;
+}
+
+###############################################################################
+
 =item pass_args ($) {
 
 Helper method for supporting "pass" argument in web objects. Synopsis:
@@ -1605,58 +1773,7 @@ sub pass_args ($$;$) {
 
     # Building inherited hash.
     #
-    my $hash;
-    foreach my $rule (split(/;/,$pass)) {
-        $rule=~s/^\s*(.*?)\s*$/$1/;
-
-        ### dprint "...rule='$rule'";
-
-        if($rule eq '*') {
-            $hash=merge_refs($pargs,$hash);
-        }
-        elsif($rule =~ /^([\w\.]+)\s*=\s*([\w\.]+)$/) {     # VAR=FOO
-            $hash->{$1}=$pargs->{$2};
-        }
-        elsif($rule =~ /^([\w\.]*)\*\s*=\s*([\w\.]+)\*?$/) {# VAR*=FOO* or *=FOO*
-            my ($prnew,$prold)=($1,$2);
-            my $lnew=length($prnew);
-            my $lold=length($prold);
-            foreach my $k (keys %$pargs) {
-                next unless substr($k,0,$lold) eq $prold;
-                $hash->{$prnew.substr($k,$lold)}=$pargs->{$k};
-            }
-        }
-        elsif($rule =~ /^([\w\.]+)$/) {                     # VAR
-            $hash->{$1}=$pargs->{$1};
-        }
-        elsif($rule =~ /^([\w\.]+)\*$/) {                   # VAR*
-            my $pr=$1;
-            my $l=length($pr);
-            foreach my $k (keys %$pargs) {
-                next unless substr($k,0,$l) eq $pr;
-                $hash->{$k}=$pargs->{$k};
-            }
-        }
-        elsif($rule =~ /^!([\w\.]+)$/) {                    # !VAR
-            delete $hash->{$1};
-        }
-        elsif($rule =~ /^!([\w\.]+)\*$/) {                  # !VAR*
-            my $pr=$1;
-            my $l=length($pr);
-            my @todel;
-            foreach my $k (keys %$hash) {
-                next unless substr($k,0,$l) eq $pr;
-                push(@todel,$k);
-            }
-            delete @{$hash}{@todel};
-        }
-        elsif($rule eq '') {
-            # no-op
-        }
-        else {
-            throw $self "- don't know how to pass for '$rule'";
-        }
-    }
+    my $hash=$self->_do_pass_args($pargs,[split(/;/,$pass)]);
 
     # Always deleting pass, path and template
     #
