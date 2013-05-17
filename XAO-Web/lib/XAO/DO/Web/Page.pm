@@ -572,6 +572,7 @@ sub params_digest ($$;$) {
     #
     my $cgis;
     my $cookies;
+    my $protocol;
     if($spec && ref($spec)) {
         while(my ($spec_key,$spec_list)=each %$spec) {
             my $hash;
@@ -591,6 +592,9 @@ sub params_digest ($$;$) {
                 $hash={ map { $_ => $cgi->cookie($_) } $cgi->cookie };
                 $target=\$cookies;
             }
+            elsif($spec_key eq 'proto' && $spec_list) {
+                $protocol=$self->is_secure ? 'https' : 'http';
+            }
             else {
                 throw $self "- unsupported source '$spec_key' for '$args->{'path'}'";
             }
@@ -601,7 +605,7 @@ sub params_digest ($$;$) {
 
     # Converting to a canonical scalar and calculating a unique digest.
     #
-    my $params_json=to_json([$path,$template,$params,$cgis,$cookies],{ utf8 => 1, canonical => 1 });
+    my $params_json=to_json([$path,$template,$params,$cgis,$cookies,$protocol],{ utf8 => 1, canonical => 1 });
 
     my $params_digest=sha1_hex($params_json);
 

@@ -111,13 +111,13 @@ sub test_params_digest {
                 param       => { foo => 'bar', path => '/bits/foo' },
             },
             spec        => '1',
-            expect      => q(["/bits/foo",null,{"foo":"bar"},null,null]),
+            expect      => q(["/bits/foo",null,{"foo":"bar"},null,null,null]),
         },
         {   setup       => {
                 param       => { foo => 'bar', 'xao.cacheable' => 'on' },
             },
             spec        => undef,
-            expect      => q([null,null,{"foo":"bar","xao.cacheable":"on"},null,null]),
+            expect      => q([null,null,{"foo":"bar","xao.cacheable":"on"},null,null,null]),
         },
         {   setup       => {
                 param       => { foo => 'bar' },
@@ -125,7 +125,7 @@ sub test_params_digest {
                 cookie      => { sugar => 'cane' },
             },
             spec        => '1',
-            expect      => q([null,null,{"foo":"bar"},null,null]),
+            expect      => q([null,null,{"foo":"bar"},null,null,null]),
         },
         {   setup       => {
                 param       => { foo => 'bar', template => 'foo' },
@@ -137,7 +137,7 @@ sub test_params_digest {
                 cgi         => [ '*' ],
                 cookie      => [ '*' ],
             },
-            expect      => q([null,"foo",{"foo":"bar"},{"cgimult":["p1","p2","p3"],"cgiparam":["cgivalue"]},{"sugar":"cane"}]),
+            expect      => q([null,"foo",{"foo":"bar"},{"cgimult":["p1","p2","p3"],"cgiparam":["cgivalue"]},{"sugar":"cane"},null]),
         },
         {   setup       => {
                 param       => { foo => 'bar', moo => 'cow', template => 'Template', path => '/bits/foo-bar' },
@@ -149,7 +149,7 @@ sub test_params_digest {
                 cgi         => [ '*','!cgim*' ],
                 cookie      => [ '*','!su*' ],
             },
-            expect      => q(["/bits/foo-bar","Template",{"foo":"bar"},{"cgiparam":["cgivalue"]},{"choco":"late"}]),
+            expect      => q(["/bits/foo-bar","Template",{"foo":"bar"},{"cgiparam":["cgivalue"]},{"choco":"late"},null]),
         },
         {   setup       => {
                 param       => { foo => 'bar', moo => 'cow' },
@@ -161,7 +161,7 @@ sub test_params_digest {
                 cgi         => [ '*','!cgimult' ],
                 cookie      => [ '*','!sugar' ],
             },
-            expect      => q([null,null,{"foo":"bar"},{"cgiparam":["cgivalue"]},{"choco":"late"}]),
+            expect      => q([null,null,{"foo":"bar"},{"cgiparam":["cgivalue"]},{"choco":"late"},null]),
         },
         {   setup       => {
                 param       => { foo => 'bar', moo => 'cow' },
@@ -173,13 +173,13 @@ sub test_params_digest {
                 cgi         => [ 'cgiparam' ],
                 cookie      => [ 'choco' ],
             },
-            expect      => q([null,null,{"moo":"cow"},{"cgiparam":["cgivalue"]},{"choco":"late"}]),
+            expect      => q([null,null,{"moo":"cow"},{"cgiparam":["cgivalue"]},{"choco":"late"},null]),
         },
         {   setup       => {
                 param       => { foo => 'bar', boo => 'baz' },
             },
             spec        => { param => [ 'f*' ] },
-            expect      => q([null,null,{"foo":"bar"},null,null]),
+            expect      => q([null,null,{"foo":"bar"},null,null,null]),
         },
     );
 
