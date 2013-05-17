@@ -389,7 +389,7 @@ xao.cacheable%>).
 
 =item *
 
-There is no "/xao/page/cache_update" in the clipboard. This can be used
+There is no "/xao/page/render_cache_update" in the clipboard. This can be used
 to force cache reload by checking some environmental variable early in
 the flow and setting the clipboard to disable all render caches for that
 one render. Cached content is not used, but is updated -- so subsequent
@@ -397,7 +397,7 @@ cached calls with the same parameters will return new content.
 
 =item *
 
-There is no "/xao/page/cache_skip" in the clipboard. This can be used to
+There is no "/xao/page/render_cache_skip" in the clipboard. This can be used to
 skip cache altogether if it is known that pages rendered in this session
 are different from cached and the cache does not want to be contaminated
 with them.
@@ -882,7 +882,7 @@ sub render_cache_clear ($) {
 sub can_cache_render ($$) {
     my ($self,$args)=@_;
 
-    return 0 if $self->page_clipboard->{'cache_skip'};
+    return 0 if $self->page_clipboard->{'render_cache_skip'};
 
     return 1 if $args->{'xao.cacheable'};
 
@@ -991,8 +991,8 @@ sub display ($%) {
     }
 
     # Is this page cacheable? There is a distinction between page not
-    # being cached with '/xao/page/cache_skip' and page being flushed in
-    # cache with '/xao/page/cache_update'.
+    # being cached with '/xao/page/render_cache_skip' and page being flushed in
+    # cache with '/xao/page/render_cache_update'.
     #
     if($self->can_cache_render($args)) {
         if(my $cache=$self->_render_cache()) {
@@ -1010,7 +1010,7 @@ sub display ($%) {
             #
             my $content=$cache->get($self,{
                 cache_key       => $cache_key,
-                force_update    => ($self->page_clipboard->{'cache_update'} || $args->{'xao.uncached'}),
+                force_update    => ($self->page_clipboard->{'render_cache_update'} || $args->{'xao.uncached'}),
             });
 
             XAO::PageSupport::addtext($content);
