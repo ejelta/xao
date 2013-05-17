@@ -200,7 +200,7 @@ sub test_backends {
                     }
                     else {
                         $self->assert(!defined $got,
-                            "Received '$got' on test $idx (expected 'undef')");
+                            "Received '".(defined $got ? $got : 'UNDEF')."' on test $idx (expected 'undef')");
                     }
                 }
             }
