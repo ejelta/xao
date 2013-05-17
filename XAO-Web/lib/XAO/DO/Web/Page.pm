@@ -594,6 +594,7 @@ sub params_digest ($$;$) {
             }
             elsif($spec_key eq 'proto' && $spec_list) {
                 $protocol=$self->is_secure ? 'https' : 'http';
+                next;
             }
             else {
                 throw $self "- unsupported source '$spec_key' for '$args->{'path'}'";

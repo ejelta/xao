@@ -178,8 +178,8 @@ sub test_params_digest {
         {   setup       => {
                 param       => { foo => 'bar', boo => 'baz' },
             },
-            spec        => { param => [ 'f*' ] },
-            expect      => q([null,null,{"foo":"bar"},null,null,null]),
+            spec        => { param => [ 'f*' ], proto => 1 },
+            expect      => q([null,null,{"foo":"bar"},null,null,"http"]),
         },
     );
 
