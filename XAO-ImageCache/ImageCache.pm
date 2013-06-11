@@ -779,7 +779,10 @@ sub scale_file ($$$$;$) {
     #
     $image->Set(magick => 'JPEG');
     $image->Set(quality => ($params->{'quality'} || 88));
-    $image->Write($outfile);
+
+    my $rc=$image->Write($outfile);
+
+    !"$rc" || die "Error writing scaled image: $rc";
 
     dprint "..resized ${src_width}x${src_height} to $geometry for '$label'";
 }
