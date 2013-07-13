@@ -130,15 +130,15 @@ sub display ($%) {
             }
         }
 
-        dprint ".'$formula'";
+        ### dprint ".'$formula'";
 
         $formula=join('',@fparts);
 
-        dprint "..->'$formula'";
+        ### dprint "..->'$formula'";
 
         $result=eval '0.0+('.$formula.')';
 
-        dprint "....=",$result;
+        ### dprint "....=",$result;
 
         $@ && throw $self "- {{CALCULATE: Unable to calculate '$formula'}} ($@)";
 
@@ -146,7 +146,7 @@ sub display ($%) {
         #
         if($format) {
             $result=sprintf($format,$result);
-            dprint "....=$result (formatted)";
+            ### dprint "....=$result (formatted)";
         }
     }
     otherwise {
