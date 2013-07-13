@@ -675,7 +675,7 @@ sub _do_display ($@) {
     #
     if($benchmark_tag) {
         ($args_digest,$args_json)=$self->params_digest($args);
-        $self->benchmark_enter($benchmark_tag,$args_digest,$args_json,$self->can_cache_render($args));
+        $self->benchmark_enter($benchmark_tag,$args_digest,$args_json,$self->can_cache_render($args) ? 1 : 0);
     }
 
     # Template processing itself. Pretty simple, huh? :)
@@ -1871,12 +1871,12 @@ sub benchmark_enter ($$;$$$) {
         eprint "Benchmark for '$tag' (key '$key') not finished, discarding";
     }
 
-    $rundata->{'started'}=[ gettimeofday ];
-
     $description||='';
     $rundata->{'description'}=length $description > 100 ? substr($description,0,100) : $description;
 
-    $rundata->{'cache_flag'}=$cache_flag;
+    $rundata->{'cache_flag'}=$cache_flag ? 1 : 0;
+
+    $rundata->{'started'}=[ gettimeofday ];
 }
 
 ###############################################################################
