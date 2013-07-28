@@ -18,6 +18,18 @@ sub test_render_cache {
     $self->assert(ref($page),
                   "Can't load Page object");
 
+    my $have_memcached;
+    eval {
+        require Memcached::Client;
+        $have_memcached=1;
+    };
+    if($@) {
+        eval {
+            require Cache::Memcached;
+            $have_memcached=1;
+        };
+    }
+
     # Setting up the cache
     #
     $page->siteconfig->put('/xao/page/render_cache_name' => 'xao_render_cache');
@@ -36,7 +48,7 @@ sub test_render_cache {
         },
         config => {
             common => {
-                backend => 'Cache::Memcached',
+                ($have_memcached ? (backend => 'Cache::Memcached') : ()),
                 ### debug   => 1,
             },
         },

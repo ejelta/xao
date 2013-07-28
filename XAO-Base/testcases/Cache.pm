@@ -41,7 +41,7 @@ sub test_backends {
         push(@backends,'Cache::Memcached');
     }
     else {
-        warn "Install Cache::Memcached for XAO::DO::Cache::Memcached backend\n";
+        warn "Install Memcached::Client for XAO::DO::Cache::Memcached backend\n";
     }
 
     my $config=XAO::Objects->new(

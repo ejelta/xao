@@ -4,7 +4,7 @@ use XAO::Templates;
 use XAO::Projects;
 use Encode;
 
-use base qw(testcases::base);
+use base qw(XAO::testcases::Web::base);
 
 ###############################################################################
 
@@ -12,7 +12,7 @@ sub test_templates {
     my $self=shift;
 
     my %tests=(
-        '/bits/test-unicode'    => "Проверка\n",
+        '/bits/test-unicode'    => "Проверка Юникода<%End%>\n",
         '/bits/test-ascii'      => "Ascii\n",
     );
 
