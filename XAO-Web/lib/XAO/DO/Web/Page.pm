@@ -203,6 +203,7 @@ into the string matching pairs of {' and '} can be used:
 
 =back
 
+
 =head2 EMBEDDING SPECIAL CHARACTERS
 
 Sometimes it is necessary to include various special symbols into
@@ -227,6 +228,7 @@ re-written as follows to make it legal:
  name={single &#123; inside}
 
 =back
+
 
 =head2 OUTPUT CONVERSION
 
@@ -359,6 +361,104 @@ example of JavaScript code:
  //-->
  </SCRIPT>
 
+
+=head2 CACHING
+
+Parsed templates are always cached either locally or using a configured
+cache. The cache is keyed on 'path' or 'template' parameters value (two
+identical 'template's will only parse once). Parse cache can be disabled
+by giving an "xao.uncached" parameter. See parse() method description
+for details.
+
+The fully rendered content can also be cached if a couple of conditions
+are met:
+
+=over
+
+=item *
+
+/xao/page/render_cache_name in the config -- this should contain a name of
+the cache to be used for rendered page components.
+
+=item * 
+
+The page is configured to be cacheable with either an entry in
+the configuration under '/xao/page/render_cache_allow' or with a
+'xao.cacheable' parameter given (e.g. something like <%Page ...
+xao.cacheable%>).
+
+=item *
+
+There is no "/xao/page/render_cache_update" in the clipboard. This can be used
+to force cache reload by checking some environmental variable early in
+the flow and setting the clipboard to disable all render caches for that
+one render. Cached content is not used, but is updated -- so subsequent
+cached calls with the same parameters will return new content.
+
+=item *
+
+There is no "/xao/page/render_cache_skip" in the clipboard. This can be used to
+skip cache altogether if it is known that pages rendered in this session
+are different from cached and the cache does not want to be contaminated
+with them.
+
+=back
+
+Properly used render cache can speed up pages significantly, but if
+used incorrectly it can also introduce very hard to find issues in the
+rendered content.
+
+Carefully consider what pages to tag with "cacheable" tag. Benchmarking
+reports can be of great help for that.
+
+Entries in the config /xao/page/render_cache_allow may include additional
+specifications for what parameters are checked when rendered content is
+cached. By default, if the value is '1' or 'on' all of Page template
+parameters are checked, but none of CGI or cookies. Values for
+parameters 'path' and 'template' are always checked, regardless of the
+configuration.
+
+The configuration can look like this:
+
+ xao => {
+    page => {
+        render_cache_name   => 'xao_page_render',
+        render_cache_allow  => {
+            'p:/bits/complex-template'  => 1,
+            'p:/bits/complex-cgi'       => {
+                param   => [ '*' ],
+                cgi     => [ 'cf*' ],
+            },
+            'p:/bits/complex-cookie'    => {
+                param   => [ '*', '!session*' ],
+                cookie  => [ 'session' ],
+            },
+        },
+    },
+ }
+ 
+
+=head2 BENCHMARKING
+
+Benchmarking can be started and stopped by using benchmark_start()
+and benchmark_stop() calls. The hash with current benchmarking data can
+be retrieved with benchmark_stats() call.
+
+When benchmarking is started all rendered paths (and optionally all
+templates) are timed and are also analyzed for potential cacheability --
+if rendered content is repeatedly the same for some set of parameters.
+
+Custom execution paths spanning multiple templates can be tracked by
+using benchmark_enter($tag) and benchmark_leave($tag) calls.
+
+The data is "static", not specific to a particular Page object.
+
+Benchmarking slows down processing. Do not use it in production.
+
+For an easy way to control benchmarking from templates use <%Benchmark%>
+object.
+
+
 =head2 NOTE FOR HARD-BOILED HACKERS
 
 If you do not like something in the parser behavior you can define
@@ -392,21 +492,20 @@ from Page unless overwritten) are:
 ###############################################################################
 package XAO::DO::Web::Page;
 use strict;
+use Digest::SHA qw(sha1_hex);
 use Encode;
-use XAO::Utils;
+use Time::HiRes qw(gettimeofday tv_interval);
+use JSON qw(to_json);
 use XAO::Cache;
-use XAO::Templates;
 use XAO::Objects;
-use XAO::Projects qw(:all);
 use XAO::PageSupport;
+use XAO::Projects qw(:all);
+use XAO::Templates;
+use XAO::Utils;
 use Error qw(:try);
 
 use base XAO::Objects->load(objname => 'Atom');
 
-use vars qw($VERSION);
-$VERSION=(0+sprintf('%u.%03u',(q$Id: Page.pm,v 2.7 2008/07/06 23:14:26 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
-
-##
 # Prototypes
 #
 sub cache ($%);
@@ -421,98 +520,167 @@ sub odb ($);
 sub parse ($%);
 sub siteconfig ($);
 sub textout ($%);
+sub benchmark_enabled ($);
+sub benchmark_enter ($$;$$$);
+sub benchmark_leave ($$;$$);
+sub benchmark_start ($;$);
+sub benchmark_stats ($;$);
+sub benchmark_stop ($);
+sub page_clipboard ($);
+
+sub _do_pass_args ($$$);
 
 ###############################################################################
 
-=item display (%)
+sub params_digest ($$;$) {
+    my ($self,$args,$spec)=@_;
 
-Displays given template to the current output buffer. The system uses
-buffers to collect all text displayed by various objects in a rather
-optimal way using XAO::PageSupport (see L<XAO::PageSupport>)
-module. In XAO::Web handler the global buffer is initialized and after all
-displayable objects have worked their way it retrieves whatever was
-accumulated in that buffer and displays it.
-
-This way you do not have to think about where your output goes as long
-as you do not "print" anything by yourself - you should always call
-either display() or textout() to print any piece of text.
-
-Display() accepts the following arguments:
-
-=over
-
-=item pass
-
-Passes arguments from calling context into the template.
-
-The syntax allows to map parent arguments into new names,
-and/or to limit what is passed. Multiple semi-colon separated rules are
-allowed. Rules are processed from left to right.
-
-  NEWNAME=OLDNAME  - pass the value of OLDNAME as NEWNAME
-  NEW*=OLD*        - pass all old values starting with OLD as NEW*
-  VAR;VAR.*        - pass VAR and VAR.* under their own names
-  *;!VAR*          - pass everything except VAR*
-
-The default, when the value of 'pass' is 'on' or '1', is the same as
-passing '*' -- meaning that all parent arguments are passed literally
-under their own names.
-
-There are exceptions, that are never passed from parent arguments:
-'pass', 'objname', 'path', and 'template'.
-
-Arguments given to display() override those inherited from the caller
-using 'pass'.
-
-=item path => 'path/to/the/template'
-
-Gives Page a path to the template that should be processed and
-displayed.
-
-=item template => 'template text'
-
-Provides Page with the actual template text.
-
-=item unparsed => 1
-
-If set it does not parse template, just displays it literally.
-
-=back
-
-Any other argument given is passed into template unmodified as a
-variable. Remember that it is recommended to pass variables using
-all-capital names for better visual recognition.
-
-Example:
-
- $obj->display(path => "/bits/left-menu", ITEM => "main");
-
-For security reasons it is also recommended to put all sub-templates
-into /bits/ directory under templates tree or into "bits" subdirectory
-of some tree inside of templates (like /admin/bits/admin-menu). Such
-templates cannot be displayed from XAO::Web handler by passing their
-path in URL.
-
-=cut
-
-sub display ($%) {
-    my $self=shift;
-    my $args=$self->{'args'}=get_args(\@_);
-
-    # Merging parent's args in if requested.
+    # Dropping non-scalar values from params. They get in by calling
+    # ::Action::data_... methods for example, and in other scenarios
+    # too.
     #
-    if($args->{'pass'}) {
-        $args=$self->{'args'}=$self->pass_args($args->{'pass'},$args);
+    my $params={ map { ref $args->{$_} ? () : ($_ => $args->{$_}) } keys %$args };
+
+    # Template and path are always passed along
+    #
+    my $path=delete $params->{'path'};
+    my $template=delete $params->{'template'};
+
+    # Checking what is considered important for the digest, getting a
+    # specification. It may come from outside in testing.
+    #
+    if(!$spec) {
+        $spec=$args->{'xao.cacheable'};
+    }
+
+    if(!$spec && !defined $args->{'template'} && (my $path=$args->{'path'})) {
+        my $cache_allow=$self->{'cache_allow'};
+        if($cache_allow) {
+            $spec=$cache_allow->{'p:'.$path};
+        }
+    }
+
+    # It may be a hash of instructions about what to keep and what to
+    # drop for the key:
+    #
+    #   param   => [ 'FOO*', '!FOO.BAR*' ],
+    #   cgi     => [ 'fn', 'fv' ],
+    #   cookie  => [ 'customer_id' ],
+    #
+    # Default is to ignore cookies and CGI and hash all scalar
+    # parameters.
+    #
+    my $cgis;
+    my $cookies;
+    my $protocol;
+    if($spec && ref($spec)) {
+        while(my ($spec_key,$spec_list)=each %$spec) {
+            my $hash;
+            my $target;
+
+            if($spec_key eq 'param') {
+                $hash=$params;
+                $target=\$params;
+            }
+            elsif($spec_key eq 'cgi') {
+                my $cgi=$self->cgi;
+                $hash={ map { $_ => [ $cgi->param($_) ] } $cgi->param };
+                $target=\$cgis;
+            }
+            elsif($spec_key eq 'cookie' || $spec_key eq 'cookies') {
+                my $cgi=$self->cgi;
+                $hash={ map { $_ => $cgi->cookie($_) } $cgi->cookie };
+                $target=\$cookies;
+            }
+            elsif($spec_key eq 'proto' && $spec_list) {
+                $protocol=$self->is_secure ? 'https' : 'http';
+                next;
+            }
+            else {
+                throw $self "- unsupported source '$spec_key' for '$args->{'path'}'";
+            }
+
+            $$target=$self->_do_pass_args($hash,$spec_list);
+        }
+    }
+
+    # Converting to a canonical scalar and calculating a unique digest.
+    #
+    my $params_json=to_json([$path,$template,$params,$cgis,$cookies,$protocol],{ utf8 => 1, canonical => 1 });
+
+    my $params_digest=sha1_hex($params_json);
+
+    return wantarray ? ($params_digest,$params_json) : $params_digest;
+}
+
+###############################################################################
+
+sub _do_display ($@) {
+    my $self=shift;
+    my $cache_args=get_args(\@_);
+
+    # We need to operate on this specific hash because it can get
+    # modified during template processing.
+    #
+    my $args=$self->{'args'} || throw $self "- no 'args' in self";
+
+    # Preparing to benchmark if requested
+    #
+    my $benchmark=$self->benchmark_enabled();
+
+    # We need to bookmark buffer position to analyze content data later
+    # for cacheability later.
+    #
+    my $bookmark=$benchmark ? XAO::PageSupport::bookmark() : 0;
+
+    # When called from a cache retrieve we have a cache_key parameter.
+    #
+    my $from_cache_retrieve=$cache_args->{'cache_key'};
+    if($from_cache_retrieve) {
+        XAO::PageSupport::push();
+
+        if($self->debug_check('render-cache-add')) {
+            my ($args_digest,$args_json)=$self->params_digest($args);
+            dprint "RENDER_CACHE_ADD: $args_json";
+        }
     }
 
     # Parsing template or getting already pre-parsed template when it is
     # available.
     #
-    my $page=$self->parse($args);
+    # Also defining the tag for benchmarking. Normally it is only
+    # defined for paths, but can also be defined for templates.
+    #
+    my $benchmark_tag;
+    my $args_digest;
+    my $args_json;
+    my $parsed;
+    if($benchmark) {
+        $parsed=$self->parse($args,{ cache_key_ref => \$benchmark_tag });
+
+        if($benchmark<2 && $benchmark_tag && substr($benchmark_tag,0,2) ne 'p:') {
+            $benchmark_tag=undef;
+        }
+    }
+    else {
+        $parsed=$self->parse($args);
+    }
+
+    # Starting the stopwatch if needed. We may not get a tag if this is
+    # an inner pre-parsed template.
+    #
+    # Calculating a 'run' key that uniquely identifies a specific set of
+    # parameters.  Used for two purposes: identifying cacheable pages
+    # and benchmarking self-referencing recurrent templates.
+    #
+    if($benchmark_tag) {
+        ($args_digest,$args_json)=$self->params_digest($args);
+        $self->benchmark_enter($benchmark_tag,$args_digest,$args_json,$self->can_cache_render($args) ? 1 : 0);
+    }
 
     # Template processing itself. Pretty simple, huh? :)
     #
-    foreach my $item (@{$page}) {
+    foreach my $item (@$parsed) {
 
         my $stop_after;
         my $itemflag;
@@ -527,7 +695,7 @@ sub display ($%) {
             my $varname=$item->{'varname'};
             $text=$args->{$varname};
             defined $text ||
-                throw $self "display - undefined argument '$varname'";
+                throw $self "- undefined argument '$varname'";
             $itemflag=$item->{'flag'};
         }
 
@@ -646,6 +814,214 @@ sub display ($%) {
         #
         last if $stop_after;
     }
+
+    # We need to return the actual rendered content if this is called
+    # from cache render.
+    #
+    my $content=undef;
+    if($from_cache_retrieve) {
+        $content=XAO::PageSupport::pop();
+    }
+    elsif($benchmark_tag) {
+        $content=XAO::PageSupport::peek($bookmark);
+    }
+
+    # When benchmarking we stop the timer and we also remember the
+    # content for cacheability analysis.
+    #
+    if($benchmark_tag) {
+        my $content_digest=sha1_hex($content);
+        $self->benchmark_leave($benchmark_tag,$args_digest,$content_digest);
+    }
+
+    # This will be an undef if the call is not from cache. That is fine.
+    #
+    return $content;
+}
+
+###############################################################################
+
+sub _render_cache ($) {
+    my $self=$_[0];
+
+    return $self->{'render_cache_obj'} if exists $self->{'render_cache_obj'};
+
+    my $cache_name=$self->siteconfig->get('/xao/page/render_cache_name') || '';
+
+    my $cache_obj;
+
+    if($cache_name) {
+        dprint "Using a cache '$cache_name' for rendered templates";
+
+        $cache_obj=$self->cache(
+            name        => $cache_name,
+            coords      => [ 'cache_key' ],
+            retrieve    => \&_do_display,
+        );
+    }
+
+    $self->{'render_cache_obj'}=$cache_obj;
+
+    return $cache_obj;
+}
+
+###############################################################################
+
+# In case of memcached this clears ALL caches, not just render!
+
+sub render_cache_clear ($) { 
+    my $self=$_[0];
+
+    my $cache=$self->_render_cache;
+
+    $cache->drop_all if $cache;
+}
+
+###############################################################################
+
+sub can_cache_render ($$) {
+    my ($self,$args)=@_;
+
+    return 0 if $self->page_clipboard->{'render_cache_skip'};
+
+    return 1 if $args->{'xao.cacheable'};
+
+    my $path=!defined $args->{'template'} && $args->{'path'};
+
+    return 0 unless $path;
+
+    my $cache_key='p:' . $path;
+
+    my $cache_allow=$self->{'cache_allow'};
+    if(!$cache_allow) {
+        $cache_allow=$self->siteconfig->get('/xao/page/render_cache_allow');
+        if($cache_allow) {
+            $self->{'cache_allow'}=$cache_allow;
+        }
+        else {
+            $cache_allow=$self->{'cache_allow'}={ };
+            $self->siteconfig->put('/xao/page/render_cache_allow' => $cache_allow);
+        }
+    }
+
+    return $cache_allow->{$cache_key};
+}
+
+###############################################################################
+
+=item display (%)
+
+Displays given template to the current output buffer. The system uses
+buffers to collect all text displayed by various objects in a rather
+optimal way using XAO::PageSupport (see L<XAO::PageSupport>)
+module. In XAO::Web handler the global buffer is initialized and after all
+displayable objects have worked their way it retrieves whatever was
+accumulated in that buffer and displays it.
+
+This way you do not have to think about where your output goes as long
+as you do not "print" anything by yourself - you should always call
+either display() or textout() to print any piece of text.
+
+Display() accepts the following arguments:
+
+=over
+
+=item pass
+
+Passes arguments from calling context into the template.
+
+The syntax allows to map parent arguments into new names,
+and/or to limit what is passed. Multiple semi-colon separated rules are
+allowed. Rules are processed from left to right.
+
+  NEWNAME=OLDNAME  - pass the value of OLDNAME as NEWNAME
+  NEW*=OLD*        - pass all old values starting with OLD as NEW*
+  VAR;VAR.*        - pass VAR and VAR.* under their own names
+  *;!VAR*          - pass everything except VAR*
+
+The default, when the value of 'pass' is 'on' or '1', is the same as
+passing '*' -- meaning that all parent arguments are passed literally
+under their own names.
+
+There are exceptions, that are never passed from parent arguments:
+'pass', 'objname', 'path', and 'template'.
+
+Arguments given to display() override those inherited from the caller
+using 'pass'.
+
+=item path => 'path/to/the/template'
+
+Gives Page a path to the template that should be processed and
+displayed.
+
+=item template => 'template text'
+
+Provides Page with the actual template text.
+
+=item unparsed => 1
+
+If set it does not parse template, just displays it literally.
+
+=back
+
+Any other argument given is passed into template unmodified as a
+variable. Remember that it is recommended to pass variables using
+all-capital names for better visual recognition.
+
+Example:
+
+ $obj->display(path => "/bits/left-menu", ITEM => "main");
+
+For security reasons it is also recommended to put all sub-templates
+into /bits/ directory under templates tree or into "bits" subdirectory
+of some tree inside of templates (like /admin/bits/admin-menu). Such
+templates cannot be displayed from XAO::Web handler by passing their
+path in URL.
+
+=cut
+
+sub display ($%) {
+    my $self=shift;
+    my $args=$self->{'args'}=get_args(\@_);
+
+    # Merging parent's args in if requested.
+    #
+    if($args->{'pass'}) {
+        $args=$self->{'args'}=$self->pass_args($args->{'pass'},$args);
+    }
+
+    # Is this page cacheable? There is a distinction between page not
+    # being cached with '/xao/page/render_cache_skip' and page being flushed in
+    # cache with '/xao/page/render_cache_update'.
+    #
+    if($self->can_cache_render($args)) {
+        if(my $cache=$self->_render_cache()) {
+
+            # The key depends on all arguments.
+            #
+            my ($cache_key,$params_json)=$self->params_digest($args);
+
+            if($self->debug_check('render-cache-get')) {
+                dprint "RENDER_CACHE_GET: $params_json";
+            }
+
+            # Building the content. Real arguments for displaying are in
+            # $self->{'args'}.
+            #
+            my $content=$cache->get($self,{
+                cache_key       => $cache_key,
+                force_update    => ($self->page_clipboard->{'render_cache_update'} || $args->{'xao.uncached'}),
+            });
+
+            XAO::PageSupport::addtext($content);
+
+            return;
+        }
+    }
+
+    # We get here if the page cannot be cached
+    #
+    $self->_do_display();
 }
 
 ###############################################################################
@@ -662,14 +1038,15 @@ the same arguments as display(). Here is an example:
 sub expand ($%) {
     my $self=shift;
 
-    ##
     # First it prepares a place in stack for new text (push) and after
     # display it calls pop to get back whatever was written. The sole
     # reason for all this is speed optimization - XAO::PageSupport is
     # implemented in C in quite optimal way.
     #
     XAO::PageSupport::push();
+
     $self->display(@_);
+
     return XAO::PageSupport::pop();
 }
 
@@ -680,9 +1057,9 @@ sub expand ($%) {
 Takes template from either 'path' or 'template' and parses it. If given
 the following template:
 
-    Text <%Object a=A b="B" c={<%C/f ca={CA}%>} d='D' e={'<$E$>'}%>
+    Text <%Object a=A b="B" c={X<%C/f ca={CA}%>} d='D' e={'<$E$>'}%>
 
-It will return a reference to the array of the following structure:
+It will return a reference to an array of the following structure:
 
     [   {   text    => 'Text ',
         },
@@ -697,6 +1074,8 @@ It will return a reference to the array of the following structure:
                     },
                 ],
                 c => [
+                    {   text    => 'X',
+                    },
                     {   objname => 'C',
                         flag    => 'f',
                         args    => {
@@ -713,79 +1092,214 @@ It will return a reference to the array of the following structure:
         },
     ]
 
-Templates from disk files are cached for the lifetime of the process and
-are never re-parsed.
+With "unparsed" parameter the content of the template is not analyzed
+and is returned as a single 'text' node.
 
-Always returns with a correct array or throws an error.
+Templates are only parsed once, unless an "xao.uncached" parameter is
+set to true.
+
+Normally the parsed templates cache uses a local perl hash. If
+desired a XAO::Cache based implementation can be used by setting
+/xao/page/parse_cache_name parameter in the site configuration to the desired
+cache name (e.g. "xao_parse_cache").
+
+Statistics of various ways of calling:
+
+    memcached-cache-path       1866/s
+    memcached-cache-template   2407/s
+    no-cache-path              5229/s
+    no-cache-template          5572/s
+    memory-cache-template     26699/s
+    memory-cache-path         45253/s
+    local-cache-template      49681/s
+    local-cache-path         149806/s
+
+Unless the site has a huge number of templates there is really no
+compelling reason to use anything but the default local cache. The
+performance of memcached is worse than no caching at all for example.
+
+The method always returns with a correct array or throws an error.
 
 =cut
 
+sub parse_retrieve ($@);
+
 my %parsed_cache;
+
 sub parse ($%) {
     my $self=shift;
     my $args=get_args(\@_);
-    my $sitename;
 
-    ##
-    # Getting template text
+    my $unparsed=$args->{'unparsed'};
+
+    my $uncached=$args->{'xao.uncached'};
+
+    # Preparing a short key that uniquely identifies the template given
+    # (by either a path or an inline text). Uniqueness is only needed
+    # within the site context. Global scope uniqueness is dealt with by
+    # cache implementations below.
     #
     my $template;
-    my $unparsed=$args->{'unparsed'};
     my $path;
+    my $cache_key;
     if(defined($args->{'template'})) {
         $template=$args->{'template'};
+
         if(ref($template)) {
             return $template;       # Pre-parsed as an argument of some upper class
+        }
+
+        $template=Encode::encode('utf8',$template) if Encode::is_utf8($template);
+
+        if(length $template < 80) {
+            $cache_key=($unparsed ? 'T' : 't').':'.$template;
+        }
+        else {
+            $cache_key=($unparsed ? 'H' : 'h').':'.sha1_hex($template);
         }
     }
     else {
         $path=$args->{'path'} ||
-            throw $self "parse - no 'path' and no 'template' given to a Page object";
+            throw $self "- no 'path' and no 'template' given to a Page object";
 
-        $sitename=$self->{'sitename'} || get_current_project_name();
+        $cache_key=($unparsed ? 'P' : 'p').':'.$path;
+    }
 
-        if(!$unparsed && exists $parsed_cache{$sitename}->{$path}) {
-            return $parsed_cache{$sitename}->{$path};
+    # Remembering the key if needed. It is used for benchmark cache.
+    #
+    my $cache_key_ref=$args->{'cache_key_ref'};
+    $$cache_key_ref=$cache_key if $cache_key_ref;
+
+    # With uncached we don't even try to use any caches.
+    #
+    my $parsed;
+    if($uncached) {
+        $parsed=$self->parse_retrieve($args);
+    }
+
+    # Caching either locally, or in a standard cache
+    #
+    else {
+
+        # Setup, only executed once.
+        #
+        my $cache_name=$self->{'parse_cache_name'};
+        if(!defined $cache_name) {
+            $cache_name=$self->{'parse_cache_name'}=$self->siteconfig->get('/xao/page/parse_cache_name') || '';
         }
 
-        if($self->debug_check('show-path')) {
-            dprint $self->{'objname'}."::parse - path='$path'";
+        # A fast totally local implementation.
+        #
+        # About two times faster than a memcached, but grows a template
+        # cache per-process.
+        #
+        if(!$cache_name) {
+
+            # Making it unique per site
+            #
+            my $sitename=$self->{'sitename'} || get_current_project_name() || '';
+            $cache_key=$sitename . ':' . $cache_key;
+
+            # Checking if we have parsed and cached this before
+            #
+            $parsed=$parsed_cache{$cache_key};
+
+            return $parsed if defined $parsed;
+
+            # Reading and parsing.
+            # 
+            $parsed=$self->parse_retrieve($args);
+
+            # Caching the parsed template.
+            #
+            $parsed_cache{$cache_key}=$parsed;
+
+            # Logging the size
+            #
+            if($self->debug_check('page-cache-size')) {
+                $self->cache_show_size($cache_key);
+            }
+        }
+
+        # More generic implementation that can be switched from local to
+        # memcached to anything else
+        #
+        else {
+            my $cache=$self->{'parse_cache_obj'};
+            if(!$cache) {
+                dprint "Using a named cache '$cache_name' for parsed templates";
+
+                $cache=$self->{'parse_cache_obj'}=$self->siteconfig->cache(
+                    name        => $cache_name,
+                    coords      => [ 'cache_key' ],
+                    retrieve    => \&parse_retrieve,
+                );
+            }
+
+            $parsed=$cache->get($self,$args,{
+                cache_key       => $cache_key,
+                force_update    => $uncached,
+            });
+        }
+    }
+
+    return $parsed;
+}
+
+###############################################################################
+
+sub parse_retrieve ($@) {
+    my $self=shift;
+    my $args=get_args(\@_);
+
+    my $path=$args->{'path'};
+    my $template=$args->{'template'};
+    my $unparsed=$args->{'unparsed'};
+
+    # Reading and parsing.
+    #
+    if($path && !defined $template) {
+        if($self->debug_check('show-read')) {
+            dprint $self->{'objname'}."::parse - read path='$path'";
         }
 
         $template=XAO::Templates::get(path => $path);
+
         defined($template) ||
-            throw $self "parse - no template found (path=$path)";
+            throw $self "- no template found (path=$path)";
     }
 
-    # Checking if we do not need to parse that template.
+    # Unless we need an unparsed template - parse it
     #
+    my $parsed;
     if($unparsed) {
-        return [ { text => $template } ];
+        $parsed=[ { text => $template } ];
     }
+    else {
 
-    # Logging the template or path if requested.
-    #
-    if($self->debug_check('show-parse')) {
-        if($path) {
-            dprint $self->{'objname'}."::parse - parsing path='$path'"
+        # Logging the template or path if requested.
+        #
+        if($self->debug_check('show-parse')) {
+            if($path) {
+                dprint $self->{'objname'}."::parse - parsing path='$path'"
+            }
+            else {
+                my $te=substr($template,0,20);
+                $te=~s/\r/\\r/sg;
+                $te=~s/\n/\\n/sg;
+                $te=~s/\t/\\t/sg;
+                $te.='...' if length($template)>20;
+                dprint $self->{'objname'}."::parse - parsing template='$te'";
+            }
         }
-        else {
-            my $te=substr($template,0,20);
-            $te=~s/\r/\\r/sg;
-            $te=~s/\n/\\n/sg;
-            $te=~s/\t/\\t/sg;
-            $te.='...' if length($template)>20;
-            dprint $self->{'objname'}."::parse - parsing inline template ($te)";
-        }
+
+        # Parsing. If a scalar is returned it is an indicator of an error.
+        #
+        $parsed=XAO::PageSupport::parse($template);
+
+        ref $parsed ||
+            throw $self "- $parsed";
     }
-
-    # Parsing. If a scalar is returned it is an indicator of an error.
-    #
-    my $parsed=XAO::PageSupport::parse($template);
-    ref $parsed ||
-        throw $self "parse - $parsed";
-
-    $parsed_cache{$sitename}->{$path}=$parsed if $path;
 
     return $parsed;
 }
@@ -839,7 +1353,7 @@ Getting FilloutForm object:
   }
 
 Object() method always returns object reference or throws an exception
--- meaning that under normal circumstances you do not need to worry
+- meaning that under normal circumstances you do not need to worry
 about returned object correctness. If you get past the call to object()
 method then you have valid object reference on hands.
 
@@ -930,10 +1444,10 @@ Example:
 
 sub dbh ($) {
     my $self=shift;
-    return $self->{dbh} if $self->{dbh};
+    return $self->{dbh} if $self->{'dbh'};
     $self->{dbh}=$self->siteconfig->dbh;
     return $self->{dbh} if $self->{dbh};
-    throw $self "dbh - no database connection";
+    throw $self "- no database connection";
 }
 
 ###############################################################################
@@ -961,7 +1475,7 @@ sub odb ($) {
     $self->{odb}=$self->siteconfig->odb;
     return $self->{odb} if $self->{odb};
 
-    throw $self "odb - requires object database connection";
+    throw $self "- requires object database connection";
 }
 
 ###############################################################################
@@ -1005,7 +1519,11 @@ produce a page. Clipboard is cleaned before starting every new session.
 
 sub clipboard ($) {
     my $self=shift;
-    $self->siteconfig->clipboard;
+    my $clipboard=$self->{'clipboard'};
+    if(!$clipboard) {
+        $clipboard=$self->{'clipboard'}=$self->siteconfig->clipboard;
+    }
+    return $clipboard;
 }
 
 ###############################################################################
@@ -1020,9 +1538,13 @@ data between objects. See L<XAO::Projects> for more details.
 
 sub siteconfig ($) {
     my $self=shift;
-    return $self->{siteconfig} if $self->{siteconfig};
-    $self->{siteconfig}=$self->{sitename} ? get_project($self->{sitename})
-                                          : get_current_project();
+    my $siteconfig=$self->{'siteconfig'};
+    if(!$siteconfig) {
+        $siteconfig=$self->{'siteconfig'}=
+            $self->{'sitename'} ? get_project($self->{'sitename'})
+                                : get_current_project();
+    }
+    return $siteconfig;
 }
 
 ###############################################################################
@@ -1107,7 +1629,7 @@ sub pageurl ($;%) {
     my $self=shift;
 
     my $pagedesc=$self->clipboard->get('pagedesc') ||
-        throw $self "pageurl - no Web context, needs clipboard->'pagedesc'";
+        throw $self "- no Web context, needs clipboard->'pagedesc'";
 
     my $url=$self->base_url(@_);
     my $uri=$pagedesc->{fullpath} || '/';
@@ -1134,6 +1656,71 @@ sub decode_charset ($$) {
     else {
         return $text;
     }
+}
+
+###############################################################################
+
+sub _do_pass_args ($$$) {
+    my ($self,$pargs,$spec)=@_;
+
+    my $hash={ };
+
+    foreach my $rule (@$spec) {
+        $rule=~s/^\s*(.*?)\s*$/$1/;
+
+        ### dprint "...rule='$rule'";
+
+        if($rule eq '*') {
+            $hash=merge_refs($pargs,$hash);
+        }
+        elsif($rule =~ /^([\w\.]+)\s*=\s*([\w\.]+)$/) {     # VAR=FOO
+            $hash->{$1}=$pargs->{$2};
+        }
+        elsif($rule =~ /^([\w\.]*)\*\s*=\s*([\w\.]+)\*?$/) {# VAR*=FOO* or *=FOO*
+            my ($prnew,$prold)=($1,$2);
+            my $lnew=length($prnew);
+            my $lold=length($prold);
+            foreach my $k (keys %$pargs) {
+                next unless substr($k,0,$lold) eq $prold;
+                $hash->{$prnew.substr($k,$lold)}=$pargs->{$k};
+            }
+        }
+        elsif($rule =~ /^([\w\.]+)$/) {                     # VAR
+            $hash->{$1}=$pargs->{$1};
+        }
+        elsif($rule =~ /^([\w\.]+)\*$/) {                   # VAR*
+            my $pr=$1;
+            my $l=length($pr);
+            foreach my $k (keys %$pargs) {
+                next unless substr($k,0,$l) eq $pr;
+                $hash->{$k}=$pargs->{$k};
+            }
+        }
+        elsif($rule =~ /^!([\w\.]+)$/) {                    # !VAR
+            delete $hash->{$1};
+        }
+        elsif($rule =~ /^!([\w\.]+)\*$/) {                  # !VAR*
+            my $pr=$1;
+            my $l=length($pr);
+            my @todel;
+            foreach my $k (keys %$hash) {
+                next unless substr($k,0,$l) eq $pr;
+                push(@todel,$k);
+            }
+            delete @{$hash}{@todel};
+        }
+        elsif($rule eq '!*') {
+            $hash={};
+        }
+        elsif($rule eq '') {
+            # no-op
+        }
+        else {
+            throw $self "- don't know how to pass for '$rule'";
+        }
+    }
+
+    return $hash;
 }
 
 ###############################################################################
@@ -1191,65 +1778,11 @@ sub pass_args ($$;$) {
 
     # Building inherited hash.
     #
-    my $hash;
-    foreach my $rule (split(/;/,$pass)) {
-        $rule=~s/^\s*(.*?)\s*$/$1/;
-
-        ### dprint "...rule='$rule'";
-
-        if($rule eq '*') {
-            $hash=merge_refs($pargs,$hash);
-        }
-        elsif($rule =~ /^([\w\.]+)\s*=\s*([\w\.]+)$/) {     # VAR=FOO
-            $hash->{$1}=$pargs->{$2};
-        }
-        elsif($rule =~ /^([\w\.]*)\*\s*=\s*([\w\.]+)\*?$/) {# VAR*=FOO* or *=FOO*
-            my ($prnew,$prold)=($1,$2);
-            my $lnew=length($prnew);
-            my $lold=length($prold);
-            foreach my $k (keys %$pargs) {
-                next unless substr($k,0,$lold) eq $prold;
-                $hash->{$prnew.substr($k,$lold)}=$pargs->{$k};
-            }
-        }
-        elsif($rule =~ /^([\w\.]+)$/) {                     # VAR
-            $hash->{$1}=$pargs->{$1};
-        }
-        elsif($rule =~ /^([\w\.]+)\*$/) {                   # VAR*
-            my $pr=$1;
-            my $l=length($pr);
-            foreach my $k (keys %$pargs) {
-                next unless substr($k,0,$l) eq $pr;
-                $hash->{$k}=$pargs->{$k};
-            }
-        }
-        elsif($rule =~ /^!([\w\.]+)$/) {                    # !VAR
-            delete $hash->{$1};
-        }
-        elsif($rule =~ /^!([\w\.]+)\*$/) {                  # !VAR*
-            my $pr=$1;
-            my $l=length($pr);
-            my @todel;
-            foreach my $k (keys %$hash) {
-                next unless substr($k,0,$l) eq $pr;
-                push(@todel,$k);
-            }
-            delete @{$hash}{@todel};
-        }
-        elsif($rule eq '') {
-            # no-op
-        }
-        else {
-            throw $self "- don't know how to pass for '$rule'";
-        }
-    }
+    my $hash=$self->_do_pass_args($pargs,[split(/;/,$pass)]);
 
     # Always deleting pass, path and template
     #
     delete @{$hash}{'pass','objname','path','template'};
-
-    ### use Data::Dumper;
-    ### dprint Dumper($hash);
 
     # This is it, merging with the arguments given to us and returning
     #
@@ -1258,10 +1791,263 @@ sub pass_args ($$;$) {
 
 ###############################################################################
 
-sub debug_check ($$) {
+sub benchmark_enabled ($) {
     my $self=shift;
-    my $type=shift;
-    return $self->clipboard->get("debug/Web/Page/$type");
+    $self->clipboard->get('_page_benchmark_enabled') || 0;
+}
+
+###############################################################################
+
+sub _benchmark_hash ($) {
+    my $self=shift;
+
+    my $stats=$self->{'benchmark_stats'};
+
+    if(!$stats) {
+        $stats=$self->siteconfig->get('_page_benchmark_stats');
+        if($stats) {
+            $self->{'benchmark_stats'}=$stats;
+        }
+        else {
+            $stats=$self->{'benchmark_stats'}={ };
+            $self->siteconfig->put('_page_benchmark_stats' => $stats);
+        }
+    }
+
+    return $stats;
+}
+
+###############################################################################
+
+sub benchmark_tag_data ($$) {
+    my ($self,$tag,$key)=@_;
+
+    $tag || throw $self "- no 'tag'";
+
+    $key||='-';
+
+    ref $tag && throw $self "- tag '$tag' is not a scalar";
+
+    my $stats=$self->_benchmark_hash();
+
+    my $tagdata=$stats->{$tag};
+
+    if(!$tagdata) {
+        $tagdata=$stats->{$tag}={
+            count   => 0,
+            total   => 0,
+            last    => [ ],
+            runs    => { },
+        };
+    }
+
+    my $rundata=$tagdata->{'runs'};
+    $rundata->{$key}||={ };
+    $rundata=$rundata->{$key};
+
+    return wantarray ? ($tagdata,$rundata,$key) : $tagdata;
+}
+
+###############################################################################
+
+=item benchmark_enter($;$$$)
+
+Start tracking the given tag execution time until benchmark_leave() is
+called on the same tag.
+
+An optional second argument can contain a unique key that identifies a
+specific run for the tag (in case of recurrent tag execution). The third
+optional argument is a description of this run.
+
+=cut
+
+sub benchmark_enter ($$;$$$) {
+    my ($self,$tag,$key,$description,$cache_flag)=@_;
+
+    my ($tagdata,$rundata);
+    ($tagdata,$rundata,$key)=$self->benchmark_tag_data($tag,$key);
+
+    if($rundata->{'started'}) {
+        eprint "Benchmark for '$tag' (key '$key') not finished, discarding";
+    }
+
+    $description||='';
+    $rundata->{'description'}=length $description > 100 ? substr($description,0,100) : $description;
+
+    $rundata->{'cache_flag'}=$cache_flag ? 1 : 0;
+
+    $rundata->{'started'}=[ gettimeofday ];
+}
+
+###############################################################################
+
+=item benchmark_leave ($)
+
+Stop time tracking for the given tag and record tracking results in the
+history.
+
+=cut
+
+sub benchmark_leave ($$;$$) {
+    my ($self,$tag,$key,$content_digest)=@_;
+
+    my ($tagdata,$rundata);
+    ($tagdata,$rundata,$key)=$self->benchmark_tag_data($tag,$key);
+
+    ### dprint to_json($tagdata);
+
+    my $started=$rundata->{'started'};
+    if(!$started) {
+        eprint "Benchmark for '$tag' (key '$key') was not started";
+        return;
+    }
+
+    my $taken=tv_interval($started);
+
+    # For median calculation
+    #
+    my $last=$tagdata->{'last'};
+    push(@$last,$taken);
+    shift(@$last) if scalar(@$last) > 50;
+
+    ++$tagdata->{'count'};
+    ++$rundata->{'count'};
+
+    $tagdata->{'total'}+=$taken;
+    $rundata->{'total'}+=$taken;
+
+    # Remembering the content for cacheability analysis.
+    #
+    $content_digest||='-';
+    ++$rundata->{'content'}->{$content_digest};
+
+    # Resetting for the next run
+    #
+    $rundata->{'started'}=undef;
+}
+
+###############################################################################
+
+=item benchmark_start(;$)
+
+Start automatic system-wide page rendering benchmarking.
+
+By default only 'path' based rendering is benchmarked. If an optional
+single argument is set to '2' then templates are also benchmarked (this
+may demand a lot of extra memory!).
+
+=cut
+
+sub benchmark_start ($;$) {
+    my ($self,$level)=@_;
+    $self->clipboard->put('_page_benchmark_enabled' => ($level || 1));
+}
+
+###############################################################################
+
+=item benchmark_stop()
+
+Stop automatic system-wide rendering benchmarking.
+
+=cut
+
+sub benchmark_stop ($) {
+    my $self=shift;
+    $self->clipboard->put('_page_benchmark_enabled' => 0);
+}
+
+###############################################################################
+
+=item benchmark_stats
+
+Return a hash with accumulated benchmark statistics.
+
+=cut
+
+sub benchmark_stats ($;$) {
+    my ($self,$desired_tag)=@_;
+
+    my $stats=$self->_benchmark_hash();
+
+    my %analyzed;
+
+    foreach my $tag (keys %$stats) {
+        my $d=$stats->{$tag};
+        next unless $d->{'count'};
+        next if $desired_tag && $tag ne $desired_tag;
+
+        $d->{'average'}=$d->{'total'} / $d->{'count'};
+        $d->{'median'}=$d->{'last'}->[scalar(@{$d->{'last'}})/2];
+
+        # The page is cacheable if the content only depends on
+        # parameters and not on clipboard, cookies, CGI, time, or other
+        # environment.
+        #
+        $d->{'cacheable'}=scalar(grep {
+            scalar(keys %{$d->{'runs'}->{$_}->{'content'}}) != 1
+        } keys %{$d->{'runs'}}) ? 0 : 1;
+
+        # Current cacheable flag, if it's shared across all runs
+        #
+        $d->{'cache_flag'}=scalar(grep {
+            ! $d->{'runs'}->{$_}->{'cache_flag'}
+        } keys %{$d->{'runs'}}) ? 0 : 1;
+
+        $analyzed{$tag}=$d;
+    }
+
+    ### dprint to_json(\%analyzed,{ utf8 => 1, canonical => 1, pretty => 1 });
+
+    return \%analyzed;
+}
+
+###############################################################################
+
+sub cache_show_size ($$) {
+    my ($self,$path)=@_;
+
+    eval {
+        require Devel::Size;
+    };
+
+    if($@) {
+        eprint "Devel::Size not available, disabling debug 'page-cache-size'";
+        $self->debug_set('cache-size' => 0);
+        return;
+    }
+
+    my $size=Devel::Size::total_size(\%parsed_cache);
+
+    eprint "Web::Page cache size ".sprintf('%.3f',$size/1024.0)." KB - ",$path;
+}
+
+###############################################################################
+
+sub debug_check ($$) {
+    my ($self,$type)=@_;
+
+    # This is a speed up (makes the parsing more than twice faster when a
+    # local parsing cache is also used).
+    #
+    #   8 wallclock secs ( 8.78 usr +  0.01 sys =  8.79 CPU) @ 113765.64/s (n=1000000)
+    #  19 wallclock secs (18.97 usr +  0.00 sys = 18.97 CPU) @ 52714.81/s (n=1000000)
+    # 
+    ### return $self->clipboard->get("debug/Web/Page/$type");
+
+    my $debug_hash=$self->{'debug_hash'};
+
+    if(!$debug_hash) {
+        $debug_hash=$self->clipboard->get('/debug/Web/Page');
+        if($debug_hash) {
+            $self->{'debug_hash'}=$debug_hash;
+        }
+        else {
+            $self->{'debug_hash'}=$debug_hash={ };
+            $self->clipboard->put('/debug/Web/Page' => $debug_hash);
+        }
+    }
+
+    return $debug_hash->{$type};
 }
 
 ###############################################################################
@@ -1270,8 +2056,29 @@ sub debug_set ($%) {
     my $self=shift;
     my $args=get_args(\@_);
     foreach my $type (keys %$args) {
-        $self->clipboard->put("debug/Web/Page/$type",$args->{$type} ? 1 : 0);
+        $self->clipboard->put("/debug/Web/Page/$type",$args->{$type} ? 1 : 0);
     }
+}
+
+###############################################################################
+
+sub page_clipboard ($) {
+    my $self=shift;
+
+    my $cb_hash=$self->{'page_clipboard'};
+
+    if(!$cb_hash) {
+        $cb_hash=$self->clipboard->get('/xao/page');
+        if($cb_hash) {
+            $self->{'page_clipboard'}=$cb_hash;
+        }
+        else {
+            $self->{'page_clipboard'}=$cb_hash={ };
+            $self->clipboard->put('/xao/page' => $cb_hash);
+        }
+    }
+
+    return $cb_hash;
 }
 
 ###############################################################################
@@ -1299,5 +2106,6 @@ L<XAO::Web>,
 L<XAO::Objects>,
 L<XAO::Projects>,
 L<XAO::Templates>.
+L<XAO::DO::Web::Benchmark>.
 
 =cut

@@ -274,8 +274,81 @@ sub test_parse {
     }
 }
 
+###############################################################################
+
+sub test_peek {
+    my $self=shift;
+
+    my $text1="t1:{abcdefg}";
+    my $text2="t2:{ABCDEFGH}";
+    my $text3="t3:{123456789}";
+
+    my $tpsub=sub ($) {
+        my $name=shift;
+        XAO::PageSupport::push();
+        XAO::PageSupport::addtext('foo');
+        XAO::PageSupport::addtext('bar');
+        XAO::PageSupport::push();
+        XAO::PageSupport::addtext('baz');
+        my $got=XAO::PageSupport::pop();
+        $self->assert($got eq 'baz',
+            "Expected 'baz', got '$got' ($name-1)");
+        $got=XAO::PageSupport::pop();
+        $self->assert($got eq 'foobar',
+            "Expected 'foobar', got '$got' ($name-2)");
+    };
+
+    $tpsub->('t0');
+
+    my $bm1=XAO::PageSupport::bookmark();
+    ### dprint "..bookmark1=$bm1";
+
+    XAO::PageSupport::addtext($text1);
+
+    my $got1=XAO::PageSupport::peek($bm1);
+
+    $self->assert($got1 eq $text1,
+        "Expected '$text1', got '$got1' (t1)");
+
+    $tpsub->('t2');
+
+    $got1=XAO::PageSupport::peek($bm1);
+
+    $self->assert($got1 eq $text1,
+        "Expected '$text1', got '$got1' (t3)");
+
+    my $bm2=XAO::PageSupport::bookmark();
+    ### dprint "..bookmark2=$bm2";
+
+    XAO::PageSupport::addtext($text2);
+
+    my $got2=XAO::PageSupport::peek($bm2);
+
+    $self->assert($got2 eq $text2,
+        "Expected '$text2', got '$got2' (t4)");
+
+    $got1=XAO::PageSupport::peek($bm1);
+
+    $self->assert($got1 eq $text1.$text2,
+        "Expected '$text1$text2', got '$got1' (t5)");
+
+    $tpsub->('t6');
+
+    $got2=XAO::PageSupport::peek($bm2);
+
+    $self->assert($got2 eq $text2,
+        "Expected '$text2', got '$got2' (t7)");
+
+    $got1=XAO::PageSupport::peek($bm1);
+
+    $self->assert($got1 eq $text1.$text2,
+        "Expected '$text1$text2', got '$got1' (t8)");
+}
+ 
 sub test_textadd {
     my $self=shift;
+
+    XAO::PageSupport::reset();
 
     XAO::PageSupport::addtext("123abcABC");
     XAO::PageSupport::push();
@@ -285,10 +358,10 @@ sub test_textadd {
     my $outer=XAO::PageSupport::pop();
 
     $self->assert($inner eq 'INNER',
-                  "Inner block is not correct");
+                  "Inner block is not correct (expected 'INNER', got '$inner')");
 
     $self->assert($outer eq '123abcABC',
-                  "Outer block is not correct");
+                  "Outer block is not correct (expected '123abcABC', got '$outer'");
 
     $inner=$outer='';
     for(1..10) {

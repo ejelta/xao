@@ -13,7 +13,7 @@ use XAO::Errors qw(XAO::Web);
 # XAO::Web version number. Hand changed with every release!
 #
 use vars qw($VERSION);
-$VERSION='1.11';
+$VERSION='1.15';
 
 ###############################################################################
 
@@ -471,6 +471,37 @@ sub expand ($%) {
 
 ###############################################################################
 
+sub _expand_list ($$) {
+    my ($self,$autolist)=@_;
+
+    my $content='';
+
+    if(!$autolist) {
+        return '';
+    }
+    elsif(ref($autolist) eq 'ARRAY') {
+        for(my $i=0; $i<@$autolist; $i+=2) {
+            my ($objname,$objargs)=@{$autolist}[$i,$i+1];
+            my $obj=XAO::Objects->new(objname => $objname);
+            $content.=$obj->expand($objargs);
+        }
+    }
+    elsif(ref($autolist) eq 'HASH') {
+        foreach my $objname (keys %{$autolist}) {
+            my $obj=XAO::Objects->new(objname => $objname);
+            $content.=$obj->expand($autolist->{$objname});
+        }
+    }
+    else {
+        throw XAO::E::Web "process - don't know how to handle ($autolist)," .
+                          " must be a hash or an array reference";
+    }
+
+    return $content;
+}
+
+###############################################################################
+
 =item process (%)
 
 Takes the same arguments as the expand() method returning expanded page
@@ -687,12 +718,10 @@ sub process ($%) {
     #
     $siteconfig->clipboard->put(pagedesc => $pd);
 
-    ##
     # We accumulate page content here
     #
     my $pagetext='';
 
-    ##
     # Setting expiration time in the page header to immediate
     # expiration. If that's not what the page wants -- it can override
     # these.
@@ -702,30 +731,10 @@ sub process ($%) {
         -cache_control  => 'no-cache',
     );
 
-    ##
     # Do we need to run any objects before executing? A good place to
     # turn on debug mode if required using Debug object.
     #
-    my $autolist=$siteconfig->get('auto_before');
-    if($autolist) {
-        if(ref($autolist) eq 'ARRAY') {
-            for(my $i=0; $i<@$autolist; $i+=2) {
-                my ($objname,$objargs)=@{$autolist}[$i,$i+1];
-                my $obj=XAO::Objects->new(objname => $objname);
-                $pagetext.=$obj->expand($objargs);
-            }
-        }
-        elsif(ref($autolist) eq 'HASH') {
-            foreach my $objname (keys %{$autolist}) {
-                my $obj=XAO::Objects->new(objname => $objname);
-                $pagetext.=$obj->expand($autolist->{$objname});
-            }
-        }
-        else {
-            throw XAO::E::Web "process - don't know how to handle auto_before ($autolist)," .
-                              " must be a hash or an array reference";
-        }
-    }
+    $pagetext.=$self->_expand_list($siteconfig->get('auto_before'));
 
     # Preparing object arguments out of standard ones, object specific
     # once from template paths and supplied hash (in that order of
@@ -742,6 +751,11 @@ sub process ($%) {
     #
     my $obj=XAO::Objects->new(objname => 'Web::' . $pd->{'objname'});
     $pagetext.=$obj->expand($objargs);
+
+    # Do we need to run any objects after executing? A good place to
+    # dump benchmark statistics for example.
+    #
+    $pagetext.=$self->_expand_list($siteconfig->get('auto_after'));
 
     # Done!
     #

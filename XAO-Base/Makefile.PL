@@ -123,8 +123,10 @@ WriteMakefile(
     'ABSTRACT'      => 'Base support modules for the XAO Suite',
     'VERSION_FROM'  => 'Base.pm',
     'PREREQ_PM'     => {
-        'Error' => '0.13',
-        'Test::Unit' => '0.14',
+        'Error'         => '0.13',
+        'Test::Unit'    => '0.14',
+        'Clone'         => '0.34',
+        'Storable'      => '2.39',
     },
     'PL_FILES'      => {
         'BaseConfig.PL' => '$(INST_LIB)/XAO/BaseConfig.pm',

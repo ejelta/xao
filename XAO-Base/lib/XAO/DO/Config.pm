@@ -70,12 +70,12 @@ sub new ($);
 
 Creates or retrieves a cache for use in various other XAO objects.
 Arguments are directly passed to XAO::Cache's new() method (see
-L<XAO::Cache>) with the exception of 'name' argument which is used to
-identify the requested cache.
+L<XAO::Cache>).
 
-If a cache with that name was already initialized before it
-is not re-created, but previously created version is returned
-instead.
+The 'name' argument is required and is used to identify the requested
+cache. If a cache with the same name was requested before its previously
+created object is returned and all new arguments are silently ignored
+without making sure they match the previous request.
 
 B<Note:> Retrieve method SHOULD NOT rely on any locally available
 lexical variables, they will be taken from whatever scope existed first
@@ -98,18 +98,20 @@ sub cache ($%) {
     my $self=shift;
     my $args=get_args(\@_);
 
-    my $name=$args->{name} ||
+    my $name=$args->{'name'} ||
         throw $self "cache - no 'name' argument";
 
-    my $cache_list=$self->{cache_list};
+    my $cache_list=$self->{'cache_list'};
     if(! $cache_list) {
-        $cache_list=$self->{cache_list}={};
+        $cache_list=$self->{'cache_list'}={};
     }
 
     my $cache=$cache_list->{$name};
+
     if(! $cache) {
-        $cache=XAO::Cache->new($args);
-        $cache_list->{$name}=$cache;
+        $cache=$cache_list->{$name}=XAO::Cache->new($args,{
+            sitename    => $self->{'sitename'},
+        });
     }
 
     return $cache;

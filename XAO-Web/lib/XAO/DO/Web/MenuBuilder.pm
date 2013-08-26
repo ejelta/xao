@@ -126,7 +126,12 @@ sub display ($;%) {
             $subpath='normal';
             $params{'NORMAL'}=1;
         }
+
         $params{'path'}="$base/item-$name-$subpath";
+
+        if($subpath ne 'normal' && !XAO::Templates::filename($params{'path'})) {
+            $params{'path'}="$base/item-$name-normal";
+        }
 
         $page->display($args,\%params);
     }

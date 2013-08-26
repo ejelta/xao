@@ -2,9 +2,222 @@ package testcases::Cache;
 use strict;
 use XAO::SimpleHash;
 use XAO::Utils;
+use XAO::Objects;
+use XAO::Projects;
 use XAO::Cache;
 
 use base qw(testcases::base);
+
+###############################################################################
+
+sub test_backends {
+    my $self=shift;
+
+    eval {
+        require JSON;
+    };
+
+    if($@) {
+        warn "Skipping $self tests, need JSON\n";
+        return;
+    }
+
+    my $have_memcached;
+    eval {
+        require Memcached::Client;
+        $have_memcached=1;
+    };
+    if($@) {
+        eval {
+            require Cache::Memcached;
+            $have_memcached=1;
+        };
+    }
+
+    my @backends=('Cache::Memory');
+    ### my @backends=();
+
+    if($have_memcached) {
+        push(@backends,'Cache::Memcached');
+    }
+    else {
+        warn "Install Memcached::Client for XAO::DO::Cache::Memcached backend\n";
+    }
+
+    my $config=XAO::Objects->new(
+        objname     => 'Config',
+        sitename    => 'cachetest',
+    );
+
+    XAO::Projects::create_project(
+        name        => 'cachetest',
+        object      => $config,
+        set_current => 1,
+    );
+
+    $config->init();
+
+    $config->embed('hash' => new XAO::SimpleHash());
+    
+    $config->embedded('hash')->put('cache' => {
+        memcached   => {
+            servers => [ '127.0.0.1:11211' ],
+            ### debug   => 99,
+        },
+        config      => {
+            common  => {
+                ### debug       => 1,
+            },
+            withsep => {
+                separator   => '!',
+            },
+            withns1 => {
+                namespace   => '',
+            },
+            withns2 => {
+                namespace   => ("Ns" x 100),
+                separator   => ':',
+            },
+            withns3 => {
+                namespace   => ("Lg" x 110),
+                separator   => ':',
+            },
+            withdig => {
+                digest_keys => 1,
+            },
+        },
+    });
+
+    use utf8;
+
+    my %tests=(
+        'null'          => undef,
+        1               => "",
+        2               => "string",
+        binary           => Encode::encode("utf8","binary:\x01\x02\x{2122}"),
+        'hash'          => { hash => 'reference' },
+        'array'         => [ qw(simple array of data) ],
+        'data'          => { complex => [ qw(data) ], with => undef, values => { foo => 'bar' } },
+        ''              => 'emptykey',
+        0               => 'zero',
+        "\x{2122}"      => 'unicode key',
+        'one two'       => 'key with a space',
+        'unicode'       => "проверка",
+        'zerochr'       => "\x00",
+        ('.' x 50)      => 'very long key  50',
+        ('.' x 230)     => 'very long key 230',
+        ('.' x 240)     => 'very long key 240',
+        ('.' x 250)     => 'very long key 250',
+        ('.' x 260)     => 'very long key 260',
+        ('.' x 300)     => 'very long key 300',
+        ('.' x 400)     => 'very long key 400',
+        ('.' x 500)     => 'very long key 500',
+        'text00010'     => join('',map { chr(65+int(rand(26))) } (1..10)),
+        'text00100'     => join('',map { chr(65+int(rand(26))) } (1..100)),
+        'text01000'     => join('',map { chr(65+int(rand(26))) } (1..1000)),
+        'text10000'     => join('',map { chr(65+int(rand(26))) } (1..10000)),
+        'binr00010'     => join('',map { chr(int(rand(2000))) } (1..10)),
+        'binr00100'     => join('',map { chr(int(rand(2000))) } (1..100)),
+        'binr01000'     => join('',map { chr(int(rand(2000))) } (1..1000)),
+        'binr10000'     => join('',map { chr(int(rand(2000))) } (1..10000)),
+    );
+
+    foreach my $backend (@backends) {
+
+        my @cnames=(
+            'default',
+            grep { $_ ne 'common' } keys %{$config->get('/cache/config')},
+        );
+
+        foreach my $cachename (@cnames) {
+            dprint "Testing backend '$backend', cache '$cachename'";
+
+            my %buildcount;
+
+            my $cache=XAO::Cache->new(
+                backend     => $backend,
+                name        => $cachename,
+                retrieve    => sub {
+                    my $args=get_args(\@_);
+                    my $idx=$args->{'idx'};
+                    ### dprint "..RETRIEVE $idx : ",$tests{$idx};
+                    ++$buildcount{$idx};
+                    return $tests{$idx};
+                },
+                coords      => ['idx'],
+            );
+
+            # For memcached we may have some data from previous runs.
+            # Dropping only once to also check for cache
+            # cross-contamination because of non-unique keys.
+            #
+            if($cachename eq 'default') {
+                $cache->drop_all();
+            }
+
+            foreach my $round (1..5) {
+                dprint ".test round $round";
+
+                foreach my $idx (keys %tests) {
+
+                    my $got=$cache->get(idx => $idx);
+
+                    $self->assert($buildcount{$idx} == 1,
+                        "Expected build count to be 1, got $buildcount{$idx} on test #$idx, round $round (MEMCACHED not running?)");
+
+                    my $expect=$tests{$idx};
+
+                    if(ref $expect) {
+                        my $jgot=JSON::to_json($got,{ canonical => 1, utf8 => 1 });
+                        my $jexpect=JSON::to_json($expect,{ canonical => 1, utf8 => 1 });
+
+                        $self->assert($jgot eq $jexpect,
+                            "Received '$jgot', expected '$jexpect' for test #$idx, round $round");
+
+                        if($round>1) {
+                            $self->assert($got ne $expect,
+                                "Expected to receive a copy, not the original reference on test #$idx, round $round");
+                        }
+                    }
+                    elsif(defined $expect) {
+                        ### dprint "got=",$got," utf8=",utf8::is_utf8($got);
+                        ### dprint "exp=",$expect," utf8=",utf8::is_utf8($expect);
+
+                        if(utf8::is_utf8($expect)) {
+                            $self->assert(utf8::is_utf8($got),
+                                "Expected '$got' to be UNICODE on test $idx");
+                        }
+                        else {
+                            $self->assert(!utf8::is_utf8($got),
+                                "Expected '$got' to NOT be UNICODE on test $idx");
+                        }
+
+                        $self->assert(defined $got,
+                            "Received 'undef' on test $idx (expected '$expect')");
+
+                        $self->assert($got eq $expect,
+                            "Received '$got' on test $idx (expected '$expect')");
+                    }
+                    else {
+                        $self->assert(!defined $got,
+                            "Received '".(defined $got ? $got : 'UNDEF')."' on test $idx (expected 'undef')");
+                    }
+                }
+            }
+
+            # Checking force_update
+            #
+            my $idx=(keys %tests)[0];
+            my $count_before=$buildcount{$idx};
+            my $got=$cache->get(idx => $idx, force_update => 1);
+            my $count_after=$buildcount{$idx};
+            $self->assert($count_after == $count_before + 1,
+                "Count update with force_update expected to be ".($count_before+1).", got $count_after");
+        }
+    }
+}
+
+###############################################################################
 
 sub test_everything {
     my $self=shift;
@@ -14,9 +227,11 @@ sub test_everything {
         retrieve    => sub {
             my $self=ref($_[0]) && ref($_[0]) ne 'HASH' ? shift : '';
             my $args=get_args(\@_);
-            return $count++ . '-' .
+            my $value=$count++ . '-' .
                    $args->{name} . '-' .
                    ($args->{subname} || '');
+            ### dprint "RETRIEVE: count=$count value=$value name=",$args->{'name'}," subname=",$args->{'subname'};
+            return $value;
         },
         coords      => ['name','subname'],
         size        => 2,
@@ -45,7 +260,6 @@ sub test_everything {
     $self->assert($d2 eq '1-d2-s2',
                   "Got wrong value for d2 (expected '1-d2-s2', got '$d2')");
 
-    ##
     # Checking if it is expired
     #
     sleep(4);
@@ -65,14 +279,12 @@ sub test_everything {
         $d2=$cache->get(name => 'd2', subname => $i);
     }
 
-    ##
     # At that point it should be thrown out because of size
     #
     $d1=$cache->get(name => 'd1', bar => 234);
     $self->assert($d1 eq '304-d1-',
                   "Got wrong value for d1 (expected '304-d1-', got '$d1')");
 
-    ##
     # Rechecking that after removals the cache still works fine.
     #
     $d2=$cache->get($self, name => 'd2', subname => 's2', foo => 123);
@@ -91,6 +303,8 @@ sub test_everything {
     $self->assert($d2 eq '305-d2-s2',
                   "Got wrong value for d2 (expected '305-d2-s2', got '$d2')");
 }
+
+###############################################################################
 
 sub test_size {
     my $self=shift;
@@ -134,6 +348,8 @@ sub test_size {
                       "Test ".($i/2)." failed (expected '$expect', got '$got')");
     }
 }
+
+###############################################################################
 
 sub test_drop {
     my $self=shift;
@@ -211,4 +427,5 @@ sub test_drop {
     }
 }
 
+###############################################################################
 1;
