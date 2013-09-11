@@ -272,6 +272,48 @@ sub test_integer {
     }
 }
 
+sub test_decimal {
+    my $self=shift;
+    my $odb=$self->get_odb();
+    my $cust=$odb->fetch('/Customers/c1');
+
+    $cust->add_placeholder(
+        name        => 'decimal',
+        type        => 'real',
+        minvalue    => -100,
+        scale       => 2,
+        index       => 1,
+    );
+
+    my @tests=(
+        {   value   => 0,
+            expect  => 0.00,
+        },
+        {   value   => 0.1,
+            expect  => 0.1,
+        },
+        {   value   => 0.01,
+            expect  => 0.01,
+        },
+        {   value   => 0.001,
+            expect  => 0.00,
+        },
+        {   value   => -99.999,
+            expect  => -100.00,
+        },
+        {   value   => 1234567890.01,
+            expect  => 1234567890.01,
+        },
+    );
+
+    foreach my $test (@tests) {
+        $cust->put(decimal => $test->{'value'});
+        my $got=$cust->get('decimal');
+        $self->assert(abs($got - $test->{'expect'})<0.00001,
+            "For value '$test->{'value'}' expected '$test->{'expect'}', got '$got'");
+    }
+}
+
 sub test_real {
     my $self=shift;
     my $odb=$self->get_odb();
