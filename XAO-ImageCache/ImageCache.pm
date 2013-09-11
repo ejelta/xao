@@ -728,7 +728,7 @@ sub scale_file ($$$$;$) {
         my ($width,$height);
 
         if($src_width<=$target_width && $src_height<=$target_height) {
-            if(lc($image->Get('mime')) eq 'image/jpeg' && uc($image->get('colorspace')) eq 'RGB') {
+            if(lc($image->Get('mime')) eq 'image/jpeg' && ($image->get('colorspace') || '') =~ /^s?RGB$/i) {
                 copy($infile,$outfile);
                 dprint "..copied ${src_width}x${src_height} as is for '$label' (jpeg, fits into ${target_width}x${target_height})";
                 return;
@@ -764,7 +764,14 @@ sub scale_file ($$$$;$) {
     # This is required, otherwise new ImageMagick sometimes converts
     # images to CMYK colorspace for whatever reason.
     #
-    $image->Set(colorspace => 'RGB');
+    # sRGB is the standard colorspace for monitors and printing, RGB
+    # is an unspecified Red/Green/Blue encoding. Some images come out
+    # darker when converted to RGB.
+    #
+    $image->Set(
+        colorspace  => 'sRGB',
+        depth       => 8,
+    );
 
     # Scaling
     #
