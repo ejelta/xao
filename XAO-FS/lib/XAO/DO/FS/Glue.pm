@@ -769,10 +769,10 @@ sub _charset_change ($%) {
     my $csh=$driver->charset_change_prepare($table);
 
     foreach my $name (keys %$flist) {
-        my $fdesc=$desc->{'fields'}->{$name} || throw $self "_charset_change - something went wrong";
+        my $fdesc=$desc->{'fields'}->{$name} || throw $self "- something went wrong";
 
         my $charset_new=$flist->{$name};
-        my $charset_old=$fdesc->{'charset'} || throw $self "_charset_change - no existing charset on field '$name'";
+        my $charset_old=$fdesc->{'charset'} || throw $self "- no existing charset on field '$name'";
         dprint "...field $name, changing charset from '$charset_old' to '$charset_new'";
 
         $driver->charset_change_field($csh,$name,$charset_new,$fdesc->{'maxlength'},$fdesc->{'default'});
@@ -786,10 +786,59 @@ sub _charset_change ($%) {
     $driver->charset_change_execute($csh);
 
     foreach my $name (keys %$flist) {
-        my $fdesc=$self->describe($name) || throw $self "_charset_change - something went wrong";
+        my $fdesc=$self->describe($name) || throw $self "- something went wrong";
 
         my $uid=$driver->unique_id('Global_Fields','field_name',$name,'table_name',$table);
         $driver->update_fields('Global_Fields',$uid,{ charset => $fdesc->{'charset'} });
+    }
+
+    dprint "...done";
+}
+
+###############################################################################
+
+=item _scale_change (%)
+
+Changes 'scale' on 'real' type fields. Can go from unscaled REAL to a
+scaled DECIMAL.
+
+=cut
+
+sub _scale_change ($%) {
+    my $self=shift;
+
+    my $flist=get_args(\@_);
+
+    my $desc=$self->_class_description;
+    my $table=$desc->{'table'};
+
+    my $driver=$self->_driver;
+    my $csh=$driver->scale_change_prepare($table);
+
+    foreach my $name (keys %$flist) {
+        my $fdesc=$desc->{'fields'}->{$name} || throw $self "- something went wrong";
+
+        my $scale_new=$flist->{$name};
+        my $scale_old=$fdesc->{'maxlength'};
+
+        dprint "...field $name, changing scale from ",$scale_old," to ",$scale_new;
+
+        $driver->scale_change_field($csh,$name,$scale_new,$fdesc->{'minvalue'},$fdesc->{'maxvalue'},$fdesc->{'default'});
+
+        $fdesc->{'maxlength'}=$scale_new;
+    }
+
+    dprint "....preparing to execute, LAST CHANCE TO ABORT";
+    sleep 3;
+    dprint ".....executing";
+
+    $driver->scale_change_execute($csh);
+
+    foreach my $name (keys %$flist) {
+        my $fdesc=$self->describe($name) || throw $self "- something went wrong";
+
+        my $uid=$driver->unique_id('Global_Fields','field_name',$name,'table_name',$table);
+        $driver->update_fields('Global_Fields',$uid,{ maxlength => $fdesc->{'maxlength'} });
     }
 
     dprint "...done";

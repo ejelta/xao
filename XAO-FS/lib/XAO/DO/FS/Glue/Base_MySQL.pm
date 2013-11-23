@@ -207,25 +207,15 @@ sub add_field_real ($$$;$$) {
         throw $self "add_field_real - modifying structure in transaction scope is not supported";
     }
 
-    # Real translates to two different field types depending on whether
-    # the scale is set or not.
-    #
-    my $sql="ALTER TABLE $table add $name ";
-    if($scale) {
-        my $pmin=defined $min ? length(abs(int($min))) : 20;
-        my $pmax=defined $max ? length(abs(int($max))) : 20;
-        my $precision=$pmin>$pmax ? $pmin : $pmax;
-        $precision+=$scale;
-        $sql.="DECIMAL($precision,$scale) NOT NULL DEFAULT $default";
-    }
-    else {
-        $sql.="DOUBLE NOT NULL DEFAULT $default";
-    }
+    my $sql=
+        "ALTER TABLE $table ADD $name ".
+        $self->real_field_definition($min,$max,$scale);
 
     ### dprint ">>>$sql<<<";
 
     my $cn=$self->connector;
-    $cn->sql_do($sql);
+
+    $cn->sql_do($sql,[$default || 0]);
 
     if(($index || $unique) && (!$unique || !$connected)) {
         my $usql=$unique ? " UNIQUE" : "";
@@ -384,6 +374,66 @@ sub charset_change_execute ($$) {
     my ($self,$csh)=@_;
 
     my $sql="ALTER TABLE ".$csh->{'table'}." ".$csh->{'sql'};
+    $self->connector->sql_do($sql,$csh->{'defaults'});
+}
+
+###############################################################################
+
+=item scale_change_prepare ($)
+
+Prepares an internal structure for a later one-shot modification of
+scale values in a table.
+
+=cut
+
+sub scale_change_prepare ($$) {
+    my ($self,$table)=@_;
+
+    $table || throw $self "- no 'table' given";
+
+    return {
+        sql     => '',
+        table   => $table,
+        defaults=> [ ],
+    };
+}
+
+###############################################################################
+
+=item scale_change_field
+
+Adds a field to the list of things to alter on scale_change_execute()
+
+=cut
+
+sub scale_change_field ($$$$$$) {
+    my ($self,$csh,$name,$scale,$minvalue,$maxvalue,$default)=@_;
+
+    my $def=$self->real_field_definition($minvalue,$maxvalue,$scale);
+
+    $csh->{'sql'}.=', ' if $csh->{'sql'};
+    $csh->{'sql'}.="CHANGE ".
+                   $self->mangle_field_name($name)." ".
+                   $self->mangle_field_name($name)." ".$def;
+
+    push(@{$csh->{'defaults'}},$default);
+}
+
+###############################################################################
+
+=item scale_change_execute
+
+Executes actual SQL collected from scale_change_field()
+
+=cut
+
+sub scale_change_execute ($$) {
+    my ($self,$csh)=@_;
+
+    my $sql="ALTER TABLE ".$csh->{'table'}." ".$csh->{'sql'};
+
+    ### dprint "...SQL: $sql";
+
     $self->connector->sql_do($sql,$csh->{'defaults'});
 }
 
@@ -1452,6 +1502,33 @@ sub store_row ($$$$$$$) {
     }
 
     return $key_value;
+}
+
+###############################################################################
+
+sub real_field_definition ($$$$) {
+    my ($self,$min,$max,$scale)=@_;
+
+    # Real translates to two different field types depending on whether
+    # the scale is set or not.
+    #
+    my $def;
+    if($scale) {
+        my $pmin=defined $min ? length(abs(int($min))) : 20;
+        my $pmax=defined $max ? length(abs(int($max))) : 20;
+        my $precision=$pmin>$pmax ? $pmin : $pmax;
+        $precision+=$scale;
+        $def="DECIMAL($precision,$scale)";
+    }
+    else {
+        $def="DOUBLE";
+    }
+
+    $def.=" NOT NULL DEFAULT ?";
+
+    ### dprint "definition for real(",$min,",",$max,",",$scale,"): $def";
+
+    return $def;
 }
 
 ###############################################################################

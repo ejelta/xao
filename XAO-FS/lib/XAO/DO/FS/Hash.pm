@@ -357,7 +357,8 @@ sub build_structure ($%) {
     my $self=shift;
     my $args=get_args(\@_);
 
-    my %changed_charsets;
+    my %changed_charset;
+    my %changed_scale;
 
     $self->_consistency_checked ||
         throw $self "- can't build_structure without 'check_consistency' on loading";
@@ -367,25 +368,35 @@ sub build_structure ($%) {
         @ph{keys %{$args->{$name}}}=values %{$args->{$name}};
         $ph{'name'}=$name;
 
-
         my $desc=$self->describe($name);
         if($desc) {
             while(my ($n,$v)=each %ph) {
                 next if $n eq 'name';
                 next if $n eq 'structure';
+                next if !defined $v;
+
                 my $dbv=$desc->{$n};
 
                 if($n eq 'charset') {
                     $v eq 'binary' || Encode::resolve_alias($v) ||
-                        throw $self "build_structure - new charset '$v' is not supported for field '$name'";
-                    if($v ne $dbv) {
-                        $changed_charsets{$name}=$v;
+                        throw $self "- new charset '$v' is not supported for field '$name'";
+
+                    if($v ne ($dbv || '')) {
+                        $changed_charset{$name}=$v;
                     }
                 }
-                else {
-                    (!defined($v) && !defined($dbv)) || $dbv eq $v ||
-                        throw $self "build_structure - structure mismatch, " .
-                                    "property=$name, ($n,$v) <> ($n,$dbv)";
+                elsif($n eq 'scale') {
+                    $dbv||=0;
+
+                    if($v<$dbv) {
+                        throw $self "- new scale '$v' is lower than existing '$dbv' for '$name' (only upwards scale changes are automatic)";
+                    }
+                    elsif($v>$dbv) {
+                        $changed_scale{$name}=$v;
+                    }
+                }
+                elsif(!defined $dbv || (defined $dbv && $dbv ne $v)) {
+                    throw $self "- structure mismatch, property=$name, ($n,$v) <> ($n,".(defined $dbv ? $dbv : '<undef>').")";
                 }
             }
         }
@@ -402,7 +413,7 @@ sub build_structure ($%) {
         }
     }
 
-    if(keys %changed_charsets) {
+    if(keys %changed_charset) {
         my $debug_status=XAO::Utils::get_debug();
         XAO::Utils::set_debug(1);
 
@@ -410,7 +421,20 @@ sub build_structure ($%) {
         dprint "An automatic conversion will be attempted in 10 seconds. Interrupt to abort.";
         sleep 10;
         dprint "Converting...";
-        $self->_charset_change(\%changed_charsets);
+        $self->_charset_change(\%changed_charset);
+
+        XAO::Utils::set_debug($debug_status);
+    }
+
+    if(keys %changed_scale) {
+        my $debug_status=XAO::Utils::get_debug();
+        XAO::Utils::set_debug(1);
+
+        dprint "Some 'real' fields in ".$$self->{'class'}." have changed scale values.";
+        dprint "An automatic conversion will be attempted in 10 seconds. Interrupt to abort.";
+        sleep 10;
+        dprint "Converting...";
+        $self->_scale_change(\%changed_scale);
 
         XAO::Utils::set_debug($debug_status);
     }
