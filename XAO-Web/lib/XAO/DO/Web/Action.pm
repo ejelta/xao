@@ -43,10 +43,21 @@ XAO::DO::Web::Action - base for mode-dependant displayable objects
  #
  # <%Fubar mode='api'%>
  #
+ # Data prepared as above, but displayed with a custom
+ # display method:
+ #
+ # <%Fubar mode='api' displaymode='api-summary'%>
+ #
  sub data_api ($@) {
     my $self=shift;
     my $args=get_args(\@_);
     return $self->data_kick($args);
+ }
+
+ sub display_api_summary ($@) {
+    my $self=shift;
+    my $args=get_args(\@_);
+    return $self->textout($args->{'data'}->{'target'}.' will get kicked');
  }
 
  # This is obsolete, but still supported
@@ -84,9 +95,19 @@ received. If there is no data, then there is no extra argument added to
 the display_* method (and should there be a 'data' argument it is not
 modified).
 
+The name of the data producing method is derived from 'datamode'
+defaulting to 'mode' arguments. The name of display method is derived
+from 'displaymode' defaulting to 'mode' arguments. This allows to reuse
+the same data builder with various "views", aka display methods. You can
+also force data display in the presense of a custom display method by
+setting 'displaymode' to 'data'.
+
 If there is a data_* method, but there is no display_* method, then the
 default is to call display_data() -- which outputs the data in a format
 given by 'format' argument (only JSON is supported currently).
+
+If there are both data_* and display_* methods then the output depends
+on its content.
 
 If there is no data_* and no display_* then a check_mode() method is
 called that needs to work out what needs to be done. This is an obsolete
@@ -98,7 +119,7 @@ simply throws an error with the content of 'mode':
  throw $self "check_mode - unknown mode ($mode)";
 
 Remember that using "throw $self" you actually throw an error that
-depends on the namespace of your object and therefor can be caught
+depends on the namespace of your object and therefore can be caught
 separately if required.
 
 =cut
@@ -114,58 +135,17 @@ use XAO::Utils qw(:debug :args :math :html);
 
 use base XAO::Objects->load(objname => 'Web::Page');
 
+sub get_mode_sub ($$$$;$);
+
 ###############################################################################
 
 sub display ($%) {
     my $self=shift;
     my $args=get_args(\@_);
 
-    my $mode=$args->{'mode'} || '-no-mode';
+    my $data_sub=$self->get_mode_sub('data',$args->{'datamode'},$args->{'mode'});
 
-    my $modecache=$self->{'_mode_cache'};
-    if(!$modecache) {
-        $self->{'_mode_cache'}=$modecache={ };
-    }
-
-    my $modeconf=$modecache->{$mode};
-
-    if(!$modeconf) {
-        (my $subname=$mode)=~s/-/_/g;
-
-        # Only lowercase alphanumerics are supported.
-        #
-        $subname=~/^[a-z0-9_]+$/ ||
-            throw $self "- bad mode '$mode'";
-
-        # There may be data producing method and/or a display
-        # method. Checking for both.
-        #
-        my $display_sub=$self->can('display_'.$subname);
-
-        # Display method produces some output usually, no data is
-        # expected from it.
-        #
-        my $data_sub=$self->can('data_'.$subname);
-
-        # When there is no display method we either call display_data
-        # when there is data, or the check_mode if there is no data for
-        # compatibility with legacy code.
-        #
-        if(!$display_sub) {
-            if($data_sub) {
-                $display_sub=$self->can('display_data');
-            }
-            else {
-                $display_sub=$self->can('check_mode');
-            }
-        }
-
-        # Storing to speed up future calls
-        #
-        $modecache->{$mode}=$modeconf=[$display_sub,$data_sub];
-    }
-
-    my ($display_sub,$data_sub)=@$modeconf;
+    my $display_sub=$self->get_mode_sub('display',$args->{'displaymode'},$args->{'mode'},$data_sub);
 
     # Preparing the data, if data method is known
     #
@@ -229,6 +209,64 @@ sub display ($%) {
     else {
         $display_sub->($self,$args);
     }
+}
+
+###############################################################################
+
+sub get_mode_sub ($$$$;$) {
+    my ($self,$prefix,$modecust,$modegen,$data_sub)=@_;
+
+    my $mode=$modecust || $modegen || '-no-mode';
+
+    my $subcache=$self->{'_sub_cache'};
+    if(!$subcache) {
+        $self->{'_sub_cache'}=$subcache={ };
+    }
+
+    my $subcachekey=$prefix.':'.$mode;
+    if(exists $subcache->{$subcachekey}) {
+        return $subcache->{$subcachekey};
+    }
+
+    # Converting mode to a sub name.
+    #
+    (my $subname=$mode)=~s/-/_/g;
+
+    # Only lowercase alphanumerics are supported.
+    #
+    $subname=~/^[a-z0-9_]+$/ ||
+        throw $self "- bad mode '$mode'";
+
+    # There may be data producing method and/or a display
+    # method. Checking for both.
+    #
+    my $subref=$self->can($prefix.'_'.$subname);
+
+    # When a non-generic mode is given ('datamode' or 'displaymode') not
+    # having a subroutine is a hard error.
+    #
+    if($modecust && !$subref) {
+        throw $self "- no $prefix routine found for '$modecust'";
+    }
+
+    # When there is no display method we either call display_data
+    # when there is data, or the check_mode if there is no data for
+    # compatibility with legacy code.
+    #
+    if($prefix eq 'display' && !$subref) {
+        if($data_sub) {
+            $subref=$self->can('display_data');
+        }
+        else {
+            $subref=$self->can('check_mode');
+        }
+    }
+
+    # Storing to speed up future calls
+    #
+    $subcache->{$subcachekey}=$subref;
+
+    return $subref;
 }
 
 ###############################################################################

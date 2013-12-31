@@ -15,18 +15,28 @@ sub test_all {
                   "Can't load Page object (page)");
 
     my %tests=(
-        '<%MyAction%>'                                  => 'Got MODELESS',
-        '<%MyAction mode="foo"%>'                       => 'Got FOO',
-        '<%MyAction mode="bar"%>'                       => undef,
-        '<%MyAction mode="test-one" arg="one"%>'        => 'test-one-ok',
-        '<%MyAction mode="test-two" arg="two"%>'        => 'test-two-ok',
-        '<%MyAction mode="test-three" format="json"%>'  => qr/^\s*\[\s*"foo"\s*,\s*"bar"/s,
-        '<%MyAction mode="test-four"%>'                 => qr/status.*:.*success/s,
+        '<%MyAction%>'                                                  => 'Got MODELESS',
+        '<%MyAction mode="foo"%>'                                       => 'Got FOO',
+        '<%MyAction mode="bar"%>'                                       => undef,
+        '<%MyAction mode="test-one" arg="one"%>'                        => 'test-one-ok',
+        '<%MyAction mode="test-two" arg="two"%>'                        => 'test-two-ok',
+        '<%MyAction mode="test-three" format="json"%>'                  => qr/^\s*\[\s*"foo"\s*,\s*"bar"/s,
+        '<%MyAction mode="test-four"%>'                                 => qr/status.*:.*success/s,
+        #
+        # Alternate display methods
+        #
+        '<%MyAction mode="test-alt" arg="A"%>'                              => 'ALT:A',
+        '<%MyAction mode="test-alt" datamode="test-alt" arg="B"%>'          => 'ALT:B',
+        '<%MyAction displaymode="test-alt" datamode="test-alt" arg="C"%>'   => 'ALT:C',
+        '<%MyAction mode="test-alt" displaymode="" arg="D"%>'               => 'ALT:D',
+        '<%MyAction mode="test-alt" datamode="" arg="E"%>'                  => 'ALT:E',
+        '<%MyAction datamode="test-alt" mode="data" arg="A"%>'              => qr/status.*:.*success/s,
+        '<%MyAction mode="test-alt" datamode="test-two" arg="A"%>'          => 'ALT:xxA',
         #
         # Cross-polination of code cache checking
         #
-        '<%MyAction2 mode="foo"%>'                      => 'MyAction2: Got FOO',
-        '<%MyAction2 mode="test-one" arg="one"%>'       => 'MyAction2: test-one-ok',
+        '<%MyAction2 mode="foo"%>'                                      => 'MyAction2: Got FOO',
+        '<%MyAction2 mode="test-one" arg="one"%>'                       => 'MyAction2: test-one-ok',
     );
 
     foreach my $template (keys %tests) {

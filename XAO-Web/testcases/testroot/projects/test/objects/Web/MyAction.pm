@@ -66,12 +66,29 @@ sub data_test_four ($@) {
     };
 }
 
+# data_* and display_* for alternate display and data tests
+
+sub data_test_alt ($@) {
+    my $self=shift;
+    my $args=get_args(\@_);
+    return {
+        arg => ($args->{'arg'} || ''),
+    };
+}
+
+sub display_test_alt ($@) {
+    my $self=shift;
+    my $args=get_args(\@_);
+    $self->textout('ALT:'.($args->{'data'}->{'arg'} || ''));
+}
+
 # Old style
 
 sub check_mode ($%) {
     my $self=shift;
     my $args=get_args(\@_);
     my $mode=$args->{mode} || 'no-mode';
+
     if($mode eq 'foo') {
         $self->textout('Got FOO');
     }
