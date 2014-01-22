@@ -188,6 +188,15 @@ sub test_everything {
     $self->assert($c->collection_key eq $kk[0],
                   "Wrong value returned by collection_key()");
 
+    $self->assert(!!$clist->exists($c->collection_key),
+        "Expected exists to return true");
+
+    $self->assert(!$clist->exists(time),
+        "Expected exists to return false in non-existent int key");
+
+    $self->assert(!$clist->exists('BAD'),
+        "Expected exists to return false in non-existent text key");
+
     my $kn=$c->container_key();
     $self->assert($kn eq 'c1' || $kn eq 'c2',
                   "Container_key returned wrong value ($kn)");

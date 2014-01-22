@@ -874,6 +874,18 @@ sub _class_description ($) {
 
 ###############################################################################
 
+# Checks if a collection contains an object with the given collection key (unique id)
+#
+sub _collection_exists ($$) {
+    my ($self,$key)=@_;
+
+    my $desc=$$self->{'class_description'};
+
+    return $self->_driver->unique_id($desc->{'table'},'unique_id',$key,undef,undef,1);
+}
+
+###############################################################################
+
 # Returns a reference to an array containing complete set of keys for
 # the given list.
 #
@@ -895,7 +907,7 @@ sub _collection_setup ($) {
     my $self=shift;
 
     my $glue=$self->_glue;
-    $glue || $self->throw("_collection_setup - meaningless on Glue object");
+    $glue || $self->throw("- meaningless on Glue object");
 
     my $class_name=$$self->{'class_name'} || $self->throw("_collection_setup - no class name given");
     $$self->{'class_description'}=$self->_class_description($class_name);
@@ -903,7 +915,7 @@ sub _collection_setup ($) {
     my $base_name=$$self->{'base_name'};
     if(!$base_name) {
         $base_name=$$self->{'base_name'}=$glue->upper_class($class_name) ||
-                  $self->throw("_collection_setup - $class_name does not belong to the database");
+                  $self->throw("- $class_name does not belong to the database");
     }
 
     $$self->{'key_name'}=$glue->_list_key_name($class_name,$base_name);
@@ -1123,7 +1135,6 @@ sub _connector_name ($$$) {
 
 ###############################################################################
 
-##
 # Checks if list contains an object with the given name
 #
 sub _list_exists ($$) {
@@ -2045,10 +2056,11 @@ sub _list_setup ($) {
     $$self->{'key_unique_id'}=$kdesc->{'key_unique_id'};
 }
 
-##
+###############################################################################
+
 # Finds specific value unique ID for list object. Works only in derived
 # objects.
-#
+
 sub _find_unique_id ($$) {
     my $self=shift;
     my $name=shift;
@@ -2060,10 +2072,11 @@ sub _find_unique_id ($$) {
                               $connector_name,$$self->{'base_id'});
 }
 
-##
+###############################################################################
+
 # Unlinks object from list. If object is not linked anywhere else calls
 # destroy() on the object first.
-#
+
 sub _list_unlink_object ($$$) {
     my $self=shift;
     my $name=shift;
