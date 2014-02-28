@@ -1395,10 +1395,14 @@ sub test_user_prop_hash {
             args => {
                 mode        => 'login',
                 type        => 'member',
-                username    => 'two@bar.org',
+                username    => 'TWO@bar.org',
                 password    => '12345',
             },
             results => {
+                clipboard   => {
+                    '/IdentifyUser/member/name'     => 'two@bar.org',
+                    '/IdentifyUser/member/id'       => 'm002web',
+                },
                 cookies     => {
                     member_id   => 'two@bar.org',
                 },
@@ -1411,6 +1415,10 @@ sub test_user_prop_hash {
                 type        => 'member',
             },
             results => {
+                clipboard   => {
+                    '/IdentifyUser/member/name'     => 'two@bar.org',
+                    '/IdentifyUser/member/id'       => 'm002web',
+                },
                 cookies     => {
                     member_id   => 'two@bar.org',
                 },
@@ -1428,10 +1436,14 @@ sub test_user_prop_hash {
             args => {
                 mode        => 'login',
                 type        => 'member',
-                username    => 'two@bar.org',
+                username    => 'two@BAR.ORG',
                 password    => '12345',
             },
             results => {
+                clipboard   => {
+                    '/IdentifyUser/member/name'     => 'two@bar.org',
+                    '/IdentifyUser/member/id'       => 'm002web',
+                },
                 cookies     => {
                     member_id   => 'm002web',
                 },
@@ -1444,6 +1456,10 @@ sub test_user_prop_hash {
                 type        => 'member',
             },
             results => {
+                clipboard   => {
+                    '/IdentifyUser/member/name'     => 'two@bar.org',
+                    '/IdentifyUser/member/id'       => 'm002web',
+                },
                 cookies     => {
                     member_id   => 'm002web',
                 },
@@ -1468,6 +1484,10 @@ sub test_user_prop_hash {
                 cookies     => {
                     member_id   => 'm002web',
                 },
+                clipboard   => {
+                    '/IdentifyUser/member/name'     => 'm002web',
+                    '/IdentifyUser/member/id'       => 'm002web',
+                },
                 text        => 'V',
             },
         },
@@ -1477,6 +1497,10 @@ sub test_user_prop_hash {
                 type        => 'member',
             },
             results => {
+                clipboard   => {
+                    '/IdentifyUser/member/name'     => 'm002web',
+                    '/IdentifyUser/member/id'       => 'm002web',
+                },
                 cookies     => {
                     member_id   => 'm002web',
                 },
@@ -1712,9 +1736,10 @@ sub test_key_list {
                 },
                 text        => 'V',
                 clipboard   => {
-                    '/IdentifyUser/member/name'     => '3',
-                    '/IdentifyUser/member/object'   => { },
-                    '/IdentifyUser/member/verified' => '1',
+                    '/IdentifyUser/member/cookie_value' => '3',
+                    '/IdentifyUser/member/name'         => 'm001',
+                    '/IdentifyUser/member/object'       => { },
+                    '/IdentifyUser/member/verified'     => '1',
                 },
             },
         },
@@ -1730,20 +1755,19 @@ sub test_key_list {
                 },
                 text        => 'V',
                 clipboard   => {
-                    '/IdentifyUser/member/id'       => 'm001',
-                    '/IdentifyUser/member/name'     => '3',
-                    '/IdentifyUser/member/object'   => { },
-                    '/IdentifyUser/member/verified' => '1',
+                    '/IdentifyUser/member/id'           => 'm001',
+                    '/IdentifyUser/member/cookie_value' => '3',
+                    '/IdentifyUser/member/object'       => { },
+                    '/IdentifyUser/member/verified'     => '1',
                 },
             },
         },
-        t05b    => {
+        t05b    => {            # second call in the same session
             sub_post_cleanup => sub {
                 my $user=$config->odb->fetch('/Members/m001');
                 my $key=$config->odb->fetch('/MemberKeys/1');
                 $config->clipboard->put('/IdentifyUser/member/object' => $user);
                 $config->clipboard->put('/IdentifyUser/member/key_object' => $key);
-                $config->clipboard->put('/IdentifyUser/member/name' => '1');
             },
             args => {
                 mode        => 'check',
@@ -1752,9 +1776,8 @@ sub test_key_list {
             results => {
                 text        => 'V',
                 clipboard   => {
-                    '/IdentifyUser/member/name'     => 1,
-                    '/IdentifyUser/member/object'   => { },
-                    '/IdentifyUser/member/verified' => 1,
+                    '/IdentifyUser/member/object'       => { },
+                    '/IdentifyUser/member/verified'     => 1,
                 },
                 cookies     => {
                     mid     => 3,
@@ -1774,10 +1797,10 @@ sub test_key_list {
                 },
                 text        => 'V',
                 clipboard   => {
-                    '/IdentifyUser/member/id'       => 'm001',
-                    '/IdentifyUser/member/name'     => '3',
-                    '/IdentifyUser/member/object'   => { },
-                    '/IdentifyUser/member/verified' => '1',
+                    '/IdentifyUser/member/id'           => 'm001',
+                    '/IdentifyUser/member/cookie_value' => '3',
+                    '/IdentifyUser/member/object'       => { },
+                    '/IdentifyUser/member/verified'     => '1',
                 },
             },
         },
@@ -1792,10 +1815,10 @@ sub test_key_list {
             results => {
                 text        => 'V',
                 clipboard   => {
-                    '/IdentifyUser/member/id'       => 'm001',
-                    '/IdentifyUser/member/name'     => '2',
-                    '/IdentifyUser/member/object'   => { },
-                    '/IdentifyUser/member/verified' => '1',
+                    '/IdentifyUser/member/id'           => 'm001',
+                    '/IdentifyUser/member/cookie_value' => '2',
+                    '/IdentifyUser/member/object'       => { },
+                    '/IdentifyUser/member/verified'     => '1',
                 },
             },
         },
@@ -1834,7 +1857,7 @@ sub test_key_list {
                 },
                 text        => 'V',
                 clipboard   => {
-                    '/IdentifyUser/member/name'     => '4',
+                    '/IdentifyUser/member/cookie_value' => '4',
                 },
             },
         },
@@ -1852,10 +1875,10 @@ sub test_key_list {
                 },
                 text        => 'V',
                 clipboard   => {
-                    '/IdentifyUser/member/object'   => { },
-                    '/IdentifyUser/member/verified' => 1,
-                    '/IdentifyUser/member/name'     => 1,
-                    '/IdentifyUser/member/id'       => 'm001',
+                    '/IdentifyUser/member/object'       => { },
+                    '/IdentifyUser/member/verified'     => 1,
+                    '/IdentifyUser/member/cookie_value' => 1,
+                    '/IdentifyUser/member/id'           => 'm001',
                 },
             },
         },

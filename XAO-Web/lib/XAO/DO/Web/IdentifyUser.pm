@@ -466,10 +466,10 @@ sub check ($@) {
             $user_obj || return $self->display_results($args,'anonymous');
 
             $data={
-                object      => $user_obj,
-                id          => $user_id,
-                name        => $cookie_value,
-                key_object  => $key_object,
+                object          => $user_obj,
+                id              => $user_id,
+                name            => $cookie_value,
+                key_object      => $key_object,
             };
         }
 
@@ -539,6 +539,10 @@ sub check ($@) {
         if(!$data) {
             return $self->display_results($args,'anonymous');
         }
+
+        # This is mostly useful for multi-key logins
+        #
+        $data->{'cookie_value'}=$cookie_value;
 
         # Saving identified user to the clipboard
         #
@@ -868,7 +872,6 @@ sub find_user ($$$) {
                 object      => $obj,
                 id          => $obj->container_key,
                 name        => $username,
-                username    => $username,
                 property    => $user_prop,
             };
 
@@ -914,10 +917,10 @@ sub find_user ($$$) {
                         $d=$d->{$name}={};
                     }
                 }
-
-                ### use JSON;
-                ### dprint ''.(JSON->new->allow_unknown->allow_blessed->pretty->encode($result));
             }
+
+            ### use JSON;
+            ### dprint ''.(JSON->new->allow_unknown->allow_blessed->pretty->encode($result));
 
             return $result;
         }
@@ -1309,7 +1312,7 @@ sub login ($;%) {
                 -expires => '+10y',
                 -domain  => $cookie_domain,
             );
-            $data->{'name'}=$key_id;
+            $data->{'cookie_value'}=$key_id;
             $data->{'key_object'}=$key_obj;
         }
         elsif($config->{'vf_key_cookie'}) {
@@ -1373,7 +1376,7 @@ sub login ($;%) {
             -expires => $expire,
             -domain  => $cookie_domain,
         );
-        $data->{'name'}=$cookie_value;
+        $data->{'cookie_value'}=$cookie_value;
     }
     elsif($id_cookie_type eq 'name') {
         $self->siteconfig->add_cookie(
@@ -1383,7 +1386,7 @@ sub login ($;%) {
             -expires => $expire,
             -domain  => $cookie_domain,
         );
-        $data->{'name'}=$username;
+        $data->{'cookie_value'}=$username;
     }
     elsif($id_cookie_type eq 'key') {
         # already set above
