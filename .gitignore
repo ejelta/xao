@@ -1,4 +1,5 @@
 archive
 Makefile.old
+MYMETA.*
 *.o
 *.a
