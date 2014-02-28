@@ -87,7 +87,7 @@ $config hash with all required parameters is presented below:
                                             # default is 10 years
     id_cookie_type      => 'name',          # optional, see below
     user_prop           => 'email',         # optional, see below    
-    alt_user_prop       => 'logname',       # optional, see below
+    alt_user_prop       => 'logname',       # deprecated, see below
     pass_prop           => 'password', 
     pass_encrypt        =>  'md5',          # optional, see below
     vf_key_prop         => 'verify_key',    # optional, see below 
@@ -114,15 +114,17 @@ Expiration time for the identification cookie (default is 4 years).
 
 =item id_cookie_type
 
-Can be either 'name' (default) or 'id'. Determines what is stored in the
-cookie on the client browser's side -- in 'name' mode it stores user
-name, just the way it is entered in the login form, in 'id' mode the
-internal id (container_key) of the user object is stored.
+Can be either 'name' (default), 'key', or 'id'. Determines what is
+stored in the cookie on the client browser's side -- in 'name' mode it
+stores user name (possibly different in caseness from what was entered
+on login form), in 'key' mode it stores the key within 'key_list_uri',
+and in 'id' mode the internal id (container_key) of the user object is
+stored.
 
 Downside to storing names is that some browsers fail to return
 exactly the stored value if it had international characters in the
 name. Downside to storing IDs is that you expose a bit of internal
-structure to the outside world, usually its harmless though.
+structure to the outside world. Usually its harmless though.
 
 If 'user_prop' is not used then it does not matter, as the name and id
 are the same thing.
@@ -143,11 +145,39 @@ member object, then the following might be used:
 See below for how to access deeper objects and ids (the object in
 'Nicknames' list in that case).
 
+It is possible to set user_prop to an array reference. In that case
+each element of the array is assumed to be a potential key. They are
+checked in order they are listed and if exactly one match is found
+(with user_condition in effect) then this is the user whose password is
+checked.
+
+This is useful to let users log in with either an email or a log name
+for example.
+
 =item alt_user_prop
 
 If this is given then on login the username is checked against this
 database property. If there is exactly one match it is used, otherwise
 (no matches or multiple matches) the logic goes back to user_prop, etc.
+
+Using this is deprecated -- pass an array reference to user_prop
+instead.
+
+=item user_condition
+
+This is an optional condition that if present must be satisfied for user
+name to match user prop. The condition is added with an 'and' to the
+user_prop search similarly to this:
+
+    $list->search(
+        [ $user_prop,'eq',$user_name ],
+        'and',
+        $user_condition
+    );
+
+This can be used to narrow down the entities in the list that are
+supposed to be able to log in. For instance if the same list contains
+customers of different types with different login schemas.
 
 =item pass_prop
 
@@ -212,7 +242,7 @@ Parameters that are stored into the clipboard are:
 
 =item id
 
-The internal ID of the use object (same as returned by container_key()
+The internal ID of the user object (same as returned by container_key()
 method on the object).
 
 =item name
@@ -304,7 +334,7 @@ use XAO::Objects;
 use base XAO::Objects->load(objname => 'Web::Action');
 
 use vars qw($VERSION);
-$VERSION=(0+sprintf('%u.%03u',(q$Id: IdentifyUser.pm,v 2.15 2008/07/02 01:46:59 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
+$VERSION=2.16;
 
 ###############################################################################
 
@@ -329,7 +359,7 @@ sub check_mode($;%){
         $self->logout($args);
     }
     else {
-        throw $self "check_mode - no such mode '$mode'";
+        throw $self "- no such mode '$mode'";
     }
 }
 
@@ -370,16 +400,18 @@ sub check ($@) {
     my $args=get_args(\@_);
 
     my $config=$self->siteconfig->get('identify_user') ||
-        throw $self "check - no 'identify_user' configuration";
+        throw $self "- no 'identify_user' configuration";
+
     my $type=$args->{'type'} ||
-        throw $self "check - no 'type' given";
+        throw $self "- no 'type' given";
+
     $config=$config->{$type} ||
-        throw $self "check - no 'identify_user' configuration for '$type'";
+        throw $self "- no 'identify_user' configuration for '$type'";
+
     my $clipboard=$self->clipboard;
 
     my $cookie_domain=$config->{'domain'};
 
-    ##
     # These are useful for both verification and identification cookies.
     #
     my $vf_time_prop=$config->{'vf_time_prop'} ||
@@ -387,7 +419,6 @@ sub check ($@) {
     my $current_time=time;
     my $last_vf;
 
-    ##
     # Checking if we already have user in the clipboard. If not -- checking
     # the cookie and trying to load from the database.
     #
@@ -399,7 +430,7 @@ sub check ($@) {
     my $user=$clipboard->get("$cb_uri/object");
     if(!$user) {
         my $id_cookie=$config->{'id_cookie'} ||
-            throw $self "check - no 'id_cookie' in the configuration";
+            throw $self "- no 'id_cookie' in the configuration";
 
         my $cookie_value=$self->cgi->cookie($id_cookie);
 
@@ -408,11 +439,16 @@ sub check ($@) {
         }
 
         my $data;
+
         my $list_uri=$config->{'list_uri'} ||
-            throw $self "check - no 'list_uri' in the configuration";
+            throw $self "- no 'list_uri' in the configuration";
+
+        # With key we may have multiple logins from the same user at the
+        # same time. Finding the specific key and verifying.
+        #
         if($id_cookie_type eq 'key') {
-            $key_list_uri || throw $self "check - key_list_uri required";
-            $key_ref_prop || throw $self "check - key_ref_prop required";
+            $key_list_uri || throw $self "- key_list_uri required";
+            $key_ref_prop || throw $self "- key_ref_prop required";
     
             my $user_list=$self->odb->fetch($list_uri);
             my $key_list=$self->odb->fetch($key_list_uri);
@@ -436,62 +472,79 @@ sub check ($@) {
                 key_object  => $key_object,
             };
         }
-        elsif($id_cookie_type eq 'id' && $config->{'user_prop'}) {
+
+        # When cookie is based on ID we can't use find_user() as the
+        # value in cookie is not the same as what was given in login.
+        #
+        elsif($id_cookie_type eq 'id') {
             my $list=$self->odb->fetch($list_uri);
 
-            my $user_prop=$config->{'user_prop'};
-            my @names=split(/\/+/,$user_prop);
+            # This works for both deep paths and single IDs.
+            #
             my @ids=split(/\/+/,$cookie_value);
-            my %d;
 
-            try {
-                my $obj;
-                my $dref=\%d;
-                for(my $i=0; $i!=@names; $i++) {
-                    my $name=$names[$i];
-                    my $id=$ids[$i];
+            my $user_props=$self->_get_user_props($config,$list);
 
-                    my $obj=$list->get($id);
-                    $dref->{'object'}=$obj;
-                    $dref->{'id'}=$id;
+            foreach my $user_prop (@$user_props) {
+                my @names=split(/\/+/,$user_prop);
 
-                    $list=$obj->get($name);
-                    if(ref $list) {
-                        $dref->{list_prop}=$name;
-                        $dref=$dref->{$name}={};
-                    }
-                    else {
-                        $d{'name'}=$list;
+                next unless scalar(@names)==scalar(@ids);
+
+                my %d;
+
+                try {
+                    my $obj;
+                    my $dref=\%d;
+
+                    for(my $i=0; $i!=@names; $i++) {
+                        my $name=$names[$i];
+                        my $id=$ids[$i];
+
+                        my $obj=$list->get($id);
+
+                        $dref->{'object'}=$obj;
+                        $dref->{'id'}=$id;
+
+                        $list=$obj->get($name);
+
+                        if(ref $list) {
+                            $dref->{'list_prop'}=$name;
+                            $dref=$dref->{$name}={};
+                        }
+                        else {
+                            $d{'name'}=$list;
+                        }
                     }
                 }
+                otherwise {
+                    my $e=shift;
+                    dprint "IGNORED(OK): $e";
+                    %d=();
+                };
+
+                if($d{'object'}) {
+                    $d{'property'}=$user_prop;
+                    $data=\%d;
+                    last;
+                }
             }
-            otherwise {
-                my $e=shift;
-                dprint "IGNORED(OK): $e";
-            };
-
-            $d{'object'} || return $self->display_results($args,'anonymous');
-
-            $data=\%d;
         }
-        elsif($id_cookie_type eq 'name' || !$config->{user_prop}) {
+        elsif($id_cookie_type eq 'name') {
             $data=$self->find_user($config,$cookie_value);
         }
         else {
-            throw $self "check - unknown id_cookie_type ($id_cookie_type)";
+            throw $self "- unknown id_cookie_type ($id_cookie_type)";
         }
 
         if(!$data) {
             return $self->display_results($args,'anonymous');
         }
 
-        ##
         # Saving identified user to the clipboard
         #
         $clipboard->put($cb_uri => $data);
         $user=$data->{'object'};
 
-        ##
         # Updating cookie
         #
         my $id_cookie_expire=$config->{'id_cookie_expire'} || 4*365*24*60*60;
@@ -504,7 +557,6 @@ sub check ($@) {
         );
     }
 
-    ##
     # Checking clipboard to determine if 'verified' flag is set and
     # if so user's status is 'verified'.
     #
@@ -512,7 +564,6 @@ sub check ($@) {
     if(!$verified) {
         my $vcookie;
 
-        ##
         # If we have a list of keys find the key that belongs to this
         # browser. If there is not one, assume at most 'identified'
         # status.
@@ -543,7 +594,6 @@ sub check ($@) {
             }
         }
 
-        ##
         # Checking the difference between the current time and the time
         # of last verification
         #
@@ -556,7 +606,6 @@ sub check ($@) {
 
         if($last_vf && $current_time - $last_vf <= $vf_expire_time) {
 
-            ##
             # If optional 'vf_key_prop' and 'vf_key_cookie' parameters
             # are present checking the content of the key cookie and
             # appropriate field in the user profile
@@ -581,7 +630,6 @@ sub check ($@) {
             }
         }
 
-        ##
         # Calling external overridable function to check if it is OK to
         # verify that user.
         #
@@ -595,7 +643,7 @@ sub check ($@) {
                 $clipboard->put("$cb_uri/verified" => 1);
                 if($key_object) {
                     my $key_expire_prop=$config->{'key_expire_prop'} ||
-                        throw $self "check - key_expire_prop required";
+                        throw $self "- key_expire_prop required";
                     $key_object->put(
                         $vf_time_prop       => $current_time,
                         $key_expire_prop    => $current_time+$vf_expire_time,
@@ -617,9 +665,7 @@ sub check ($@) {
         }
     }
 
-    ##
-    # If we are failed to verify and we have a configuration parameter
-    # called 'vf_key_strict' we remove 'vf_key_cookie' cookie.
+    # If we failed to verify we remove the verification cookie.
     # That might help better track verification from browser side
     # applications and should not hurt anything else.
     #
@@ -627,7 +673,7 @@ sub check ($@) {
     if(!$verified && $expire_mode eq 'clean') {
         if($id_cookie_type eq 'key') {
             $self->siteconfig->add_cookie(
-                -name    => $config->{id_cookie},
+                -name    => $config->{'id_cookie'},
                 -value   => 0,
                 -path    => '/',
                 -expires => 'now',
@@ -645,10 +691,10 @@ sub check ($@) {
         }
     }
 
-    ##
     # Displaying results
     #
     my $status=$verified ? 'verified' : 'identified';
+
     $self->display_results($args,$status);
 }
 
@@ -687,11 +733,11 @@ sub display_results ($$$;$) {
     my ($self,$args,$status,$errstr)=@_;
 
     my $config=$self->siteconfig->get('identify_user') ||
-        throw $self "check - no 'identify_user' configuration";
+        throw $self "- no 'identify_user' configuration";
     my $type=$args->{'type'} ||
-        throw $self "check - no 'type' given";
+        throw $self "- no 'type' given";
     $config=$config->{$type} ||
-        throw $self "check - no 'identify_user' configuration for '$type'";
+        throw $self "- no 'identify_user' configuration for '$type'";
     my $cb_uri=$config->{'cb_uri'} || "/IdentifyUser/$type";
     my $clipboard=$self->clipboard;
 
@@ -719,13 +765,50 @@ sub display_results ($$$;$) {
     }
 }
 
+###############################################################################
+
+sub _get_user_props($$$) {
+    my ($self,$config,$list)=@_;
+
+    my $user_props=$config->{'user_props'} || $config->{'user_prop'};
+
+    # The default user name property is the list object key.
+    #
+    if(!$user_props) {
+        my $obj=$list->get_new;
+        my @x=grep { $obj->describe($_)->{'type'} eq 'key' } ($obj->keys);
+
+        @x==1 || throw $self "- keyless list '".$list->uri."'";
+
+        $user_props=\@x;
+    }
+
+    # User prop is a scalar or an array
+    #
+    if(!ref $user_props) {
+        $user_props=[$user_props];
+    }
+
+    # This is a (deprecated) optional parameter to make it possible for
+    # users to log in using this property as well as the default method.
+    #
+    my $alt_user_prop=$config->{'alt_user_prop'};
+    if($alt_user_prop) {
+        ref $alt_user_prop && throw $self "- 'alt_user_prop' needs to be a scalar";
+
+        unshift(@$user_props,$alt_user_prop);
+    }
+
+    return $user_props;
+}
+
 ##############################################################################
 
 =item find_user ($;$)
 
 Searches for the user in the list according to the configuration:
 
- my $data=$self->find_user($config,$username);
+    my $data=$self->find_user($config,$username);
 
 Sets the same parameters in the returned hash as stored in the clipboard
 except 'verified'.
@@ -733,146 +816,122 @@ except 'verified'.
 =cut
 
 sub find_user ($$$) {
-    my $self=shift;
-    my $config=shift;
-    my $username=shift;
+    my ($self,$config,$username)=@_;
 
     my $list_uri=$config->{'list_uri'} ||
-        throw $self "find_user - no 'list_uri' in the configuration";
+        throw $self "- no 'list_uri' in the configuration";
+
     my $list=$self->odb->fetch($list_uri);
 
-    my $user_prop=$config->{'user_prop'};
+    my $user_props=$self->_get_user_props($config,$list);
 
-    # This is an optional parameter to make it possible for users to log
-    # in using this property as well as the default method.
+    # We may optionally get a user selection condition in case the same
+    # list contains elements not supposed to be used for log ins.
     #
-    my $alt_user_prop=$config->{'alt_user_prop'};
-    if($alt_user_prop) {
-        my $new_username;
-        try {
-            my $sr=$list->search($alt_user_prop,'eq',$username);
-            if(@$sr==1) {
-                if($user_prop) {
-                    $new_username=$list->get($sr->[0])->get($user_prop);
-                }
-                else {
-                    $new_username=$sr->[0];
-                }
-            }
-        }
-        otherwise {
-            my $e=shift;
-            dprint "Alt_user_prop checking error: $e";
-        };
-        if($new_username) {
-            dprint "Alt_user_prop: Changing '$username' to '$new_username'";
-            $username=$new_username;
-        }
-    }
- 
-    # User_prop can be a path into a deeper database property, like
-    # Nicknames/name for instance.
+    my $user_condition=$config->{'user_condition'};
+
+    # Finding the user.
     #
-    if($user_prop) {
-        my @names=split(/\/+/,$user_prop);
+    foreach my $user_prop (@$user_props) {
 
-        my %d;
-        try {
-            my $obj;
-            my $dref=\%d;
-            for(my $i=0; $i!=@names; ++$i) {
-                my $searchprop=join('/',@names[$i..$#names]);
-                my $sr=$list->search($searchprop,'eq',$username);
-                return undef unless @$sr == 1;
+        my $cond=[$user_prop,'eq',$username];
 
-                my $id=$sr->[0];
-                my $obj=$list->get($id);
-
-                $dref->{'object'}=$obj;
-                $dref->{'id'}=$id;
-
-                if($i!=$#names) {
-                    my $name=$names[0];
-                    $list=$obj->get($name);
-                    $dref->{'list_prop'}=$name;
-                    $dref=$dref->{$name}={};
-                }
-                else {
-                    # Real username can be different even though we used
-                    # 'eq' to get to it, MySQL ignores case by default.
-                    #
-                    my $real_username=$obj->get($searchprop);
-                    if($config->{'id_case_sensitive'}) {
-                        if($real_username ne $username) {
-                            eprint "Case difference between '$real_username' and '$username'";
-                            return undef;
-                        }
-                    }
-                    else {
-                        $username=$real_username;
-                    }
-                }
-            }
+        if($user_condition) {
+            $cond=[$cond,'and',$user_condition];
         }
-        otherwise {
-            my $e=shift;
-            dprint "IGNORED(OK): $e";
-        };
 
-        return undef unless $d{'object'};
+        my $sr=$list->search($cond,{
+            result => [ '#id',$user_prop ],
+        });
 
-        $d{'name'}=$username;
-        $d{'username'}=$username;
-
-        return \%d;
-    }
-
-    # If there is no user_prop, then the username is the object key in the database.
-    #
-    else {
-        return undef unless $list->check_name($username);
-
-        my $obj;
-        try {
-            $obj=$list->get($username);
-        }
-        otherwise {
-            my $e=shift;
-            dprint "IGNORED(OK): $e";
-        };
-        return undef unless $obj;
-
-        # Real username can be different even though we used
-        # 'eq' to get to it, MySQL ignores case by default.
+        # Found?
         #
-        my $real_key_name;
-        foreach my $key ($obj->keys) {
-            if($obj->describe($key)->{'type'} eq 'key') {
-                $real_key_name=$key;
-                last;
+        if(@$sr==1) {
+            my $obj=$list->get($sr->[0]->[0]);
+
+            # Real username can be different even though we used
+            # 'eq' to get to it (if props are not case sensitive).
+            #
+            my $real_username=$sr->[0]->[1];
+
+            if($config->{'id_case_sensitive'}) {
+                if($real_username ne $username) {
+                    eprint "Case difference between '$real_username' and '$username'";
+                    return undef;
+                }
             }
-        }
-        my $real_username=$obj->get($real_key_name);
-        if($config->{id_case_sensitive}) {
-            if($real_username ne $username) {
-                eprint "Case difference between '$real_username' and '$username'";
-                return undef;
+            else {
+                $username=$real_username;
             }
-        }
-        else {
-            $username=$real_username;
+
+            my $result={
+                object      => $obj,
+                id          => $obj->container_key,
+                name        => $username,
+                username    => $username,
+                property    => $user_prop,
+            };
+
+            # For deep level props (Nicknames/nickname) we need to
+            # provide the path to the final object on the returned data.
+            #
+            # For Nicknames/nickname matching on "foo" we return:
+            #
+            #   list_prop   => Nicknames
+            #   Nicknames   => {
+            #       "object" => "nickname object",
+            #       "id"     => "nickname object"->container_key,
+            #   }
+            #
+            if($user_prop=~/\//) {
+                if($user_condition) {
+                    throw $self "- deep user_prop ($user_prop) is not supported with user_condition";
+                }
+
+                my @p=split(/\/+/,$user_prop);
+
+                $list=$obj->get($p[0]);
+
+                $result->{'list_prop'}=$p[0];
+                my $d=$result->{$p[0]}={};
+
+                for(my $i=1; $i<@p; ++$i) {
+                    my $prop=join('/',@p[$i...$#p]);
+
+                    ### dprint ".searching i=$i '$username' in '$prop'";
+
+                    my $psr=$list->search($prop,'eq',$username);
+                    @$psr==1 ||
+                        throw $self "- internal logic problem: no '$username' in '$prop' of '$user_prop'";
+
+                    my $id=$psr->[0];
+                    $d->{'id'}=$id;
+                    $d->{'object'}=$list->get($id);
+
+                    if($i!=$#p) {
+                        my $name=$p[$i];
+                        $d->{'list_prop'}=$name;
+                        $d=$d->{$name}={};
+                    }
+                }
+
+                ### use JSON;
+                ### dprint ''.(JSON->new->allow_unknown->allow_blessed->pretty->encode($result));
+            }
+
+            return $result;
         }
 
-        return {
-            object      => $obj,
-            name        => $username,
-            username    => $username,
-        };
+        # More than one match? This is typically not a good sign, warning.
+        #
+        elsif(@$sr>1) {
+            eprint "More than one match on '$user_prop' with '$username'";
+        }
     }
 
-    # Should not get here.
+    # Not found after all props?
     #
-    die "Should not have gotten here";
+    return undef;
 }
 
 ###############################################################################
@@ -935,17 +994,26 @@ sub login ($;%) {
     my $args=get_args(\@_);
 
     my $config=$self->siteconfig->get('identify_user') ||
-        throw $self "login - no 'identify_user' configuration";
+        throw $self "- no 'identify_user' configuration";
+
     my $type=$args->{'type'} ||
-        throw $self "login - no 'type' given";
+        throw $self "- no 'type' given";
+
     $config=$config->{$type} ||
-        throw $self "login - no 'identify_user' configuration for '$type'";
+        throw $self "- no 'identify_user' configuration for '$type'";
+
+    my $id_cookie=$config->{'id_cookie'} ||
+        throw $self "- no 'id_cookie' in the configuration";
+
+    my $id_cookie_type=$config->{'id_cookie_type'} || 'name';
+
     my $cookie_domain=$config->{'domain'};
 
     # Looking for the user in the database
     #
     my $username=$args->{'username'} ||
-        throw $self "login - no 'username' given";
+        throw $self "- no 'username' given";
+
     my $data=$self->find_user($config,$username);
 
     # Since MySQL is not case sensitive by default on text fields, there
@@ -1023,7 +1091,7 @@ sub login ($;%) {
             }
             else {
                 my $pass_prop=$config->{'pass_prop'} || 
-                    throw $self "login - no 'pass_prop' in the configuration";
+                    throw $self "- no 'pass_prop' in the configuration";
                 my $dbpass=$user->get($pass_prop);
 
                 my $pass_encrypt=lc($config->{'pass_encrypt'} || 'plaintext');
@@ -1052,7 +1120,7 @@ sub login ($;%) {
                     );
                 }
                 else {
-                    throw $self "login - unknown encryption mode '$pass_encrypt'";
+                    throw $self "- unknown encryption mode '$pass_encrypt'";
                 }
 
                 # Empty passwords are never accepted
@@ -1130,10 +1198,36 @@ sub login ($;%) {
 
         $clipboard->put($cb_uri => $data);
 
+        # A failure to login resets existing key cookies
+        #
+        if($id_cookie_type eq 'key') {
+            $self->siteconfig->add_cookie(
+                -name    => $id_cookie,
+                -value   => '0',
+                -path    => '/',
+                -expires => 'now',
+                -domain  => $cookie_domain,
+            );
+        }
+        elsif($config->{'vf_key_cookie'}) {
+            $self->siteconfig->add_cookie(
+                -name    => $config->{'vf_key_cookie'},
+                -value   => '0',
+                -path    => '/',
+                -expires => 'now',
+                -domain  => $cookie_domain,
+            );
+        }
+
+        # Returning anonymouse, failed login verification
+        #
         return $self->display_results($args,'anonymous',$errstr);
     }
 
-    # When we get here it means a successful login. Removing failure time & count if needed.
+    # Success!
+    #
+    # When we get here it means a successful login. Removing failure
+    # time & count if needed.
     #
     if($fail_time_prop || $fail_count_prop) {
         $user->put(
@@ -1146,18 +1240,17 @@ sub login ($;%) {
     # vf_key_prop even if it exists.
     #
     my $vf_time_prop=$config->{'vf_time_prop'} ||
-        throw $self "login - no 'vf_time_prop' in the configuration";
-    my $id_cookie=$config->{'id_cookie'} ||
-        throw $self "login - no 'id_cookie' in the configuration";
-    my $id_cookie_type=$config->{'id_cookie_type'} || 'name';
+        throw $self "- no 'vf_time_prop' in the configuration";
+
     my $key_list_uri=$config->{'key_list_uri'};
+
     if($key_list_uri) {
         my $key_ref_prop=$config->{'key_ref_prop'} ||
-            throw $self "login - key_ref_prop required";
+            throw $self "- key_ref_prop required";
         my $key_expire_prop=$config->{'key_expire_prop'} ||
-            throw $self "login - key_expire_prop required";
+            throw $self "- key_expire_prop required";
         my $vf_expire_time=$config->{'vf_expire_time'} ||
-            throw $self "login - no vf_expire_time in the configuration";
+            throw $self "- no vf_expire_time in the configuration";
 
         my $key_id;
         my $vf_key_cookie=$config->{'vf_key_cookie'};
@@ -1168,7 +1261,7 @@ sub login ($;%) {
             $key_id=$self->cgi->cookie($vf_key_cookie);
         }
         else {
-            throw $self "login - id_cookie_type!=key and there is no vf_key_cookie";
+            throw $self "- id_cookie_type!=key and there is no vf_key_cookie";
         }
 
         my $key_list=$self->odb->fetch($key_list_uri);
@@ -1229,7 +1322,6 @@ sub login ($;%) {
             );
         }
 
-        ##
         # Auto expiring some keys
         #
         my $key_expire_mode=$config->{'key_expire_mode'} || 'auto';
@@ -1264,8 +1356,9 @@ sub login ($;%) {
 
     # Setting user name cookie depending on id_cookie_type parameter.
     #
-    my $expire=$config->{'id_cookie_expire'} ? "+$config->{id_cookie_expire}s"
-                                           : '+10y';
+    my $expire=$config->{'id_cookie_expire'} ? "+$config->{'id_cookie_expire'}s"
+                                             : '+10y';
+
     if($id_cookie_type eq 'id') {
         my $cookie_value=$data->{'id'};
         my $r=$data;
@@ -1296,7 +1389,7 @@ sub login ($;%) {
         # already set above
     }
     else {
-        throw $self "login - unsupported id_cookie_type ($id_cookie_type)";
+        throw $self "- unsupported id_cookie_type ($id_cookie_type)";
     }
 
     # Storing values into the clipboard
@@ -1368,11 +1461,11 @@ sub logout {
     my $args=get_args(\@_);
 
     my $config=$self->siteconfig->get('identify_user') ||
-        throw $self "logout - no 'identify_user' configuration";
+        throw $self "- no 'identify_user' configuration";
     my $type=$args->{'type'} ||
-        throw $self "logout - no 'type' given";
+        throw $self "- no 'type' given";
     $config=$config->{$type} ||
-        throw $self "logout - no 'identify_user' configuration for '$type'";
+        throw $self "- no 'identify_user' configuration for '$type'";
 
     my $cookie_domain=$config->{'domain'};
 
@@ -1404,7 +1497,7 @@ sub logout {
     # property.
     #
     my $vf_time_prop=$config->{'vf_time_prop'} ||
-        throw $self "logout - no 'vf_time_prop' in the configuration";
+        throw $self "- no 'vf_time_prop' in the configuration";
     my $vf_key_prop=$config->{'vf_key_prop'};
     my $vf_key_cookie=$config->{'vf_key_cookie'};
     my $deleted;
@@ -1453,7 +1546,7 @@ sub logout {
         }
 
         my $id_cookie=$config->{'id_cookie'} ||
-            throw $self "logout - no 'id_cookie' in the configuration";
+            throw $self "- no 'id_cookie' in the configuration";
 
         $self->siteconfig->add_cookie(
             -name    => $id_cookie,

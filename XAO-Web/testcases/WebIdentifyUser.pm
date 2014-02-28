@@ -1029,7 +1029,6 @@ sub test_user_prop_hash {
                 email => {
                     type        => 'text',
                     maxlength   => 100,
-                    unique      => 1,
                     charset     => 'latin1',
                 },
                 password => {
@@ -1046,6 +1045,11 @@ sub test_user_prop_hash {
                     maxlength   => 20,
                     charset     => 'latin1',
                 },
+                acc_type => {
+                    type        => 'text',
+                    charset     => 'latin1',
+                    maxlength   => 10,
+                },
             },
         },
     );
@@ -1056,8 +1060,25 @@ sub test_user_prop_hash {
         email       => 'foo@bar.org',
         password    => '12345',
         verify_time => 0,
+        acc_type    => 'web',
     );
     $m_list->put(m001 => $m_obj);
+
+    $m_obj->put(
+        email       => 'two@bar.org',
+        password    => '12345',
+        verify_time => 0,
+        acc_type    => 'foo',
+    );
+    $m_list->put(m002foo => $m_obj);
+
+    $m_obj->put(
+        email       => 'two@bar.org',
+        password    => '12345',
+        verify_time => 0,
+        acc_type    => 'web',
+    );
+    $m_list->put(m002web => $m_obj);
 
     my %cjar;
 
@@ -1146,6 +1167,367 @@ sub test_user_prop_hash {
                 cookies     => {
                     member_id   => 'm001',
                 },
+                text        => 'V',
+            },
+        },
+        #
+        # Multiple user props
+        #
+        t10a    => {            # by email, single email, returning name
+            sub_pre => sub {
+                $config->put('/identify_user/member/user_prop'      => [ 'email','member_id' ]);
+                $config->put('/identify_user/member/alt_user_prop'  => undef);
+                $config->put('/identify_user/member/id_cookie_type' => 'name');
+            },
+            args => {
+                mode        => 'login',
+                type        => 'member',
+                username    => 'foo@bar.org',
+                password    => '12345',
+            },
+            results => {
+                cookies     => {
+                    member_id   => 'foo@bar.org',
+                },
+                text        => 'V',
+            },
+        },
+        t10b     => {
+            args => {
+                mode        => 'check',
+                type        => 'member',
+            },
+            results => {
+                cookies     => {
+                    member_id   => 'foo@bar.org',
+                },
+                text        => 'V',
+            },
+        },
+        #
+        t11a    => {            # by id, single email, returning name
+            sub_pre => sub {
+                $config->put('/identify_user/member/user_prop'      => [ 'email','member_id' ]);
+                $config->put('/identify_user/member/alt_user_prop'  => undef);
+                $config->put('/identify_user/member/id_cookie_type' => 'name');
+            },
+            args => {
+                mode        => 'login',
+                type        => 'member',
+                username    => 'm001',
+                password    => '12345',
+            },
+            results => {
+                cookies     => {
+                    member_id   => 'm001',
+                },
+                text        => 'V',
+            },
+        },
+        t11b     => {
+            args => {
+                mode        => 'check',
+                type        => 'member',
+            },
+            results => {
+                cookies     => {
+                    member_id   => 'm001',
+                },
+                text        => 'V',
+            },
+        },
+        #
+        t12a    => {            # by email, single email, returning id
+            sub_pre => sub {
+                $config->put('/identify_user/member/user_prop'      => [ 'email','member_id' ]);
+                $config->put('/identify_user/member/alt_user_prop'  => undef);
+                $config->put('/identify_user/member/id_cookie_type' => 'id');
+            },
+            args => {
+                mode        => 'login',
+                type        => 'member',
+                username    => 'foo@bar.org',
+                password    => '12345',
+            },
+            results => {
+                cookies     => {
+                    member_id   => 'm001',
+                },
+                text        => 'V',
+            },
+        },
+        t12b     => {
+            args => {
+                mode        => 'check',
+                type        => 'member',
+            },
+            results => {
+                cookies     => {
+                    member_id   => 'm001',
+                },
+                text        => 'V',
+            },
+        },
+        #
+        t13a    => {            # by id, single email, returning id
+            sub_pre => sub {
+                $config->put('/identify_user/member/user_prop'      => [ 'email','member_id' ]);
+                $config->put('/identify_user/member/alt_user_prop'  => undef);
+                $config->put('/identify_user/member/id_cookie_type' => 'id');
+            },
+            args => {
+                mode        => 'login',
+                type        => 'member',
+                username    => 'm001',
+                password    => '12345',
+            },
+            results => {
+                cookies     => {
+                    member_id   => 'm001',
+                },
+                text        => 'V',
+            },
+        },
+        t13b     => {
+            args => {
+                mode        => 'check',
+                type        => 'member',
+            },
+            results => {
+                cookies     => {
+                    member_id   => 'm001',
+                },
+                text        => 'V',
+            },
+        },
+        #
+        t15a    => {            # by email, multi-email, no qualifier
+            sub_pre => sub {
+                $config->put('/identify_user/member/user_prop'      => [ 'email','member_id' ]);
+                $config->put('/identify_user/member/alt_user_prop'  => undef);
+                $config->put('/identify_user/member/id_cookie_type' => 'name');
+            },
+            args => {
+                mode        => 'login',
+                type        => 'member',
+                username    => 'two@bar.org',
+                password    => '12345',
+            },
+            results => {
+                cookies     => {
+                    member_id   => 'm001',
+                },
+                text        => 'A',     # because this email is listed twice
+            },
+        },
+        #
+        t16a    => {            # by id, multi-email, no qualifier
+            sub_pre => sub {
+                $config->put('/identify_user/member/user_prop'      => [ 'email','member_id' ]);
+                $config->put('/identify_user/member/alt_user_prop'  => undef);
+                $config->put('/identify_user/member/id_cookie_type' => 'name');
+            },
+            args => {
+                mode        => 'login',
+                type        => 'member',
+                username    => 'm002web',
+                password    => '12345',
+            },
+            results => {
+                cookies     => {
+                    member_id   => 'm002web',
+                },
+                text        => 'V',
+            },
+        },
+        t16b     => {
+            args => {
+                mode        => 'check',
+                type        => 'member',
+            },
+            results => {
+                cookies     => {
+                    member_id   => 'm002web',
+                },
+                text        => 'V',
+            },
+        },
+        #
+        t17a    => {            # by id, multi-email, no qualifier
+            sub_pre => sub {
+                $config->put('/identify_user/member/user_prop'      => [ 'email','member_id' ]);
+                $config->put('/identify_user/member/alt_user_prop'  => undef);
+                $config->put('/identify_user/member/id_cookie_type' => 'name');
+            },
+            args => {
+                mode        => 'login',
+                type        => 'member',
+                username    => 'm002foo',
+                password    => '12345',
+            },
+            results => {
+                cookies     => {
+                    member_id   => 'm002foo',
+                },
+                text        => 'V',
+            },
+        },
+        t17b     => {
+            args => {
+                mode        => 'check',
+                type        => 'member',
+            },
+            results => {
+                cookies     => {
+                    member_id   => 'm002foo',
+                },
+                text        => 'V',
+            },
+        },
+        #
+        t18a    => {            # by email, multi-email, with qualifier
+            sub_pre => sub {
+                $config->put('/identify_user/member/user_prop'      => [ 'email','member_id' ]);
+                $config->put('/identify_user/member/alt_user_prop'  => undef);
+                $config->put('/identify_user/member/id_cookie_type' => 'name');
+                $config->put('/identify_user/member/user_condition' => [ 'acc_type','eq','web' ]);
+            },
+            args => {
+                mode        => 'login',
+                type        => 'member',
+                username    => 'two@bar.org',
+                password    => '12345',
+            },
+            results => {
+                cookies     => {
+                    member_id   => 'two@bar.org',
+                },
+                text        => 'V',
+            },
+        },
+        t18b     => {
+            args => {
+                mode        => 'check',
+                type        => 'member',
+            },
+            results => {
+                cookies     => {
+                    member_id   => 'two@bar.org',
+                },
+                text        => 'V',
+            },
+        },
+        #
+        t19a    => {            # by email, multi-email, with qualifier
+            sub_pre => sub {
+                $config->put('/identify_user/member/user_prop'      => [ 'email','member_id' ]);
+                $config->put('/identify_user/member/alt_user_prop'  => undef);
+                $config->put('/identify_user/member/id_cookie_type' => 'id');
+                $config->put('/identify_user/member/user_condition' => [ 'acc_type','eq','web' ]);
+            },
+            args => {
+                mode        => 'login',
+                type        => 'member',
+                username    => 'two@bar.org',
+                password    => '12345',
+            },
+            results => {
+                cookies     => {
+                    member_id   => 'm002web',
+                },
+                text        => 'V',
+            },
+        },
+        t19b     => {
+            args => {
+                mode        => 'check',
+                type        => 'member',
+            },
+            results => {
+                cookies     => {
+                    member_id   => 'm002web',
+                },
+                text        => 'V',
+            },
+        },
+        #
+        t20a    => {            # by id, multi-email, with qualifier
+            sub_pre => sub {
+                $config->put('/identify_user/member/user_prop'      => [ 'email','member_id' ]);
+                $config->put('/identify_user/member/alt_user_prop'  => undef);
+                $config->put('/identify_user/member/id_cookie_type' => 'name');
+                $config->put('/identify_user/member/user_condition' => [ 'acc_type','eq','web' ]);
+            },
+            args => {
+                mode        => 'login',
+                type        => 'member',
+                username    => 'm002web',
+                password    => '12345',
+            },
+            results => {
+                cookies     => {
+                    member_id   => 'm002web',
+                },
+                text        => 'V',
+            },
+        },
+        t20b     => {
+            args => {
+                mode        => 'check',
+                type        => 'member',
+            },
+            results => {
+                cookies     => {
+                    member_id   => 'm002web',
+                },
+                text        => 'V',
+            },
+        },
+        #
+        t21a    => {            # by id, multi-email, with qualifier
+            sub_pre => sub {
+                $config->put('/identify_user/member/user_prop'      => [ 'email','member_id' ]);
+                $config->put('/identify_user/member/alt_user_prop'  => undef);
+                $config->put('/identify_user/member/id_cookie_type' => 'name');
+                $config->put('/identify_user/member/user_condition' => [ 'acc_type','eq','web' ]);
+            },
+            args => {
+                mode        => 'login',
+                type        => 'member',
+                username    => 'm002foo',
+                password    => '12345',
+            },
+            results => {
+                text        => 'A',     # condition is not satisfied
+            },
+        },
+        t21b     => {
+            args => {
+                mode        => 'check',
+                type        => 'member',
+            },
+            results => {
+                cookies     => {
+                    member_id   => 'm002web',
+                },
+                text        => 'I',     # identification from previous login
+            },
+        },
+        #
+        t22a    => {            # by id, multi-email, complex condition
+            sub_pre => sub {
+                $config->put('/identify_user/member/user_prop'      => [ 'email','member_id' ]);
+                $config->put('/identify_user/member/alt_user_prop'  => undef);
+                $config->put('/identify_user/member/id_cookie_type' => 'name');
+                $config->put('/identify_user/member/user_condition' => [ [ 'email','ne','' ],'and', [ 'acc_type','ne','foo' ] ]);
+            },
+            args => {
+                mode        => 'login',
+                type        => 'member',
+                username    => 'two@bar.org',
+                password    => '12345',
+            },
+            results => {
                 text        => 'V',
             },
         },
