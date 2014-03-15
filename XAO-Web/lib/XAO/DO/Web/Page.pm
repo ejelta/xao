@@ -1676,35 +1676,34 @@ sub _do_pass_args ($$$) {
         elsif($rule =~ /^([\w\.]+)\s*=\s*([\w\.]+)$/) {     # VAR=FOO
             $hash->{$1}=$pargs->{$2};
         }
-        elsif($rule =~ /^([\w\.]*)\*\s*=\s*([\w\.]+)\*?$/) {# VAR*=FOO* or *=FOO*
-            my ($prnew,$prold)=($1,$2);
-            my $lnew=length($prnew);
-            my $lold=length($prold);
+        elsif($rule =~ /^([\w\.]*)\*([\w\.]*)\s*=\s*([\w\.]*)\*([\w\.]*)$/) {# VAR*=FOO* or *VAR=*FOO or V*R=T*Z or *=X*Z
+            my ($prnew,$sufnew,$prold,$sufold)=($1,$2,$3,$4);
+            my $re=qr/^\Q$prold\E(.*)\Q$sufold\E/;
             foreach my $k (keys %$pargs) {
-                next unless substr($k,0,$lold) eq $prold;
-                $hash->{$prnew.substr($k,$lold)}=$pargs->{$k};
+                next unless $k =~ $re;
+                $hash->{$prnew.$1.$sufnew}=$pargs->{$k};
             }
         }
         elsif($rule =~ /^([\w\.]+)$/) {                     # VAR
             $hash->{$1}=$pargs->{$1};
         }
-        elsif($rule =~ /^([\w\.]+)\*$/) {                   # VAR*
-            my $pr=$1;
-            my $l=length($pr);
+        elsif($rule =~ /^([\w\.]*)\*([\w\.]*)$/) {          # VAR* or *VAR or VAR*FOO
+            my ($pr,$suf)=($1,$2);
+            my $re=qr/^\Q$pr\E(.*)\Q$suf\E/;
             foreach my $k (keys %$pargs) {
-                next unless substr($k,0,$l) eq $pr;
+                next unless $k =~ $re;
                 $hash->{$k}=$pargs->{$k};
             }
         }
         elsif($rule =~ /^!([\w\.]+)$/) {                    # !VAR
             delete $hash->{$1};
         }
-        elsif($rule =~ /^!([\w\.]+)\*$/) {                  # !VAR*
-            my $pr=$1;
-            my $l=length($pr);
+        elsif($rule =~ /^!([\w\.]*)\*([\w\.]*)$/) {                  # !VAR* or !*VAR or !VAR*FOO
+            my ($pr,$suf)=($1,$2);
+            my $re=qr/^\Q$pr\E(.*)\Q$suf\E/;
             my @todel;
             foreach my $k (keys %$hash) {
-                next unless substr($k,0,$l) eq $pr;
+                next unless $k =~ $re;
                 push(@todel,$k);
             }
             delete @{$hash}{@todel};

@@ -505,6 +505,49 @@ EOT
             },
             expect      => 'V1-FOO/V2-INTERNAL/V3-DEFAULT',
         },
+        t27 => {
+            args        => {
+                template    => <<'EOT',
+<%Page
+  template={'<%SetArg name='V1' value='V1-DEFAULT'
+             %><%SetArg name='V2' value='V2-DEFAULT'
+             %><%SetArg name='V3' value='V3-DEFAULT'
+             %><$V1$>/<$V2$>/<$V3$>'}
+  pass="<$PASS$>"
+  V2='V2-INTERNAL'
+%><%End%>
+EOT
+                'PASS'      => '*=*.FOO;!V1',
+                'V1.FOO'    => 'V1-FOO',
+                'V2.FOO'    => 'V2-FOO',
+                'V3.FOO'    => 'V3-FOO',
+            },
+            expect      => 'V1-DEFAULT/V2-INTERNAL/V3-FOO',
+        },
+        t28 => {
+            args        => {
+                template    => <<'EOT',
+<%Page
+  template={'<%SetArg   name='FOO.OLD'  value='FOO-OLD-DEFAULT'
+             %><%SetArg name='FOO.NEW'  value='FOO-NEW-DEFAULT'
+             %><%SetArg name='FOO.V1'   value='FOO-V1-DEFAULT'
+             %><%SetArg name='BAR.OLD'  value='BAR-OLD-DEFAULT'
+             %><%SetArg name='BAR.NEW'  value='BAR-NEW-DEFAULT'
+             %><%SetArg name='BAR.V1'   value='BAR-V1-DEFAULT'
+             %><$FOO.OLD$>/<$FOO.NEW$>/<$FOO.V1$>/<$BAR.OLD$>/<$BAR.NEW$>/<$BAR.V1$>'}
+  pass="<$PASS$>"
+  V2='V2-INTERNAL'
+%><%End%>
+EOT
+                'PASS'          => '*=ADDR_*;!*.OLD;*.NEW=ADDR_*.OLD;!BAR.V*',
+                'ADDR_FOO.OLD'  => 'FOO-OLD-PASS',
+                'ADDR_FOO.V1'   => 'FOO-V1-PASS',
+                'ADDR_BAR.OLD'  => 'BAR-OLD-PASS',
+                'ADDR_BAR.V1'   => 'BAR-V1-PASS',
+            },
+            expect      => 'FOO-OLD-DEFAULT/FOO-OLD-PASS/FOO-V1-PASS/BAR-OLD-DEFAULT/BAR-OLD-PASS/BAR-V1-DEFAULT',
+        },
+
     );
 
     foreach my $tname (keys %tests) {
