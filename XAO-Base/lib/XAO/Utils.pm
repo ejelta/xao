@@ -41,7 +41,7 @@ sub merge_refs (@);
 sub fround ($$);
 
 use vars qw($VERSION);
-$VERSION=(0+sprintf('%u.%03u',(q$Id: Utils.pm,v 2.5 2008/07/06 23:02:15 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
+$VERSION='2.6';
 
 ###############################################################################
 # Export control
@@ -117,8 +117,9 @@ Is similar to U.
 
 =back
 
-Examples of generated IDs are E5TUVX82, ZK845LP6 and so on. Id would
-never start from digit!
+Examples of generated IDs are E5TUVX82, ZK845LP6 and so on.
+
+The generated ID will never start with a digit!
 
 =cut
 
@@ -126,18 +127,17 @@ sub generate_key (;$) {
     #                        1    1    2    2    3
     #              0----5----0----5----0----5----0-
     my $symbols = "2345689ABCDEFGHIJKLMNOPQRSTUWXYZ";
-    my $key='';
+    my $symbols_len = length($symbols);
 
-    while(!$key || $key=~/^[0-9]+$/) {
-        my $rval=pack("SSC",rand(0x10000),rand(0x10000),
-                            rand(0x100)^unpack("%8C*",$_[0] || "foo"));
+    my $key;
+    while(!$key || $key=~/^[0-9]/) {
+        $key='';
         for(my $i=0; $i!=8; $i++) {
-            my $v=vec($rval,$i+2,4) + vec($rval,$i,1)*16;
-            $key.=substr($symbols,$v,1);
+            $key.=substr($symbols,rand($symbols_len),1);
         }
     }
 
-    $key;
+    return $key;
 }
 
 ###############################################################################

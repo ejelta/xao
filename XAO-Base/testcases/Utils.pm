@@ -222,9 +222,10 @@ sub test_keys {
 
     use XAO::Utils qw(:keys);
 
-    for(1..1000) {
+    for(1..100000) {
         my $key=generate_key();
-        $self->assert($key && $key =~ /^[0-9A-Z]{8}/,
+        ### dprint "key=$key";
+        $self->assert(($key && $key =~ /^[A-Z][0-9A-Z]{7}$/ && $key !~ /^[0-9]+$/) ? 1 : 0,
                       "Wrong key generated ($key)");
     }
 
