@@ -103,9 +103,9 @@ parse_text(pTHX_ char * template, STRLEN length) {
                 while(str+2<end && (*str!='-' || str[1]!='-' || str[2]!='>')) str++;
                 if(str+2>=end) {
                     av_clear(parsed);
-                    return newSVpvf("Unclosed comment at position %u (%*s)",
+                    return newSVpvf("Unclosed comment at position %ld (%*s)",
                                     str-template,
-                                    end-str>10 ? 10 : end-str,str);
+                                    (int)(end-str>10 ? 10 : end-str),str);
                 }
 
                 str+=3;
@@ -177,9 +177,9 @@ parse_text(pTHX_ char * template, STRLEN length) {
             }
             else {
                 av_clear(parsed);
-                return newSVpvf("Variable is not closed in template, pos=%u (%*s)",
+                return newSVpvf("Variable is not closed in template, pos=%ld (%*s)",
                                 str-template,
-                                end-str>10 ? 10 : end-str,str);
+                                (int)(end-str>10 ? 10 : end-str),str);
             }
         }
         else {
@@ -201,9 +201,9 @@ parse_text(pTHX_ char * template, STRLEN length) {
 
                 if(str==text_ptr) {
                     av_clear(parsed);
-                    return newSVpvf("Wrong argument name, pos=%u (%*s)",
+                    return newSVpvf("Wrong argument name, pos=%ld (%*s)",
                                     str-template,
-                                    end-str>10 ? 10 : end-str,str);
+                                    (int)(end-str>10 ? 10 : end-str),str);
                 }
 
                 /* Empty argument value gets replaced with 'on' text for
@@ -232,9 +232,9 @@ parse_text(pTHX_ char * template, STRLEN length) {
 
                     if(str==end) {
                         av_clear(parsed);
-                        return newSVpvf("Unclosed object in template, pos=%u (..%*s)",
+                        return newSVpvf("Unclosed object in template, pos=%ld (..%*s)",
                                         str-template,
-                                        length>10 ? 10 : length,
+                                        (int)(length>10 ? 10 : length),
                                         length>10 ? end-10 : template);
                     }
                     else if(*str=='"') {
@@ -242,9 +242,9 @@ parse_text(pTHX_ char * template, STRLEN length) {
                         while(str<end && *str!='"') str++;
                         if(str==end) {
                             av_clear(parsed);
-                            return newSVpvf("Unmatched \" in the argument, pos=%u (%*s)",
+                            return newSVpvf("Unmatched \" in the argument, pos=%ld (%*s)",
                                             val_start-template,
-                                            end-val_start>10 ? 10 : end-val_start,val_start);
+                                            (int)(end-val_start>10 ? 10 : end-val_start),val_start);
                         }
                         val_end=str++;
                         literal=0;
@@ -254,9 +254,9 @@ parse_text(pTHX_ char * template, STRLEN length) {
                         while(str<end && *str!='\'') str++;
                         if(str==end) {
                             av_clear(parsed);
-                            return newSVpvf("Unmatched ' in the argument, pos=%u (%*s)",
+                            return newSVpvf("Unmatched ' in the argument, pos=%ld (%*s)",
                                             val_start-template,
-                                            end-val_start>10 ? 10 : end-val_start,val_start);
+                                            (int)(end-val_start>10 ? 10 : end-val_start),val_start);
                         }
                         val_end=str++;
                         literal=1;
@@ -280,9 +280,9 @@ parse_text(pTHX_ char * template, STRLEN length) {
                         }
                         if(str==end) {
                             av_clear(parsed);
-                            return newSVpvf("Unmatched {' in the argument, pos=%u (%*s)",
+                            return newSVpvf("Unmatched {' in the argument, pos=%ld (%*s)",
                                             val_start-template,
-                                            end-val_start>10 ? 10 : end-val_start,val_start);
+                                            (int)(end-val_start>10 ? 10 : end-val_start),val_start);
                         }
                         val_end=str;
                         str+=2;
@@ -302,9 +302,9 @@ parse_text(pTHX_ char * template, STRLEN length) {
                         }
                         if(str==end) {
                             av_clear(parsed);
-                            return newSVpvf("Unmatched { in the argument, pos=%u (%*s)",
+                            return newSVpvf("Unmatched { in the argument, pos=%ld (%*s)",
                                             val_start-template,
-                                            end-val_start>10 ? 10 : end-val_start,val_start);
+                                            (int)(end-val_start>10 ? 10 : end-val_start),val_start);
                         }
                         val_end=str++;
                         literal=0;
