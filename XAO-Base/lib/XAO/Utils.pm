@@ -41,7 +41,7 @@ sub merge_refs (@);
 sub fround ($$);
 
 use vars qw($VERSION);
-$VERSION='2.6';
+$VERSION='2.7';
 
 ###############################################################################
 # Export control
@@ -91,9 +91,6 @@ Here is the list of functions available:
 Generating new 8-characters random ID. Not guaranteed to be unique,
 must be checked against existing database.
 
-You can pass additional argument to add some more randomness, but it is
-not required and is kept for compatibility.
-
 Generated ID is relativelly suitable for humans - it does not contain
 some letters and digits that could be easily misunderstood in writing:
 
@@ -121,20 +118,32 @@ Examples of generated IDs are E5TUVX82, ZK845LP6 and so on.
 
 The generated ID will never start with a digit!
 
+The default generated key length is 8. This can be changed by supplying
+an optional argument -- generate_key(20) for example.
+
 =cut
 
-sub generate_key (;$) {
-    #                        1    1    2    2    3
-    #              0----5----0----5----0----5----0-
-    my $symbols = "2345689ABCDEFGHIJKLMNOPQRSTUWXYZ";
-    my $symbols_len = length($symbols);
+my $generate_key_alpha;
+my $generate_key_alnum;
+my $generate_key_alpha_len;
+my $generate_key_alnum_len;
 
-    my $key;
-    while(!$key || $key=~/^[0-9]/) {
-        $key='';
-        for(my $i=0; $i!=8; $i++) {
-            $key.=substr($symbols,rand($symbols_len),1);
-        }
+sub generate_key (;$) {
+    my $length=$_[0] || 8;
+
+    if(!$generate_key_alpha) {
+        #                              1    1    2    2    3
+        #                    0----5----0----5----0----5----0-
+        $generate_key_alpha=        'ABCDEFGHIJKLMNOPQRSTUWXYZ';
+        $generate_key_alnum='2345689'.$generate_key_alpha;
+        $generate_key_alpha_len=length($generate_key_alpha);
+        $generate_key_alnum_len=length($generate_key_alnum);
+    }
+
+    my $key=substr($generate_key_alpha,rand($generate_key_alpha_len),1);
+
+    for(my $i=1; $i!=$length; $i++) {
+        $key.=substr($generate_key_alnum,rand($generate_key_alnum_len),1);
     }
 
     return $key;
