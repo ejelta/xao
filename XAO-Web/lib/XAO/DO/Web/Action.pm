@@ -194,6 +194,7 @@ sub display ($%) {
                 $data->{'status'}||='error';
                 $data->{'error_code'}||=$ecode;
                 $data->{'error_message'}||=$etext;
+                $data->{'error_time'}||=time;
             }
         };
     }
