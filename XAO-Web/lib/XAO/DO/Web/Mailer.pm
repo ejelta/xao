@@ -58,6 +58,10 @@ default is to use sendmail for delivery. The parameters are:
                 `from' address.
  override_to => if set overrides all to addresses and always sends to
                 the given address. Useful for debugging.
+ override_except
+             => addresses listed here are OK to go through. Matching
+                is done on substrings ingoring case. This options makes
+                sense only in pair with override_to.
 
 If `from' is a hash reference then the content of `from' argument to the
 object is looked in keys and the value is used as actual `from'
@@ -104,20 +108,38 @@ sub display ($;%) {
            $self->get_to($args) ||
            throw $self "display - no 'to' given";
 
-    my $cc=$args->{'cc'};
-    my $bcc=$args->{'bcc'};
+    my $cc=$args->{'cc'} || '';
+    my $bcc=$args->{'bcc'} || '';
 
-    if($config->{'override_to'}) {
-        dprint ref($self)."::display - overriding '$to' with '$config->{override_to}'";
-        $to=$config->{'override_to'};
-        if($cc) {
-            dprint "...CC was '$cc' before override, replaced with nothing";
-            $cc='';
+    if(my $override_to=$config->{'override_to'}) {
+        my $to_new;
+
+        if(my $override_except=$config->{'override_except'}) {
+            $override_except=[ split(/\s*[,;]\s*/,$override_except) ] unless ref($override_except) eq 'ARRAY';
+            $override_except=[ map { lc } @$override_except ];
+
+            my %pass;
+            my %override;
+            foreach my $email (split(/\s*[,;]+\s*/,"$to,$cc,$bcc")) {
+                if(grep { index(lc($email),$_)>=0 } @$override_except) {
+                    $pass{$email}=1;
+                }
+                else {
+                    $override{$email}=1;
+                }
+            }
+
+            $to_new=join(', ',(keys %pass),(%override ? ($override_to) : ()));
         }
-        if($bcc) {
-            dprint "...BCC was '$bcc' before override, replaced with nothing";
-            $bcc='';
+        else {
+            $to_new=$override_to;
         }
+
+        dprint ref($self)."::display - overriding to='$to', cc='$cc', bcc='$bcc' with to='$to_new', cc='', bcc=''";
+
+        $to=$to_new;
+        $cc='';
+        $bcc='';
     }
 
     my $from=$args->{'from'};
