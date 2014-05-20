@@ -111,6 +111,7 @@ sub display ($;%) {
     my $cc=$args->{'cc'} || '';
     my $bcc=$args->{'bcc'} || '';
 
+    my @ovhdr;
     if(my $override_to=$config->{'override_to'}) {
         my $to_new;
 
@@ -136,6 +137,10 @@ sub display ($;%) {
         }
 
         dprint ref($self)."::display - overriding to='$to', cc='$cc', bcc='$bcc' with to='$to_new', cc='', bcc=''";
+
+        push(@ovhdr,('X-XAO-Web-Mailer-To' => $to)) if $to;
+        push(@ovhdr,('X-XAO-Web-Mailer-Cc' => $cc)) if $cc;
+        push(@ovhdr,('X-XAO-Web-Mailer-Bcc' => $bcc)) if $bcc;
 
         $to=$to_new;
         $cc='';
@@ -180,7 +185,7 @@ sub display ($;%) {
             template    => $args->{'text.template'} || $args->{'template'},
         });
     }
-    
+
     # Parsing HTML template
     #
     my $html;
@@ -256,6 +261,8 @@ sub display ($;%) {
         To          => $to,
         Subject     => $subject,
     );
+
+    push(@stdhdr,@ovhdr);
 
     if($html && !$text) {
         $mailer=MIME::Lite->new(

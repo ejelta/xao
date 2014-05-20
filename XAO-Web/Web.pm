@@ -13,7 +13,7 @@ use XAO::Errors qw(XAO::Web);
 # XAO::Web version number. Hand changed with every release!
 #
 use vars qw($VERSION);
-$VERSION='1.20';
+$VERSION='1.21';
 
 ###############################################################################
 
@@ -131,7 +131,7 @@ other than 'xaoweb'. This is used by Apache::XAO to get 'maptodir' and
 'external' mappings. Default is to look for xaoweb only records.
 
 =cut
- 
+
 sub analyze ($$;$$) {
     my ($self,$patharr,$sitename,$allow_other_types)=@_;
 
@@ -638,7 +638,7 @@ sub process ($%) {
         $siteconfig->put(base_url_secure => $active_url_secure);
         dprint "No base_url for sitename '$sitename'; assuming base_url=$active_url, base_url_secure=$active_url_secure";
     }
-  
+
     ##
     # Checking if we're running under mod_perl
     #
