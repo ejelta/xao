@@ -309,6 +309,9 @@ sub display_data ($@) {
 
         $self->finaltextout($self->json->encode($data));
     }
+    elsif($format eq 'js' || $format eq 'json-embed') {
+        $self->textout($self->json->encode($data));
+    }
     else {
         throw $self "- unknown format '$format'";
     }
