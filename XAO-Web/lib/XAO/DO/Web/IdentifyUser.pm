@@ -43,7 +43,7 @@ Indicates how 'IdentifyUser' will be used. Possible values are
 
 =item - logout: Log current user out
 
-=back 
+=back
 
 =item * anonymous.path
 
@@ -80,17 +80,17 @@ where $page is a 'Page' object. The keys of such a hash correspond to
 the 'type' parameter of the 'IdentifyUser' class. An example of a
 $config hash with all required parameters is presented below:
 
- customer => { 
-    list_uri            => '/Customers', 
-    id_cookie           => 'id_customer',    
+ customer => {
+    list_uri            => '/Customers',
+    id_cookie           => 'id_customer',
     id_cookie_expire    => 126230400,       # (seconds) optional,
                                             # default is 10 years
     id_cookie_type      => 'name',          # optional, see below
-    user_prop           => 'email',         # optional, see below    
+    user_prop           => 'email',         # optional, see below
     alt_user_prop       => 'logname',       # deprecated, see below
-    pass_prop           => 'password', 
+    pass_prop           => 'password',
     pass_encrypt        =>  'md5',          # optional, see below
-    vf_key_prop         => 'verify_key',    # optional, see below 
+    vf_key_prop         => 'verify_key',    # optional, see below
     vf_key_cookie       => 'key_customer',  # optional, see below
     vf_time_prop        => 'verify_time',   # time of last verification
     vf_expire_time      => '600',           # seconds
@@ -367,7 +367,7 @@ sub check_mode($;%){
 
 =item check ()
 
-Checks identification/verification status of the user. 
+Checks identification/verification status of the user.
 
 To determine identification status, first check clipboard to determine
 if there is such object present. If so, then that object identifies the
@@ -449,7 +449,7 @@ sub check ($@) {
         if($id_cookie_type eq 'key') {
             $key_list_uri || throw $self "- key_list_uri required";
             $key_ref_prop || throw $self "- key_ref_prop required";
-    
+
             my $user_list=$self->odb->fetch($list_uri);
             my $key_list=$self->odb->fetch($key_list_uri);
             my $user_id;
@@ -1093,7 +1093,7 @@ sub login ($;%) {
                 }
             }
             else {
-                my $pass_prop=$config->{'pass_prop'} || 
+                my $pass_prop=$config->{'pass_prop'} ||
                     throw $self "- no 'pass_prop' in the configuration";
                 my $dbpass=$user->get($pass_prop);
 
