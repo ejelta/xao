@@ -224,7 +224,7 @@ By using &#NNN; construction where NNN is the decimal code for the
 corresponding symbol. For example left curly bracket could be encoded as
 &#123; and right curly bracket as &#125;. The above example should be
 re-written as follows to make it legal:
- 
+
  name={single &#123; inside}
 
 =back
@@ -380,7 +380,7 @@ are met:
 /xao/page/render_cache_name in the config -- this should contain a name of
 the cache to be used for rendered page components.
 
-=item * 
+=item *
 
 The page is configured to be cacheable with either an entry in
 the configuration under '/xao/page/render_cache_allow' or with a
@@ -436,7 +436,7 @@ The configuration can look like this:
         },
     },
  }
- 
+
 
 =head2 BENCHMARKING
 
@@ -713,7 +713,7 @@ sub _do_display ($@) {
             #
             if(!defined $text) {
                 my $obj=$self->object(objname => $objname);
-            
+
                 # Preparing arguments. If argument includes object references -
                 # they are expanded first.
                 #
@@ -869,7 +869,7 @@ sub _render_cache ($) {
 
 # In case of memcached this clears ALL caches, not just render!
 
-sub render_cache_clear ($) { 
+sub render_cache_clear ($) {
     my $self=$_[0];
 
     my $cache=$self->_render_cache;
@@ -1207,7 +1207,7 @@ sub parse ($%) {
             return $parsed if defined $parsed;
 
             # Reading and parsing.
-            # 
+            #
             $parsed=$self->parse_retrieve($args);
 
             # Caching the parsed template.
@@ -1565,7 +1565,7 @@ Examples:
  # Returns secure url in secure mode and normal
  # url in normal mode.
  #
- my $url=$self->base_url; 
+ my $url=$self->base_url;
 
  # Return secure url no matter what
  #
@@ -1613,7 +1613,7 @@ otherwise.
 
 sub is_secure ($) {
     my $self=shift;
-    return $self->cgi->https() ? 1 : 0;
+    return $self->cgi && $self->cgi->https() ? 1 : 0;
 }
 
 ###############################################################################
@@ -2030,7 +2030,7 @@ sub debug_check ($$) {
     #
     #   8 wallclock secs ( 8.78 usr +  0.01 sys =  8.79 CPU) @ 113765.64/s (n=1000000)
     #  19 wallclock secs (18.97 usr +  0.00 sys = 18.97 CPU) @ 52714.81/s (n=1000000)
-    # 
+    #
     ### return $self->clipboard->get("debug/Web/Page/$type");
 
     my $debug_hash=$self->{'debug_hash'};
