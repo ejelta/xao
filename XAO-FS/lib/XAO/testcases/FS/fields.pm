@@ -308,9 +308,18 @@ sub test_decimal {
 
     foreach my $test (@tests) {
         $cust->put(decimal => $test->{'value'});
+
         my $got=$cust->get('decimal');
-        $self->assert(abs($got - $test->{'expect'})<0.00001,
-            "For value '$test->{'value'}' expected '$test->{'expect'}', got '$got'");
+
+        my $expect=$test->{'expect'};
+
+        if(abs($expect)<0.0001) {
+            $self->assert(($got ? undef : 'bad'),
+                "Expected zero value ($expect) to be a logical false, got '$got'");
+        }
+
+        $self->assert(abs($got - $expect)<0.00001,
+            "For value '$test->{'value'}' expected '$expect', got '$got'");
     }
 }
 
@@ -383,6 +392,13 @@ sub test_real {
     my $got=$nc->get('real');
     $self->assert($got == 123.45,
                   "Got wrong real value ($got!=123.45)");
+
+    $nc->put(real => 0.000);
+
+    my $got=$nc->get('real');
+
+    $self->assert(($got ? undef : 'bad'),
+        "Expected zero value to be a logical false, got '$got'");
 }
 
 sub test_unique {

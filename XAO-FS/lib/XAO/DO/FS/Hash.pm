@@ -837,8 +837,14 @@ sub get ($$) {
                 defined $value ||
                     throw $self "get('$name') - db query returned undef";
 
-                if($type eq 'text' && $field->{'charset'} ne 'binary' && !Encode::is_utf8($value)) {
-                    $value=Encode::decode($field->{'charset'},$value,Encode::FB_DEFAULT);
+                if($type eq 'text') {
+                    my $charset=$field->{'charset'};
+                    if($charset ne 'binary' && !Encode::is_utf8($value)) {
+                        $value=Encode::decode($charset,$value,Encode::FB_DEFAULT);
+                    }
+                }
+                elsif($type eq 'real' && !(0+$value)) {
+                    $value=0;
                 }
 
                 return $value;
@@ -873,6 +879,7 @@ sub get ($$) {
         }
         else {
             my %datahash;
+
             if(@datanames) {
                 @datahash{@datanames}=$self->_retrieve_data_fields(@datanames);
             }
@@ -891,15 +898,18 @@ sub get ($$) {
                 }
                 else {
                     my $value=$datahash{$_};
-                    if(!defined($value)) {
-                        $value=$self->_field_default($_,$fields->{$_});
-                    }
+
+                    defined $value ||
+                        throw $self "get('$_') - db query returned undef";
 
                     if($type eq 'text') {
                         my $charset=$fields->{$_}->{'charset'};
                         if($charset ne 'binary' && !Encode::is_utf8($value)) {
                             $value=Encode::decode($charset,$value,Encode::FB_DEFAULT);
                         }
+                    }
+                    elsif($type eq 'real' && !(0+$value)) {
+                        $value=0;
                     }
 
                     $value;
