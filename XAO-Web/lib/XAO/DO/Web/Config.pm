@@ -287,12 +287,44 @@ a session before sending out session results.
 
 sub header ($@) {
     my $self=shift;
+
     return undef if $self->{'header_printed'};
+
     $self->header_args(@_) if @_;
     $self->{'header_printed'}=1;
-    $self->cgi->header(%{merge_refs( { -cookie => $self->cookies },
-                                     $self->{'header_args'})
-                        });
+
+    # There is a silly bug (or a truly misguided undocumented feature)
+    # in CGI. It works with headers correctly only if the first header
+    # it gets starts with a dash. We used to supply CGI::header() with a
+    # hash and that resulted in sometimes un-dashed elements getting to
+    # be the first in the list, resulting in mayhem -- completely broken
+    # header output like this sent without any warnings:
+    #
+    #    HTTP/1.0 foo
+    #    Server: Apache
+    #    Status: foo
+    #    Window-Target: ARRAY(0xc5f5e8)
+    #    P3P: policyref="/w3c/p3p.xml", CP="-expires"
+    #    Set-Cookie: -cookie
+    #    Expires: -Charset
+    #    Date: Thu, 07 Aug 2014 22:41:35 GMT
+    #    Content-Disposition: attachment; filename="no-cache"
+    #    Now
+    #    Content-Type: P3P; charset=-cache_control
+    #
+    # This never happened in years of using perl below version 5.18,
+    # probably due to different internal hash algorithm that never
+    # put undashed elements to the front.
+    #
+    # Using the always present '-cookie' header to fill the front row.
+    #
+    my $header_args=$self->{'header_args'} || { };
+    my @headers=(
+        '-cookie'   => ($header_args->{'-cookie'} || $header_args->{'Cookie'} || $self->cookies || []),
+        %$header_args,
+    );
+
+    return $self->cgi->header(@headers);
 }
 
 ###############################################################################
