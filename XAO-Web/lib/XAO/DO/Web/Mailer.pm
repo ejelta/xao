@@ -56,6 +56,7 @@ default is to use sendmail for delivery. The parameters are:
  agent       => server name for `smtp' or binary path for `local'
  from        => either a hash reference or a scalar with the default
                 `from' address.
+ override_from => if set overrides the from address
  override_to => if set overrides all to addresses and always sends to
                 the given address. Useful for debugging.
  override_except
@@ -157,6 +158,13 @@ sub display ($;%) {
                                             $config->{'from'}->{$from};
     }
     $from || throw $self "display - no 'from' given";
+
+    if(my $override_from=$config->{'override_from'}) {
+        if($override_from ne $from) {
+            dprint ref($self)."::display - overriding from='$from' with '$override_from'";
+            $from=$override_from;
+        }
+    }
 
     my $from_hdr=$from;
     if($from =~ /^\s*.*\s+<(.*\@.*)>\s*$/) {
