@@ -395,7 +395,7 @@ sub test_real {
 
     $nc->put(real => 0.000);
 
-    my $got=$nc->get('real');
+    $got=$nc->get('real');
 
     $self->assert(($got ? undef : 'bad'),
         "Expected zero value to be a logical false, got '$got'");

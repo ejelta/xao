@@ -305,7 +305,7 @@ sub add_table ($$$$$) {
 
     my $def=$self->text_field_definition($key_charset,$key_length);
 
-    my $sql="CREATE TABLE $table (" . 
+    my $sql="CREATE TABLE $table (" .
             " unique_id INT UNSIGNED AUTO_INCREMENT NOT NULL PRIMARY KEY," .
             " $key $def," .
             (defined($connector) ? " $connector INT UNSIGNED NOT NULL," .
@@ -314,7 +314,7 @@ sub add_table ($$$$$) {
                                  : " UNIQUE INDEX $key($key)") .
             ")";
 
-    $sql.=" TYPE=".$self->{'table_type'}
+    $sql.=" ENGINE=".$self->{'table_type'}
         if $self->{'table_type'} && $self->{'table_type'} ne 'mixed';
 
     $self->connector->sql_do($sql,'');
@@ -672,7 +672,7 @@ END_OF_SQL
     );
 
     foreach my $sql (@initseq) {
-        $sql.=" TYPE=$table_type" if $table_type && $sql =~ /^CREATE/;
+        $sql.=" ENGINE=$table_type" if $table_type && $sql =~ /^CREATE/;
         $cn->sql_do($sql);
     }
 }
@@ -770,7 +770,7 @@ sub load_structure ($) {
                     }
 
                     dprint "...table '$table_name' type from '$table_types{$table_name}' to '$table_type'";
-                    $cn->sql_do("ALTER TABLE $table_name TYPE=$table_type");
+                    $cn->sql_do("ALTER TABLE $table_name ENGINE=$table_type");
 
                     XAO::Utils::set_debug($debug_status);
                 }
@@ -788,7 +788,7 @@ sub load_structure ($) {
         else {
             $self->{'table_type'}='mixed';
             eprint "You have mixed table types in the database (" .
-                   join(',',map { $_ . '=' . $table_types{$_} } sort keys %table_types) . 
+                   join(',',map { $_ . '=' . $table_types{$_} } sort keys %table_types) .
                    ")";
         }
 
@@ -1023,7 +1023,7 @@ sub load_structure ($) {
                     next if $fname eq 'unique_id';
 
                     my $sfname=substr($fname,0,-1);
-                    my $fdata=$fields{$table}->{$sfname} || 
+                    my $fdata=$fields{$table}->{$sfname} ||
                         throw $self "load_structure - can't find field description $table/$fname/$sfname";
 
                     my $charset;
@@ -1084,7 +1084,7 @@ sub load_structure ($) {
                 dprint join(',',@uptables);
                 dprint "-";
                 foreach my $table (@uptables) {
-                    my $sql="ALTER TABLE $table TYPE=$table_types{$table}";
+                    my $sql="ALTER TABLE $table ENGINE=$table_types{$table}";
                     dprint "-- $sql";
                     $cn->sql_do($sql);
                 }
@@ -1454,7 +1454,7 @@ sub store_row ($$$$$$$) {
     # auto-unlock and auto-rollback apparently. This code adds a pretty significant
     # penalty (about 10% based on bench.pl - probably less on DB bound cases).
     # So avoiding it where we can.
-    # 
+    #
     if(1) {
         my $connector=$self->connector;
 
