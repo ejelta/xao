@@ -200,7 +200,7 @@ Would produce:
 Actual output would be slightly different because no carriage return
 symbol would be inserted between hidden <INPUT> tags. This is done for
 rare situations when your code is space sensitive and you do not want to
-mess it.
+mess it up.
 
 Query example:
 
@@ -216,6 +216,11 @@ the output would be:
 
  <A HREF="report.html?sortby=price&sku=123&category=234">Sort by price</A>
 
+For 'query' results it is convenient to also provide a 'prefix'
+parameter that would be included in the output only if there are
+parameters to copy. This allows to cleanly format URLs without extra '?'
+or '&' symbols.
+
 All special symbols in parameter values would be properly escaped, you
 do not need to worry about that.
 
@@ -225,7 +230,6 @@ sub pass_cgi_params ($%) {
     my $self=shift;
     my $args=get_args(\@_);
 
-    ##
     # Creating list of exceptions
     #
     my %except;
@@ -243,7 +247,6 @@ sub pass_cgi_params ($%) {
         $except{$param}=1;
     }
 
-    ##
     # Expanding parameters in list
     #
     my @params;
@@ -262,7 +265,6 @@ sub pass_cgi_params ($%) {
         push @params,$param;
     }
 
-    ##
     # Creating HTML code that will pass these parameters.
     #
     my $html;
@@ -282,7 +284,12 @@ sub pass_cgi_params ($%) {
         }
     }
 
-    $self->textout($html) if defined $html;
+    # No output if there are no parameters
+    #
+    if(defined $html) {
+        $self->textout($args->{'prefix'}) if $args->{'prefix'};
+        $self->textout($html);
+    }
 }
 
 ###############################################################################
