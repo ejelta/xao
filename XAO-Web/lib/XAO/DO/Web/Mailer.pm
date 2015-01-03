@@ -52,17 +52,23 @@ The configuration for Web::Mailer is kept in a hash stored in the site
 configuration under 'mailer' name. Normally it is not required, the
 default is to use sendmail for delivery. The parameters are:
 
- method      => either 'local' or 'smtp'
- agent       => server name for `smtp' or binary path for `local'
- from        => either a hash reference or a scalar with the default
+ method     => either 'local' or 'smtp'
+ agent      => server name for `smtp' or binary path for `local'
+ from       => either a hash reference or a scalar with the default
                 `from' address.
- override_from => if set overrides the from address
- override_to => if set overrides all to addresses and always sends to
-                the given address. Useful for debugging.
+ override_from
+            => if set overrides the from address
+ override_to
+            => if set overrides all to addresses and always sends to
+               the given address. Useful for debugging.
  override_except
-             => addresses listed here are OK to go through. Matching
-                is done on substrings ingoring case. This options makes
-                sense only in pair with override_to.
+            => addresses listed here are OK to go through. Matching
+               is done on substrings ingoring case. This options makes
+               sense only in pair with override_to.
+ subject_prefix
+            => optional fixed prefix for all subjects
+ subject_suffix
+            => optional fixed suffix for all subjects
 
 If `from' is a hash reference then the content of `from' argument to the
 object is looked in keys and the value is used as actual `from'
@@ -178,6 +184,14 @@ sub display ($;%) {
     }
 
     my $subject=$args->{'subject'} || $self->get_subject() || 'No subject';
+
+    if(my $subject_prefix=$config->{'subject_prefix'}) {
+        $subject=$subject_prefix.($subject_prefix=~/\s$/ ? '':' ').$subject;
+    }
+
+    if(my $subject_suffix=$config->{'subject_suffix'}) {
+        $subject=$subject.($subject_suffix=~/\s$/ ? '':' ').$subject_suffix;
+    }
 
     # Getting common args from the parent template if needed.
     #
