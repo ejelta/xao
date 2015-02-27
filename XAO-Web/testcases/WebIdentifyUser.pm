@@ -1555,6 +1555,196 @@ sub test_user_prop_hash {
                 text        => 'V',
             },
         },
+        #
+        t23a    => {            # by email, multi-email, multi-condition
+            sub_pre => sub {
+                $config->put('/identify_user/member/user_prop'      => [ 'email','member_id' ]);
+                $config->put('/identify_user/member/alt_user_prop'  => undef);
+                $config->put('/identify_user/member/id_cookie_type' => 'name');
+                $config->put('/identify_user/member/user_condition' => {
+                    email       => [ 'acc_type','eq','web' ],
+                    member_id   => undef,
+                });
+            },
+            args => {
+                mode        => 'login',
+                type        => 'member',
+                username    => 'two@BAR.ORG',
+                password    => '12345',
+            },
+            results => {
+                clipboard   => {
+                    '/IdentifyUser/member/name'     => 'two@bar.org',
+                    '/IdentifyUser/member/id'       => 'm002web',
+                },
+                cookies     => {
+                    member_id                       => 'two@bar.org',
+                },
+                text        => 'V',
+            },
+        },
+        t23b     => {
+            args => {
+                mode        => 'check',
+                type        => 'member',
+            },
+            results => {
+                clipboard   => {
+                    '/IdentifyUser/member/name'     => 'two@bar.org',
+                    '/IdentifyUser/member/id'       => 'm002web',
+                },
+                cookies     => {
+                    member_id                       => 'two@bar.org',
+                },
+                text        => 'V',     # identification from previous login
+            },
+        },
+        t23c    => {            # failure
+            sub_pre => sub {
+                $config->put('/identify_user/member/user_prop'      => [ 'email','member_id' ]);
+                $config->put('/identify_user/member/alt_user_prop'  => undef);
+                $config->put('/identify_user/member/id_cookie_type' => 'name');
+                $config->put('/identify_user/member/user_condition' => {
+                    email       => [ 'acc_type','eq','web' ],
+                    member_id   => undef,
+                });
+            },
+            args => {
+                mode        => 'login',
+                type        => 'member',
+                username    => 'm002foo',
+                password    => 'BADPW',
+            },
+            results => {
+                text        => 'A',
+            },
+        },
+        t23d    => {            # by id#1, multi-email, multi-condition
+            sub_pre => sub {
+                $config->put('/identify_user/member/user_prop'      => [ 'email','member_id' ]);
+                $config->put('/identify_user/member/alt_user_prop'  => undef);
+                $config->put('/identify_user/member/id_cookie_type' => 'name');
+                $config->put('/identify_user/member/user_condition' => {
+                    email       => [ 'acc_type','eq','web' ],
+                    member_id   => undef,
+                });
+            },
+            args => {
+                mode        => 'login',
+                type        => 'member',
+                username    => 'm002web',
+                password    => '12345',
+            },
+            results => {
+                clipboard   => {
+                    '/IdentifyUser/member/name'     => 'm002web',
+                    '/IdentifyUser/member/id'       => 'm002web',
+                },
+                cookies     => {
+                    member_id   => 'm002web',
+                },
+                text        => 'V',
+            },
+        },
+        t23e     => {
+            args => {
+                mode        => 'check',
+                type        => 'member',
+            },
+            results => {
+                clipboard   => {
+                    '/IdentifyUser/member/name'     => 'm002web',
+                    '/IdentifyUser/member/id'       => 'm002web',
+                },
+                cookies     => {
+                    member_id   => 'm002web',
+                },
+                text        => 'V',     # identification from previous login
+            },
+        },
+        t23f    => {            # failure
+            sub_pre => sub {
+                $config->put('/identify_user/member/user_prop'      => [ 'email','member_id' ]);
+                $config->put('/identify_user/member/alt_user_prop'  => undef);
+                $config->put('/identify_user/member/id_cookie_type' => 'name');
+                $config->put('/identify_user/member/user_condition' => {
+                    email       => [ 'acc_type','eq','web' ],
+                    member_id   => undef,
+                });
+            },
+            args => {
+                mode        => 'login',
+                type        => 'member',
+                username    => 'm002foo',
+                password    => 'BADPW',
+            },
+            results => {
+                text        => 'A',
+            },
+        },
+        t23g    => {            # by id#2, multi-email, multi-condition
+            sub_pre => sub {
+                $config->put('/identify_user/member/user_prop'      => [ 'email','member_id' ]);
+                $config->put('/identify_user/member/alt_user_prop'  => undef);
+                $config->put('/identify_user/member/id_cookie_type' => 'name');
+                $config->put('/identify_user/member/user_condition' => {
+                    email       => [ 'acc_type','eq','web' ],
+                    member_id   => undef,
+                });
+            },
+            args => {
+                mode        => 'login',
+                type        => 'member',
+                username    => 'm002foo',
+                password    => '12345',
+            },
+            results => {
+                clipboard   => {
+                    '/IdentifyUser/member/name'     => 'm002foo',
+                    '/IdentifyUser/member/id'       => 'm002foo',
+                },
+                cookies     => {
+                    member_id   => 'm002foo',
+                },
+                text        => 'V',
+            },
+        },
+        t23h     => {
+            args => {
+                mode        => 'check',
+                type        => 'member',
+            },
+            results => {
+                clipboard   => {
+                    '/IdentifyUser/member/name'     => 'm002foo',
+                    '/IdentifyUser/member/id'       => 'm002foo',
+                },
+                cookies     => {
+                    member_id   => 'm002foo',
+                },
+                text        => 'V',     # identification from previous login
+            },
+        },
+        t23i    => {            # failure
+            sub_pre => sub {
+                $config->put('/identify_user/member/user_prop'      => [ 'email','member_id' ]);
+                $config->put('/identify_user/member/alt_user_prop'  => undef);
+                $config->put('/identify_user/member/id_cookie_type' => 'name');
+                $config->put('/identify_user/member/user_condition' => {
+                    email       => [ 'acc_type','eq','web' ],
+                    member_id   => undef,
+                });
+            },
+            args => {
+                mode        => 'login',
+                type        => 'member',
+                username    => 'm002foo',
+                password    => 'BADPW',
+            },
+            results => {
+                text        => 'A',
+            },
+        },
     );
 
     $self->run_matrix(\%matrix,\%cjar);

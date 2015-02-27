@@ -179,6 +179,14 @@ This can be used to narrow down the entities in the list that are
 supposed to be able to log in. For instance if the same list contains
 customers of different types with different login schemas.
 
+The 'user_condition' argument can be an array (directly passed into
+search), or a hash. If it is a hash then the keys are user_prop values,
+and the values are user conditions. This can be used to set different
+conditions for different user props.
+
+To avoid checking user_condition a non-zero 'skip_user_condition'
+argument can be passed to login().
+
 =item pass_prop
 
 Password attribute of user object.
@@ -530,7 +538,7 @@ sub check ($@) {
             }
         }
         elsif($id_cookie_type eq 'name') {
-            $data=$self->find_user($config,$cookie_value);
+            $data=$self->find_user($config,$cookie_value,$args->{'skip_user_condition'});
         }
         else {
             throw $self "- unknown id_cookie_type ($id_cookie_type)";
@@ -808,7 +816,7 @@ sub _get_user_props($$$) {
 
 ##############################################################################
 
-=item find_user ($;$)
+=item find_user ($$;$)
 
 Searches for the user in the list according to the configuration:
 
@@ -819,8 +827,8 @@ except 'verified'.
 
 =cut
 
-sub find_user ($$$) {
-    my ($self,$config,$username)=@_;
+sub find_user ($$$;$) {
+    my ($self,$config,$username,$skip_user_condition)=@_;
 
     my $list_uri=$config->{'list_uri'} ||
         throw $self "- no 'list_uri' in the configuration";
@@ -832,7 +840,7 @@ sub find_user ($$$) {
     # We may optionally get a user selection condition in case the same
     # list contains elements not supposed to be used for log ins.
     #
-    my $user_condition=$config->{'user_condition'};
+    my $user_condition=$skip_user_condition ? undef : $config->{'user_condition'};
 
     # Finding the user.
     #
@@ -840,8 +848,14 @@ sub find_user ($$$) {
 
         my $cond=[$user_prop,'eq',$username];
 
-        if($user_condition) {
-            $cond=[$cond,'and',$user_condition];
+        # The user condition can be a hash or an array
+        #
+        my $ucond=$user_condition;
+        if($ucond && ref($ucond) eq 'HASH') {
+            $ucond=$ucond->{$user_prop};
+        }
+        if($ucond) {
+            $cond=[$cond,'and',$ucond];
         }
 
         my $sr=$list->search($cond,{
@@ -887,7 +901,7 @@ sub find_user ($$$) {
             #   }
             #
             if($user_prop=~/\//) {
-                if($user_condition) {
+                if($ucond) {
                     throw $self "- deep user_prop ($user_prop) is not supported with user_condition";
                 }
 
@@ -1017,7 +1031,7 @@ sub login ($;%) {
     my $username=$args->{'username'} ||
         throw $self "- no 'username' given";
 
-    my $data=$self->find_user($config,$username);
+    my $data=$self->find_user($config,$username,$args->{'skip_user_condition'});
 
     # Since MySQL is not case sensitive by default on text fields, there
     # was a glitch allowing people to log in with names like 'JOHN'
