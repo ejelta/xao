@@ -111,20 +111,13 @@ sub tracking_url ($%) {
     my $url;
 
     if(lc($carrier) eq 'usps') {
-        $url='http://trkcnfrm1.smi.usps.com/' .
-             'PTSInternetWeb/InterLabelInquiry.do?' .
-             'origTrackNum=' . t2hq($tracknum);
+        $url='https://tools.usps.com/go/TrackConfirmAction.action?tRef=fullpage&tLc=1&tLabels=' . t2hq($tracknum);
     }
     elsif(lc($carrier) eq 'ups') {
-        $url='http://wwwapps.ups.com/WebTracking/processInputRequest' .
-             '?HTMLVersion=5.0&sort_by=status&tracknums_displayed=1' .
-             '&TypeOfInquiryNumber=T&loc=en_US&AgreeToTermsAndConditions=yes' .
-             '&InquiryNumber1=' . t2hq($tracknum);
+        $url='http://wwwapps.ups.com/etracking/tracking.cgi?tracknum=' . t2hq($tracknum);
     }
     elsif(lc($carrier) eq 'fedex') {
-        $url='https://www.fedex.com/fedextrack/' .
-             '?tracknumbers=' . t2hq($tracknum) .
-             '&cntry_code=us';
+        $url='https://www.fedex.com/fedextrack/WTRK/index.html?tracknumbers=' . t2hq($tracknum);
     }
     elsif(lc($carrier) eq 'dhl') {
         $url='http://www.dhl-usa.com/cgi-bin/tracking.pl' .
