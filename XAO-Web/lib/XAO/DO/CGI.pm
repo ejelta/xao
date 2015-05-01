@@ -68,17 +68,32 @@ sub param ($;$) {
 
     my $charset=$self->{'xao_param_charset'};
 
-    return $self->SUPER::param(@_) unless $charset;
-
-    if(wantarray) {
-        return map {
-            ref($_) ? $_ : Encode::decode($charset,$_)
-        } $self->SUPER::param(@_);
+    if(!$charset) {
+        if(wantarray) {
+            return $self->SUPER::multi_param(@_);
+        }
+        else {
+            return $self->SUPER::param(@_);
+        }
     }
     else {
-        my $value=$self->SUPER::param(@_);
-        return ref($value) ? $value : Encode::decode($charset,$value);
+        if(wantarray) {
+            return map {
+                ref($_) ? $_ : Encode::decode($charset,$_)
+            } $self->SUPER::multi_param(@_);
+        }
+        else {
+            my $value=$self->SUPER::param(@_);
+            return ref($value) ? $value : Encode::decode($charset,$value);
+        }
     }
+}
+
+###############################################################################
+
+sub multi_param ($;$) {
+    my $self=shift;
+    return $self->param(@_);
 }
 
 ###############################################################################

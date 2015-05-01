@@ -107,7 +107,7 @@ WriteMakefile(
     'NAME'          => 'XAO::Web',
     'VERSION_FROM'  => 'Web.pm',
     'PREREQ_PM'     => {
-        'CGI'               => 2.91,
+        'CGI'               => 4.14,
         'Digest::MD5'       => 2.13,
         'Digest::SHA'       => 5.63,
         'Error'             => 0.15,
