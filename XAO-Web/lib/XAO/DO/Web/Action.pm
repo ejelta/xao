@@ -282,7 +282,7 @@ sub json ($) {
     $json=JSON->new;
 
     if($self->siteconfig->get('test_site')) {
-        $json->pretty;
+        $json->pretty->canonical;
     }
 
     return $self->{'cached_json'}=$json;
