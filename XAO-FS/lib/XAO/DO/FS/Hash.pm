@@ -108,6 +108,11 @@ but the sorting order and word matching in search may differ from older
 versions. As another side effect, searches on 'binary' charset fields
 are case sensitive.
 
+B<NOTE:> The 'utf8' charset only supports the Basic Multilingual Plane
+characters (0x0000-0xffff). These characters in UTF-8 encoding are
+guaranteed to take up from 1 to 3 bytes. Supplemental Unicode planes are
+not supported.
+
 =item connector
 
 Optional name of the key that would refer objects in the list to the
@@ -1114,7 +1119,7 @@ sub put ($$$) {
         my $value=$data->{$name};
 
         my $field=$self->_field_description($name);
-        $field || $self->throw("put($name,...) - not defined field name");
+        $field || $self->throw("- {{INTERNAL:Not defined field name '$name'}}");
 
         if(!defined $value) {
             $data->{$name}=$value=$self->_field_default($name,$field);
@@ -1122,52 +1127,59 @@ sub put ($$$) {
 
         my $type=$field->{'type'};
         if($type eq 'list') {
-            $self->throw("put - storing lists not implemented yet");
+            $self->throw("- {{INTERNAL:Storing lists not implemented yet}}");
         }
         elsif($type eq 'key') {
-            $self->throw("put - attempt to modify hash key");
+            $self->throw("- {{INTERNAL:Attempt to modify hash key}}");
         }
         elsif($name eq 'unique_id') {
-            $self->throw("put - attempt to modify unique_id");
+            $self->throw("- {{INTERNAL:Attempt to modify unique_id}}");
         }
         elsif($type eq 'blob') {
             if(Encode::is_utf8($value)) {
                 $data->{$name}=$value=Encode::encode('utf8',$value);
             }
             length($value) <= $field->{'maxlength'} ||
-                $self->throw("put - value is longer than $field->{'maxlength'} for $name");
+                $self->throw("- {{INPUT:Value is longer than $field->{'maxlength'} for '$name'}}");
         }
         elsif($type eq 'text') {
             if(Encode::is_utf8($value)) {
                 length($value) <= $field->{'maxlength'} ||
-                    $self->throw("put - value is longer than $field->{'maxlength'} for $name");
+                    $self->throw("- {{INPUT:Value is longer than $field->{'maxlength'} for '$name'}}");
 
-                $data->{$name}=$value=Encode::encode($field->{'charset'} eq 'binary' ? 'utf8' : $field->{'charset'},$value);
+                my $charset=$field->{'charset'};
+
+                if($value=~/[\x{10000}-\x{ffffffff}]/ && $charset eq 'utf8') {
+                    $self->throw("- {{INPUT:Unsupported supplemental unicode value for '$name'}}");
+                }
+
+                $data->{$name}=$value=Encode::encode($charset eq 'binary' ? 'utf8' : $charset,$value);
             }
             if($field->{'charset'} eq 'binary') {
                 length($value) <= $field->{'maxlength'} ||
-                    $self->throw("put - value is longer than $field->{'maxlength'} for $name");
+                    $self->throw("- {{INPUT:Value is longer than $field->{'maxlength'} for '$name'}}");
             }
             else {
-                # Checking characters length with binary source is too expensive, not doing it
-                # This should be a rare situation anyway, and MySQL wil chop off the extra if needed
+                # Checking characters length with binary source is
+                # too expensive, not doing it This should be a rare
+                # situation anyway, and MySQL will chop off the extra if
+                # needed.
             }
         }
         elsif($type eq 'integer' || $type eq 'real') {
             $data->{$name}=$value=$self->_field_default($name,$field) if $value eq '';
 
             !defined($field->{'minvalue'}) || $value>=$field->{'minvalue'} ||
-                $self->throw("put - value ($value) is less then $field->{'minvalue'} for $name");
+                $self->throw("- {{INPUT:Value ($value) is less then $field->{'minvalue'} for $name}}");
 
             !defined($field->{'maxvalue'}) || $value<=$field->{'maxvalue'} ||
-                $self->throw("put - value ($value) is bigger then $field->{'maxvalue'} for $name");
+                $self->throw("- {{INPUT:Value ($value) is bigger then $field->{'maxvalue'} for $name}}");
         }
         else {
-            throw $self "put - something is wrong";
+            throw $self "- {{INTERNAL:Unknown field type '$type'}}";
         }
     }
 
-    ##
     # Storing all values at once
     #
     if($detached) {
@@ -1177,7 +1189,6 @@ sub put ($$$) {
         $self->_store_data_fields($data);
     }
 
-    ##
     # For multi-value put with hash reference it will return undef,
     # but that's OK -- there is no good answer to what "the value" is
     # anyway.

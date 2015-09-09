@@ -734,7 +734,7 @@ sub uri ($;$) {
 
 =back
 
-=head1 
+=head1
 
 Most of the methods of Glue would be considered "protected" in more
 restrictive OO languages. Perl does not impose such limitations and it
@@ -1257,7 +1257,7 @@ sub _list_search ($%) {
     # Done.
     #
     if($options->{'result'}) {
-        
+
         ##
         # Checking if we need to manipulate the results before returning them
         #
@@ -1638,7 +1638,7 @@ sub _build_search_query ($%) {
     # If we're asked to produce distinct on something then we only group
     # on that, because if we include key into group by we will not
     # eliminate rows that have non-unique values in the parameter.
-    # 
+    #
     # The drawback of that is that if we were asked to have distinct
     # values in some inner class then we can have repeating keys.
     #
@@ -2306,7 +2306,7 @@ sub _add_list_placeholder ($%) {
     my $key=$args->{'key'} || $self->throw("_add_list_placeholder - no 'key' argument");
     $self->check_name($key) || $self->throw("_add_list_placeholder - bad key name ($key)");
     my $connector;
-    if($self->objname ne 'FS::Global') {  
+    if($self->objname ne 'FS::Global') {
         $connector=$args->{'connector'} || 'parent_unique_id';
         $self->check_name($connector) ||
             $self->throw("_add_list_placeholder - bad connector name ($key)");

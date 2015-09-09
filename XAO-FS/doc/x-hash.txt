@@ -77,6 +77,11 @@ DESCRIPTION
             differ from older versions. As another side effect, searches on
             'binary' charset fields are case sensitive.
 
+            NOTE: The 'utf8' charset only supports the Basic Multilingual
+            Plane characters (0x0000-0xffff). These characters in UTF-8
+            encoding are guaranteed to take up from 1 to 3 bytes.
+            Supplemental Unicode planes are not supported.
+
         connector
             Optional name of the key that would refer objects in the list to
             the object they are contained in. Default is 'parent_unique_id',

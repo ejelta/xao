@@ -6,6 +6,44 @@ use Error qw(:try);
 
 use base qw(XAO::testcases::FS::base);
 
+sub test_utf8_non_bmp {
+    my $self=shift;
+
+    my $odb=$self->get_odb();
+
+    my $global=$odb->fetch('/');
+    $self->assert(ref($global), "Failure getting / reference");
+
+    $global->add_placeholder(
+        name        => 'text',
+        type        => 'text',
+        charset     => 'utf8',
+        maxlength   => 50,
+    );
+
+    use utf8;
+
+    # The non-BMP (Basic Multilingual Plane, 0x0000-0xffff) unicode
+    # characters don't work with MySQL. They result in the string
+    # truncation at the unicode character.
+    #
+    my $unicode="Smile - \x{1f600} - After";
+    my $result='';
+    my $error;
+    try {
+        $global->put(text => $unicode);
+        $result=$global->get('text');
+    }
+    otherwise {
+        my $etext=''.shift;
+        dprint "Expected error: $etext";
+        $error=1;
+    };
+
+    $self->assert($error,
+        "Expected a failure for supplemental unicode string '$unicode', got '$result'");
+}
+
 sub test_space_stripping {
     my $self=shift;
 

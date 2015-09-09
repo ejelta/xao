@@ -58,7 +58,6 @@ sub new ($%) {
     my $dbname=$2;
     my $options=$3 || '';
 
-    ##
     # Parsing dbopts, separating what we know about from what is passed
     # directly to the driver.
     #
@@ -98,11 +97,21 @@ sub new ($%) {
     my $row=$cn->sql_first_row($sth);
     my $version=($row && $row->[0] eq 'version') ? $row->[1] : '4.0-fake';
     my $vnum=($version=~/^(\d+)\.(\d+)(?:\.(\d+))?/) ? sprintf('%u.%03u%03u',$1,$2,$3||0) : 4.0;
+
     $self->{'mysql_version'}=$vnum;
     $self->{'mysql_version_full'}=$version;
+
     ### dprint "MySQL version $version ($vnum)";
 
-    ##
+    # Just to make sure that even if the server has some different
+    # encoding set, we enforce transparency.
+    #
+    if($vnum>=5.006) {
+        $cn->sql_do("SET character_set_client='binary'");
+        $cn->sql_do("SET character_set_connection='binary'");
+        $cn->sql_do("SET character_set_results='binary'");
+    }
+
     # Done preparing
     #
     return $self;
