@@ -434,9 +434,14 @@ sub check ($@) {
     my $id_cookie_type=$config->{'id_cookie_type'} || 'name';
     my $key_list_uri=$config->{'key_list_uri'};
     my $key_ref_prop=$config->{'key_ref_prop'};
-    my $key_object;
-    my $user=$clipboard->get("$cb_uri/object");
-    if(!$user) {
+
+    my $data=$clipboard->get($cb_uri);
+    my $user=$data ? $data->{'object'} : undef;
+    my $key_object=$data ? $data->{'key_object'} : undef;
+
+    if(!$data || !$user) {
+        $data=undef;
+
         my $id_cookie=$config->{'id_cookie'} ||
             throw $self "- no 'id_cookie' in the configuration";
 
@@ -445,8 +450,6 @@ sub check ($@) {
         if(!$cookie_value) {
             return $self->display_results($args,'anonymous');
         }
-
-        my $data;
 
         my $list_uri=$config->{'list_uri'} ||
             throw $self "- no 'list_uri' in the configuration";
@@ -463,14 +466,20 @@ sub check ($@) {
             my $user_id;
             my $user_obj;
             try {
+                $key_list->check_name($cookie_value) ||
+                    throw $self "- invalid cookie value";
+
                 $key_object=$key_list->get($cookie_value);
+
                 ($user_id,$last_vf)=$key_object->get($key_ref_prop,$vf_time_prop);
+
                 $user_obj=$user_list->get($user_id);
             }
             otherwise {
                 my $e=shift;
                 dprint "IGNORED(OK): $e";
             };
+
             $user_obj || return $self->display_results($args,'anonymous');
 
             $data={
@@ -581,29 +590,56 @@ sub check ($@) {
         # status.
         #
         my $vf_key_cookie=$config->{'vf_key_cookie'};
-        if($key_list_uri && !$key_object) {
-            my $key_list=$self->odb->fetch($key_list_uri);
-            if($vf_key_cookie) {
+        my $key_expire_ext_prop=$config->{'key_expire_ext_prop'};
+        my $extended;
+        if(!$key_list_uri) {
+            $last_vf=$user->get($vf_time_prop);
+        }
+        else {
+            if(!$key_object) {
+                $vf_key_cookie ||
+                    throw $self "- either vf_key_cookie or id_cookie_type=key required for key_list_uri";
+
+                my $key_list=$self->odb->fetch($key_list_uri);
+
                 my $key_id=$self->cgi->cookie($vf_key_cookie);
-                if($key_id) {
+
+                if($key_id && $key_list->check_name($key_id)) {
                     try {
                         $key_object=$key_list->get($key_id);
-                        my ($key_user_id,$key_last_vf)=$key_object->get($key_ref_prop,$vf_time_prop);
-                        if($key_user_id eq $user->container_key) {
-                            $last_vf=$key_last_vf;
-                        }
-                        else {
-                            $key_object=undef;
-                            $last_vf=0;
-                        }
                     }
                     otherwise {
                         my $e=shift;
                         dprint "IGNORED(OK): $e";
-                        $last_vf=0;
+                        $key_object=undef;
                     };
                 }
             }
+
+            if(!$key_object) {
+                $last_vf=0;
+            }
+            else {
+                my ($key_user_id,$key_last_vf);
+
+                if($key_expire_ext_prop) {
+                    ($key_user_id,$key_last_vf,$extended)=$key_object->get($key_ref_prop,$vf_time_prop,$key_expire_ext_prop);
+                    $data->{'extended'}=$extended;
+                }
+                else {
+                    ($key_user_id,$key_last_vf)=$key_object->get($key_ref_prop,$vf_time_prop);
+                }
+
+                if($key_user_id eq $user->container_key) {
+                    $last_vf=$key_last_vf;
+                }
+                else {
+                    $key_object=undef;
+                    $last_vf=0;
+                }
+            }
+
+            $clipboard->put("$cb_uri/key_object" => $key_object);
         }
 
         # Checking the difference between the current time and the time
@@ -612,9 +648,9 @@ sub check ($@) {
         my $vf_expire_time=$config->{'vf_expire_time'} ||
             throw $self "No 'vf_expire_time' in the configuration";
 
-        if(!$key_list_uri) {
-            $last_vf=$user->get($vf_time_prop);
-        }
+        my $vf_expire_ext_time=$config->{'vf_expire_ext_time'} || 0;
+
+        $vf_expire_time=$vf_expire_ext_time if $extended && $vf_expire_ext_time;
 
         if($last_vf && $current_time - $last_vf <= $vf_expire_time) {
 
@@ -653,13 +689,16 @@ sub check ($@) {
             );
             if(!$errstr) {
                 $clipboard->put("$cb_uri/verified" => 1);
+
                 if($key_object) {
                     my $key_expire_prop=$config->{'key_expire_prop'} ||
                         throw $self "- key_expire_prop required";
+
                     $key_object->put(
                         $vf_time_prop       => $current_time,
                         $key_expire_prop    => $current_time+$vf_expire_time,
                     );
+
                     if($config->{'vf_time_user_prop'}) {
                         $user->put($config->{'vf_time_user_prop'} => $current_time);
                     }
@@ -688,7 +727,7 @@ sub check ($@) {
                 -name    => $config->{'id_cookie'},
                 -value   => 0,
                 -path    => '/',
-                -expires => 'now',
+                -expires => '-1d',
                 -domain  => $cookie_domain,
             );
         }
@@ -697,7 +736,7 @@ sub check ($@) {
                 -name    => $config->{'vf_key_cookie'},
                 -value   => 0,
                 -path    => '/',
-                -expires => 'now',
+                -expires => '-1d',
                 -domain  => $cookie_domain,
             );
         }
@@ -1004,6 +1043,17 @@ checking the password. One should be very careful not to abuse this
 possibility! For security reasons 'force' will only have effect when
 there is no 'password' parameter at all.
 
+If an 'extended' parameter is present and is true, then the key is
+marked as extended with a potentially longer expiration time. This
+requires a configuration support as well (without configuration the
+presense of 'extended' is ignored):
+
+    vf_expire_time_ext  => extended expiration period
+    key_expire_ext_prop => db property where to store extended flag
+
+'Extended' option is only supported with multiple keys per user
+('key_list_uri' option).
+
 =cut
 
 sub login ($;%) {
@@ -1015,6 +1065,8 @@ sub login ($;%) {
 
     my $type=$args->{'type'} ||
         throw $self "- no 'type' given";
+
+    my $extended=$args->{'extended'} || 0;
 
     $config=$config->{$type} ||
         throw $self "- no 'identify_user' configuration for '$type'";
@@ -1222,7 +1274,7 @@ sub login ($;%) {
                 -name    => $id_cookie,
                 -value   => '0',
                 -path    => '/',
-                -expires => 'now',
+                -expires => '-1d',
                 -domain  => $cookie_domain,
             );
         }
@@ -1231,7 +1283,7 @@ sub login ($;%) {
                 -name    => $config->{'vf_key_cookie'},
                 -value   => '0',
                 -path    => '/',
-                -expires => 'now',
+                -expires => '-1d',
                 -domain  => $cookie_domain,
             );
         }
@@ -1269,6 +1321,12 @@ sub login ($;%) {
         my $vf_expire_time=$config->{'vf_expire_time'} ||
             throw $self "- no vf_expire_time in the configuration";
 
+        my $key_expire_ext_prop=$config->{'key_expire_ext_prop'};
+
+        my $vf_expire_ext_time=$config->{'vf_expire_ext_time'} || 0;
+
+        $vf_expire_time=$vf_expire_ext_time if $extended && $vf_expire_ext_time;
+
         my $key_id;
         my $vf_key_cookie=$config->{'vf_key_cookie'};
         if($id_cookie_type eq 'key') {
@@ -1297,26 +1355,32 @@ sub login ($;%) {
         }
 
         my $now=time;
+        my %key_data=(
+            $key_expire_prop    => $now+$vf_expire_time,
+            $vf_time_prop       => $now,
+        );
+
+        if($key_expire_ext_prop) {
+            $key_data{$key_expire_ext_prop}=$extended ? 1 : 0;
+        }
+
         if(!$key_obj) {
             $key_obj=$key_list->get_new;
-            $key_obj->put(
+            $key_obj->put(\%key_data,{
                 $key_ref_prop       => $user->container_key,
-                $key_expire_prop    => $now+$vf_expire_time,
-                $vf_time_prop       => $now,
-            );
+            });
             $key_id=$key_list->put($key_obj);
             $key_obj=$key_list->get($key_id);
         }
         else {
-            $key_obj->put(
-                $vf_time_prop       => $now,
-                $key_expire_prop    => $now+$vf_expire_time,
-            );
+            $key_obj->put(\%key_data);
         }
 
         if($config->{'vf_time_user_prop'}) {
             $user->put($config->{'vf_time_user_prop'} => $now);
         }
+
+        $data->{'key_object'}=$key_obj;
 
         if($id_cookie_type eq 'key') {
             $self->siteconfig->add_cookie(
@@ -1327,7 +1391,6 @@ sub login ($;%) {
                 -domain  => $cookie_domain,
             );
             $data->{'cookie_value'}=$key_id;
-            $data->{'key_object'}=$key_obj;
         }
         elsif($config->{'vf_key_cookie'}) {
             $self->siteconfig->add_cookie(
@@ -1337,6 +1400,9 @@ sub login ($;%) {
                 -expires => '+10y',
                 -domain  => $cookie_domain,
             );
+        }
+        else {
+            throw $self "- either id_cookie_type=key or vf_key_cookie is needed with key_list_uri";
         }
 
         # Auto expiring some keys
@@ -1409,9 +1475,14 @@ sub login ($;%) {
         throw $self "- unsupported id_cookie_type ($id_cookie_type)";
     }
 
-    # Storing values into the clipboard
+    # Yay! Verified.
     #
     $data->{'verified'}=1;
+
+    $data->{'extended'}=($extended ? 1 : 0);
+
+    # Storing values into the clipboard
+    #
     $clipboard->put($cb_uri => $data);
 
     # Displaying results
@@ -1486,14 +1557,12 @@ sub logout {
 
     my $cookie_domain=$config->{'domain'};
 
-    ##
     # Logging in the user first. Skipping if 'logged_in' to avoid
     # recursion when we need to log the user out after some failed
     # checks.
     #
     $self->check(type => $type) unless $args->{'logged_in'};
 
-    ##
     # Checking if we're currently logged in at all -- either verified or
     # identified.
     #
@@ -1502,12 +1571,10 @@ sub logout {
     my $cb_data=$clipboard->get($cb_uri);
     my $user=$cb_data->{'object'};
 
-    ##
     # If there is no user at all -- then we're already logged out
     #
     $user || return $self->display_results($args,'anonymous');
 
-    ##
     # Removing user last verification time only as a last resort --
     # it's useful to have it to know when the user last logged in. When
     # possible removing either the key from the list, or the key
@@ -1515,44 +1582,61 @@ sub logout {
     #
     my $vf_time_prop=$config->{'vf_time_prop'} ||
         throw $self "- no 'vf_time_prop' in the configuration";
+    my $key_list_uri=$config->{'key_list_uri'};
     my $vf_key_prop=$config->{'vf_key_prop'};
     my $vf_key_cookie=$config->{'vf_key_cookie'};
     my $deleted;
+
     if($vf_key_prop && $vf_key_cookie) {
-        $user->delete($vf_key_prop);
+        $user->put($vf_key_prop => '');
         $deleted=1;
     }
 
     my $key_object=$cb_data->{'key_object'};
+
     if($key_object) {
-        $key_object->delete($vf_time_prop); # keeping vf_time_user_prop
+        $key_object->put($vf_time_prop => 0);
+        $clipboard->delete("$cb_uri/key_object");
+        $clipboard->delete("$cb_uri/extended");
         $deleted=1;
     }
 
-    if(!$deleted) {
-        $user->delete($vf_time_prop);
+    if(!$deleted && $cb_data->{'verified'}) {
+        if($key_list_uri) {
+            my $vf_time_user_prop=$config->{'vf_time_user_prop'};
+            if($vf_time_user_prop) {
+                $user->put($vf_time_user_prop => 0);
+            }
+            else {
+                throw $self "- no key and no vf_time_user_prop in logout";
+            }
+        }
+        else {
+            $user->put($vf_time_prop => 0);
+        }
     }
 
-    ##
     # Deleting verification status from the clipboard
     #
     $clipboard->delete("$cb_uri/verified");
 
-    ##
     # Not sure, but setting value to an empty string triggered a bug
-    # somewhere, setting it to '0' instead and expiring it 'now'.
+    # somewhere, setting it to '0' instead and expiring it immediately.
+    #
+    # This is mainly so the user does not feel paranoid -- if if we were
+    # to keep this cookie the user won't be in verified status any more
+    # because last verification time was dropped to zero.
     #
     if($vf_key_cookie) {
         $self->siteconfig->add_cookie(
             -name    => $vf_key_cookie,
             -value   => '0',
             -path    => '/',
-            -expires => 'now',
+            -expires => '-1d',
             -domain  => $cookie_domain,
         );
     }
 
-    ##
     # Deleting user identification if hard_logout is set.
     #
     if($args->{'hard_logout'}) {
@@ -1560,6 +1644,7 @@ sub logout {
 
         if($key_object) {
             $key_object->container_object->delete($key_object->container_key);
+            $clipboard->delete("$cb_uri/key_object");
         }
 
         my $id_cookie=$config->{'id_cookie'} ||
@@ -1569,14 +1654,13 @@ sub logout {
             -name    => $id_cookie,
             -value   => '0',
             -path    => '/',
-            -expires => 'now',
+            -expires => '-1d',
             -domain  => $cookie_domain,
         );
 
         return $self->display_results($args,'anonymous');
     }
 
-    ##
     # We only get here if user is known, so returning 'identified'
     # status.
     #

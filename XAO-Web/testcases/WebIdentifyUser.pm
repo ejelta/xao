@@ -2,6 +2,7 @@ package testcases::WebIdentifyUser;
 use strict;
 use XAO::Utils;
 use CGI::Cookie;
+use POSIX qw(mktime);
 use Digest::MD5 qw(md5_base64);
 use Error qw(:try);
 
@@ -740,7 +741,7 @@ sub test_vf_key_simple {
             results => {
                 cookies     => {
                     member_id   => 'm001',
-                    member_key  => 0,
+                    member_key  => undef,
                 },
                 text        => 'I',
                 clipboard   => {
@@ -773,7 +774,7 @@ sub test_vf_key_simple {
             },
             results => {
                 cookies     => {
-                    member_id   => 0,
+                    member_id   => undef,
                 },
                 text        => 'A',
             },
@@ -788,7 +789,7 @@ sub test_vf_key_simple {
             },
             results => {
                 cookies     => {
-                    member_id   => '0',
+                    member_id   => undef,
                 },
                 text        => 'A',
             },
@@ -1319,6 +1320,7 @@ sub test_user_prop_hash {
                 },
                 text        => 'A',     # because this email is listed twice
             },
+            ignore_stderr => 1,
         },
         #
         t16a    => {            # by id, multi-email, no qualifier
@@ -1770,10 +1772,10 @@ sub test_key_list {
                 #
                 pass_prop           => 'password',
                 #
+                vf_key_cookie       => 'mkey',
                 vf_time_user_prop   => 'uvf_time',
                 vf_time_prop        => 'verify_time',
                 vf_expire_time      => 120,
-                vf_key_cookie       => 'mkey',
             },
         },
     );
@@ -1833,6 +1835,8 @@ sub test_key_list {
     $m_list->put(m002 => $m_obj);
 
     my %cjar;
+    my %cjar_a;
+    my %cjar_b;
 
     my %matrix=(
         t01     => {
@@ -1862,14 +1866,13 @@ sub test_key_list {
             results => {
                 cookies     => {
                     mid         => 'm001',
-                    mkey        => '1',
+                    mkey        => 1,       # ++mkey
                 },
                 text        => 'V',
                 fs => {
-                    '/Members/m001/uvf_time'    => '>'.(time-5),
-                    '/MemberKeys/1/verify_time' => '>'.(time-5),
-                    '/MemberKeys/1/expire_time' => '>'.(time+120-5),
-                    '/MemberKeys/1/expire_time' => '<'.(time+120+5),
+                    '/Members/m001/uvf_time'    => '~NOW',
+                    '/MemberKeys/1/verify_time' => '~NOW',
+                    '/MemberKeys/1/expire_time' => '~NOW+120',
                 },
             },
         },
@@ -1886,14 +1889,14 @@ sub test_key_list {
             results => {
                 cookies     => {
                     mid         => 'm001',
-                    mkey        => '1',
+                    mkey        => 1,
                 },
                 text        => 'V',
             },
         },
         t03b     => {
             cookies => {
-                mkey        => 0,
+                mkey        => undef,
             },
             args => {
                 mode        => 'login',
@@ -1904,7 +1907,7 @@ sub test_key_list {
             results => {
                 cookies     => {
                     mid         => 'm001',
-                    mkey        => '2',
+                    mkey        => 2,       # ++mkey
                 },
                 text        => 'V',
             },
@@ -1921,15 +1924,15 @@ sub test_key_list {
             },
             results => {
                 cookies     => {
-                    mid         => '3',
-                    mkey        => '2',
+                    mid         => 3,       # ++mkey
+                    mkey        => 2,       # from the previous test
                 },
                 text        => 'V',
                 clipboard   => {
                     '/IdentifyUser/member/cookie_value' => '3',
                     '/IdentifyUser/member/name'         => 'm001',
                     '/IdentifyUser/member/object'       => { },
-                    '/IdentifyUser/member/verified'     => '1',
+                    '/IdentifyUser/member/verified'     => 1,
                 },
             },
         },
@@ -1940,22 +1943,22 @@ sub test_key_list {
             },
             results => {
                 cookies     => {
-                    mid         => '3',
-                    mkey        => '2',
+                    mid         => 3,       # from the previous test
+                    mkey        => 2,       # from the previous test
                 },
                 text        => 'V',
                 clipboard   => {
                     '/IdentifyUser/member/id'           => 'm001',
                     '/IdentifyUser/member/cookie_value' => '3',
                     '/IdentifyUser/member/object'       => { },
-                    '/IdentifyUser/member/verified'     => '1',
+                    '/IdentifyUser/member/verified'     => 1,
                 },
             },
         },
         t05b    => {            # second call in the same session
             sub_post_cleanup => sub {
                 my $user=$config->odb->fetch('/Members/m001');
-                my $key=$config->odb->fetch('/MemberKeys/1');
+                my $key=$config->odb->fetch('/MemberKeys/3');
                 $config->clipboard->put('/IdentifyUser/member/object' => $user);
                 $config->clipboard->put('/IdentifyUser/member/key_object' => $key);
             },
@@ -1970,8 +1973,8 @@ sub test_key_list {
                     '/IdentifyUser/member/verified'     => 1,
                 },
                 cookies     => {
-                    mid     => 3,
-                    mkey    => 2,
+                    mid     => 3,       # from the previous test
+                    mkey    => 2,       # from the previous test
                 },
             },
         },
@@ -1982,21 +1985,22 @@ sub test_key_list {
             },
             results => {
                 cookies     => {
-                    mid         => '3',
-                    mkey        => '2',
+                    mid         => 3,   # from the previous test
+                    mkey        => 2,   # from the previous test
                 },
                 text        => 'V',
                 clipboard   => {
                     '/IdentifyUser/member/id'           => 'm001',
-                    '/IdentifyUser/member/cookie_value' => '3',
+                    '/IdentifyUser/member/cookie_value' => '3',     # mkey
                     '/IdentifyUser/member/object'       => { },
-                    '/IdentifyUser/member/verified'     => '1',
+                    '/IdentifyUser/member/verified'     => 1,
                 },
             },
         },
         t07     => {
             cookies => {
                 mid         => 2,
+                mkey        => 123,
             },
             args => {
                 mode        => 'check',
@@ -2004,15 +2008,19 @@ sub test_key_list {
             },
             results => {
                 text        => 'V',
+                cookies     => {
+                    mid         => 2,
+                    mkey        => 123, # from what's given
+                },
                 clipboard   => {
                     '/IdentifyUser/member/id'           => 'm001',
                     '/IdentifyUser/member/cookie_value' => '2',
                     '/IdentifyUser/member/object'       => { },
-                    '/IdentifyUser/member/verified'     => '1',
+                    '/IdentifyUser/member/verified'     => 1,
                 },
             },
         },
-        t08     => {
+        t08     => {        # Providing invalid key
             cookies => {
                 mid         => 4,
                 mkey        => 'FOO',
@@ -2033,7 +2041,11 @@ sub test_key_list {
                 },
             },
         },
-        t09     => {
+        t09     => {        # Second user login
+            cookies => {
+                mid         => 7,
+                mkey        => 'FOO',
+            },
             args => {
                 mode        => 'login',
                 type        => 'member',
@@ -2042,8 +2054,8 @@ sub test_key_list {
             },
             results => {
                 cookies     => {
-                    mid         => '4',
-                    mkey        => 'FOO',
+                    mid         => 4,
+                    mkey        => 'FOO',   # Not changed because id_cookie_type==key
                 },
                 text        => 'V',
                 clipboard   => {
@@ -2181,7 +2193,7 @@ sub test_key_list {
             },
             results => {
                 cookies     => {
-                    mid         => '0',
+                    mid         => undef,
                 },
                 text        => 'A',
                 clipboard   => {
@@ -2334,7 +2346,7 @@ sub test_key_list {
             results => {
                 cookies     => {
                     mid         => 'm002',
-                    mkey        => '0',
+                    mkey        => undef,
                 },
                 text        => 'I',
                 clipboard   => {
@@ -2352,7 +2364,7 @@ sub test_key_list {
             results => {
                 cookies     => {
                     mid         => 'm002',
-                    mkey        => '0',
+                    mkey        => undef,
                 },
                 text        => 'I',
                 clipboard   => {
@@ -2410,7 +2422,7 @@ sub test_key_list {
             },
             results => {
                 cookies     => {
-                    mid         => '0',
+                    mid         => undef,
                     mkey        => '6',
                 },
                 text        => 'I',
@@ -2438,6 +2450,711 @@ sub test_key_list {
                 },
             },
         },
+        #
+        # Checking extended expiration
+        #
+        t20a => {       # Non-extended login
+            sub_pre => sub {
+                $config->odb->fetch('/MemberKeys')->get_new->add_placeholder(
+                    name        => 'extended',
+                    type        => 'integer',
+                    minvalue    => 0,
+                    maxvalue    => 1,
+                );
+
+                $config->put('/identify_user/member/id_cookie_type'     => 'id');
+                $config->put('/identify_user/member/vf_expire_time'     => 2);
+                $config->put('/identify_user/member/vf_expire_ext_time' => 6);
+                $config->put('/identify_user/member/key_expire_ext_prop'=> 'extended');
+                $config->put('/identify_user/member/expire_mode'        => 'keep');
+            },
+            cookie_jar => \%cjar_a,
+            args => {
+                mode        => 'login',
+                type        => 'member',
+                username    => 'm001',
+                password    => '12345',
+                extended    => 0,
+            },
+            results => {
+                cookies     => {
+                    mid         => 'm001',
+                    mkey        => '8',
+                },
+                text        => 'V',
+                fs => {
+                    '/Members/m001/uvf_time'    => '~NOW',
+                    '/MemberKeys/8/verify_time' => '~NOW',
+                    '/MemberKeys/8/expire_time' => '~NOW+2',
+                    '/MemberKeys/8/extended'    => 0,
+                },
+                clipboard   => {
+                    '/IdentifyUser/member/object'       => { },
+                    '/IdentifyUser/member/key_object'   => { },
+                    '/IdentifyUser/member/verified'     => 1,
+                    '/IdentifyUser/member/name'         => 'm001',
+                    '/IdentifyUser/member/extended'     => 0,
+                },
+            },
+        },
+        t20b => {       # Extended login
+            cookie_jar => \%cjar_b,
+            sub_pre => sub {
+            },
+            args => {
+                mode        => 'login',
+                type        => 'member',
+                username    => 'm001',
+                password    => '12345',
+                extended    => 1,
+            },
+            results => {
+                cookies     => {
+                    mid         => 'm001',
+                    mkey        => '9',
+                },
+                text        => 'V',
+                fs => {
+                    '/Members/m001/uvf_time'    => '~NOW',
+                    '/MemberKeys/9/verify_time' => '~NOW',
+                    '/MemberKeys/9/expire_time' => '~NOW+6',
+                    '/MemberKeys/9/extended'    => 1,
+                },
+                clipboard   => {
+                    '/IdentifyUser/member/object'       => { },
+                    '/IdentifyUser/member/key_object'   => { },
+                    '/IdentifyUser/member/verified'     => 1,
+                    '/IdentifyUser/member/name'         => 'm001',
+                    '/IdentifyUser/member/extended'     => 1,
+                },
+            },
+        },
+        t21a => {       # Make sure 'extended' is still OFF after 'check'ing.
+            cookie_jar      => \%cjar_a,
+            sub_pre => sub {
+            },
+            args => {
+                mode        => 'check',
+                type        => 'member',
+            },
+            results => {
+                cookies     => {
+                    mid         => 'm001',
+                    mkey        => '8',
+                },
+                text        => 'V',
+                fs => {
+                    '/Members/m001/uvf_time'    => '~NOW',
+                    '/MemberKeys/8/verify_time' => '~NOW',
+                    '/MemberKeys/8/expire_time' => '~NOW+2',
+                    '/MemberKeys/8/extended'    => 0,
+                },
+                clipboard   => {
+                    '/IdentifyUser/member/object'       => { },
+                    '/IdentifyUser/member/key_object'   => { },
+                    '/IdentifyUser/member/verified'     => 1,
+                    '/IdentifyUser/member/name'         => 'm001',
+                    '/IdentifyUser/member/extended'     => 0,
+                },
+            },
+        },
+        t21b => {       # Make sure 'extended' is still ON after 'check'ing.
+            cookie_jar      => \%cjar_b,
+            sub_pre => sub {
+                sleep(1);
+            },
+            args => {
+                mode        => 'check',
+                type        => 'member',
+            },
+            results => {
+                cookies     => {
+                    mid         => 'm001',
+                    mkey        => '9',
+                },
+                text        => 'V',
+                fs => {
+                    '/Members/m001/uvf_time'    => '~NOW',
+                    '/MemberKeys/9/verify_time' => '~NOW',
+                    '/MemberKeys/9/expire_time' => '~NOW+6',
+                    '/MemberKeys/9/extended'    => 1,
+                },
+                clipboard   => {
+                    '/IdentifyUser/member/object'       => { },
+                    '/IdentifyUser/member/key_object'   => { },
+                    '/IdentifyUser/member/verified'     => 1,
+                    '/IdentifyUser/member/name'         => 'm001',
+                    '/IdentifyUser/member/extended'     => 1,
+                },
+            },
+        },
+        t22a => {       # Timing out non-extended key
+            cookie_jar      => \%cjar_a,
+            sub_pre => sub {
+                sleep(3);
+            },
+            args => {
+                mode        => 'check',
+                type        => 'member',
+            },
+            results => {
+                cookies     => {
+                    mid         => 'm001',
+                },
+                text        => 'I',
+                fs => {
+                    '/Members/m001/uvf_time'    => '~NOW-3',
+                    '/MemberKeys/8/verify_time' => '~NOW-3',
+                    '/MemberKeys/8/expire_time' => '~NOW-1',
+                    '/MemberKeys/8/extended'    => 0,
+                },
+                clipboard   => {
+                    '/IdentifyUser/member/object'       => { },
+                    '/IdentifyUser/member/key_object'   => { },
+                    '/IdentifyUser/member/verified'     => undef,
+                    '/IdentifyUser/member/name'         => 'm001',
+                    '/IdentifyUser/member/extended'     => 0,
+                },
+            },
+        },
+        t22b => {       # Extended should not time out in 3 seconds
+            cookie_jar      => \%cjar_b,
+            sub_pre => sub {
+            },
+            args => {
+                mode        => 'check',
+                type        => 'member',
+            },
+            results => {
+                cookies     => {
+                    mid         => 'm001',
+                    mkey        => '9',
+                },
+                text        => 'V',
+                fs => {
+                    '/Members/m001/uvf_time'    => '~NOW',
+                    '/MemberKeys/9/verify_time' => '~NOW',
+                    '/MemberKeys/9/expire_time' => '~NOW+6',
+                    '/MemberKeys/9/extended'    => 1,
+                },
+                clipboard   => {
+                    '/IdentifyUser/member/object'       => { },
+                    '/IdentifyUser/member/key_object'   => { },
+                    '/IdentifyUser/member/verified'     => 1,
+                    '/IdentifyUser/member/name'         => 'm001',
+                    '/IdentifyUser/member/extended'     => 1,
+                },
+            },
+        },
+        t23a => {       # No change, just rechecking non-extended key
+            cookie_jar      => \%cjar_a,
+            sub_pre => sub {
+            },
+            args => {
+                mode        => 'check',
+                type        => 'member',
+            },
+            results => {
+                cookies     => {
+                    mid         => 'm001',
+                    mkey        => '8',     # depends on expire_mode=keep
+                },
+                text        => 'I',
+                fs => {
+                    '/Members/m001/uvf_time'    => '~NOW',  # from t22b
+                    '/MemberKeys/8/verify_time' => '~NOW-3',
+                    '/MemberKeys/8/expire_time' => '~NOW-1',
+                    '/MemberKeys/8/extended'    => 0,
+                },
+                clipboard   => {
+                    '/IdentifyUser/member/object'       => { },
+                    '/IdentifyUser/member/key_object'   => { },
+                    '/IdentifyUser/member/verified'     => undef,
+                    '/IdentifyUser/member/name'         => 'm001',
+                    '/IdentifyUser/member/extended'     => 0,
+                },
+            },
+        },
+        t23b => {       # Expiring extended key
+            cookie_jar      => \%cjar_b,
+            sub_pre => sub {
+                sleep(7);
+            },
+            args => {
+                mode        => 'check',
+                type        => 'member',
+            },
+            results => {
+                cookies     => {
+                    mid         => 'm001',
+                    mkey        => '9',
+                },
+                text        => 'I',
+                fs => {
+                    '/Members/m001/uvf_time'    => '~NOW-7',
+                    '/MemberKeys/9/verify_time' => '~NOW-7',
+                    '/MemberKeys/9/expire_time' => '~NOW-1',
+                    '/MemberKeys/9/extended'    => 1,
+                },
+                clipboard   => {
+                    '/IdentifyUser/member/object'       => { },
+                    '/IdentifyUser/member/key_object'   => { },
+                    '/IdentifyUser/member/verified'     => undef,
+                    '/IdentifyUser/member/name'         => 'm001',
+                    '/IdentifyUser/member/extended'     => 1,
+                },
+            },
+        },
+        t24a => {       # No change, just rechecking non-extended key
+            cookie_jar      => \%cjar_a,
+            sub_pre => sub {
+            },
+            args => {
+                mode        => 'check',
+                type        => 'member',
+            },
+            results => {
+                cookies     => {
+                    mid         => 'm001',
+                    mkey        => '8',
+                },
+                text        => 'I',
+                fs => {
+                    '/Members/m001/uvf_time'    => '~NOW-7',  # from t22b
+                    '/MemberKeys/8/verify_time' => '~NOW-10',
+                    '/MemberKeys/8/expire_time' => '~NOW-8',
+                    '/MemberKeys/8/extended'    => 0,
+                },
+                clipboard   => {
+                    '/IdentifyUser/member/object'       => { },
+                    '/IdentifyUser/member/key_object'   => { },
+                    '/IdentifyUser/member/verified'     => undef,
+                    '/IdentifyUser/member/name'         => 'm001',
+                    '/IdentifyUser/member/extended'     => 0,
+                },
+            },
+        },
+        t24b => {       # No change, just rechecking
+            cookie_jar      => \%cjar_b,
+            sub_pre => sub {
+            },
+            args => {
+                mode        => 'check',
+                type        => 'member',
+            },
+            results => {
+                cookies     => {
+                    mid         => 'm001',
+                    mkey        => '9',
+                },
+                text        => 'I',
+                fs => {
+                    '/Members/m001/uvf_time'    => '~NOW-7',
+                    '/MemberKeys/9/verify_time' => '~NOW-7',
+                    '/MemberKeys/9/expire_time' => '~NOW-1',
+                    '/MemberKeys/9/extended'    => 1,
+                },
+                clipboard   => {
+                    '/IdentifyUser/member/object'       => { },
+                    '/IdentifyUser/member/key_object'   => { },
+                    '/IdentifyUser/member/verified'     => undef,
+                    '/IdentifyUser/member/name'         => 'm001',
+                    '/IdentifyUser/member/extended'     => 1,
+                },
+            },
+        },
+        t25a => {       # "Soft" logout
+            cookie_jar      => \%cjar_a,
+            sub_pre => sub {
+            },
+            args => {
+                mode        => 'logout',    # Default is "soft" logout, going to identified state
+                type        => 'member',
+            },
+            results => {
+                cookies     => {
+                    mid         => 'm001',
+                    mkey        => undef,
+                },
+                text        => 'I',
+                fs => {
+                    '/Members/m001/uvf_time'    => '~NOW-7',  # from t22b
+                    '/MemberKeys/8/verify_time' => 0,
+                    '/MemberKeys/8/expire_time' => '~NOW-8',
+                    '/MemberKeys/8/extended'    => 0,
+                },
+                clipboard   => {
+                    '/IdentifyUser/member/object'       => { },
+                    '/IdentifyUser/member/key_object'   => undef,
+                    '/IdentifyUser/member/verified'     => undef,
+                    '/IdentifyUser/member/name'         => 'm001',
+                    '/IdentifyUser/member/extended'     => undef,
+                },
+            },
+        },
+        t25b => {       # No change, just rechecking
+            cookie_jar      => \%cjar_b,
+            sub_pre => sub {
+            },
+            args => {
+                mode        => 'logout',
+                type        => 'member',
+            },
+            results => {
+                cookies     => {
+                    mid         => 'm001',
+                    mkey        => undef,
+                },
+                text        => 'I',
+                fs => {
+                    '/Members/m001/uvf_time'    => '~NOW-7',
+                    '/MemberKeys/9/verify_time' => 0,
+                    '/MemberKeys/9/expire_time' => '~NOW-1',
+                    '/MemberKeys/9/extended'    => 1,
+                },
+                clipboard   => {
+                    '/IdentifyUser/member/object'       => { },
+                    '/IdentifyUser/member/key_object'   => undef,
+                    '/IdentifyUser/member/verified'     => undef,
+                    '/IdentifyUser/member/name'         => 'm001',
+                    '/IdentifyUser/member/extended'     => undef,
+                },
+            },
+        },
+        t26a => {       # Checking after logging out
+            cookie_jar      => \%cjar_a,
+            sub_pre => sub {
+            },
+            args => {
+                mode        => 'check',
+                type        => 'member',
+            },
+            results => {
+                cookies     => {
+                    mid         => 'm001',
+                    mkey        => undef,
+                },
+                text        => 'I',
+                fs => {
+                    '/Members/m001/uvf_time'    => '~NOW-7',  # from t22b
+                    '/MemberKeys/8/verify_time' => 0,
+                    '/MemberKeys/8/expire_time' => '~NOW-8',
+                    '/MemberKeys/8/extended'    => 0,
+                },
+                clipboard   => {
+                    '/IdentifyUser/member/object'       => { },
+                    '/IdentifyUser/member/key_object'   => undef,
+                    '/IdentifyUser/member/verified'     => undef,
+                    '/IdentifyUser/member/name'         => 'm001',
+                    '/IdentifyUser/member/extended'     => undef,
+                },
+            },
+        },
+        t26b => {       # No change, just rechecking
+            cookie_jar      => \%cjar_b,
+            sub_pre => sub {
+            },
+            args => {
+                mode        => 'check',
+                type        => 'member',
+            },
+            results => {
+                cookies     => {
+                    mid         => 'm001',
+                    mkey        => undef,
+                },
+                text        => 'I',
+                fs => {
+                    '/Members/m001/uvf_time'    => '~NOW-7',
+                    '/MemberKeys/9/verify_time' => 0,
+                    '/MemberKeys/9/expire_time' => '~NOW-1',
+                    '/MemberKeys/9/extended'    => 1,
+                },
+                clipboard   => {
+                    '/IdentifyUser/member/object'       => { },
+                    '/IdentifyUser/member/key_object'   => undef,
+                    '/IdentifyUser/member/verified'     => undef,
+                    '/IdentifyUser/member/name'         => 'm001',
+                    '/IdentifyUser/member/extended'     => undef,
+                },
+            },
+        },
+        t27a => {       # Hard logout
+            cookie_jar      => \%cjar_a,
+            sub_pre => sub {
+            },
+            args => {
+                mode        => 'logout',
+                type        => 'member',
+                hard_logout => 1,
+            },
+            results => {
+                cookies     => {
+                    mid         => undef,
+                    mkey        => undef,
+                },
+                text        => 'A',
+                fs => {
+                    '/Members/m001/uvf_time'    => '~NOW-7',  # from t22a
+                },
+                clipboard   => {
+                    '/IdentifyUser/member/object'       => undef,
+                    '/IdentifyUser/member/key_object'   => undef,
+                    '/IdentifyUser/member/verified'     => undef,
+                    '/IdentifyUser/member/name'         => undef,
+                    '/IdentifyUser/member/extended'     => undef,
+                },
+            },
+        },
+        t27b => {       # No change, just rechecking
+            cookie_jar      => \%cjar_b,
+            sub_pre => sub {
+            },
+            args => {
+                mode        => 'logout',
+                type        => 'member',
+                hard_logout => 1,
+            },
+            results => {
+                cookies     => {
+                    mid         => undef,
+                    mkey        => undef,
+                },
+                text        => 'A',
+                fs => {
+                    '/Members/m001/uvf_time'    => '~NOW-7',
+                },
+                clipboard   => {
+                    '/IdentifyUser/member/object'       => undef,
+                    '/IdentifyUser/member/key_object'   => undef,
+                    '/IdentifyUser/member/verified'     => undef,
+                    '/IdentifyUser/member/name'         => undef,
+                    '/IdentifyUser/member/extended'     => undef,
+                },
+            },
+        },
+        t28a => {       # Check after hard logout
+            cookie_jar      => \%cjar_a,
+            sub_pre => sub {
+            },
+            args => {
+                mode        => 'check',
+                type        => 'member',
+            },
+            results => {
+                cookies     => {
+                    mid         => undef,
+                    mkey        => undef,
+                },
+                text        => 'A',
+                fs => {
+                    '/Members/m001/uvf_time'    => '~NOW-7',  # from t22a
+                },
+                clipboard   => {
+                    '/IdentifyUser/member/object'       => undef,
+                    '/IdentifyUser/member/key_object'   => undef,
+                    '/IdentifyUser/member/verified'     => undef,
+                    '/IdentifyUser/member/name'         => undef,
+                    '/IdentifyUser/member/extended'     => undef,
+                },
+            },
+        },
+        t28b => {       # No change, just rechecking
+            cookie_jar      => \%cjar_b,
+            sub_pre => sub {
+            },
+            args => {
+                mode        => 'check',
+                type        => 'member',
+            },
+            results => {
+                cookies     => {
+                    mid         => undef,
+                    mkey        => undef,
+                },
+                text        => 'A',
+                fs => {
+                    '/Members/m001/uvf_time'    => '~NOW-7',
+                },
+                clipboard   => {
+                    '/IdentifyUser/member/object'       => undef,
+                    '/IdentifyUser/member/key_object'   => undef,
+                    '/IdentifyUser/member/verified'     => undef,
+                    '/IdentifyUser/member/name'         => undef,
+                    '/IdentifyUser/member/extended'     => undef,
+                },
+            },
+        },
+        t29a => {       # Login after hard logout
+            sub_pre => sub {
+            },
+            cookie_jar => \%cjar_a,
+            args => {
+                mode        => 'login',
+                type        => 'member',
+                username    => 'm001',
+                password    => '12345',
+                extended    => 0,
+            },
+            results => {
+                cookies     => {
+                    mid         => 'm001',
+                    mkey        => '10',
+                },
+                text        => 'V',
+                fs => {
+                    '/Members/m001/uvf_time'    => '~NOW',
+                    '/MemberKeys/10/verify_time'=> '~NOW',
+                    '/MemberKeys/10/expire_time'=> '~NOW+2',
+                    '/MemberKeys/10/extended'   => 0,
+                },
+                clipboard   => {
+                    '/IdentifyUser/member/object'       => { },
+                    '/IdentifyUser/member/key_object'   => { },
+                    '/IdentifyUser/member/verified'     => 1,
+                    '/IdentifyUser/member/name'         => 'm001',
+                    '/IdentifyUser/member/extended'     => 0,
+                },
+            },
+        },
+        t29b => {       # Extended login
+            cookie_jar => \%cjar_b,
+            sub_pre => sub {
+            },
+            args => {
+                mode        => 'login',
+                type        => 'member',
+                username    => 'm001',
+                password    => '12345',
+                extended    => 1,
+            },
+            results => {
+                cookies     => {
+                    mid         => 'm001',
+                    mkey        => '11',
+                },
+                text        => 'V',
+                fs => {
+                    '/Members/m001/uvf_time'    => '~NOW',
+                    '/MemberKeys/11/verify_time'=> '~NOW',
+                    '/MemberKeys/11/expire_time'=> '~NOW+6',
+                    '/MemberKeys/11/extended'   => 1,
+                },
+                clipboard   => {
+                    '/IdentifyUser/member/object'       => { },
+                    '/IdentifyUser/member/key_object'   => { },
+                    '/IdentifyUser/member/verified'     => 1,
+                    '/IdentifyUser/member/name'         => 'm001',
+                    '/IdentifyUser/member/extended'     => 1,
+                },
+            },
+        },
+        t30a => {       # Hard logout
+            cookie_jar      => \%cjar_a,
+            sub_pre => sub {
+            },
+            args => {
+                mode        => 'logout',
+                type        => 'member',
+                hard_logout => 1,
+            },
+            results => {
+                cookies     => {
+                    mid         => undef,
+                    mkey        => undef,
+                },
+                text        => 'A',
+                fs => {
+                    '/Members/m001/uvf_time'    => '~NOW',  # from t29a
+                },
+                clipboard   => {
+                    '/IdentifyUser/member/object'       => undef,
+                    '/IdentifyUser/member/key_object'   => undef,
+                    '/IdentifyUser/member/verified'     => undef,
+                    '/IdentifyUser/member/name'         => undef,
+                    '/IdentifyUser/member/extended'     => undef,
+                },
+            },
+        },
+        t30b => {       # No change, just rechecking
+            cookie_jar      => \%cjar_b,
+            sub_pre => sub {
+            },
+            args => {
+                mode        => 'logout',
+                type        => 'member',
+                hard_logout => 1,
+            },
+            results => {
+                cookies     => {
+                    mid         => undef,
+                    mkey        => undef,
+                },
+                text        => 'A',
+                fs => {
+                    '/Members/m001/uvf_time'    => '~NOW',  # from t29b
+                },
+                clipboard   => {
+                    '/IdentifyUser/member/object'       => undef,
+                    '/IdentifyUser/member/key_object'   => undef,
+                    '/IdentifyUser/member/verified'     => undef,
+                    '/IdentifyUser/member/name'         => undef,
+                    '/IdentifyUser/member/extended'     => undef,
+                },
+            },
+        },
+        t31a => {       # Check after hard logout
+            cookie_jar      => \%cjar_a,
+            sub_pre => sub {
+            },
+            args => {
+                mode        => 'check',
+                type        => 'member',
+            },
+            results => {
+                cookies     => {
+                    mid         => undef,
+                    mkey        => undef,
+                },
+                text        => 'A',
+                fs => {
+                    '/Members/m001/uvf_time'    => '~NOW',  # from t29a
+                },
+                clipboard   => {
+                    '/IdentifyUser/member/object'       => undef,
+                    '/IdentifyUser/member/key_object'   => undef,
+                    '/IdentifyUser/member/verified'     => undef,
+                    '/IdentifyUser/member/name'         => undef,
+                    '/IdentifyUser/member/extended'     => undef,
+                },
+            },
+        },
+        t31b => {       # No change, just rechecking
+            cookie_jar      => \%cjar_b,
+            sub_pre => sub {
+            },
+            args => {
+                mode        => 'check',
+                type        => 'member',
+            },
+            results => {
+                cookies     => {
+                    mid         => undef,
+                    mkey        => undef,
+                },
+                text        => 'A',
+                fs => {
+                    '/Members/m001/uvf_time'    => '~NOW',  # from t29b
+                },
+                clipboard   => {
+                    '/IdentifyUser/member/object'       => undef,
+                    '/IdentifyUser/member/key_object'   => undef,
+                    '/IdentifyUser/member/verified'     => undef,
+                    '/IdentifyUser/member/name'         => undef,
+                    '/IdentifyUser/member/extended'     => undef,
+                },
+            },
+        },
     );
 
     $self->run_matrix(\%matrix,\%cjar);
@@ -2458,14 +3175,21 @@ sub run_matrix {
             &{$tdata->{sub_pre}}();
         }
 
-        my $chash=merge_refs($cjar,$tdata->{cookies});
+        my $rcjar=$tdata->{'cookie_jar'} || merge_refs($cjar,$tdata->{'cookies'});
+        my $wcjar=$tdata->{'cookie_jar'} || $cjar;
+
         my $cenv='';
-        foreach my $cname (keys %$chash) {
+        foreach my $cname (keys %$rcjar) {
+            next unless defined $rcjar->{$cname};
             $cenv.='; ' if length($cenv);
-            $cenv.="$cname=$chash->{$cname}";
-            $cjar->{$cname}=$chash->{$cname};
+            $cenv.="$cname=$rcjar->{$cname}";
+            $wcjar->{$cname}=$rcjar->{$cname};
         }
-        $ENV{HTTP_COOKIE}=$cenv;
+
+        ### dprint "..cookies: $cenv";
+
+        $ENV{'HTTP_COOKIE'}=$cenv;
+
         $config->embedded('web')->cleanup;
         $config->embedded('web')->enable_special_access;
         $config->embedded('web')->cgi(CGI->new('foo=bar&bar=foo'));
@@ -2475,12 +3199,19 @@ sub run_matrix {
             &{$tdata->{sub_post_cleanup}}();
         }
 
+        $self->catch_stderr() if $tdata->{'ignore_stderr'};
+
         my $iu=XAO::Objects->new(objname => 'Web::IdentifyUser');
         my $got=$iu->expand({
             'anonymous.template'    => 'A',
             'identified.template'   => 'I',
             'verified.template'     => 'V',
         },$tdata->{args});
+
+        if($tdata->{'ignore_stderr'}) {
+            my $stderr=$self->get_stderr();
+            dprint "IGNORED(OK-STDERR): $stderr";
+        }
 
         my $results=$tdata->{results};
         if(exists $results->{text}) {
@@ -2490,21 +3221,40 @@ sub run_matrix {
 
         foreach my $cd (@{$config->cookies}) {
             next unless defined $cd;
-            $cjar->{$cd->name}=$cd->value;
+
+            my $expires_text=$cd->expires;
+
+            $self->assert($expires_text =~ /(\d{2})\W+([a-z]{3})\W+(\d{4})\W+(\d{2})\W+(\d{2})\W+(\d{2})/i,
+                "Invalid cookie expiration '".$expires_text." for name '".$cd->name."' value '".$cd->value."'");
+
+            my $midx=index('janfebmaraprmayjunjulaugsepoctnovdev',lc($2));
+            $self->assert($midx>=0,
+                "Invalid month '$2' in cookie '".$cd->name."' expiration '".$expires_text."'");
+
+            my $expires=mktime($6,$5,$4,$1,$midx/3,$3-1900);
+
+            ### dprint "...cookie name='".$cd->name."' value='".$cd->value." expires=".$expires_text." (".localtime($expires)." - ".($expires<=time ? 'EXPIRED' : 'ACTIVE').")";
+
+            if($expires <= time) {
+                $wcjar->{$cd->name}=undef;
+            }
+            else {
+                $wcjar->{$cd->name}=$cd->value;
+            }
         }
 
         if(exists $results->{cookies}) {
             foreach my $cname (keys %{$results->{cookies}}) {
                 my $expect=$results->{cookies}->{$cname};
                 if(defined $expect) {
-                    $self->assert(defined($cjar->{$cname}),
+                    $self->assert(defined($wcjar->{$cname}),
                                   "$tname - cookie=$cname, expected $expect, got nothing");
-                    $self->assert($cjar->{$cname} eq $expect,
-                                  "$tname - cookie=$cname, expected $expect, got $cjar->{$cname}");
+                    $self->assert($wcjar->{$cname} eq $expect,
+                                  "$tname - cookie=$cname, expected $expect, got $wcjar->{$cname}");
                 }
                 else {
-                    $self->assert(!defined($cjar->{$cname}),
-                                  "$tname - cookie=$cname, expected nothing, got ".($cjar->{$cname} || ''));
+                    $self->assert(!defined($wcjar->{$cname}),
+                                  "$tname - cookie=$cname, expected nothing, got ".($wcjar->{$cname} || ''));
                 }
             }
         }
@@ -2533,6 +3283,15 @@ sub run_matrix {
             }
         }
 
+        my $parseval=sub($) {
+            my $t=shift;
+            if   ($t=~/^NOW\+(\d+)$/) { return time+$1; }
+            elsif($t=~/^NOW-(\d+)$/)  { return time-$1; }
+            elsif($t=~/^NOW$/)        { return time; }
+            elsif($t=~/^\d+$/)        { return $t; }
+            else { $self->assert(0,"Unparsable constant '$t'"); }
+        };
+
         if(exists $results->{fs}) {
             my $odb=$config->odb;
             foreach my $uri (keys %{$results->{fs}}) {
@@ -2553,14 +3312,20 @@ sub run_matrix {
                     $self->assert(0,
                                   "$tname - fs=$uri, expected $expect, got nothing");
                 }
-                elsif($expect =~ /^>(\d+)$/) {
-                    $self->assert($got>$1,
-                                  "$tname - fs=$uri, expected $expect, got $got");
+                elsif($expect =~ /^>(.*)$/) {
+                    my $val=$parseval->($1);
+                    $self->assert($got>$val,
+                                  "$tname - fs=$uri, expected $expect ($val), got $got");
                 }
-                elsif($expect =~ /^<(\d+)$/) {
-                    my $val=$1;
+                elsif($expect =~ /^<(.*)$/) {
+                    my $val=$parseval->($1);
                     $self->assert($got=~/^[\d\.]+$/ && $got<$val,
-                                  "$tname - fs=$uri, expected $expect, got $got");
+                                  "$tname - fs=$uri, expected $expect ($val), got $got");
+                }
+                elsif($expect =~ /^~(.*)$/) {
+                    my $val=$parseval->($1);
+                    $self->assert($got=~/^[\d\.]+$/ && $got>=$val-2 && $got<=$val+2,
+                                  "$tname - fs=$uri, expected $expect ($val+/-2), got $got");
                 }
                 else {
                     $self->assert($got eq $expect,

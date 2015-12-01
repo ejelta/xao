@@ -4,6 +4,8 @@ use XAO::Utils;
 
 use base qw(testcases::base);
 
+###############################################################################
+
 sub test_set_root {
     my $self=shift;
 
@@ -23,6 +25,8 @@ sub test_set_root {
                   "Error setting up root using set_root, got '$XAO::Base::homedir' (3)");
 }
 
+###############################################################################
+
 sub test_import {
     my $self=shift;
 
@@ -35,4 +39,31 @@ sub test_import {
                   "Imported homedir is wrong");
 }
 
+###############################################################################
+
+sub test_catch_stdout {
+    my $self=shift;
+
+    my $expect="Foo\n";
+
+    $self->catch_stdout();
+
+    print $expect;
+
+    my $got=$self->get_stdout();
+
+    $self->assert($got eq $expect,
+        "Mismatch in catch_stdout: got='$got' expect='$expect'");
+
+    $self->catch_stderr();
+
+    print STDERR $expect;
+
+    $got=$self->get_stderr();
+
+    $self->assert($got eq $expect,
+        "Mismatch in catch_stderr: got='$got' expect='$expect'");
+}
+
+###############################################################################
 1;

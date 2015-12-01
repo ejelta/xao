@@ -57,6 +57,7 @@ sub set_up_project {
 sub tear_down {
     my $self=shift;
     $self->get_stdout();
+    $self->get_stderr();
     drop_project('test');
 }
 
@@ -74,7 +75,7 @@ sub timediff ($$$) {
 
 sub catch_stdout ($) {
     my $self=shift;
-    $self->assert(!$self->{tempfile},
+    $self->assert(!$self->{tempfileout},
                   "Already catching STDOUT");
 
     open(TEMPSTDOUT,">&STDOUT") || die;
@@ -83,17 +84,17 @@ sub catch_stdout ($) {
                   "Can't make a copy of STDOUT");
     $self->{tempstdout}=$tempstdout;
 
-    $self->{tempfile}=IO::File->new_tmpfile();
-    $self->assert($self->{tempfile},
+    $self->{tempfileout}=IO::File->new_tmpfile();
+    $self->assert($self->{tempfileout},
                   "Can't create temporary file");
 
-    open(STDOUT,'>&' . $self->{tempfile}->fileno);
+    open(STDOUT,'>&' . $self->{tempfileout}->fileno);
 }
 
 sub get_stdout ($) {
     my $self=shift;
 
-    my $file=$self->{tempfile};
+    my $file=$self->{tempfileout};
     return undef unless $file;
 
     open(STDOUT,'>&' . $self->{tempstdout}->fileno);
@@ -103,8 +104,45 @@ sub get_stdout ($) {
     my $text=join('',$file->getlines);
     $file->close;
 
-    delete $self->{tempfile};
+    delete $self->{tempfileout};
     delete $self->{tempstdout};
+
+    return $text;
+}
+
+sub catch_stderr ($) {
+    my $self=shift;
+    $self->assert(!$self->{tempstderr},
+                  "Already catching STDERR");
+
+    open(TEMPSTDERR,">&STDERR") || die;
+    my $tempstderr=IO::File->new_from_fd(fileno(TEMPSTDERR),"w") || die;
+    $self->assert($tempstderr,
+                  "Can't make a copy of STDERR");
+    $self->{tempstderr}=$tempstderr;
+
+    $self->{tempfileerr}=IO::File->new_tmpfile();
+    $self->assert($self->{tempfileerr},
+                  "Can't create temporary file");
+
+    open(STDERR,'>&' . $self->{tempfileerr}->fileno);
+}
+
+sub get_stderr ($) {
+    my $self=shift;
+
+    my $file=$self->{tempfileerr};
+    return undef unless $file;
+
+    open(STDERR,'>&' . $self->{tempstderr}->fileno);
+    $self->{tempstderr}->close();
+
+    $file->seek(0,0);
+    my $text=join('',$file->getlines);
+    $file->close;
+
+    delete $self->{tempfileerr};
+    delete $self->{tempstderr};
 
     return $text;
 }
