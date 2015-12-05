@@ -3227,7 +3227,7 @@ sub run_matrix {
             $self->assert($expires_text =~ /(\d{2})\W+([a-z]{3})\W+(\d{4})\W+(\d{2})\W+(\d{2})\W+(\d{2})/i,
                 "Invalid cookie expiration '".$expires_text." for name '".$cd->name."' value '".$cd->value."'");
 
-            my $midx=index('janfebmaraprmayjunjulaugsepoctnovdev',lc($2));
+            my $midx=index('janfebmaraprmayjunjulaugsepoctnovdec',lc($2));
             $self->assert($midx>=0,
                 "Invalid month '$2' in cookie '".$cd->name."' expiration '".$expires_text."'");
 
