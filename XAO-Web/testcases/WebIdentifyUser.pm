@@ -3155,6 +3155,132 @@ sub test_key_list {
                 },
             },
         },
+        t32a => {       # Login for rolling check() testing
+            sub_pre => sub {
+            },
+            cookie_jar => \%cjar_a,
+            args => {
+                mode        => 'login',
+                type        => 'member',
+                username    => 'm001',
+                password    => '12345',
+                extended    => 0,
+            },
+            results => {
+                cookies     => {
+                    mid         => 'm001',
+                    mkey        => '12',
+                },
+                text        => 'V',
+                fs => {
+                    '/Members/m001/uvf_time'    => '~NOW',
+                    '/MemberKeys/12/verify_time'=> '~NOW',
+                    '/MemberKeys/12/expire_time'=> '~NOW+2',
+                    '/MemberKeys/12/extended'   => 0,
+                },
+                clipboard   => {
+                    '/IdentifyUser/member/object'       => { },
+                    '/IdentifyUser/member/key_object'   => { },
+                    '/IdentifyUser/member/verified'     => 1,
+                    '/IdentifyUser/member/name'         => 'm001',
+                    '/IdentifyUser/member/extended'     => 0,
+                },
+            },
+        },
+        t32c => {       # Checks after "user browsing"
+            cookie_jar      => \%cjar_a,
+            sub_pre => sub {
+                sleep(1);
+            },
+            repeat => 10,
+            args => {
+                mode        => 'check',
+                type        => 'member',
+            },
+            results => {
+                cookies     => {
+                    mid         => 'm001',
+                    mkey        => '12',
+                },
+                text        => 'V',
+                fs => {
+                    '/Members/m001/uvf_time'            => '~NOW',
+                    '/MemberKeys/12/verify_time'        => '~NOW',
+                    '/MemberKeys/12/expire_time'        => '~NOW+2',
+                    '/MemberKeys/12/extended'           => 0,
+                },
+                clipboard   => {
+                    '/IdentifyUser/member/object'       => { },
+                    '/IdentifyUser/member/key_object'   => { },
+                    '/IdentifyUser/member/verified'     => 1,
+                    '/IdentifyUser/member/name'         => 'm001',
+                    '/IdentifyUser/member/extended'     => 0,
+                },
+            },
+        },
+        t33b => {       # Extended login for rolling check() testing
+            cookie_jar => \%cjar_b,
+            sub_pre => sub {
+            },
+            args => {
+                mode        => 'login',
+                type        => 'member',
+                username    => 'm001',
+                password    => '12345',
+                extended    => 1,
+            },
+            results => {
+                cookies     => {
+                    mid         => 'm001',
+                    mkey        => '13',
+                },
+                text        => 'V',
+                fs => {
+                    '/Members/m001/uvf_time'    => '~NOW',
+                    '/MemberKeys/13/verify_time'=> '~NOW',
+                    '/MemberKeys/13/expire_time'=> '~NOW+6',
+                    '/MemberKeys/13/extended'   => 1,
+                },
+                clipboard   => {
+                    '/IdentifyUser/member/object'       => { },
+                    '/IdentifyUser/member/key_object'   => { },
+                    '/IdentifyUser/member/verified'     => 1,
+                    '/IdentifyUser/member/name'         => 'm001',
+                    '/IdentifyUser/member/extended'     => 1,
+                },
+            },
+        },
+        t33d => {       # Checks after "user browsing"
+            cookie_jar      => \%cjar_b,
+            sub_pre => sub {
+                sleep(5);
+            },
+            repeat => 4,
+            args => {
+                mode        => 'check',
+                type        => 'member',
+            },
+            results => {
+                cookies     => {
+                    mid         => 'm001',
+                    mkey        => '13',
+                },
+                text        => 'V',
+                fs => {
+                    '/Members/m001/uvf_time'            => '~NOW',
+                    '/MemberKeys/13/verify_time'        => '~NOW',
+                    '/MemberKeys/13/expire_time'        => '~NOW+6',
+                    '/MemberKeys/13/extended'           => 1,
+                },
+                clipboard   => {
+                    '/IdentifyUser/member/object'       => { },
+                    '/IdentifyUser/member/key_object'   => { },
+                    '/IdentifyUser/member/verified'     => 1,
+                    '/IdentifyUser/member/name'         => 'm001',
+                    '/IdentifyUser/member/extended'     => 1,
+                },
+            },
+        },
     );
 
     $self->run_matrix(\%matrix,\%cjar);
@@ -3168,168 +3294,174 @@ sub run_matrix {
     my $config=$self->siteconfig;
 
     foreach my $tname (sort keys %$matrix) {
-        dprint "TEST $tname";
         my $tdata=$matrix->{$tname};
 
-        if($tdata->{sub_pre}) {
-            &{$tdata->{sub_pre}}();
-        }
+        my $repeat=$tdata->{'repeat'} || 1;
 
-        my $rcjar=$tdata->{'cookie_jar'} || merge_refs($cjar,$tdata->{'cookies'});
-        my $wcjar=$tdata->{'cookie_jar'} || $cjar;
+        for(my $iter=0; $iter<$repeat; ++$iter) {
+            dprint "TEST $tname".($repeat>1 ? " (iteration ".($iter+1)." of $repeat)" : "");
 
-        my $cenv='';
-        foreach my $cname (keys %$rcjar) {
-            next unless defined $rcjar->{$cname};
-            $cenv.='; ' if length($cenv);
-            $cenv.="$cname=$rcjar->{$cname}";
-            $wcjar->{$cname}=$rcjar->{$cname};
-        }
-
-        ### dprint "..cookies: $cenv";
-
-        $ENV{'HTTP_COOKIE'}=$cenv;
-
-        $config->embedded('web')->cleanup;
-        $config->embedded('web')->enable_special_access;
-        $config->embedded('web')->cgi(CGI->new('foo=bar&bar=foo'));
-        $config->embedded('web')->disable_special_access;
-
-        if($tdata->{sub_post_cleanup}) {
-            &{$tdata->{sub_post_cleanup}}();
-        }
-
-        $self->catch_stderr() if $tdata->{'ignore_stderr'};
-
-        my $iu=XAO::Objects->new(objname => 'Web::IdentifyUser');
-        my $got=$iu->expand({
-            'anonymous.template'    => 'A',
-            'identified.template'   => 'I',
-            'verified.template'     => 'V',
-        },$tdata->{args});
-
-        if($tdata->{'ignore_stderr'}) {
-            my $stderr=$self->get_stderr();
-            dprint "IGNORED(OK-STDERR): $stderr";
-        }
-
-        my $results=$tdata->{results};
-        if(exists $results->{text}) {
-            $self->assert($got eq $results->{text},
-                          "$tname - expected '$results->{text}', got '$got'");
-        }
-
-        foreach my $cd (@{$config->cookies}) {
-            next unless defined $cd;
-
-            my $expires_text=$cd->expires;
-
-            $self->assert($expires_text =~ /(\d{2})\W+([a-z]{3})\W+(\d{4})\W+(\d{2})\W+(\d{2})\W+(\d{2})/i,
-                "Invalid cookie expiration '".$expires_text." for name '".$cd->name."' value '".$cd->value."'");
-
-            my $midx=index('janfebmaraprmayjunjulaugsepoctnovdec',lc($2));
-            $self->assert($midx>=0,
-                "Invalid month '$2' in cookie '".$cd->name."' expiration '".$expires_text."'");
-
-            my $expires=mktime($6,$5,$4,$1,$midx/3,$3-1900);
-
-            ### dprint "...cookie name='".$cd->name."' value='".$cd->value." expires=".$expires_text." (".localtime($expires)." - ".($expires<=time ? 'EXPIRED' : 'ACTIVE').")";
-
-            if($expires <= time) {
-                $wcjar->{$cd->name}=undef;
+            if($tdata->{'sub_pre'}) {
+                &{$tdata->{'sub_pre'}}();
             }
-            else {
-                $wcjar->{$cd->name}=$cd->value;
-            }
-        }
 
-        if(exists $results->{cookies}) {
-            foreach my $cname (keys %{$results->{cookies}}) {
-                my $expect=$results->{cookies}->{$cname};
-                if(defined $expect) {
-                    $self->assert(defined($wcjar->{$cname}),
-                                  "$tname - cookie=$cname, expected $expect, got nothing");
-                    $self->assert($wcjar->{$cname} eq $expect,
-                                  "$tname - cookie=$cname, expected $expect, got $wcjar->{$cname}");
+            my $rcjar=$tdata->{'cookie_jar'} || merge_refs($cjar,$tdata->{'cookies'});
+            my $wcjar=$tdata->{'cookie_jar'} || $cjar;
+
+            my $cenv='';
+            foreach my $cname (keys %$rcjar) {
+                next unless defined $rcjar->{$cname};
+                $cenv.='; ' if length($cenv);
+                $cenv.="$cname=$rcjar->{$cname}";
+                $wcjar->{$cname}=$rcjar->{$cname};
+            }
+
+            ### dprint "..cookies: $cenv";
+
+            $ENV{'HTTP_COOKIE'}=$cenv;
+
+            $config->embedded('web')->cleanup;
+            $config->embedded('web')->enable_special_access;
+            $config->embedded('web')->cgi(CGI->new('foo=bar&bar=foo'));
+            $config->embedded('web')->disable_special_access;
+
+            if($tdata->{sub_post_cleanup}) {
+                &{$tdata->{sub_post_cleanup}}();
+            }
+
+            $self->catch_stderr() if $tdata->{'ignore_stderr'};
+
+            my $iu=XAO::Objects->new(objname => 'Web::IdentifyUser');
+            my $got=$iu->expand({
+                'anonymous.template'    => 'A',
+                'identified.template'   => 'I',
+                'verified.template'     => 'V',
+            },$tdata->{args});
+
+            if($tdata->{'ignore_stderr'}) {
+                my $stderr=$self->get_stderr();
+                dprint "IGNORED(OK-STDERR): $stderr";
+            }
+
+            my $results=$tdata->{results};
+            if(exists $results->{text}) {
+                $self->assert($got eq $results->{text},
+                              "$tname - expected '$results->{text}', got '$got'");
+            }
+
+            foreach my $cd (@{$config->cookies}) {
+                next unless defined $cd;
+
+                my $expires_text=$cd->expires;
+
+                $self->assert($expires_text =~ /(\d{2})\W+([a-z]{3})\W+(\d{4})\W+(\d{2})\W+(\d{2})\W+(\d{2})/i,
+                    "Invalid cookie expiration '".$expires_text." for name '".$cd->name."' value '".$cd->value."'");
+
+                my $midx=index('janfebmaraprmayjunjulaugsepoctnovdec',lc($2));
+                $self->assert($midx>=0,
+                    "Invalid month '$2' in cookie '".$cd->name."' expiration '".$expires_text."'");
+
+                my $expires=mktime($6,$5,$4,$1,$midx/3,$3-1900);
+
+                ### dprint "...cookie name='".$cd->name."' value='".$cd->value." expires=".$expires_text." (".localtime($expires)." - ".($expires<=time ? 'EXPIRED' : 'ACTIVE').")";
+
+                if($expires <= time) {
+                    $wcjar->{$cd->name}=undef;
                 }
                 else {
-                    $self->assert(!defined($wcjar->{$cname}),
-                                  "$tname - cookie=$cname, expected nothing, got ".($wcjar->{$cname} || ''));
+                    $wcjar->{$cd->name}=$cd->value;
                 }
             }
-        }
 
-        if(exists $results->{clipboard}) {
-            my $cb=$config->clipboard;
-            foreach my $cname (keys %{$results->{clipboard}}) {
-                my $expect=$results->{clipboard}->{$cname};
-                my $got=$cb->get($cname);
-                if(defined $expect) {
-                    $self->assert(defined($got),
-                                  "$tname - clipboard=$cname, expected $expect, got nothing");
-                    if(ref($expect)) {
-                        $self->assert(ref($got),
-                                      "$tname - clipboard=$cname, expected a ref, got $got");
+            if(exists $results->{cookies}) {
+                foreach my $cname (keys %{$results->{cookies}}) {
+                    my $expect=$results->{cookies}->{$cname};
+                    if(defined $expect) {
+                        $self->assert(defined($wcjar->{$cname}),
+                                      "$tname - cookie=$cname, expected $expect, got nothing");
+                        $self->assert($wcjar->{$cname} eq $expect,
+                                      "$tname - cookie=$cname, expected $expect, got $wcjar->{$cname}");
+                    }
+                    else {
+                        $self->assert(!defined($wcjar->{$cname}),
+                                      "$tname - cookie=$cname, expected nothing, got ".($wcjar->{$cname} || ''));
+                    }
+                }
+            }
+
+            if(exists $results->{clipboard}) {
+                my $cb=$config->clipboard;
+                foreach my $cname (keys %{$results->{clipboard}}) {
+                    my $expect=$results->{clipboard}->{$cname};
+                    my $got=$cb->get($cname);
+                    if(defined $expect) {
+                        $self->assert(defined($got),
+                                      "$tname - clipboard=$cname, expected $expect, got nothing");
+                        if(ref($expect)) {
+                            $self->assert(ref($got),
+                                          "$tname - clipboard=$cname, expected a ref, got $got");
+                        }
+                        else {
+                            $self->assert($got eq $expect,
+                                          "$tname - clipboard=$cname, expected $expect, got $got");
+                        }
+                    }
+                    else {
+                        $self->assert(!defined($got),
+                                      "$tname - clipboard=$cname, expected nothing, got ".($got || ''));
+                    }
+                }
+            }
+
+            my $parseval=sub($) {
+                my $t=shift;
+                if   ($t=~/^NOW\+(\d+)$/) { return time+$1; }
+                elsif($t=~/^NOW-(\d+)$/)  { return time-$1; }
+                elsif($t=~/^NOW$/)        { return time; }
+                elsif($t=~/^\d+$/)        { return $t; }
+                else { $self->assert(0,"Unparsable constant '$t'"); }
+            };
+
+            if(exists $results->{fs}) {
+                my $odb=$config->odb;
+                foreach my $uri (keys %{$results->{fs}}) {
+                    my $expect=$results->{fs}->{$uri};
+                    my $got;
+                    try {
+                        $got=$odb->fetch($uri);
+                        ### dprint "...uri=$uri expect got=$got expect=$expect now=".time;
+                    }
+                    otherwise {
+                        my $e=shift;
+                        dprint "IGNORED(OK): $e";
+                    };
+                    if(!defined($expect)) {
+                        $self->assert(!defined($got),
+                                      "$tname - fs=$uri, expected nothing, got ".($got || ''));
+                    }
+                    elsif(!defined $got) {
+                        $self->assert(0,
+                                      "$tname - fs=$uri, expected $expect, got nothing");
+                    }
+                    elsif($expect =~ /^>(.*)$/) {
+                        my $val=$parseval->($1);
+                        $self->assert($got>$val,
+                                      "$tname - fs=$uri, expected $expect ($val), got $got");
+                    }
+                    elsif($expect =~ /^<(.*)$/) {
+                        my $val=$parseval->($1);
+                        $self->assert($got=~/^[\d\.]+$/ && $got<$val,
+                                      "$tname - fs=$uri, expected $expect ($val), got $got");
+                    }
+                    elsif($expect =~ /^~(.*)$/) {
+                        my $val=$parseval->($1);
+                        $self->assert($got=~/^[\d\.]+$/ && $got>=$val-2 && $got<=$val+2,
+                                      "$tname - fs=$uri, expected $expect ($val+/-2), got $got");
                     }
                     else {
                         $self->assert($got eq $expect,
-                                      "$tname - clipboard=$cname, expected $expect, got $got");
+                                      "$tname - fs=$uri, expected $expect, got $got");
                     }
-                }
-                else {
-                    $self->assert(!defined($got),
-                                  "$tname - clipboard=$cname, expected nothing, got ".($got || ''));
-                }
-            }
-        }
-
-        my $parseval=sub($) {
-            my $t=shift;
-            if   ($t=~/^NOW\+(\d+)$/) { return time+$1; }
-            elsif($t=~/^NOW-(\d+)$/)  { return time-$1; }
-            elsif($t=~/^NOW$/)        { return time; }
-            elsif($t=~/^\d+$/)        { return $t; }
-            else { $self->assert(0,"Unparsable constant '$t'"); }
-        };
-
-        if(exists $results->{fs}) {
-            my $odb=$config->odb;
-            foreach my $uri (keys %{$results->{fs}}) {
-                my $expect=$results->{fs}->{$uri};
-                my $got;
-                try {
-                    $got=$odb->fetch($uri);
-                }
-                otherwise {
-                    my $e=shift;
-                    dprint "IGNORED(OK): $e";
-                };
-                if(!defined($expect)) {
-                    $self->assert(!defined($got),
-                                  "$tname - fs=$uri, expected nothing, got ".($got || ''));
-                }
-                elsif(!defined $got) {
-                    $self->assert(0,
-                                  "$tname - fs=$uri, expected $expect, got nothing");
-                }
-                elsif($expect =~ /^>(.*)$/) {
-                    my $val=$parseval->($1);
-                    $self->assert($got>$val,
-                                  "$tname - fs=$uri, expected $expect ($val), got $got");
-                }
-                elsif($expect =~ /^<(.*)$/) {
-                    my $val=$parseval->($1);
-                    $self->assert($got=~/^[\d\.]+$/ && $got<$val,
-                                  "$tname - fs=$uri, expected $expect ($val), got $got");
-                }
-                elsif($expect =~ /^~(.*)$/) {
-                    my $val=$parseval->($1);
-                    $self->assert($got=~/^[\d\.]+$/ && $got>=$val-2 && $got<=$val+2,
-                                  "$tname - fs=$uri, expected $expect ($val+/-2), got $got");
-                }
-                else {
-                    $self->assert($got eq $expect,
-                                  "$tname - fs=$uri, expected $expect, got $got");
                 }
             }
         }
