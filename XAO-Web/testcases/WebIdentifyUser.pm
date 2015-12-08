@@ -3281,6 +3281,105 @@ sub test_key_list {
                 },
             },
         },
+        t40a => {       # Forced login without a password
+            sub_pre => sub {
+                %cjar_a=();
+            },
+            cookie_jar => \%cjar_a,
+            args => {
+                mode        => 'login',
+                type        => 'member',
+                username    => 'm001',
+                force       => 1,
+                extended    => 0,
+            },
+            results => {
+                cookies     => {
+                    mid         => 'm001',
+                    mkey        => '14',
+                },
+                text        => 'V',
+                fs => {
+                    '/Members/m001/uvf_time'    => '~NOW',
+                    '/MemberKeys/14/verify_time'=> '~NOW',
+                    '/MemberKeys/14/expire_time'=> '~NOW+2',
+                    '/MemberKeys/14/extended'   => 0,
+                },
+                clipboard   => {
+                    '/IdentifyUser/member/object'       => { },
+                    '/IdentifyUser/member/key_object'   => { },
+                    '/IdentifyUser/member/verified'     => 1,
+                    '/IdentifyUser/member/name'         => 'm001',
+                    '/IdentifyUser/member/extended'     => 0,
+                },
+            },
+        },
+        t41a => {       # Sequential login without password, reuse the key
+            sub_pre => sub {
+            },
+            cookie_jar => \%cjar_a,
+            repeat => 3,
+            args => {
+                mode        => 'login',
+                type        => 'member',
+                username    => 'm001',
+                force       => 1,
+                extended    => 0,
+            },
+            results => {
+                cookies     => {
+                    mid         => 'm001',
+                    mkey        => '14',
+                },
+                text        => 'V',
+                fs => {
+                    '/Members/m001/uvf_time'    => '~NOW',
+                    '/MemberKeys/14/verify_time'=> '~NOW',
+                    '/MemberKeys/14/expire_time'=> '~NOW+2',
+                    '/MemberKeys/14/extended'   => 0,
+                },
+                clipboard   => {
+                    '/IdentifyUser/member/object'       => { },
+                    '/IdentifyUser/member/key_object'   => { },
+                    '/IdentifyUser/member/verified'     => 1,
+                    '/IdentifyUser/member/name'         => 'm001',
+                    '/IdentifyUser/member/extended'     => 0,
+                },
+            },
+        },
+        t42a => {       # Sequential login with password, reuse the key
+            sub_pre => sub {
+            },
+            cookie_jar => \%cjar_a,
+            repeat => 3,
+            args => {
+                mode        => 'login',
+                type        => 'member',
+                username    => 'm001',
+                password    => '12345',
+                extended    => 0,
+            },
+            results => {
+                cookies     => {
+                    mid         => 'm001',
+                    mkey        => '14',
+                },
+                text        => 'V',
+                fs => {
+                    '/Members/m001/uvf_time'    => '~NOW',
+                    '/MemberKeys/14/verify_time'=> '~NOW',
+                    '/MemberKeys/14/expire_time'=> '~NOW+2',
+                    '/MemberKeys/14/extended'   => 0,
+                },
+                clipboard   => {
+                    '/IdentifyUser/member/object'       => { },
+                    '/IdentifyUser/member/key_object'   => { },
+                    '/IdentifyUser/member/verified'     => 1,
+                    '/IdentifyUser/member/name'         => 'm001',
+                    '/IdentifyUser/member/extended'     => 0,
+                },
+            },
+        },
     );
 
     $self->run_matrix(\%matrix,\%cjar);
