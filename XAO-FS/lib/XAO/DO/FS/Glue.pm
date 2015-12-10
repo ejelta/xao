@@ -1925,6 +1925,10 @@ sub _build_search_clause ($$$$$$) {
         ref($rha) eq 'ARRAY' ||
             $self->throw("_build_search_clause - expected an array reference in RHA '$rha'");
 
+        # The recursion is expected here, silencing the warning.
+        #
+        no warnings 'recursion';
+
         my $lhv=$self->_build_search_clause($classes,
                                             $values,
                                             $fields_map,
