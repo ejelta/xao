@@ -3,6 +3,7 @@ use strict;
 use XAO::Utils;
 use CGI::Cookie;
 use POSIX qw(mktime);
+use Digest::SHA qw(sha1_base64 sha256_base64);
 use Digest::MD5 qw(md5_base64);
 use Error qw(:try);
 
@@ -3381,6 +3382,656 @@ sub test_key_list {
             },
         },
     );
+
+    $self->run_matrix(\%matrix,\%cjar);
+}
+
+###############################################################################
+
+sub test_crypto {
+    my $self=shift;
+
+    my $config=$self->siteconfig;
+    $config->put(
+        identify_user => {
+            member => {
+                list_uri        => '/Members',
+                user_prop       => 'email',
+                id_cookie       => 'member_id',
+                pass_prop       => 'password',
+                pass_encrypt    => 'sha256,md5,plaintext',
+                vf_time_prop    => 'verify_time',
+                vf_expire_time  => 120,
+                vf_key_cookie   => 'member_key',
+                vf_key_prop     => 'verify_key',
+            },
+            member_md5_sha1 => {
+                list_uri        => '/Members',
+                user_prop       => 'email',
+                id_cookie       => 'member_id',
+                pass_prop       => 'password',
+                pass_encrypt    => 'md5,sha1',
+                vf_time_prop    => 'verify_time',
+                vf_expire_time  => 120,
+                vf_key_cookie   => 'member_key',
+                vf_key_prop     => 'verify_key',
+            },
+            member_sha1_crypt => {
+                list_uri        => '/Members',
+                user_prop       => 'email',
+                id_cookie       => 'member_id',
+                pass_prop       => 'password',
+                pass_encrypt    => 'sha1,crypt',
+                vf_time_prop    => 'verify_time',
+                vf_expire_time  => 120,
+                vf_key_cookie   => 'member_key',
+                vf_key_prop     => 'verify_key',
+            },
+            member_plaintext => {
+                list_uri        => '/Members',
+                user_prop       => 'email',
+                id_cookie       => 'member_id',
+                pass_prop       => 'password',
+                pass_encrypt    => 'plaintext',
+                vf_time_prop    => 'verify_time',
+                vf_expire_time  => 120,
+                vf_key_cookie   => 'member_key',
+                vf_key_prop     => 'verify_key',
+            },
+            member_custom => {
+                list_uri        => '/Members',
+                user_prop       => 'email',
+                id_cookie       => 'member_id',
+                pass_prop       => 'password',
+                pass_encrypt    => 'custom',
+                vf_time_prop    => 'verify_time',
+                vf_expire_time  => 120,
+                vf_key_cookie   => 'member_key',
+                vf_key_prop     => 'verify_key',
+            },
+            member_crypt => {
+                list_uri        => '/Members',
+                user_prop       => 'email',
+                id_cookie       => 'member_id',
+                pass_prop       => 'password',
+                pass_encrypt    => 'crypt',
+                vf_time_prop    => 'verify_time',
+                vf_expire_time  => 120,
+                vf_key_cookie   => 'member_key',
+                vf_key_prop     => 'verify_key',
+            },
+        },
+    );
+
+    $self->assert($config->get('/identify_user/member/list_uri') eq '/Members',
+                  "Can't get configuration parameter");
+
+    my $password='qwerty12';
+
+    my %etests=(
+        #
+        # Config type base encryption
+        #
+        t01_sha256 => {
+            repeat  => 9,
+            args    => {
+                type        => 'member',
+                password    => $password,
+            },
+            expect  => {
+                encrypted   => {
+                    regex       => qr/^\$sha256\$/,
+                    notsimple   => 1,
+                    length      => [ 60,100 ],
+                },
+                salt        => {
+                    length      => [ 8,16 ],
+                },
+            },
+        },
+        t01_md5    => {
+            repeat  => 9,
+            args    => {
+                type        => 'member_md5_sha1',
+                password    => $password,
+            },
+            expect  => {
+                encrypted   => {
+                    regex       => qr/^\$md5\$/,
+                    notsimple   => 1,
+                    length      => [ 36,100 ],
+                },
+                salt        => {
+                    length      => [ 8,16 ],
+                },
+            },
+        },
+        t01_sha1    => {
+            repeat  => 9,
+            args    => {
+                type        => 'member_sha1_crypt',
+                password    => $password,
+            },
+            expect  => {
+                encrypted   => {
+                    regex       => qr/^\$sha1\$/,
+                    notsimple   => 1,
+                    length      => [ 42,100 ],
+                },
+                salt        => {
+                    length      => [ 8,16 ],
+                },
+            },
+        },
+        t01_plaintext => {
+            args    => {
+                type        => 'member_plaintext',
+                password    => $password,
+            },
+            expect  => {
+                encrypted   => {
+                    equal       => $password,
+                },
+                salt        => {
+                    empty       => 1,
+                },
+            },
+        },
+        t01_custom => {
+            objname => 'Web::IdentifyUserC1',
+            args    => {
+                type        => 'member_custom',
+                password    => $password,
+            },
+            expect  => {
+                encrypted   => {
+                    equal       => '[*C1*'.$password.'*]',
+                },
+                salt        => {
+                    empty       => 1,
+                },
+            },
+        },
+        #
+        # Explicitly specified encryption
+        #
+        t02_sha256 => {
+            repeat  => 9,
+            args    => {
+                pass_encrypt=> 'sha256',
+                password    => $password,
+            },
+            expect  => {
+                encrypted   => {
+                    regex       => qr/^\$sha256\$/,
+                    notsimple   => 1,
+                    length      => [ 60,100 ],
+                },
+                salt        => {
+                    length      => [ 8,16 ],
+                },
+            },
+        },
+        t02_md5 => {
+            repeat  => 9,
+            args    => {
+                pass_encrypt=> 'md5',
+                password    => $password,
+            },
+            expect  => {
+                encrypted   => {
+                    regex       => qr/^\$md5\$/,
+                    notsimple   => 1,
+                    length      => [ 36,100 ],
+                },
+                salt        => {
+                    length      => [ 8,16 ],
+                },
+            },
+        },
+        t02_sha1 => {
+            repeat  => 9,
+            args    => {
+                pass_encrypt=> 'sha1',
+                password    => $password,
+            },
+            expect  => {
+                encrypted   => {
+                    regex       => qr/^\$sha1\$/,
+                    notsimple   => 1,
+                    length      => [ 42,100 ],
+                },
+                salt        => {
+                    length      => [ 8,16 ],
+                },
+            },
+        },
+        t02_crypt => {
+            repeat  => 3,
+            args    => {
+                pass_encrypt=> 'crypt',
+                password    => $password,
+            },
+            expect  => {
+                encrypted   => {
+                    regex       => qr/^[a-zA-Z0-9\.\/]+$/,
+                    notsimple   => 1,
+                    length      => [ 13,13 ],
+                },
+                salt        => {
+                    length      => [ 2,2 ],
+                },
+            },
+        },
+        t02_plaintext => {
+            args    => {
+                pass_encrypt=> 'plaintext',
+                password    => $password,
+            },
+            expect  => {
+                encrypted   => {
+                    equal       => $password,
+                },
+                salt        => {
+                    empty       => 1,
+                },
+            },
+        },
+        t02_custom => {
+            objname => 'Web::IdentifyUserC1',
+            args    => {
+                pass_encrypt=> 'custom',
+                password    => $password,
+            },
+            expect  => {
+                encrypted   => {
+                    equal       => '[*C1*'.$password.'*]',
+                },
+                salt        => {
+                    empty       => 1,
+                },
+            },
+        },
+        #
+        # Encryption with a stored password
+        #
+        (map { $_=~/^\$(.*)\$(.*)\$(.*)$/; my ($alg,$salt,$bare)=($1,$2,$3);
+            (
+                't03_type_'.$alg => {
+                    args    => {
+                        type            => 'member',
+                        password        => $password,
+                        password_stored => $_,
+                    },
+                    expect  => {
+                        encrypted   => {
+                            equal       => $_,
+                        },
+                        salt        => {
+                            equal       => $salt,
+                        },
+                    },
+                },
+                't03_impl_'.$alg => {
+                    args    => {
+                        password        => $password,
+                        password_stored => $_,
+                    },
+                    expect  => {
+                        encrypted   => {
+                            equal       => $_,
+                        },
+                        salt        => {
+                            equal       => $salt,
+                        },
+                    },
+                },
+                't03_over_'.$alg => {
+                    args    => {
+                        pass_encrypt    => 'md5',
+                        password        => $password,
+                        password_stored => $_,
+                    },
+                    expect  => {
+                        encrypted   => {
+                            equal       => $_,
+                        },
+                        salt        => {
+                            equal       => $salt,
+                        },
+                    },
+                },
+            ) } qw(
+            $md5$ZRIRPJBT$b+IL1UmuERNMIsZ8qAFLWA
+            $sha1$GREW9Y9Z$tWaQi1ypm8fo3HEP+xCo6aCWdw4
+            $sha256$BJQO8RFZ$m+lmqY7Uhx2LZ/R9ZzpnQZaJtJB1OANixhj2wPlFPO0
+        )),
+        #
+        # Encryption with a stored bareword saltless password
+        #
+        (map { my ($alg,$bare)=@$_;
+            (
+                't04_bare_'.$alg => {
+                    args    => {
+                        pass_encrypt    => $alg,
+                        password        => $password,
+                        password_stored => $bare,
+                    },
+                    expect  => {
+                        encrypted   => {
+                            equal       => $bare,
+                        },
+                        salt        => {
+                            equal       => '',
+                        },
+                    },
+                },
+            ) } (
+            ['md5',   'DjEeW5cE8otOhVfo+j++fQ' ],
+            ['sha1',  'L3eiULBOfDkCcEAvtCAzECsosHE' ],
+            ['sha256','nG1AW7otskv70i/H/3Szm9nF6cbOZimcZRm+UX5u18Y' ],
+        )),
+        #
+        # 'Crypt' based
+        #
+        (map { my $bare=$_; my $salt=substr($bare,0,2);
+            (
+                't05_crypt_'.$salt => {
+                    args    => {
+                        pass_encrypt    => 'crypt',
+                        password        => $password,
+                        password_stored => $bare,
+                    },
+                    expect  => {
+                        encrypted   => {
+                            equal       => $bare,
+                        },
+                        salt        => {
+                            equal       => $salt,
+                        },
+                    },
+                },
+            ) } qw(
+                Uavf0zRie4QGo
+                lyhsMZlrEok4s
+                gKFPxe5eEtYx6
+                iL3a0WOArmN1.
+        )),
+    );
+
+    foreach my $tname (sort keys %etests) {
+        my $tconf=$etests{$tname};
+
+        dprint "TEST '$tname'";
+
+        my $args=$tconf->{'args'};
+
+        my $obj=XAO::Objects->new(objname => ($tconf->{'objname'} || 'Web::IdentifyUser'));
+
+        my $repeat=$tconf->{'repeat'} || 1;
+
+        my %seen;
+
+        for(my $step=1; $step<=$repeat; ++$step) {
+            my $pwdata=$obj->data_password_encrypt($args);
+
+            $self->assert(ref($pwdata) eq 'HASH',
+                "Expected to receive a hash from data_password_encrypt, got '$pwdata'");
+
+            my $pass_encrypt=$pwdata->{'pass_encrypt'};
+
+            $self->assert(defined $pass_encrypt,
+                "Expected to receive an encryption algorithm (pass_encrypt), got UNDEF");
+
+            my $pwcrypt=$pwdata->{'encrypted'};
+
+            ### dprint "..test '$tname', step $step/$repeat, pass_encrypt=$pass_encrypt, encrypted='$pwcrypt'";
+
+            $self->assert(defined $pwcrypt,
+                "Expected to receive an encrypted password, got UNDEF");
+
+            $self->assert($pwcrypt=~/^[[:ascii:]]+$/,
+                "Expected to receive plain ASCII digest, got '$pwcrypt'");
+
+            # There is a VERY slight probability this might fail because of
+            # two identical random salts generated. Rerun the test if there
+            # is a suspicion of that :)
+            #
+            # Adding 'salt' into the check is a bad idea since then
+            # we're not checking salt randomness.
+            #
+            $self->assert(!$seen{$pwcrypt},
+                "Expected '$pwcrypt' to be unique, but got a repeat on step $step vs ".$seen{$pwcrypt});
+
+            $seen{$pwcrypt}=$step;
+
+            # Checking returned values
+            #
+            while(my ($fname,$fexpect)=each %{$tconf->{'expect'}}) {
+                my $value=$pwdata->{$fname};
+
+                $value='' if !defined($value);
+
+                while(my ($ckcode,$ckvalue)=each %{$fexpect}) {
+
+                    if($ckcode eq 'length') {
+                        $self->assert(!$ckvalue->[0] || length($value)>=$ckvalue->[0],
+                            "Expected to receive at least $ckvalue->[0] characters, got ".length($value)." for '$fname' on '$tname'");
+                        $self->assert(!$ckvalue->[1] || length($value)<=$ckvalue->[1],
+                            "Expected to receive at most $ckvalue->[0] characters, got ".length($value)." for '$fname' on '$tname'");
+                    }
+
+                    elsif($ckcode eq 'regex') {
+                        $self->assert(($value =~ $ckvalue ? 1 : 0),
+                            "Expected '$value' to match '$ckvalue' for '$fname' on '$tname'");
+                    }
+
+                    elsif($ckcode eq 'equal') {
+                        $self->assert($value eq $ckvalue,
+                            "Expected '$value' to equal '$ckvalue' for '$fname' on '$tname'");
+                    }
+
+                    elsif($ckcode eq 'notsimple') {
+                        my $pw=$args->{'password'} || '';
+
+                        my @simple=(
+                            $pw,
+                            md5_base64($pw),
+                            sha1_base64($pw),
+                            sha256_base64($pw),
+                        );
+
+                        # Yes, there is a probability that this will
+                        # match for a salted hash. But is minscule.
+                        #
+                        foreach my $sv (@simple) {
+                            $self->assert(index($value,$sv)<0,
+                                "Expected '$value' to not include '$sv' for '$fname' on '$tname'");
+                        }
+                    }
+
+                    elsif($ckcode eq 'empty') {
+                        $self->assert($value eq '',
+                            "Expected '$value' to be empty for '$fname' on '$tname'");
+                    }
+
+                    else {
+                        $self->assert(0,
+                            "Unknown value checker '$ckcode' for '$fname' in test '$tname'");
+                    }
+                }
+            }
+        }
+    }
+
+    # Salted passwords for the database
+    #
+    my $iu=XAO::Objects->new(objname => 'Web::IdentifyUser');
+
+    my $md5_bare=md5_base64($password);
+
+    my $md5_salted=$iu->data_password_encrypt(
+        pass_encrypt    => 'md5',
+        password        => $password,
+    )->{'encrypted'};
+
+    dprint "...md5:    bare='$md5_bare' salted='$md5_salted'";
+
+    my $sha1_bare=sha1_base64($password);
+
+    my $sha1_salted=$iu->data_password_encrypt(
+        pass_encrypt    => 'sha1',
+        password        => $password,
+    )->{'encrypted'};
+
+    dprint "...sha1:   bare='$sha1_bare' salted='$sha1_salted'";
+
+    my $sha256_bare=sha256_base64($password);
+
+    my $sha256_salted=$iu->data_password_encrypt(
+        pass_encrypt    => 'sha256',
+        password        => $password,
+    )->{'encrypted'};
+
+    dprint "...sha256: bare='$sha256_bare' salted='$sha256_salted'";
+
+    my $crypted=$iu->data_password_encrypt(
+        pass_encrypt    => 'crypt',
+        password        => $password,
+    )->{'encrypted'};
+
+    dprint "...crypt:  '$crypted'";
+
+    # Actual login/check/logout tests
+    #
+    my $odb=$config->odb;
+    $odb->fetch('/')->build_structure(
+        Members => {
+            type        => 'list',
+            class       => 'Data::Member1',
+            key         => 'member_id',
+            structure   => {
+                email => {
+                    type        => 'text',
+                    maxlength   => 100,
+                    charset     => 'latin1',
+                },
+                password => {
+                    type        => 'text',
+                    maxlength   => 100,
+                    charset     => 'latin1',
+                },
+                verify_time => {
+                    type        => 'integer',
+                    minvalue    => 0,
+                },
+                verify_key => {
+                    type        => 'text',
+                    maxlength   => 20,
+                    charset     => 'latin1',
+                },
+            },
+        },
+    );
+
+    my $m_list=$config->odb->fetch('/Members');
+    my $m_obj=$m_list->get_new;
+
+    my $tnum=0;
+    my %cjar;
+    my %matrix=map {
+        my ($code,$pwcrypt,$types)=@$_;
+
+        my $email=$code.'@bar.org';
+
+        $m_obj->put(
+            email       => $email,
+            password    => $pwcrypt,
+            verify_time => 0,
+        );
+        my $m_id=$m_list->put($m_obj);
+
+        ++$tnum;
+
+        map { my $type=$_; (
+            sprintf('t%02u_a_%s',$tnum,$code) => {
+                args => {
+                    mode        => 'login',
+                    type        => $type,
+                    username    => $email,
+                    password    => $password,
+                },
+                results => {
+                    cookies     => {
+                        member_id   => $email,
+                    },
+                    text        => 'V',
+                    clipboard   => {
+                        "/IdentifyUser/$type/object"    => { },
+                        "/IdentifyUser/$type/name"      => $email,
+                        "/IdentifyUser/$type/verified"  => 1,
+                    },
+                },
+            },
+            sprintf('t%02u_b_%s',$tnum,$code) => {
+                args => {
+                    mode        => 'check',
+                    type        => $type,
+                },
+                results => {
+                    cookies     => {
+                        member_id   => $email,
+                    },
+                    text        => 'V',
+                    clipboard   => {
+                        "/IdentifyUser/$type/object"    => { },
+                        "/IdentifyUser/$type/name"      => $email,
+                        "/IdentifyUser/$type/verified"  => 1,
+                    },
+                },
+            },
+            sprintf('t%02u_c_%s',$tnum,$code) => {
+                args => {
+                    mode        => 'login',
+                    type        => $type,
+                    username    => $email,
+                    password    => substr($password,0,-1),
+                },
+                results => {
+                    clipboard   => {
+                        "/IdentifyUser/$type/object"    => undef,
+                        "/IdentifyUser/$type/name"      => undef,
+                        "/IdentifyUser/$type/verified"  => undef,
+                    },
+                },
+            },
+            sprintf('t%02u_d_%s',$tnum,$code) => {
+                args => {
+                    mode        => 'check',
+                    type        => $type,
+                },
+                results => {
+                    clipboard   => {
+                        "/IdentifyUser/$type/object"   => { },
+                        "/IdentifyUser/$type/name"     => $email,
+                        "/IdentifyUser/$type/verified" => undef,
+                    },
+                    text        => 'I',
+                },
+            },
+        ) } @$types;
+    } (
+        [ 'md5_bare',       $md5_bare,      [qw(member member_md5_sha1)] ],
+        [ 'md5_salted',     $md5_salted,    [qw(member member_md5_sha1 member_custom)] ],
+        [ 'sha1_bare',      $sha1_bare,     [qw(member_md5_sha1 member_sha1_crypt)] ],
+        [ 'sha1_salted',    $sha1_salted,   [qw(member_md5_sha1 member_sha1_crypt member_custom member)] ],
+        [ 'sha256_bare',    $sha256_bare,   [qw(member)] ],
+        [ 'sha256_salted',  $sha256_salted, [qw(member member_md5_sha1 member_crypt)] ],
+        [ 'crypt',          $crypted,       [qw(member_crypt member_sha1_crypt)] ],
+        [ 'plaintext',      $password,      [qw(member member_plaintext)] ],
+    );
+
+    ### dprint Dumper(\%matrix);
 
     $self->run_matrix(\%matrix,\%cjar);
 }

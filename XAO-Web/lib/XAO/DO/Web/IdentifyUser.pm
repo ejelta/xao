@@ -193,8 +193,25 @@ Password attribute of user object.
 
 =item pass_encrypt
 
-Encryption method for the password. Available values are 'plaintext'
-(not encrypted at all, default) and 'md5' (MD5 one way hash encryption).
+Encryption method for the password. The value can be one or more
+comma separated algorithm tags. The password in login() is checked
+against each in order (unless the stored password has an algorithm code,
+like all of -salt algorithms).
+
+Available algorithms:
+
+    'plaintext'   - no encryption at all, plain text
+    'md5'         - MD5 digest (deprecated, do not use)
+    'sha1'        - SHA-1 digest with a salt
+    'sha256'      - SHA-256 digest with a salt
+    'crypt'       - system crypt() call (do not use)
+    'custom'      - use login_password_encrypt() call
+                    that must be overridden in a derived object
+
+In most situations using 'sha256' is a good choice.
+
+When creating a database record use data_password_encrypt() to properly
+encrypt a password.
 
 =item vf_key_prop
 
@@ -335,6 +352,7 @@ Now, let us look at some examples that show how each mode works.
 package XAO::DO::Web::IdentifyUser;
 use strict;
 use Digest::MD5 qw(md5_base64);
+use Digest::SHA qw(sha1_base64 sha256_base64);
 use Error qw(:try);
 use XAO::Utils;
 use XAO::Errors qw(XAO::DO::Web::IdentifyUser);
@@ -343,6 +361,11 @@ use base XAO::Objects->load(objname => 'Web::Action');
 
 use vars qw($VERSION);
 $VERSION=2.16;
+
+###############################################################################
+
+sub data_password_encrypt ($@);
+sub _get_config($@);
 
 ###############################################################################
 
@@ -407,14 +430,7 @@ sub check ($@) {
     my $self=shift;
     my $args=get_args(\@_);
 
-    my $config=$self->siteconfig->get('identify_user') ||
-        throw $self "- no 'identify_user' configuration";
-
-    my $type=$args->{'type'} ||
-        throw $self "- no 'type' given";
-
-    $config=$config->{$type} ||
-        throw $self "- no 'identify_user' configuration for '$type'";
+    my ($config,$type)=$self->_get_config($args);
 
     my $clipboard=$self->clipboard;
 
@@ -783,12 +799,8 @@ may include the content of 'ERRSTR'.
 sub display_results ($$$;$) {
     my ($self,$args,$status,$errstr)=@_;
 
-    my $config=$self->siteconfig->get('identify_user') ||
-        throw $self "- no 'identify_user' configuration";
-    my $type=$args->{'type'} ||
-        throw $self "- no 'type' given";
-    $config=$config->{$type} ||
-        throw $self "- no 'identify_user' configuration for '$type'";
+    my ($config,$type)=$self->_get_config($args);
+
     my $cb_uri=$config->{'cb_uri'} || "/IdentifyUser/$type";
     my $clipboard=$self->clipboard;
 
@@ -1060,16 +1072,9 @@ sub login ($;%) {
     my $self=shift;
     my $args=get_args(\@_);
 
-    my $config=$self->siteconfig->get('identify_user') ||
-        throw $self "- no 'identify_user' configuration";
-
-    my $type=$args->{'type'} ||
-        throw $self "- no 'type' given";
+    my ($config,$type)=$self->_get_config($args);
 
     my $extended=$args->{'extended'} || 0;
-
-    $config=$config->{$type} ||
-        throw $self "- no 'identify_user' configuration for '$type'";
 
     my $id_cookie=$config->{'id_cookie'} ||
         throw $self "- no 'id_cookie' in the configuration";
@@ -1161,40 +1166,39 @@ sub login ($;%) {
             else {
                 my $pass_prop=$config->{'pass_prop'} ||
                     throw $self "- no 'pass_prop' in the configuration";
+
                 my $dbpass=$user->get($pass_prop);
 
-                my $pass_encrypt=lc($config->{'pass_encrypt'} || 'plaintext');
+                my $password_matches;
+
                 my $errcode;
 
-                if($pass_encrypt eq 'plaintext') {
-                    # Nothing
-                }
-                elsif($pass_encrypt eq 'md5') {
-                    $password=md5_base64($password);
-                }
-                elsif($pass_encrypt eq 'crypt') {
-                    $password=crypt($password,$dbpass);
-                }
-                elsif($pass_encrypt eq 'custom') {
-                    $password=$self->login_password_encrypt(
-                        type                => $type,
-                        object              => $user,
-                        config              => $config,
+                try {
+                    my $pwdata=$self->data_password_check(
+                        type            => $type,
+                        object          => $user,
+                        config          => $config,
                         #
-                        username            => $username,
-                        password_typed      => $password,
-                        password_stored     => $dbpass,
-                        #
-                        error_message_ref   => \$errcode,
+                        username        => $username,
+                        password        => $password,
+                        password_stored => $dbpass,
                     );
+
+                    $pwdata ||
+                        throw $self "- {{INTERNAL: No data returned}}";
+
+                    $password_matches=$pwdata->{'password_matches'};
                 }
-                else {
-                    throw $self "- unknown encryption mode '$pass_encrypt'";
-                }
+                otherwise {
+                    my $etext=''.shift;
+                    $etext=$2 if $etext=~/{{\s*(?:([A-Z0-9_]+):\s*)?(.*)}}/;
+                    $errcode=$1 || 'BAD_PASSWORD';
+                    $password_matches=0;
+                };
 
                 # Empty passwords are never accepted
                 #
-                if(!length($dbpass) || $dbpass ne $password || $errcode) {
+                if(!length($dbpass) || $errcode || !$password_matches) {
                     $errstr=$self->login_errstr(
                         type    => $type,
                         object  => $user,
@@ -1548,12 +1552,7 @@ sub logout {
     my $self=shift;
     my $args=get_args(\@_);
 
-    my $config=$self->siteconfig->get('identify_user') ||
-        throw $self "- no 'identify_user' configuration";
-    my $type=$args->{'type'} ||
-        throw $self "- no 'type' given";
-    $config=$config->{$type} ||
-        throw $self "- no 'identify_user' configuration for '$type'";
+    my ($config,$type)=$self->_get_config($args);
 
     my $cookie_domain=$config->{'domain'};
 
@@ -1665,6 +1664,248 @@ sub logout {
     # status.
     #
     return $self->display_results($args,'identified');
+}
+
+###############################################################################
+
+# Looping through possibly multiple password encryption algorithms to
+# find the one potentially matching the stored password
+
+sub data_password_check ($@) {
+    my $self=shift;
+    my $args=get_args(\@_);
+
+    my $pass_encrypt=$args->{'pass_encrypt'};
+
+    if(!$pass_encrypt) {
+        my $config=$self->_get_config($args);
+
+        $pass_encrypt=$config->{'pass_encrypt'};
+    }
+
+    my $password_stored=$args->{'password_stored'} ||
+        throw $self "- no password_stored given";
+
+    # New stored passwords follow this format:
+    #
+    #  $ALG$SALT$DIGEST
+    #
+    # It overrides whatever specs were given as that is what we need to
+    # compare to.
+    #
+    if((!$pass_encrypt || $pass_encrypt ne 'plaintext') && $password_stored=~/^\$([\w-]+)\$(.*?)\$.+/) {
+        $pass_encrypt=lc($1);
+    }
+
+    # We might have a list of password encryption algorithms -- current
+    # and older for instance.
+    #
+    if(ref $pass_encrypt) {
+        # OK
+    }
+    elsif(index($pass_encrypt,',')>0) {
+        $pass_encrypt=[ split(/\s*,\s*/,$pass_encrypt) ];
+    }
+    else {
+        $pass_encrypt=[ $pass_encrypt ];
+    }
+
+    # We are checking against a list of possible encryption algorithms.
+    #
+    my $pwdata;
+    foreach my $pass_encrypt_v (@$pass_encrypt) {
+        $pwdata=$self->data_password_encrypt($args,{
+            pass_encrypt    => $pass_encrypt_v,
+        });
+
+        if($pwdata->{'encrypted'} eq $password_stored) {
+            $pwdata->{'password_matches'}=1;
+            return $pwdata;
+        }
+    }
+
+    $pwdata->{'password_matches'}=0;
+
+    return $pwdata;
+}
+
+###############################################################################
+
+=item data_password_encrypt (%)
+
+Use this call to create a password for a user's database record. Call like so:
+
+    my $pwdata=$identify_user->data_password_encrypt(
+        type        => 'customer',
+        password    => $plain_text_password,
+    );
+
+The resulting hash reference would have a member 'encrypted' that can be
+directly stored in the database.
+
+=cut
+
+sub data_password_encrypt ($@) {
+    my $self=shift;
+    my $args=get_args(\@_);
+
+    my $pass_encrypt=$args->{'pass_encrypt'};
+
+    if(!$pass_encrypt && ($args->{'config'} || $args->{'type'})) {
+        my $config=$self->_get_config($args);
+
+        $pass_encrypt=$config->{'pass_encrypt'};
+    }
+
+    # With multi-algorithm values we encrypt using the
+    # first one. This would typically be something like
+    # 'sha256,md5,plaintext' -- i.e. the current algo and
+    # fall-backs for older passwords.
+    #
+    if(ref($pass_encrypt)) {
+        $pass_encrypt=$pass_encrypt->[0];
+    }
+    elsif($pass_encrypt=~/^(.*?),/) {
+        $pass_encrypt=$1;
+    }
+
+    # When called to create a password we won't have a stored
+    # password. But when encrypting internally to check the password we
+    # do get a stored password and that password might have an algorithm
+    # and salt embedded in it. That overrides the configuration to make
+    # it possible to change the config later to a different hashing
+    # function without changing all database stored passwords.
+    #
+    # In plaintext we don't analyze the stored password, to avoid
+    # clashing with what might have been entered by the user.
+    #
+    my $password_stored=$args->{'password_stored'};
+    my $salt=$args->{'salt'};
+    my $pass_wrap=1;
+    if(defined $password_stored && $pass_encrypt ne 'plaintext') {
+
+        # New stored passwords follow this format:
+        #
+        #  $ALG$SALT$DIGEST
+        #
+        if($password_stored=~/^\$([\w-]+)\$(.*?)\$.+/) {
+            $pass_encrypt=lc($1);
+            $salt=$2;
+        }
+
+        # Old MD5 based passwords were bare, not including salt. We
+        # still need to be able to check against them.
+        #
+        else {
+            $salt='';
+            $pass_wrap=0;
+        }
+    }
+
+    # Historically the default password encryption is plain text.
+    #
+    $pass_encrypt||='plaintext';
+
+    $pass_encrypt=lc($pass_encrypt);
+
+    # Encrypting (which is actually a misnomer, hashing would be a
+    # better word, but it's already called "encrypt" everywhere else).
+    #
+    my $password=$args->{'password'};
+
+    defined $password ||
+        throw $self "- {{INTERNAL: No password argument}}";
+
+    my $encrypted;
+
+    if($pass_encrypt eq 'plaintext') {
+        $encrypted=$password;
+        $pass_wrap=0;
+    }
+    elsif($pass_encrypt eq 'crypt') {
+        $salt=$password_stored if !length($salt);
+        if(!defined $salt || length($salt)<2) {
+            my $saltchars=join('',map { chr($_) } ((ord('0')..ord(9)),(ord('a')..ord('z')),(ord('A')..ord('Z')),ord('.'),ord('/')));
+            $salt=substr($saltchars,rand()*length($saltchars),1).substr($saltchars,rand()*length($saltchars),1);
+        }
+        $salt=substr($salt,0,2);
+        $encrypted=crypt($password,$salt);
+        $pass_wrap=0;
+        if(length($password)>8) {
+            eprint "Only first 8 characters of ".length($password)."-character password are used in 'crypt' mode";
+        }
+    }
+    elsif($pass_encrypt eq 'md5') {
+        $salt=XAO::Utils::generate_key() unless defined $salt;
+        $encrypted=md5_base64($salt.$password);
+    }
+    elsif($pass_encrypt eq 'sha1') {
+        $salt=XAO::Utils::generate_key() unless defined $salt;
+        $encrypted=sha1_base64($salt.$password);
+    }
+    elsif($pass_encrypt eq 'sha256') {
+        $salt=XAO::Utils::generate_key() unless defined $salt;
+        $encrypted=sha256_base64($salt.$password);
+    }
+    elsif($pass_encrypt eq 'custom') {
+        $pass_wrap=0;
+
+        my ($config,$type)=($args->{'config'} || $args->{'type'} ? ($self->_get_config($args)) : (undef,undef));
+
+        my $errcode;
+
+        $encrypted=$self->login_password_encrypt($args,{
+            type                => $type,
+            config              => $config,
+            pass_encrypt        => $pass_encrypt,
+            #
+            password            => $password,
+            password_typed      => $password,
+            password_stored     => $password_stored,
+            salt                => $salt,
+            #
+            error_message_ref   => \$errcode,
+        });
+
+        if($errcode) {
+            throw $self "- {{$errcode: Password encryption error}}";
+        }
+    }
+    else {
+        throw $self "- {{INTERNAL: Unknown encryption mode}}";
+    }
+
+    ### dprint "...pass_encrypt=$pass_encrypt pass_wrap=$pass_wrap salt=$salt encrypted=$encrypted";
+
+    # Wrapping to include salt and algorithm
+    #
+    if($pass_wrap) {
+        $encrypted='$'.$pass_encrypt.'$'.$salt.'$'.$encrypted;
+    }
+
+    return {
+        encrypted       => $encrypted,
+        salt            => $salt,
+        pass_encrypt    => $pass_encrypt,
+    };
+}
+
+###############################################################################
+
+sub _get_config ($@) {
+    my $self=shift;
+    my $args=get_args(\@_);
+
+    my $config=$self->siteconfig->get('identify_user') ||
+        throw $self "- no 'identify_user' configuration";
+
+    my $type=$args->{'type'} ||
+        throw $self "- no 'type' given";
+
+    $config=$config->{$type} ||
+        throw $self "- no 'identify_user' configuration for '$type'";
+
+    return wantarray ? ($config,$type) : $config;
 }
 
 ##############################################################################
