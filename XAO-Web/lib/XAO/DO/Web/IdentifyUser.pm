@@ -193,17 +193,18 @@ Password attribute of user object.
 
 =item pass_encrypt
 
-Encryption method for the password. The value can be one or more
-comma separated algorithm tags. The password in login() is checked
-against each in order (unless the stored password has an algorithm code,
-like all of -salt algorithms).
+Encryption method for the password. The value can be one or more comma
+separated algorithm tags. The password in login() is checked against
+each in order (unless the stored password has a specific algorithm
+code embedded in it, as do all digest algorithm password built with
+data_password_encrypt() call).
 
 Available algorithms:
 
     'plaintext'   - no encryption at all, plain text
     'md5'         - MD5 digest (deprecated, do not use)
-    'sha1'        - SHA-1 digest with a salt
-    'sha256'      - SHA-256 digest with a salt
+    'sha1'        - SHA-1 digest
+    'sha256'      - SHA-256 digest
     'crypt'       - system crypt() call (do not use)
     'custom'      - use login_password_encrypt() call
                     that must be overridden in a derived object
@@ -212,6 +213,18 @@ In most situations using 'sha256' is a good choice.
 
 When creating a database record use data_password_encrypt() to properly
 encrypt a password.
+
+=item pass_pepper
+
+An optional string that is added to passwords when they are encrypted.
+The actual encrypted password would use a combination of a random "salt"
+(stored with the password), a static "pepper" (not stored with the
+password), and the password itself.
+
+The point of adding a pepper value is to make the database content alone
+not be enough to crack passwords unless the site code/config is also
+known. This adds an extra protection layer in case the database content
+is stolen, but the site code is not.
 
 =item vf_key_prop
 
@@ -364,8 +377,21 @@ $VERSION=2.16;
 
 ###############################################################################
 
+sub check_mode($;%);
+sub check ($@);
+sub before_display ($@);
+sub display_results ($$$;$);
+sub _get_user_props($$$);
+sub find_user ($$$;$);
+sub login_errstr ($@);
+sub login ($;%);
+sub login_password_encrypt ($@);
+sub login_check ($%);
+sub logout ($@);
+sub data_password_check ($@);
 sub data_password_encrypt ($@);
-sub _get_config($@);
+sub _get_config ($@);
+sub verify_check ($%);
 
 ###############################################################################
 
@@ -1548,7 +1574,7 @@ as mode='check' does.
 
 =cut
 
-sub logout {
+sub logout ($@) {
     my $self=shift;
     my $args=get_args(\@_);
 
@@ -1676,11 +1702,12 @@ sub data_password_check ($@) {
     my $args=get_args(\@_);
 
     my $pass_encrypt=$args->{'pass_encrypt'};
+    my $pass_pepper=$args->{'pass_pepper'};
 
-    if(!$pass_encrypt) {
+    if(!$pass_encrypt || !$pass_pepper) {
         my $config=$self->_get_config($args);
-
-        $pass_encrypt=$config->{'pass_encrypt'};
+        $pass_encrypt||=$config->{'pass_encrypt'};
+        $pass_pepper||=$config->{'pass_pepper'};
     }
 
     my $password_stored=$args->{'password_stored'} ||
@@ -1697,30 +1724,52 @@ sub data_password_check ($@) {
         $pass_encrypt=lc($1);
     }
 
+    # The legacy compatibility default.
+    #
+    $pass_encrypt||='plaintext';
+    $pass_pepper||='';
+
     # We might have a list of password encryption algorithms -- current
     # and older for instance.
     #
     if(ref $pass_encrypt) {
         # OK
     }
-    elsif(index($pass_encrypt,',')>0) {
-        $pass_encrypt=[ split(/\s*,\s*/,$pass_encrypt) ];
+    elsif(index($pass_encrypt,',')>=0) {
+        $pass_encrypt=[ split(/\s*,\s*/,$pass_encrypt,-1) ];
     }
     else {
         $pass_encrypt=[ $pass_encrypt ];
+    }
+
+    # Pepper value can also be a list.
+    #
+    if(ref $pass_pepper) {
+        # OK
+    }
+    elsif(index($pass_pepper,',')>=0) {
+        $pass_pepper=[ split(/\s*,\s*/,$pass_pepper,-1) ];
+    }
+    else {
+        $pass_pepper=[ $pass_pepper ];
     }
 
     # We are checking against a list of possible encryption algorithms.
     #
     my $pwdata;
     foreach my $pass_encrypt_v (@$pass_encrypt) {
-        $pwdata=$self->data_password_encrypt($args,{
-            pass_encrypt    => $pass_encrypt_v,
-        });
+        foreach my $pass_pepper_v (@$pass_pepper) {
+            ### dprint ".....TRYING '$pass_encrypt_v' / '$pass_pepper_v'";
 
-        if($pwdata->{'encrypted'} eq $password_stored) {
-            $pwdata->{'password_matches'}=1;
-            return $pwdata;
+            $pwdata=$self->data_password_encrypt($args,{
+                pass_encrypt    => $pass_encrypt_v,
+                pass_pepper     => $pass_pepper_v,
+            });
+
+            if($pwdata->{'encrypted'} eq $password_stored) {
+                $pwdata->{'password_matches'}=1;
+                return $pwdata;
+            }
         }
     }
 
@@ -1750,23 +1799,12 @@ sub data_password_encrypt ($@) {
     my $args=get_args(\@_);
 
     my $pass_encrypt=$args->{'pass_encrypt'};
+    my $pass_pepper=$args->{'pass_pepper'};
 
-    if(!$pass_encrypt && ($args->{'config'} || $args->{'type'})) {
+    if((!defined($pass_encrypt) || !defined($pass_pepper)) && ($args->{'config'} || $args->{'type'})) {
         my $config=$self->_get_config($args);
-
-        $pass_encrypt=$config->{'pass_encrypt'};
-    }
-
-    # With multi-algorithm values we encrypt using the
-    # first one. This would typically be something like
-    # 'sha256,md5,plaintext' -- i.e. the current algo and
-    # fall-backs for older passwords.
-    #
-    if(ref($pass_encrypt)) {
-        $pass_encrypt=$pass_encrypt->[0];
-    }
-    elsif($pass_encrypt=~/^(.*?),/) {
-        $pass_encrypt=$1;
+        $pass_encrypt=$config->{'pass_encrypt'} unless defined $pass_encrypt;
+        $pass_pepper=$config->{'pass_pepper'} unless defined $pass_pepper;
     }
 
     # When called to create a password we won't have a stored
@@ -1782,7 +1820,7 @@ sub data_password_encrypt ($@) {
     my $password_stored=$args->{'password_stored'};
     my $salt=$args->{'salt'};
     my $pass_wrap=1;
-    if(defined $password_stored && $pass_encrypt ne 'plaintext') {
+    if(defined $password_stored && (!$pass_encrypt || $pass_encrypt ne 'plaintext')) {
 
         # New stored passwords follow this format:
         #
@@ -1806,7 +1844,33 @@ sub data_password_encrypt ($@) {
     #
     $pass_encrypt||='plaintext';
 
-    $pass_encrypt=lc($pass_encrypt);
+    $pass_encrypt=lc($pass_encrypt) unless ref $pass_encrypt;
+
+    # With multi-algorithm values we encrypt using the
+    # first one. This would typically be something like
+    # 'sha256,md5,plaintext' -- i.e. the current algo and
+    # fall-backs for older passwords.
+    #
+    if(ref($pass_encrypt)) {
+        $pass_encrypt=$pass_encrypt->[0];
+    }
+    elsif($pass_encrypt=~/^(.*?),/) {
+        $pass_encrypt=$1;
+    }
+
+    # Pepper is empty by default
+    #
+    $pass_pepper||='';
+
+    # The same story is with pepper -- we encrypt using the first value
+    # if there is a list.
+    #
+    if(ref($pass_pepper)) {
+        $pass_pepper=$pass_pepper->[0] || '';
+    }
+    elsif($pass_pepper=~/^(.*?),/) {
+        $pass_pepper=$1;
+    }
 
     # Encrypting (which is actually a misnomer, hashing would be a
     # better word, but it's already called "encrypt" everywhere else).
@@ -1829,7 +1893,7 @@ sub data_password_encrypt ($@) {
             $salt=substr($saltchars,rand()*length($saltchars),1).substr($saltchars,rand()*length($saltchars),1);
         }
         $salt=substr($salt,0,2);
-        $encrypted=crypt($password,$salt);
+        $encrypted=crypt($password.$pass_pepper,$salt);
         $pass_wrap=0;
         if(length($password)>8) {
             eprint "Only first 8 characters of ".length($password)."-character password are used in 'crypt' mode";
@@ -1837,15 +1901,15 @@ sub data_password_encrypt ($@) {
     }
     elsif($pass_encrypt eq 'md5') {
         $salt=XAO::Utils::generate_key() unless defined $salt;
-        $encrypted=md5_base64($salt.$password);
+        $encrypted=md5_base64($salt.$password.$pass_pepper);
     }
     elsif($pass_encrypt eq 'sha1') {
         $salt=XAO::Utils::generate_key() unless defined $salt;
-        $encrypted=sha1_base64($salt.$password);
+        $encrypted=sha1_base64($salt.$password.$pass_pepper);
     }
     elsif($pass_encrypt eq 'sha256') {
         $salt=XAO::Utils::generate_key() unless defined $salt;
-        $encrypted=sha256_base64($salt.$password);
+        $encrypted=sha256_base64($salt.$password.$pass_pepper);
     }
     elsif($pass_encrypt eq 'custom') {
         $pass_wrap=0;
@@ -1858,6 +1922,7 @@ sub data_password_encrypt ($@) {
             type                => $type,
             config              => $config,
             pass_encrypt        => $pass_encrypt,
+            pass_pepper         => $pass_pepper,
             #
             password            => $password,
             password_typed      => $password,

@@ -3460,6 +3460,18 @@ sub test_crypto {
                 vf_key_cookie   => 'member_key',
                 vf_key_prop     => 'verify_key',
             },
+            member_pepper => {
+                list_uri        => '/Members',
+                user_prop       => 'email',
+                id_cookie       => 'member_id',
+                pass_prop       => 'password',
+                pass_encrypt    => 'sha256,sha1,md5,crypt,plaintext',
+                pass_pepper     => 'fubar,',
+                vf_time_prop    => 'verify_time',
+                vf_expire_time  => 120,
+                vf_key_cookie   => 'member_key',
+                vf_key_prop     => 'verify_key',
+            },
         },
     );
 
@@ -3657,7 +3669,7 @@ sub test_crypto {
         #
         (map { $_=~/^\$(.*)\$(.*)\$(.*)$/; my ($alg,$salt,$bare)=($1,$2,$3);
             (
-                't03_type_'.$alg => {
+                't03_a_type_'.$alg => {
                     args    => {
                         type            => 'member',
                         password        => $password,
@@ -3707,13 +3719,70 @@ sub test_crypto {
             $sha256$BJQO8RFZ$m+lmqY7Uhx2LZ/R9ZzpnQZaJtJB1OANixhj2wPlFPO0
         )),
         #
+        # Encryption with a stored password and a defined pepper
+        #
+        (map { $_=~/^\$(.*)\$(.*)\$(.*)$/; my ($alg,$salt,$bare)=($1,$2,$3);
+            (
+                't03_b_type_'.$alg => {
+                    args    => {
+                        type            => 'member_pepper',
+                        password        => $password,
+                        password_stored => $_,
+                    },
+                    expect  => {
+                        encrypted   => {
+                            equal       => $_,
+                        },
+                        salt        => {
+                            equal       => $salt,
+                        },
+                    },
+                },
+                't03_impl_'.$alg => {
+                    args    => {
+                        pass_pepper     => [ 'fubar', 'qwerty' ],
+                        password        => $password,
+                        password_stored => $_,
+                    },
+                    expect  => {
+                        encrypted   => {
+                            equal       => $_,
+                        },
+                        salt        => {
+                            equal       => $salt,
+                        },
+                    },
+                },
+                't03_over_'.$alg => {
+                    args    => {
+                        pass_encrypt    => 'md5',
+                        pass_pepper     => 'fubar,qqq,',
+                        password        => $password,
+                        password_stored => $_,
+                    },
+                    expect  => {
+                        encrypted   => {
+                            equal       => $_,
+                        },
+                        salt        => {
+                            equal       => $salt,
+                        },
+                    },
+                },
+            ) } qw(
+            $md5$ZRIRPJBT$jhFwx5wFQSvCCjVxIonAIw
+            $sha1$GREW9Y9Z$PdToM8a0OwzIQMhz7X0piiYkitk
+            $sha256$BJQO8RFZ$qciWhJJQ6wS6qXTNtdB/xoM0J7P/OE5zkpkNL27hJ5Q
+        )),
+        #
         # Encryption with a stored bareword saltless password
         #
-        (map { my ($alg,$bare)=@$_;
+        (map { my ($c,$alg,$pepper,$bare)=@$_;
             (
-                't04_bare_'.$alg => {
+                't04_bare_'.$c.'_'.$alg => {
                     args    => {
                         pass_encrypt    => $alg,
+                        pass_pepper     => $pepper,
                         password        => $password,
                         password_stored => $bare,
                     },
@@ -3727,9 +3796,12 @@ sub test_crypto {
                     },
                 },
             ) } (
-            ['md5',   'DjEeW5cE8otOhVfo+j++fQ' ],
-            ['sha1',  'L3eiULBOfDkCcEAvtCAzECsosHE' ],
-            ['sha256','nG1AW7otskv70i/H/3Szm9nF6cbOZimcZRm+UX5u18Y' ],
+            [ 'a', 'md5',    undef,    'DjEeW5cE8otOhVfo+j++fQ' ],
+            [ 'b', 'sha1',   undef,    'L3eiULBOfDkCcEAvtCAzECsosHE' ],
+            [ 'c', 'sha256', undef,    'nG1AW7otskv70i/H/3Szm9nF6cbOZimcZRm+UX5u18Y' ],
+            [ 'd', 'md5',    ['q','w'],'vGwWzsiAUi9yeLf/xjKcmw' ],
+            [ 'e', 'sha1',   'qwerty', 'S5p8IR8msR7TM0k4DX412tFsDdw' ],
+            [ 'f', 'sha256', '----',   '+0fLegXILbxD7JE0B4klaO2wlSPNekFeT8IpYKQRd9w' ],
         )),
         #
         # 'Crypt' based
@@ -3801,7 +3873,7 @@ sub test_crypto {
             # we're not checking salt randomness.
             #
             $self->assert(!$seen{$pwcrypt},
-                "Expected '$pwcrypt' to be unique, but got a repeat on step $step vs ".$seen{$pwcrypt});
+                "Expected '$pwcrypt' to be unique, but got a repeat on step $step vs ".($seen{$pwcrypt} || '<UNDEF>'));
 
             $seen{$pwcrypt}=$step;
 
@@ -3875,7 +3947,16 @@ sub test_crypto {
         password        => $password,
     )->{'encrypted'};
 
-    dprint "...md5:    bare='$md5_bare' salted='$md5_salted'";
+    my $md5_peppered=$iu->data_password_encrypt(
+        type            => 'member_pepper',
+        pass_encrypt    => 'md5',
+        password        => $password,
+    )->{'encrypted'};
+
+    $self->assert($md5_salted ne $md5_peppered,
+        "Expected md5 '$md5_salted' and '$md5_peppered' to differ");
+
+    dprint "...md5:    bare='$md5_bare' salted='$md5_salted' peppered='$md5_peppered'";
 
     my $sha1_bare=sha1_base64($password);
 
@@ -3884,7 +3965,16 @@ sub test_crypto {
         password        => $password,
     )->{'encrypted'};
 
-    dprint "...sha1:   bare='$sha1_bare' salted='$sha1_salted'";
+    my $sha1_peppered=$iu->data_password_encrypt(
+        type            => 'member_pepper',
+        pass_encrypt    => 'sha1',
+        password        => $password,
+    )->{'encrypted'};
+
+    $self->assert($sha1_salted ne $sha1_peppered,
+        "Expected sha1 '$sha1_salted' and '$sha1_peppered' to differ");
+
+    dprint "...sha1:   bare='$sha1_bare' salted='$sha1_salted' peppered='$sha1_peppered'";
 
     my $sha256_bare=sha256_base64($password);
 
@@ -3893,14 +3983,32 @@ sub test_crypto {
         password        => $password,
     )->{'encrypted'};
 
-    dprint "...sha256: bare='$sha256_bare' salted='$sha256_salted'";
+    my $sha256_peppered=$iu->data_password_encrypt(
+        type            => 'member_pepper',
+        pass_encrypt    => 'sha256',
+        password        => $password,
+    )->{'encrypted'};
 
-    my $crypted=$iu->data_password_encrypt(
+    $self->assert($sha256_salted ne $sha256_peppered,
+        "Expected sha256 '$sha256_salted' and '$sha256_peppered' to differ");
+
+    dprint "...sha256: bare='$sha256_bare' salted='$sha256_salted' peppered='$sha256_peppered'";
+
+    my $crypt_salted=$iu->data_password_encrypt(
         pass_encrypt    => 'crypt',
         password        => $password,
     )->{'encrypted'};
 
-    dprint "...crypt:  '$crypted'";
+    my $crypt_peppered=$iu->data_password_encrypt(
+        type            => 'member_pepper',
+        pass_encrypt    => 'crypt',
+        password        => $password,
+    )->{'encrypted'};
+
+    $self->assert($crypt_salted ne $crypt_peppered,
+        "Expected crypt '$crypt_salted' and '$crypt_peppered' to differ");
+
+    dprint "...crypt:  salted='$crypt_salted' peppered='$crypt_peppered'";
 
     # Actual login/check/logout tests
     #
@@ -3954,7 +4062,7 @@ sub test_crypto {
         ++$tnum;
 
         map { my $type=$_; (
-            sprintf('t%02u_a_%s',$tnum,$code) => {
+            sprintf('t%02u_a_%s_%s',$tnum,$code,$type) => {
                 args => {
                     mode        => 'login',
                     type        => $type,
@@ -3973,7 +4081,7 @@ sub test_crypto {
                     },
                 },
             },
-            sprintf('t%02u_b_%s',$tnum,$code) => {
+            sprintf('t%02u_b_%s_%s',$tnum,$code,$type) => {
                 args => {
                     mode        => 'check',
                     type        => $type,
@@ -3990,7 +4098,7 @@ sub test_crypto {
                     },
                 },
             },
-            sprintf('t%02u_c_%s',$tnum,$code) => {
+            sprintf('t%02u_c_%s_%s',$tnum,$code,$type) => {
                 args => {
                     mode        => 'login',
                     type        => $type,
@@ -4005,7 +4113,7 @@ sub test_crypto {
                     },
                 },
             },
-            sprintf('t%02u_d_%s',$tnum,$code) => {
+            sprintf('t%02u_d_%s_%s',$tnum,$code,$type) => {
                 args => {
                     mode        => 'check',
                     type        => $type,
@@ -4021,14 +4129,18 @@ sub test_crypto {
             },
         ) } @$types;
     } (
-        [ 'md5_bare',       $md5_bare,      [qw(member member_md5_sha1)] ],
-        [ 'md5_salted',     $md5_salted,    [qw(member member_md5_sha1 member_custom)] ],
-        [ 'sha1_bare',      $sha1_bare,     [qw(member_md5_sha1 member_sha1_crypt)] ],
-        [ 'sha1_salted',    $sha1_salted,   [qw(member_md5_sha1 member_sha1_crypt member_custom member)] ],
-        [ 'sha256_bare',    $sha256_bare,   [qw(member)] ],
-        [ 'sha256_salted',  $sha256_salted, [qw(member member_md5_sha1 member_crypt)] ],
-        [ 'crypt',          $crypted,       [qw(member_crypt member_sha1_crypt)] ],
-        [ 'plaintext',      $password,      [qw(member member_plaintext)] ],
+        [ 'md5_bare',       $md5_bare,          [qw(member member_md5_sha1 member_pepper)] ],
+        [ 'md5_salted',     $md5_salted,        [qw(member member_md5_sha1 member_custom member_pepper)] ],
+        [ 'md5_peppered',   $md5_peppered,      [qw(member_pepper)] ],
+        [ 'sha1_bare',      $sha1_bare,         [qw(member_md5_sha1 member_sha1_crypt member_pepper)] ],
+        [ 'sha1_salted',    $sha1_salted,       [qw(member_md5_sha1 member_sha1_crypt member_custom member member_pepper)] ],
+        [ 'sha1_peppered',  $sha1_peppered,     [qw(member_pepper)] ],
+        [ 'sha256_bare',    $sha256_bare,       [qw(member member_pepper)] ],
+        [ 'sha256_salted',  $sha256_salted,     [qw(member member_md5_sha1 member_crypt member_pepper)] ],
+        [ 'sha256_peppered',$sha256_peppered,   [qw(member_pepper)] ],
+        [ 'crypt_salted',   $crypt_salted,      [qw(member_crypt member_sha1_crypt member_pepper)] ],
+        [ 'crypt_peppered', $crypt_peppered,    [qw(member_pepper)] ],
+        [ 'plaintext',      $password,          [qw(member member_plaintext member_pepper)] ],
     );
 
     ### dprint Dumper(\%matrix);
