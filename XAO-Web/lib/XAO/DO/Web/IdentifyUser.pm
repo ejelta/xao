@@ -1887,7 +1887,7 @@ sub data_password_encrypt ($@) {
         $pass_wrap=0;
     }
     elsif($pass_encrypt eq 'crypt') {
-        $salt=$password_stored if !length($salt);
+        $salt=$password_stored if !defined($salt) || !length($salt);
         if(!defined $salt || length($salt)<2) {
             my $saltchars=join('',map { chr($_) } ((ord('0')..ord(9)),(ord('a')..ord('z')),(ord('A')..ord('Z')),ord('.'),ord('/')));
             $salt=substr($saltchars,rand()*length($saltchars),1).substr($saltchars,rand()*length($saltchars),1);
