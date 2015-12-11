@@ -3405,6 +3405,18 @@ sub test_crypto {
                 vf_key_cookie   => 'member_key',
                 vf_key_prop     => 'verify_key',
             },
+            member_bcrypt => {
+                list_uri        => '/Members',
+                user_prop       => 'email',
+                id_cookie       => 'member_id',
+                pass_prop       => 'password',
+                pass_encrypt    => 'bcrypt,sha256',
+                pass_encrypt_cost => 8,
+                vf_time_prop    => 'verify_time',
+                vf_expire_time  => 120,
+                vf_key_cookie   => 'member_key',
+                vf_key_prop     => 'verify_key',
+            },
             member_md5_sha1 => {
                 list_uri        => '/Members',
                 user_prop       => 'email',
@@ -3465,7 +3477,7 @@ sub test_crypto {
                 user_prop       => 'email',
                 id_cookie       => 'member_id',
                 pass_prop       => 'password',
-                pass_encrypt    => 'sha256,sha1,md5,crypt,plaintext',
+                pass_encrypt    => 'bcrypt,sha256,sha1,md5,crypt,plaintext',
                 pass_pepper     => 'fubar,',
                 vf_time_prop    => 'verify_time',
                 vf_expire_time  => 120,
@@ -3484,6 +3496,23 @@ sub test_crypto {
         #
         # Config type base encryption
         #
+        t01_bcrypt => {
+            repeat  => 9,
+            args    => {
+                type        => 'member_bcrypt',
+                password    => $password,
+            },
+            expect  => {
+                encrypted   => {
+                    regex       => qr/^\$bcrypt\$\d{1,2}-.{22}\$/,
+                    notsimple   => 1,
+                    length      => [ 64,65 ],
+                },
+                salt        => {
+                    length      => [ 24,25 ],
+                },
+            },
+        },
         t01_sha256 => {
             repeat  => 9,
             args    => {
@@ -3567,6 +3596,61 @@ sub test_crypto {
         #
         # Explicitly specified encryption
         #
+        t02_bcrypt1 => {
+            repeat  => 9,
+            args    => {
+                pass_encrypt=> 'bcrypt',
+                password    => $password,
+            },
+            expect  => {
+                encrypted   => {
+                    regex       => qr/^\$bcrypt\$\d+/,
+                    notsimple   => 1,
+                    length      => [ 64,65 ],
+                },
+                salt        => {
+                    length      => [ 24,25 ],
+                },
+            },
+        },
+        t02_bcrypt2 => {
+            repeat  => 9,
+            args    => {
+                pass_encrypt=> 'bcrypt',
+                pass_encrypt_cost => 4,
+                pass_pepper => 'barbaz',
+                password    => $password,
+            },
+            expect  => {
+                encrypted   => {
+                    regex       => qr/^\$bcrypt\$4-/,
+                    notsimple   => 1,
+                    length      => [ 64,64 ],
+                },
+                salt        => {
+                    length      => [ 24,24 ],
+                },
+            },
+        },
+        t02_bcrypt3 => {
+            repeat  => 9,
+            args    => {
+                pass_encrypt=> 'bcrypt',
+                pass_encrypt_cost => 10,
+                pass_pepper => 'barbaz',
+                password    => $password,
+            },
+            expect  => {
+                encrypted   => {
+                    regex       => qr/^\$bcrypt\$10-/,
+                    notsimple   => 1,
+                    length      => [ 65,65 ],
+                },
+                salt        => {
+                    length      => [ 25,25 ],
+                },
+            },
+        },
         t02_sha256 => {
             repeat  => 9,
             args    => {
@@ -3667,63 +3751,66 @@ sub test_crypto {
         #
         # Encryption with a stored password
         #
-        (map { $_=~/^\$(.*)\$(.*)\$(.*)$/; my ($alg,$salt,$bare)=($1,$2,$3);
+        (map { my ($c,$stored)=@$_; $stored=~/^\$(.*)\$(.*)\$(.*)$/; my ($alg,$salt,$bare)=($1,$2,$3);
             (
-                't03_a_type_'.$alg => {
+                't03_'.$c.'_type_'.$alg => {
                     args    => {
                         type            => 'member',
                         password        => $password,
-                        password_stored => $_,
+                        password_stored => $stored,
                     },
                     expect  => {
                         encrypted   => {
-                            equal       => $_,
+                            equal       => $stored,
                         },
                         salt        => {
                             equal       => $salt,
                         },
                     },
                 },
-                't03_impl_'.$alg => {
+                't03_'.$c.'_impl_'.$alg => {
                     args    => {
                         password        => $password,
-                        password_stored => $_,
+                        password_stored => $stored,
                     },
                     expect  => {
                         encrypted   => {
-                            equal       => $_,
+                            equal       => $stored,
                         },
                         salt        => {
                             equal       => $salt,
                         },
                     },
                 },
-                't03_over_'.$alg => {
+                't03_'.$c.'_over_'.$alg => {
                     args    => {
                         pass_encrypt    => 'md5',
                         password        => $password,
-                        password_stored => $_,
+                        password_stored => $stored,
                     },
                     expect  => {
                         encrypted   => {
-                            equal       => $_,
+                            equal       => $stored,
                         },
                         salt        => {
                             equal       => $salt,
                         },
                     },
                 },
-            ) } qw(
-            $md5$ZRIRPJBT$b+IL1UmuERNMIsZ8qAFLWA
-            $sha1$GREW9Y9Z$tWaQi1ypm8fo3HEP+xCo6aCWdw4
-            $sha256$BJQO8RFZ$m+lmqY7Uhx2LZ/R9ZzpnQZaJtJB1OANixhj2wPlFPO0
+            ) } (
+            [ 'a', '$md5$ZRIRPJBT$b+IL1UmuERNMIsZ8qAFLWA' ],
+            [ 'b', '$sha1$GREW9Y9Z$tWaQi1ypm8fo3HEP+xCo6aCWdw4' ],
+            [ 'c', '$sha256$BJQO8RFZ$m+lmqY7Uhx2LZ/R9ZzpnQZaJtJB1OANixhj2wPlFPO0' ],
+            [ 'd', '$bcrypt$3-86ZlOWBPQGwo7U42ahicJA$VIKbbqmspe65XUutq0rpslc+NKt9cTU' ],
+            [ 'e', '$bcrypt$6-86ZlOWBPQGwo7U42ahicJA$0KVsPNfaivoQS1ljLyG8wtF2tOLA3Fk' ],
+            [ 'f', '$bcrypt$10-86ZlOWBPQGwo7U42ahicJA$qZN2Mg7hXTmLjHG3pbUpR5SoVblzWcs' ],
         )),
         #
         # Encryption with a stored password and a defined pepper
         #
         (map { $_=~/^\$(.*)\$(.*)\$(.*)$/; my ($alg,$salt,$bare)=($1,$2,$3);
             (
-                't03_b_type_'.$alg => {
+                't04_type_'.$alg => {
                     args    => {
                         type            => 'member_pepper',
                         password        => $password,
@@ -3738,7 +3825,7 @@ sub test_crypto {
                         },
                     },
                 },
-                't03_impl_'.$alg => {
+                't04_impl_'.$alg => {
                     args    => {
                         pass_pepper     => [ 'fubar', 'qwerty' ],
                         password        => $password,
@@ -3753,7 +3840,7 @@ sub test_crypto {
                         },
                     },
                 },
-                't03_over_'.$alg => {
+                't04_over_'.$alg => {
                     args    => {
                         pass_encrypt    => 'md5',
                         pass_pepper     => 'fubar,qqq,',
@@ -3773,13 +3860,14 @@ sub test_crypto {
             $md5$ZRIRPJBT$jhFwx5wFQSvCCjVxIonAIw
             $sha1$GREW9Y9Z$PdToM8a0OwzIQMhz7X0piiYkitk
             $sha256$BJQO8RFZ$qciWhJJQ6wS6qXTNtdB/xoM0J7P/OE5zkpkNL27hJ5Q
+            $bcrypt$6-68lZWOPBGQowJU72ahic4A$UnM3ozuEydRhOUrZaDFi1th/eSl2Xlw
         )),
         #
         # Encryption with a stored bareword saltless password
         #
         (map { my ($c,$alg,$pepper,$bare)=@$_;
             (
-                't04_bare_'.$c.'_'.$alg => {
+                't05_bare_'.$c.'_'.$alg => {
                     args    => {
                         pass_encrypt    => $alg,
                         pass_pepper     => $pepper,
@@ -3808,7 +3896,7 @@ sub test_crypto {
         #
         (map { my $bare=$_; my $salt=substr($bare,0,2);
             (
-                't05_crypt_'.$salt => {
+                't06_crypt_'.$salt => {
                     args    => {
                         pass_encrypt    => 'crypt',
                         password        => $password,
@@ -4010,6 +4098,30 @@ sub test_crypto {
 
     dprint "...crypt:  salted='$crypt_salted' peppered='$crypt_peppered'";
 
+    my $bcrypt_salted_1=$iu->data_password_encrypt(
+        pass_encrypt    => 'bcrypt',
+        password        => $password,
+    )->{'encrypted'};
+
+    my $bcrypt_salted_2=$iu->data_password_encrypt(
+        type            => 'member_bcrypt',
+        password        => $password,
+    )->{'encrypted'};
+
+    my $bcrypt_peppered=$iu->data_password_encrypt(
+        type            => 'member_pepper',
+        pass_encrypt    => 'bcrypt',
+        password        => $password,
+    )->{'encrypted'};
+
+    $self->assert($bcrypt_salted_1 ne $bcrypt_peppered,
+        "Expected bcrypt '$bcrypt_salted_1' and '$bcrypt_peppered' to differ");
+
+    $self->assert($bcrypt_salted_2 ne $bcrypt_peppered,
+        "Expected bcrypt '$bcrypt_salted_2' and '$bcrypt_peppered' to differ");
+
+    dprint "...bcrypt: '$bcrypt_salted_1' / '$bcrypt_salted_2' / '$bcrypt_peppered'";
+
     # Actual login/check/logout tests
     #
     my $odb=$config->odb;
@@ -4140,6 +4252,9 @@ sub test_crypto {
         [ 'sha256_peppered',$sha256_peppered,   [qw(member_pepper)] ],
         [ 'crypt_salted',   $crypt_salted,      [qw(member_crypt member_sha1_crypt member_pepper)] ],
         [ 'crypt_peppered', $crypt_peppered,    [qw(member_pepper)] ],
+        [ 'bcrypt_salted_1',$bcrypt_salted_1,   [qw(member member_bcrypt)] ],
+        [ 'bcrypt_salted_2',$bcrypt_salted_2,   [qw(member member_bcrypt)] ],
+        [ 'bcrypt_peppered',$bcrypt_peppered,   [qw(member_pepper)] ],
         [ 'plaintext',      $password,          [qw(member member_plaintext member_pepper)] ],
     );
 

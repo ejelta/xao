@@ -201,18 +201,30 @@ data_password_encrypt() call).
 
 Available algorithms:
 
-    'plaintext'   - no encryption at all, plain text
-    'md5'         - MD5 digest (deprecated, do not use)
-    'sha1'        - SHA-1 digest
+    'bcrypt'      - bcrypt digest with salt & cost support (recommended)
     'sha256'      - SHA-256 digest
+    'sha1'        - SHA-1 digest
+    'md5'         - MD5 digest (deprecated, do not use)
     'crypt'       - system crypt() call (do not use)
     'custom'      - use login_password_encrypt() call
                     that must be overridden in a derived object
+    'plaintext'   - no encryption at all, plain text (default)
 
-In most situations using 'sha256' is a good choice.
+In most situations using 'bcrypt' is a good choice. The default cost
+parameter is 8, can be changed with pass_encrypt_cost.
+
+Sha256, Sha1, and md5 do not support "cost", can be easily
+hardware-accelerated, and as such are not recommended.
 
 When creating a database record use data_password_encrypt() to properly
 encrypt a password.
+
+=item pass_encrypt_cost
+
+This parameter is currently only used in 'bcrypt' mode. See the
+explanation in L<Digest::Bcrypt::cost()> method. On an Intel i5-4670K
+CPU @ 3.40GHz the default cost 8 results in about 15ms per password
+encryption.
 
 =item pass_pepper
 
@@ -364,9 +376,12 @@ Now, let us look at some examples that show how each mode works.
 ###############################################################################
 package XAO::DO::Web::IdentifyUser;
 use strict;
+use Data::Entropy::Algorithms qw(rand_bits);
+use Digest::Bcrypt qw();
 use Digest::MD5 qw(md5_base64);
 use Digest::SHA qw(sha1_base64 sha256_base64);
 use Error qw(:try);
+use MIME::Base64 qw(encode_base64 decode_base64);
 use XAO::Utils;
 use XAO::Errors qw(XAO::DO::Web::IdentifyUser);
 use XAO::Objects;
@@ -1910,6 +1925,40 @@ sub data_password_encrypt ($@) {
     elsif($pass_encrypt eq 'sha256') {
         $salt=XAO::Utils::generate_key() unless defined $salt;
         $encrypted=sha256_base64($salt.$password.$pass_pepper);
+    }
+    elsif($pass_encrypt eq 'bcrypt') {
+        my $salt_bits;
+        my $cost;
+
+        if($salt) {
+            $salt=~/^(\d{1,2})-(.{22})$/ ||
+                throw $self "- unusable salt for bcrypt algorithm";
+            $cost=$1;
+            $salt_bits=decode_base64($2);
+        }
+        else {
+            $cost=$args->{'pass_encrypt_cost'};
+
+            if(!$cost && ($args->{'type'} || $args->{'config'})) {
+                $cost=$self->_get_config($args)->{'pass_encrypt_cost'};
+            }
+
+            $cost||=8;  # About 15ms per digest on Intel(R) Core(TM) i5-4670K CPU @ 3.40GHz
+
+            $salt_bits=rand_bits(16*8);
+
+            $salt=sprintf('%u-%s',$cost,substr(encode_base64($salt_bits,''),0,22));
+        }
+
+        my $bcrypt=Digest::Bcrypt->new();
+
+        $bcrypt->salt($salt_bits);
+
+        $bcrypt->cost($cost);
+
+        $bcrypt->add($password.$pass_pepper);
+
+        $encrypted=$bcrypt->b64digest;
     }
     elsif($pass_encrypt eq 'custom') {
         $pass_wrap=0;
