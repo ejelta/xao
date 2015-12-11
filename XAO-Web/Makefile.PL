@@ -114,6 +114,7 @@ WriteMakefile(
         'Digest::SHA'               => 5.63,
         'Error'                     => 0.15,
         'JSON'                      => 2.26,
+        'MIME::Base64'              => 3.14,
         'MIME::Lite'                => 2.117,
         'Text::FormatTable'         => 0.01,
         'Time::HiRes'               => 1.9719,
