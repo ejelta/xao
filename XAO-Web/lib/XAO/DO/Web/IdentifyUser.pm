@@ -1934,7 +1934,7 @@ sub data_password_encrypt ($@) {
             $salt=~/^(\d{1,2})-(.{22})$/ ||
                 throw $self "- unusable salt for bcrypt algorithm";
             $cost=$1;
-            $salt_bits=decode_base64($2);
+            $salt_bits=decode_base64($2.'==');
         }
         else {
             $cost=$args->{'pass_encrypt_cost'};
