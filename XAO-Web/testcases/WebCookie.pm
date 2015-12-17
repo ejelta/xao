@@ -201,6 +201,41 @@ sub test_cookie {
             },
             ignore_stderr   => 1,           # Hiding expected deprecation warning
         },
+        t10 => {
+            path    => '/cookie2.html',
+            args    => {
+                COOKIE_NAME     => $cookie_name.'-t10',
+                COOKIE_VALUE    => $cookie_value.'-t10',
+            },
+            expect  => {
+                all => {
+                    $cookie_name.'-t10' => $cookie_value.'-t10',
+                },
+                cgi => {
+                    $cookie_name.'-t10' => undef,
+                },
+                text    => $cookie_value.'-t10',
+            },
+            ignore_stderr   => 1,           # Hiding expected deprecation warning
+        },
+        t11 => {
+            path    => '/cookie2.html',
+            args    => {
+                COOKIE_NAME     => $cookie_name.'-t11',
+                COOKIE_VALUE    => $cookie_value.'-t11',
+            },
+            expect  => {
+                all => {
+                    $cookie_name.'-t11' => $cookie_value.'-t11',
+                },
+                cgi => {
+                    $cookie_name.'-t10' => $cookie_value.'-t10',
+                    $cookie_name.'-t11' => undef,
+                },
+                text    => $cookie_value.'-t11',
+            },
+            ignore_stderr   => 1,           # Hiding expected deprecation warning
+        },
     );
 
     my $config=$self->siteconfig;
@@ -245,17 +280,18 @@ sub test_cookie {
 
         my $text;
 
+        my $objargs=$tdata->{'args'} || {};
+
         if($tdata->{'path'}) {
-            $text=XAO::Objects->new(objname => 'Web::Page')->expand(
+            $text=XAO::Objects->new(objname => 'Web::Page')->expand($objargs,{
                 path        => $tdata->{'path'},
-            );
+            });
         }
         else {
-            $text=XAO::Objects->new(objname => 'Web::Page')->expand(
+            $text=XAO::Objects->new(objname => 'Web::Page')->expand($objargs,{
                 template    => $tdata->{'template'} || 'FUBAR',
-            );
+            });
         }
-
 
         # Converting cookies back into a hash
         #
