@@ -502,7 +502,7 @@ sub check ($@) {
         my $id_cookie=$config->{'id_cookie'} ||
             throw $self "- no 'id_cookie' in the configuration";
 
-        my $cookie_value=$self->cgi->cookie($id_cookie);
+        my $cookie_value=$self->siteconfig->get_cookie($id_cookie);
 
         if(!$cookie_value) {
             return $self->display_results($args,'anonymous');
@@ -659,7 +659,7 @@ sub check ($@) {
 
                 my $key_list=$self->odb->fetch($key_list_uri);
 
-                my $key_id=$self->cgi->cookie($vf_key_cookie);
+                my $key_id=$self->siteconfig->get_cookie($vf_key_cookie);
 
                 if($key_id && $key_list->check_name($key_id)) {
                     try {
@@ -716,7 +716,7 @@ sub check ($@) {
             # appropriate field in the user profile
             #
             if(!$key_list_uri && $config->{'vf_key_prop'} && $vf_key_cookie) {
-                my $web_key=$self->cgi->cookie($vf_key_cookie) || '';
+                my $web_key=$self->siteconfig->get_cookie($vf_key_cookie) || '';
                 my $db_key=$user->get($config->{'vf_key_prop'}) || '';
                 if($web_key && $db_key eq $web_key) {
                     $verified=1;
@@ -1375,10 +1375,10 @@ sub login ($;%) {
         my $key_id;
         my $vf_key_cookie=$config->{'vf_key_cookie'};
         if($id_cookie_type eq 'key') {
-            $key_id=$self->cgi->cookie($id_cookie);
+            $key_id=$self->siteconfig->get_cookie($id_cookie);
         }
         elsif($vf_key_cookie) {
-            $key_id=$self->cgi->cookie($vf_key_cookie);
+            $key_id=$self->siteconfig->get_cookie($vf_key_cookie);
         }
         else {
             throw $self "- id_cookie_type!=key and there is no vf_key_cookie";

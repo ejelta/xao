@@ -62,7 +62,7 @@ Site configuration parameter.
 
 =item cookie
 
-Cookie value.
+Cookie value (including cookie values set earlier in the same render).
 
 =item secure
 
@@ -103,7 +103,7 @@ sub check_target ($$$) {
 }
 
 ###############################################################################
- 
+
 sub display ($;%)
 { my $self=shift;
   my %args=%{get_args(\@_) || {}};
@@ -179,7 +179,7 @@ sub display ($;%)
            $targop=$2;
            $target=$3;
          }
-        my $pvalue=$config->cgi->cookie($param);
+        my $pvalue=$config->get_cookie($param);
         if(check_target($pvalue,$target,$targop))
          { $name=$cname;
            last;
@@ -189,13 +189,13 @@ sub display ($;%)
       { if(($args{$a} || 0)+0)
          { $name=$1;
            last;
-         }    
+         }
       }
      elsif($2 eq 'secure')
       { if($self->is_secure)
          { $name=$1;
            last;
-         }    
+         }
       }
      elsif($2 eq 'clipboard')
       { my $param=$args{$a};

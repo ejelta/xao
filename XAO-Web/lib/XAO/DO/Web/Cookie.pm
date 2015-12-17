@@ -19,6 +19,9 @@ Displays or sets a cookie. Arguments are:
   path    => cookie visibility path (same as in CGI->cookie)
   domain  => cookie domain (same as in CGI->cookie)
   secure  => cookie secure flag (same as in CGI->cookie)
+  received=> when retrieving only look at actually received cookies (the
+             default is to return a cookie value possibly set earlier
+             in the page render)
 
 =cut
 
@@ -36,22 +39,22 @@ sub display ($;%) {
     my $args=get_args(\@_);
 
     my $name=$args->{'name'};
-    defined($name) || throw $self "display - no name given";
+    defined($name) || throw $self "- no name given";
 
     if(defined($args->{'value'})) {
-        my $value=$args->{'value'};
         $self->siteconfig->add_cookie(
             -name       => $name,
-            -value      => $value,
+            -value      => $args->{'value'},
             -expires    => $args->{'expires'},
             -path       => $args->{'path'},
             -domain     => $args->{'domain'},
             -secure     => $args->{'secure'},
         );
+
         return;
     }
 
-    my $c=$self->siteconfig->cgi->cookie($name);
+    my $c=$self->siteconfig->get_cookie($name,$args->{'received'});
     defined $c || ($c=$args->{'default'});
     defined $c || ($c='');
 

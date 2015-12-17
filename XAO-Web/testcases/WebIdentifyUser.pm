@@ -4338,7 +4338,11 @@ sub run_matrix {
                 $self->assert($midx>=0,
                     "Invalid month '$2' in cookie '".$cd->name."' expiration '".$expires_text."'");
 
-                my $expires=mktime($6,$5,$4,$1,$midx/3,$3-1900);
+                my $expires;
+                {
+                    local($ENV{'TZ'})='UTC';
+                    $expires=mktime($6,$5,$4,$1,$midx/3,$3-1900);
+                }
 
                 ### dprint "...cookie name='".$cd->name."' value='".$cd->value." expires=".$expires_text." (".localtime($expires)." - ".($expires<=time ? 'EXPIRED' : 'ACTIVE').")";
 
@@ -4349,6 +4353,8 @@ sub run_matrix {
                     $wcjar->{$cd->name}=$cd->value;
                 }
             }
+
+            %$cjar=%$wcjar;
 
             if(exists $results->{cookies}) {
                 foreach my $cname (keys %{$results->{cookies}}) {

@@ -45,6 +45,20 @@ sub new ($%) {
 
 ###############################################################################
 
+sub cookie ($@) {
+    my $self=shift;
+    if(@_) {
+        my @c1=caller(1);
+        if(!@c1 || $c1[3]!~/get_cookie/) {
+            my @c0=caller(0);
+            eprint "Using CGI::cookie() method is deprecated, consider switching to \$config->get_cookie() in ".join(':',map { $_ || '<undef>' } ($c0[1],$c0[2]));
+        }
+    }
+    return $self->SUPER::cookie(@_);
+}
+
+###############################################################################
+
 sub set_param_charset($$) {
     my ($self,$charset)=@_;
 

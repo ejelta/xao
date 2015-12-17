@@ -588,8 +588,8 @@ sub params_digest ($$;$) {
                 $target=\$cgis;
             }
             elsif($spec_key eq 'cookie' || $spec_key eq 'cookies') {
-                my $cgi=$self->cgi;
-                $hash={ map { $_ => $cgi->cookie($_) } $cgi->cookie };
+                my $config=$self->siteconfig;
+                $hash={ map { $_ => $config->get_cookie($_,1) } $self->cgi->cookie() };
                 $target=\$cookies;
             }
             elsif($spec_key eq 'proto' && $spec_list) {

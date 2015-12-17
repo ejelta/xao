@@ -22,11 +22,12 @@ handler when site is initialized.
 
 ###############################################################################
 package XAO::DO::Web::Config;
+use CGI::Cookie;
 use XAO::Utils;
 use XAO::Cache;
+use POSIX qw(mktime);
 use XAO::Errors qw(XAO::DO::Web::Config);
 
-##
 # Prototypes
 #
 sub add_cookie ($@);
@@ -39,6 +40,7 @@ sub embeddable_methods ($);
 sub enable_special_access ($);
 sub header ($@);
 sub header_args ($@);
+sub get_cookie ($$;$);
 sub new ($@);
 
 ##
@@ -59,13 +61,11 @@ $VERSION=(0+sprintf('%u.%03u',(q$Id: Config.pm,v 2.4 2007/12/05 23:49:21 am Exp 
 
 =item add_cookie (@)
 
-Adds an HTTP cookie into the internal list. If there is only one
-parameter we assume it is already encoded cookie, otherwise we assume it
-is a hash of parameters for CGI->cookie method (see L<CGI>).
+Adds an HTTP cookie into the internal list. Parameters are a hash in the
+same format as for CGI->cookie() method (see L<CGI>).
 
-If a cookie with that name is already in the list from a previous call
-to add_cookie() then it gets replaced. This check is only performed if
-you pass a hash of arguments, not already prepared cookie.
+If a cookie with the same name, path (and domain if set) is already in
+the list from a previous call to add_cookie() then it gets replaced.
 
 Think of it as if you are adding cookies to you final HTTP response as
 XAO::Web handler will get all the cookies collected during template
@@ -83,13 +83,61 @@ For convenience, if there is a '-domain' argument and it refers to a
 list of domains the cookie is expanded into a set of cookies for all
 these domains.
 
+The get_cookie() method takes into consideration values set with
+add_cookie() as a priority over CGI cookies received.
+
 =cut
 
 sub add_cookie ($@) {
     my $self=shift;
     my $cookie=(@_==1 ? $_[0] : get_args(\@_));
 
-    if(ref($cookie) && $cookie->{'-domain'} && ref($cookie->{'-domain'})) {
+    # We should only be getting hash based cookie data. Attempting to
+    # unbake it if we got a baked one.
+    #
+    if(!ref($cookie)) {
+        eprint "Passing baked cookies to ".$self."::add_cookie() is STRONGLY DEPRECATED!";
+
+        use CGI::Util qw();
+
+        # Expecting something like:
+        # foo=bar; path=/; expires=Wed, 16-Dec-2015 03:32:33 GMT
+        #
+        my ($nv,@params)=split(/\s*;\s*/,$cookie);
+
+        my ($name,$value);
+        if($nv=~/^\s*(.+)\s*=\s*(.*?)\s*$/) {
+            $name=CGI::Util::unescape($1);
+            $value=[map { CGI::Util::unescape($_) } split(/&/,$2)];
+            $value=$value->[0] if @$value==1;
+        }
+        else {
+            eprint "Unparsable baked cookie '$cookie' in add_cookie(), NOT SET";
+            return;
+        }
+
+        my %chash=(
+            -name   => $name,
+            -value  => $value,
+        );
+
+        foreach my $p (@params) {
+            $p=~/^\s*(.+)\s*=\s*(.*?)\s*$/ || next;
+            my ($pn,$pv)=(lc($1),$2);
+            if   ($pn eq 'domain')  { $chash{'-domain'}=$pv; }
+            elsif($pn eq 'path')    { $chash{'-path'}=$pv; }
+            elsif($pn eq 'expires') { $chash{'-expires'}=$pv; }
+            elsif($pn eq 'max-age') { $chash{'-max-age'}=$pv; }
+            elsif($pn eq 'secure')  { $chash{'-secure'}=$pv; }
+            elsif($pn eq 'httponly'){ $chash{'-httponly'}=$pv; }
+        }
+
+        $cookie=\%chash;
+    }
+
+    # Recursively expanding if multiple domains are given.
+    #
+    if($cookie->{'-domain'} && ref($cookie->{'-domain'})) {
         my $dlist=$cookie->{'-domain'};
         foreach my $domain (@$dlist) {
             $self->add_cookie(merge_refs($cookie,{
@@ -99,23 +147,30 @@ sub add_cookie ($@) {
         return;
     }
 
-    ##
-    # If new cookie has the same name, domain and path
-    # as previously set one - we replace it. Works only for
-    # cookies stored as parameters, unprepared.
+    # If the new cookie has the same name, domain and path
+    # as previously set one - we replace it.
     #
-    if($self->{'cookies'} && ref($cookie) && ref($cookie) eq 'HASH') {
+    if($self->{'cookies'}) {
+        my $cnew=CGI::Cookie->new($cookie);
+
         for(my $i=0; $i!=@{$self->{'cookies'}}; $i++) {
             my $c=$self->{'cookies'}->[$i];
 
             next unless ref($c) && ref($c) eq 'HASH';
 
+            my $cstored=CGI::Cookie->new($c);
+
+            my $dnew=$cnew->domain();
+            my $dstored=$cstored->domain();
+
+            ### dprint "...comparing ".$cnew->name()." with ".$cstored->name();
+
             next unless
-                $c->{'-name'} eq $cookie->{'-name'} &&
-                $c->{'-path'} eq $cookie->{'-path'} &&
-                ((!defined($c->{'-domain'}) && !defined($cookie->{'-domain'})) ||
-                 (defined($c->{'-domain'}) && defined($cookie->{'-domain'}) &&
-                  $c->{'-domain'} eq $cookie->{'-domain'}));
+                $cnew->name() eq $cstored->name() &&
+                $cnew->path() eq $cstored->path() &&
+                ((!defined($dnew) && !defined($dstored)) || (defined($dnew) && defined($dstored) && $dnew eq $dstored));
+
+            ### dprint "....override!";
 
             $self->{'cookies'}->[$i]=$cookie;
 
@@ -123,7 +178,9 @@ sub add_cookie ($@) {
         }
     }
 
-    push @{$self->{'cookies'}},$cookie;
+    push(@{$self->{'cookies'}},$cookie);
+
+    return $cookie;
 }
 
 ###############################################################################
@@ -151,11 +208,14 @@ Or just:
 
 sub cgi ($$) {
     my ($self,$newcgi)=@_;
-    return $self->{cgi} unless $newcgi;
-    if($self->{special_access}) {
-        $self->{cgi}=$newcgi;
+
+    return $self->{'cgi'} unless $newcgi;
+
+    if($self->{'special_access'}) {
+        $self->{'cgi'}=$newcgi;
         return $newcgi;
     }
+
     throw XAO::E::DO::Web::Config
           "cgi - storing new CGI requires enable_special_access()";
 }
@@ -206,9 +266,9 @@ sub cookies ($) {
     my $self=shift;
 
     my @baked;
-    foreach my $c (@{$self->{cookies}}) {
+    foreach my $c (@{$self->{'cookies'}}) {
         if(ref($c) && ref($c) eq 'HASH') {
-            push @baked,$self->cgi->cookie(%{$c});
+            push @baked,CGI::Cookie->new(%{$c});
         }
         else {
             push @baked,$c;
@@ -242,7 +302,7 @@ header(), header_args().
 =cut
 
 sub embeddable_methods ($) {
-    qw(add_cookie cgi clipboard cookies header header_args);
+    qw(add_cookie cgi clipboard cookies header header_args get_cookie);
 }
 
 ###############################################################################
@@ -352,6 +412,72 @@ sub header_args ($@) {
     my $args=get_args(\@_);
     @{$self->{header_args}}{keys %{$args}}=values %{$args};
     return $self->{header_args};
+}
+
+###############################################################################
+
+=item get_cookie ($;$)
+
+Return cookie value for the given cookie name. Unless the second
+parameter is true, for cookies already set earlier in the same session
+it would return the value as set, not the value as it was originally
+received.
+
+B<NOTE:> The path and domain of cookies is ignored when checking for
+earlier set cookies!
+
+=cut
+
+sub get_cookie ($$;$) {
+    my ($self,$name,$original)=@_;
+
+    if(!defined $name || !length($name)) {
+        eprint "No cookie name given to ".ref($self)."::get_cookie()";
+        return undef;
+    }
+
+    my $value;
+
+    if(!$original) {
+        foreach my $c (@{$self->{'cookies'}}) {
+            my $cookie=CGI::Cookie->new($c);
+
+            if($cookie->name() eq $name) {
+                my $value=$cookie->value;
+
+                my $expires_text=$cookie->expires;
+
+                if($expires_text =~ /(\d{2})\W+([a-z]{3})\W+(\d{4})\W+(\d{2})\W+(\d{2})\W+(\d{2})/i) {
+                    my $midx=index('janfebmaraprmayjunjulaugsepoctnovdec',lc($2));
+                    if($midx>=0) {
+                        $midx/=3;
+                        local($ENV{'TZ'})='UTC';
+                        my $expires=mktime($6,$5,$4,$1,$midx,$3-1900);
+                        if($expires <= time) {
+                            $value=undef;
+                        }
+                    }
+                    else {
+                        eprint "Invalid month '$2' in cookie '$name' expiration '$expires_text'";
+                    }
+                }
+                else {
+                    eprint "Invalid expiration '$expires_text' for cookie '$name'";
+                }
+
+                return $value;
+            }
+        }
+    }
+
+    my $cgi=$self->cgi;
+
+    if(!$cgi) {
+        eprint "Called get_cookie() before CGI is available";
+        return undef;
+    }
+
+    return $self->cgi->cookie($name);
 }
 
 ###############################################################################

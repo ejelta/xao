@@ -29,7 +29,6 @@ sub test_execute {
 
     $self->assert(scalar($text =~ m/^TEST\[bar\]INDEX/m),
                   "No expected content returned");
-
 }
 
 ###############################################################################

@@ -13,7 +13,7 @@ use XAO::Errors qw(XAO::Web);
 # XAO::Web version number. Hand changed with every release!
 #
 use vars qw($VERSION);
-$VERSION='1.33';
+$VERSION='1.34';
 
 ###############################################################################
 
@@ -639,14 +639,12 @@ sub process ($%) {
         dprint "No base_url for sitename '$sitename'; assuming base_url=$active_url, base_url_secure=$active_url_secure";
     }
 
-    ##
     # Checking if we're running under mod_perl
     #
     my $mod_perl=($apache || $ENV{'MOD_PERL'}) ? 1 : 0;
     $siteconfig->clipboard->put(mod_perl => $mod_perl);
     $siteconfig->clipboard->put(mod_perl_request => $apache);
 
-    ##
     # Checking if a charset is known for the site. If it is, setting
     # it up for CGI-params decoding and for output.
     #
@@ -662,7 +660,6 @@ sub process ($%) {
         );
     }
 
-    ##
     # Putting CGI object into site configuration. The special case is
     # 'no_cgi' in the path_mapping_table which means that the object is
     # going to handle CGI arguments itself. It can be useful if it needs

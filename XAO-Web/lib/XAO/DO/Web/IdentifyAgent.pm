@@ -1,6 +1,6 @@
 =head1 NAME
 
-XAO::DO::Web::IdentifyAgent - class for agent (i.e. browser) identification. 
+XAO::DO::Web::IdentifyAgent - class for agent (i.e. browser) identification.
 
 =head1 SYNOPSYS
 
@@ -70,7 +70,7 @@ $VERSION=(0+sprintf('%u.%03u',(q$Id: IdentifyAgent.pm,v 2.1 2005/01/14 01:39:57 
 
 =item display (%)
 
-Method displays nothing :-) but identifies user agent 
+Method displays nothing :-) but identifies user agent
 
 =cut
 
@@ -91,7 +91,7 @@ sub display($){
     # On return save methods gives us saved object.
     #
     my $id_cookie=$config->{id_cookie} || 'agent_id';
-	my $agent_id=$self->siteconfig->cgi->cookie($id_cookie);
+	my $agent_id=$self->siteconfig->get_cookie($id_cookie);
     my $agent_object=$self->save_agent_id($agent_id);
     if($agent_object) {
         $agent_id=$agent_object->container_key;
@@ -104,7 +104,7 @@ sub display($){
     # Storing into clipboard
     #
 	$self->clipboard->put("$clipboard_uri/name" => $agent_id);
-    $agent_object && 
+    $agent_object &&
         $self->clipboard->put("$clipboard_uri/object" => $agent_object);
 
     dprint "IdentifyAgent(id=$agent_id, object=$agent_object)";
