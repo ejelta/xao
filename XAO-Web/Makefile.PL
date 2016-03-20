@@ -109,11 +109,13 @@ WriteMakefile(
     'PREREQ_PM'     => {
         'CGI'                       => 4.14,
         'CGI::Cookie'               => 4.14,
+        'Crypt::Rijndael'           => 1.13,
         'Data::Entropy::Algorithms' => 0.007,
         'Digest::BCrypt'            => 1.0,
         'Digest::MD5'               => 2.13,
         'Digest::SHA'               => 5.63,
         'Error'                     => 0.15,
+        'HTML::Entities'            => 3.69,
         'HTTP::Response'            => 6.04,
         'JSON'                      => 2.26,
         'MIME::Base64'              => 3.14,
