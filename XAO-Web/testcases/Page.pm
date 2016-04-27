@@ -11,6 +11,36 @@ use base qw(XAO::testcases::Web::base);
 
 ###############################################################################
 
+sub test_expand_with_throw {
+    my $self=shift;
+
+    my $page=XAO::Objects->new(objname => 'Web::Page');
+    $self->assert(ref($page),
+                  "Can't load Page object");
+
+    my $exp1='[TextBefore]';
+    my $got1=$page->expand(template => $exp1);
+
+    my $exp2='[A][Prefix][Error:Test Error][Suffix][D]';
+    my $got2=$page->expand(
+        'template'  => q([A]<%MyAction mode='catch-error' template='[B]<%MyAction mode="throw-error" text="Test Error"%>[C]'%>[D]),
+    );
+
+    my $exp3='[TextAfter]';
+    my $got3=$page->expand(template => $exp3);
+
+    $self->assert($got1 eq $exp1,
+        "Expected text #1 to be '$exp1' got '$got1'");
+
+    $self->assert($got2 eq $exp2,
+        "Expected text #2 to be '$exp2' got '$got2'");
+
+    $self->assert($got3 eq $exp3,
+        "Expected text #3 to be '$exp3' got '$got3'");
+}
+
+###############################################################################
+
 sub test_render_cache {
     my $self=shift;
 

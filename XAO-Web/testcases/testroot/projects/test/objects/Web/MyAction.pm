@@ -1,8 +1,9 @@
 package XAO::DO::Web::MyAction;
 use strict;
-use XAO::Utils;
-use XAO::Objects;
 use base XAO::Objects->load(objname => 'Web::Action');
+use Error qw(:try);
+use XAO::Objects;
+use XAO::Utils;
 
 # display_* only
 
@@ -80,6 +81,34 @@ sub display_test_alt ($@) {
     my $self=shift;
     my $args=get_args(\@_);
     $self->textout('ALT:'.($args->{'data'}->{'arg'} || ''));
+}
+
+sub display_throw_error ($@) {
+    my $self=shift;
+    my $args=get_args(\@_);
+    my $text=$args->{'text'} || 'Intentional Error';
+    throw $self "- {{$text}}";
+}
+
+sub display_catch_error ($@) {
+    my $self=shift;
+    my $args=get_args(\@_);
+
+    my $prefix=$args->{'prefix'} || '[Prefix]';
+    my $suffix=$args->{'suffix'} || '[Suffix]';
+
+    $self->textout($prefix);
+
+    try {
+        $self->object->expand($args);
+    }
+    otherwise {
+        my $etext=''.shift;
+        $etext=$1 if $etext=~/{{\s*(.*?)\s*}}/;
+        $self->textout("[Error:$etext]");
+    };
+
+    $self->textout($suffix);
 }
 
 # Old style
