@@ -1045,7 +1045,35 @@ sub expand ($%) {
     #
     XAO::PageSupport::push();
 
-    $self->display(@_);
+    # Not using Error's try{} -- it is too slow. Benchmarking showed
+    # about 7% slowdown.
+    #
+    ### my $args=get_args(\@_);
+    ### try {
+    ###     $self->display($args);
+    ### }
+    ### otherwise {
+    ###     my $e=shift;
+    ###
+    ###     # Popping out the potential output of the failed
+    ###     # template. Otherwise we are going to break the stack order.
+    ###     #
+    ###     XAO::PageSupport::pop();
+    ###
+    ###     $e->throw();
+    ### };
+
+    # Eval is faster, almost indistinguishable from the bare call on
+    # benchmark results.
+    #
+    eval {
+        $self->display(@_);
+    };
+
+    if($@) {
+        XAO::PageSupport::pop();
+        throw $@;
+    }
 
     return XAO::PageSupport::pop();
 }

@@ -433,6 +433,9 @@ sub get_cookie ($$;$) {
 
     if(!defined $name || !length($name)) {
         eprint "No cookie name given to ".ref($self)."::get_cookie()";
+        for(my $i=0; $i<3; ++$i) {
+            dprint "..STACK: ".join('|',map { defined($_) ? $_ : '<UNDEF>' } caller($i));
+        }
         return undef;
     }
 
