@@ -41,7 +41,7 @@ sub test_all {
     my %matrix=(
         t1 => {
             template => '<%URL%>',
-            result => 'http://www.xao.com/WebURL.html',
+            result => 'http://xao.com/WebURL.html',
         },
         t2 => {
             template => '<%URL active%>',
@@ -93,7 +93,7 @@ sub test_all {
         },
         te => {
             template => '<%URL secure%>',
-            result => 'https://www.xao.com/WebURL.html',
+            result => 'https://xao.com/WebURL.html',
         },
         tf => {
             template => '<%URL uri%>',
@@ -137,7 +137,7 @@ sub test_all {
         # have ONLY <%%> brackets for everything and we need to be compatible
         # with that. If we try to expand objects first for all <%%> it will
         # be inefficient and not exactly compatible.
-        # 
+        #
         to => {
             template => q(<%SetArg name='URL' value='URLVAR'%>[<%URL%>] [<$URL$>]),
             ### result => '[http://www.xao.com/WebURL.html] [URLVAR]',
