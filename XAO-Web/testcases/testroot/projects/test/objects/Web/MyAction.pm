@@ -104,7 +104,7 @@ sub display_catch_error ($@) {
     }
     otherwise {
         my $etext=''.shift;
-        $etext=$1 if $etext=~/{{\s*(.*?)\s*}}/;
+        $etext=$1 if $etext=~/\{\{\s*(.*?)\s*\}\}/;
         $self->textout("[Error:$etext]");
     };
 

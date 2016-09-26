@@ -1232,7 +1232,7 @@ sub login ($;%) {
                 }
                 otherwise {
                     my $etext=''.shift;
-                    $etext=$2 if $etext=~/{{\s*(?:([A-Z0-9_]+):\s*)?(.*)}}/;
+                    $etext=$2 if $etext=~/\{\{\s*(?:([A-Z0-9_]+):\s*)?(.*)\}\}/;
                     $errcode=$1 || 'BAD_PASSWORD';
                     $password_matches=0;
                 };

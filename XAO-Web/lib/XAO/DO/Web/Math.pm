@@ -109,10 +109,10 @@ sub display ($%) {
     my $errcode;
 
     try {
-        my @fparts=split(/({\w+})/,$formula);
+        my @fparts=split(/(\{\w+\})/,$formula);
 
         foreach my $part (@fparts) {
-            if($part =~ /^{(\w+)}$/) {
+            if($part =~ /^\{(\w+)\}$/) {
                 my $value=$args->{'value.'.$1} || 0;
                 $value=~s/[\s\$\,_]//g;
                 $value =~ /^([\d\.\+e-]+)$/ ||
@@ -153,7 +153,7 @@ sub display ($%) {
         my $e=shift;
         my $etext="$e";
 
-        if($etext=~/{{(\w+):\s*(.*?)\s*}}/) {
+        if($etext=~/\{\{(\w+):\s*(.*?)\s*\}\}/) {
             $errcode=$1;
             $error=$2;
         }
