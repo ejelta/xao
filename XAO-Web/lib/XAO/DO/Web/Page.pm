@@ -1072,7 +1072,13 @@ sub expand ($%) {
 
     if($@) {
         XAO::PageSupport::pop();
-        throw $@;
+
+        if($@->can('throw')) {
+            throw $@;
+        }
+        else {
+            throw $self "- $@";
+        }
     }
 
     return XAO::PageSupport::pop();
