@@ -405,13 +405,24 @@ page status for example:
 
 Accepts the same arguments CGI->header() accepts.
 
+Header names can be any of 'Header-Name', 'header-name', 'header_name',
+or '-Header_name'. All variants are normalized to all-lowercase
+underscored to make values assigned later in the code trump the earlier.
+
 =cut
 
 sub header_args ($@) {
     my $self=shift;
     my $args=get_args(\@_);
-    @{$self->{header_args}}{keys %{$args}}=values %{$args};
-    return $self->{header_args};
+
+    @{$self->{'header_args'}}{map {
+        $_=lc($_);
+        $_=~s/-/_/g;
+        $_=~s/^_+//;
+        $_;
+    } keys %{$args}}=values %{$args};
+
+    return $self->{'header_args'};
 }
 
 ###############################################################################
