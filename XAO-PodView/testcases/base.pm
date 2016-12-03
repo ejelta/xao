@@ -17,11 +17,10 @@ sub set_up {
     symlink('../../templates',"$root/templates");
     XAO::Base::set_root($root);
 
-    my $web=XAO::Web->new(sitename  => 'test',
-                          cgi => CGI->new('foo=bar'));
+    my $web=XAO::Web->new(sitename  => 'test');
     $self->{web}=$web;
 
-    $web->config->put('base_url' => 'http://testhost.xao.com');
+    $web->config->put('base_url' => 'http://localhost');
 
     set_current_project('test');
 }
