@@ -1405,6 +1405,11 @@ sub _build_search_query ($%) {
                         $fdesc=$key_fdesc;
                         $groupby_pos=@result_fields;
                     }
+                    elsif($fn eq '#connector') {
+                        my $conn=$self->_glue->_connector_name($$self->{'class_name'},$$self->{'base_name'}) ||
+                            throw $self "- no #connector on the top level list";
+                        ($sqlfn,$fdesc)=$self->_build_search_field(\%classes,$conn);
+                    }
                     elsif($fn eq '#container_key') {
                         if($self->objname eq 'FS::Collection') {
                             ($sqlfn,$fdesc)=$self->_build_search_field(\%classes,$$self->{'key_name'});
@@ -1587,7 +1592,6 @@ sub _build_search_query ($%) {
                 $clause="($clause)" if $clause;
                 $wrapped=1;
             }
-
 
             my $conn=$glue->_connector_name($cc,$uc);
             if($conn) {
