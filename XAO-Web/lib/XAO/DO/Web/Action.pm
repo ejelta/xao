@@ -176,7 +176,7 @@ sub display ($%) {
             # within brackets.
             #
             my $ecode;
-            if($etext=~/{{(?:([A-Z0-9_-]+):\s*)?(.*?)\s*}}/) {
+            if($etext=~/\{\{(?:([A-Z0-9_-]+):\s*)?(.*?)\s*\}\}/) {
                 $ecode=$1;
                 $etext=$2;
             }

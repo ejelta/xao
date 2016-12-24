@@ -1232,7 +1232,7 @@ sub login ($;%) {
                 }
                 otherwise {
                     my $etext=''.shift;
-                    $etext=$2 if $etext=~/{{\s*(?:([A-Z0-9_]+):\s*)?(.*)}}/;
+                    $etext=$2 if $etext=~/\{\{\s*(?:([A-Z0-9_]+):\s*)?(.*)\}\}/;
                     $errcode=$1 || 'BAD_PASSWORD';
                     $password_matches=0;
                 };
@@ -1297,6 +1297,13 @@ sub login ($;%) {
 
                 if($fail_count_prop) {
                     $ud{$fail_count_prop}=($user->get($fail_count_prop) || 0) + 1;
+
+                    # Making sure that the new failure count does not
+                    # cross the maximum storable value.
+                    #
+                    my $fail_count_prop_maxvalue=$user->describe($fail_count_prop)->{'maxvalue'};
+                    $ud{$fail_count_prop}=$fail_count_prop_maxvalue
+                        if $fail_count_prop_maxvalue && $ud{$fail_count_prop}>$fail_count_prop_maxvalue;
 
                     $data->{'fail_count'}=$ud{$fail_count_prop};
 

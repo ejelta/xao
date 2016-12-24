@@ -24,11 +24,11 @@ The parameters for the MultiPageNav object are defined as follows:
 
 Note: count of first item of first page is 1.
 
-=item items_per_page 
+=item items_per_page
 
 Maximum number of items per page
 
-=item total_items 
+=item total_items
 
 Total number of items
 
@@ -36,7 +36,7 @@ Total number of items
 
 Maximum number of first few and last few numbered page links
 
-=item n_adjacent_pages 
+=item n_adjacent_pages
 
 Maximum number of numbered page links immediately preceding and following current page
 
@@ -154,11 +154,11 @@ The page number the link points to
 Type of page the link points to. Values can be PREVIOUS, FIRSTFEW,
 PREVIOUS_BLOCKS, PREVIOUS_ADJACENT, CURRENT, NEXT_ADJACENT, NEXT_BLOCKS,
 LASTFEW, NEXT
- 
+
 =back
 
 =head1 EXAMPLE
- 
+
 This example shows how a header or footer template might use this object:
 
  <%MultiPageNav
@@ -230,7 +230,7 @@ Copyright (c) 2001-2003 Marcos Alves, XAO Inc.
 
 =head1 SEE ALSO
 
-Recommended reading: 
+Recommended reading:
 L<XAO::Web>,
 L<XAO::DO::Web::Page>,
 L<XAO::DO::Web::CgiParam>,
@@ -582,7 +582,9 @@ sub midblock_pages() {
     my ($pg_strt, $pg_stop, $min_period, $max_blocks, $n_blk_pages) = @_;
 
     my $tot_pages      = $pg_stop - $pg_strt;
-    return if $tot_pages <= 1;
+
+    return if $tot_pages <= 1 || !$max_blocks;
+
     my $n_blks         = int($tot_pages/$min_period) || return;
     $n_blks            = $n_blks > $max_blocks ? $max_blocks : $n_blks;
     my $period         = int($tot_pages/$n_blks) || 1;

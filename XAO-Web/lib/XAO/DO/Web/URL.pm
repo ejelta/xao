@@ -35,13 +35,15 @@ If browser is at 'https://www.host.com/test.html' (secure protocol):
 =head1 DESCRIPTION
 
 Allows to display URL with some possible alterations. Default is to
-display full URL of the current page using active host name, if the page
-is a secure one then the URL will be secure. Active host name is usually
-the same as base host name, but may differ if your web server is set up
-to serve more then one domain using the same XAO::Web site.
+display full URL of the current page using the base host name. If the
+page is a secure one then the URL will also be secure.
 
 Base URL is set as 'base_url' parameter in the initial site
 configuration.
+
+Active host name is usually the same as base host name, but may differ
+if your web server is set up to serve more then one domain using the
+same XAO::Web site.
 
 =head1 METHODS
 
@@ -93,7 +95,7 @@ sub display ($%) {
         }
     }
     else {
-        my $active=$args->{'base'} ? 0 : 1;
+        my $active=$args->{'active'} ? 1 : 0;
         my $full=$args->{'top'} ? 0 : 1;
 
         $url=$full ? $self->pageurl(active => $active, secure => $secure) :

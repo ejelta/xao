@@ -13,7 +13,7 @@ use base qw(XAO::testcases::FS::base);
 ### sub test_mixed_levels {
 ###     my $self=shift;
 ###     my $odb=$self->get_odb();
-### 
+###
 ###     $odb->fetch('/')->build_structure(
 ###         Level0 => {
 ###             type        => 'list',
@@ -38,11 +38,11 @@ use base qw(XAO::testcases::FS::base);
 ###             },
 ###         },
 ###     );
-### 
+###
 ###     my ($l0_obj,$l1_obj);
 ###     my ($l0_list,$l1_list);
 ###     my $obj_id;
-###     
+###
 ###     #1st elt has no 1st level list
 ###     $l0_list=$odb->fetch('/Level0');
 ###     $l0_obj=$l0_list->get_new();
@@ -55,7 +55,7 @@ use base qw(XAO::testcases::FS::base);
 ### #    $l1_obj=$l1_list->get_new();
 ### #    $l1_obj->put(text=>'zzz');
 ### #    $l1_list->put($l1_obj);
-### 
+###
 ###     #2nd elt has 1st level branch with 2 records ('foo','bar');
 ###     $l0_obj=$l0_list->get_new();
 ###     $l0_obj->put(text=>'something different');
@@ -68,7 +68,7 @@ use base qw(XAO::testcases::FS::base);
 ###     $l1_obj=$l1_list->get_new();
 ###     $l1_obj->put(text=>'bar');
 ###     $l1_list->put($l1_obj);
-###     
+###
 ###     my $sr=$l0_list->search(
 ###         [
 ###             ['text','cs','bar'],
@@ -76,7 +76,7 @@ use base qw(XAO::testcases::FS::base);
 ###             ['Level1/text','cs','bar'],
 ###         ],
 ###     );
-### 
+###
 ###     my $nrows=scalar(@$sr);
 ###     $self->assert($nrows==2,
 ###         "Wrong search results in test_mixed_levels ($nrows instead of 2)");
@@ -425,6 +425,15 @@ sub test_result_option {
             options => { result => [ qw(common common) ], distinct => 'common' },
             result  => 'common|common',
         },
+        t07 => {
+            list    => $order_coll,
+            options => { result => [ '#connector', 'parent_unique_id' ] },
+            result  => sub {
+                my $row=shift;
+                $self->assert($row->[0] eq $row->[1],
+                    "Expected #connector value '$row->[0]' to equal parent_unique_id value '$row->[1]'");
+            },
+        },
         t10 => {
             list    => $cust_list,
             args    => [ 'Orders/total','gt',300 ],
@@ -510,15 +519,25 @@ sub test_result_option {
         ### dprint Dumper($sr);
         $self->assert(ref($sr) eq 'ARRAY',
                       "Test '$t', expected to get a list reference, got '".ref($sr)."'");
+
         $self->assert(ref($sr->[0]) eq 'ARRAY',
                       "Test '$t', expected to get a list of arrays, got '".ref($sr->[0])."'");
 
-        my $got=join(';',map {
-            join('|',$test->{'rcount'} ? @$_[0..($test->{'rcount'}-1)] : @$_);
-        } @$sr);
         my $expect=$test->{'result'};
-        $self->assert($got eq $expect,
-                      "Test '$t', expected '$expect', got '$got'");
+
+        if(ref $expect eq 'CODE') {
+            foreach my $row (@$sr) {
+                $expect->($row);
+            }
+        }
+        else {
+            my $got=join(';',map {
+                join('|',$test->{'rcount'} ? @$_[0..($test->{'rcount'}-1)] : @$_);
+            } @$sr);
+
+            $self->assert($got eq $expect,
+                        "Test '$t', expected '$expect', got '$got'");
+        }
     }
 }
 
@@ -1163,7 +1182,7 @@ lie undisturbed for years.  Then one night it suddenly hatches  discards its
 outer skin that crumbles into dust  and emerges as a totally unidentifiable
 little metal object with flanges at both ends and a sort of ridge and a hole
 for a screw.  This  when found  will get thrown away.  No one knows what the
-screwdriver is supposed to gain from this.  Nature  in her infinite wisdom 
+screwdriver is supposed to gain from this.  Nature  in her infinite wisdom
 is presumably working on it.
 EOT
 

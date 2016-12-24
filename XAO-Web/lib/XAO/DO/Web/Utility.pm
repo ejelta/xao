@@ -117,7 +117,7 @@ sub tracking_url ($%) {
         $url='http://wwwapps.ups.com/etracking/tracking.cgi?tracknum=' . t2hq($tracknum);
     }
     elsif(lc($carrier) eq 'fedex') {
-        $url='https://www.fedex.com/fedextrack/WTRK/index.html?tracknumbers=' . t2hq($tracknum);
+        $url='https://www.fedex.com/apps/fedextrack/?action=track&tracknumbers=' . t2hq($tracknum);
     }
     elsif(lc($carrier) eq 'dhl') {
         $url='http://www.dhl-usa.com/cgi-bin/tracking.pl' .

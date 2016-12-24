@@ -10,7 +10,7 @@ WriteMakefile(
     LIBS                => [''], # e.g., '-lm'
     DEFINE              => '', # e.g., '-DHAVE_SOMETHING'
     INC                 => '-I.', # e.g., '-I. -I/usr/include/other'
-    MYEXTLIB            => 'wparser/libwparser$(LIB_EXT)',
+    MYEXTLIB            => 'wparser/libwparser$(LIB_EXT) -lstdc++',
     CC                  => $CC,
     LD                  => '$(CC)',
     'XSOPT'             => '-C++',

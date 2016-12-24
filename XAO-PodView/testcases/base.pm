@@ -20,7 +20,7 @@ sub set_up {
     my $web=XAO::Web->new(sitename  => 'test');
     $self->{web}=$web;
 
-    $web->config->put('base_url' => 'http://testhost.xao.com');
+    $web->config->put('base_url' => 'http://localhost');
 
     set_current_project('test');
 }

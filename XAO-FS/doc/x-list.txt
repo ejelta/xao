@@ -196,7 +196,7 @@ DESCRIPTION
 
          my $r=$list->search('name', 'wq', [ 'big', 'ugly' ]);
 
-         my $r=$list->search([ 'name', 'wq', 'big' ], 
+         my $r=$list->search([ 'name', 'wq', 'big' ],
                              'or',
                              [ 'name', 'wq', 'ugly' ]);
 
@@ -443,13 +443,22 @@ DESCRIPTION
             In addition to usual field names some special names are
             supported:
 
+            #connector
+                Returns the collection key for "parent" object (the
+                containing the list being searched on). The value of the key
+                can be used to pull the parent object from its class based
+                collection. The typical use is to identify different object
+                parents for future processing without pulling any of their
+                data -- allows for faster searching without any table joins.
+
             #container_key
                 Returns the value of the key in the list you're searching
                 on.
 
             #collection_key
-                Returns the values of the collection key for the object if a
-                collection was built on the same class.
+                Returns the value of the collection key for the object
+                (collection-unique, can be used to pull this object from a
+                collection rather than a specific list).
 
             #id Returns collection key if the search is being done on a
                 collection, and a list key if on a list. In other words,

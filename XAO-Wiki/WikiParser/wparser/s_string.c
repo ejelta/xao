@@ -257,10 +257,11 @@ char buf[60];
 sprintf(buf,"%f",i);
 return *this+=buf;
 }
+static char emptystring[1]={'\0'};
 string::operator char*()
 {
 if(val) return val;
-else return "";
+else return emptystring;
 }
 char string::operator *()
 {

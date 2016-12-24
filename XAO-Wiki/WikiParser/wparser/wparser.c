@@ -139,12 +139,12 @@ struct gtreftable reftable;
 };
 
 struct blinetaginfo {
-char *tag;
-int (*proc)(char *begin, struct wpstate *state, string &s);
+    const char *tag;
+    int (*proc)(char *begin, struct wpstate *state, string &s);
 };
 
 struct inlinetaginfo {
-char *tag;
+const char *tag;
 int (*proc)(char *fulltag, char *arg, struct wpstate *state, string &s);
 };
 
@@ -156,12 +156,12 @@ string line_process(char *line, struct wpstate*);
 #define PAIR_MANDAT     1
 #define PAIR_SAMELINE	2
 #define BREAK_P         4	//break paragraph before this tag
-#define BOL             8   //must be started at begin of line 
+#define BOL             8   //must be started at begin of line
 
 
 struct globaltaginfo {
-char *starttag;
-char *endtag;
+const char *starttag;
+const char *endtag;
 int  flag;
 string (*proc)(char *str, struct wpstate *state);
 };
@@ -413,7 +413,7 @@ if(etag)	//have definition
  {
    *etag=0;
    cp++;		 //skip ';'
-   if(etag!=cp)	//	have something between ; and : 
+   if(etag!=cp)	//	have something between ; and :
    {
      s+=tag_definition_start;
      dl_started=1;
@@ -646,9 +646,11 @@ reftable->reflist=NULL;
 return 0;
 }
 
+static char emptystring[1]={'\0'};
+
 char *alltrim(char *str)
 {
-if(!str) return "";
+if(!str) return emptystring;
 char *cp,*cp2;
 cp=str;
 while(*cp==' ') cp++;
@@ -671,7 +673,7 @@ while(*cp)
 }
 cp=alltrim(str);
 if(!*cp) return s;
-content="";
+content=emptystring;
 opcode=cp;
 while(*cp)
  {
@@ -766,7 +768,7 @@ struct globaltaginfo globaltags[]={
 {"==",      "==",  PAIR_MANDAT|PAIR_SAMELINE|BREAK_P|BOL,globaltag_h2_process},
 {"=",       "=",   PAIR_MANDAT|PAIR_SAMELINE|BREAK_P|BOL,globaltag_h1_process},
 #endif
-{0,0,0,NULL}
+{NULL,NULL,0,NULL}
 };
 
 
@@ -1106,13 +1108,13 @@ struct inlinetaginfo inlinetags[]={
 //{"</td",          htmltag_process},
 //{"<tr",           htmltag_process},
 //{"</tr",          htmltag_process},
-{0,NULL}
+{NULL,NULL}
 };
 
-string textout(char *str)
+string textout(const char *str)
 {
 string s;
-char *cp;
+const char *cp;
 s="";
 for(cp=str;*cp;cp++)
  {
@@ -1142,7 +1144,7 @@ textstart=str;
 while(*textstart)
 {
   tagidx=-1;
-  cp="";
+  cp=emptystring;
   for(icp=textstart;*icp&&(tagidx==-1);icp++)
   {
     tagidx=-1;

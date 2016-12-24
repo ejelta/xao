@@ -16,7 +16,7 @@ class name for the list object is FS::List.
 A list object provides methods for managing a list of FS::Hash objects
 of the same class -- storing, retrieving and searching on them.
 
-List class shares most of the API with the Hash class.
+List class shares most of the API with the Hash class.
 
 Here is the list of all List methods (alphabetically):
 
@@ -491,7 +491,7 @@ translated to the same database query:
 
  my $r=$list->search('name', 'wq', [ 'big', 'ugly' ]);
 
- my $r=$list->search([ 'name', 'wq', 'big' ], 
+ my $r=$list->search([ 'name', 'wq', 'big' ],
                      'or',
                      [ 'name', 'wq', 'ugly' ]);
 
@@ -694,7 +694,7 @@ field. Example:
 
  my $color_ids=$products->search('category_id', 'eq', 123, {
                                     'distinct' => 'color'
-                                }); 
+                                });
 
 =item debug
 
@@ -772,14 +772,23 @@ In addition to usual field names some special names are supported:
 
 =over
 
+=item #connector
+
+Returns the collection key for "parent" object (the containing the list
+being searched on). The value of the key can be used to pull the parent
+object from its class based collection. The typical use is to identify
+different object parents for future processing without pulling any of
+their data -- allows for faster searching without any table joins.
+
 =item #container_key
 
 Returns the value of the key in the list you're searching on.
 
 =item #collection_key
 
-Returns the values of the collection key for the object if a collection
-was built on the same class.
+Returns the value of the collection key for the object
+(collection-unique, can be used to pull this object from a collection
+rather than a specific list).
 
 =item #id
 

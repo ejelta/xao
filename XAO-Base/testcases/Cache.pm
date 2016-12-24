@@ -22,6 +22,9 @@ sub test_backends {
         return;
     }
 
+    my @backends=('Cache::Memory');
+    ### my @backends=();
+
     my $have_memcached;
     eval {
         require Memcached::Client;
@@ -34,14 +37,19 @@ sub test_backends {
         };
     }
 
-    my @backends=('Cache::Memory');
-    ### my @backends=();
-
     if($have_memcached) {
-        push(@backends,'Cache::Memcached');
+        my $toolout=`memcached-tool 127.0.0.1:11211 display 2>&1`;
+        if($toolout !~ /Count/) {
+            dprint "Memcached is not running, disabled testing";
+            $have_memcached=0;
+        }
     }
     else {
         warn "Install Memcached::Client for XAO::DO::Cache::Memcached backend\n";
+    }
+
+    if($have_memcached) {
+        push(@backends,'Cache::Memcached');
     }
 
     my $config=XAO::Objects->new(
@@ -58,7 +66,7 @@ sub test_backends {
     $config->init();
 
     $config->embed('hash' => new XAO::SimpleHash());
-    
+
     $config->embedded('hash')->put('cache' => {
         memcached   => {
             servers => [ '127.0.0.1:11211' ],

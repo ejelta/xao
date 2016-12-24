@@ -340,7 +340,12 @@ sub search_multi ($$$$) {
 
         my $compression_flag=unpack('w',$r);
         if(defined $compression_flag && $compression_flag == 0) {
-            $r=Compress::LZO::decompress(scalar(substr($r,1)));
+
+            # The temporary variable is required. See the note on the
+            # other decompress() use.
+            #
+            my $c=substr($r,1);
+            $r=Compress::LZO::decompress($c);
         }
 
         $rawdata{$kw}=$r;
@@ -369,7 +374,16 @@ sub search_simple ($$$$) {
 
         my $compression_flag=unpack('w',$iddata);
         if(defined $compression_flag && $compression_flag==0) {
-            $iddata=Compress::LZO::decompress(scalar(substr($iddata,1)));
+
+            # Directly passing substr(..) into decompress fails in perl
+            # 5.22 with "buffer parameter is not a SCALAR". Likely this
+            # is because substr is actually an lvalue and not a true
+            # scalar. Worked fine in earlier versions of perl. Putting
+            # it in a temporary variable fixes that.
+            #
+            my $c=scalar(substr($iddata,1));
+            $iddata=Compress::LZO::decompress($c);
+
             defined $iddata ||
                 throw $self "Can't decompress data";
         }
@@ -390,7 +404,7 @@ sub search_simple ($$$$) {
 sub suggest_alternative ($%) {
     my $self=shift;
     my $args=get_args(\@_);
-    
+
     my $index_object=$args->{'index_object'} ||
         throw $self "search - no 'index_object'";
 
