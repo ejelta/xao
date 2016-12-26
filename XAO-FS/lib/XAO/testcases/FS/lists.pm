@@ -86,6 +86,7 @@ sub test_store_nameless_object {
 
     my %matrix=(
         '<$RANDOM$>'            => qr/^\w{8}$/,
+        '<$RANDOM/20$>'         => qr/^\w{20}$/,
         '<$AUTOINC$>'           => qr/^\d+$/,
         'X<$AUTOINC/10$>Y'      => qr/^X\d{10}Y$/,
         '<$GMTIME$>_<$RANDOM$>' => qr/^\d+_\w{8}$/,
@@ -229,13 +230,13 @@ sub test_exists {
 
 sub test_list_describe {
     my $self=shift;
-    
+
     my $odb = $self->{odb};
-    
+
     my $list=$odb->fetch('/Customers');
 
     $self->assert($list, "Can't fetch List object");
-    
+
     $self->assert(defined($list->can('describe')),
                   "Can't call function 'describe()' on the List object");
 
@@ -256,7 +257,7 @@ sub test_wrong_name {
     my $odb = $self->{odb};
     my $list=$odb->fetch('/Customers');
     $self->assert($list, "Can't fetch List object");
-    
+
     my $c=$list->get_new;
 
     my $flag=0;
