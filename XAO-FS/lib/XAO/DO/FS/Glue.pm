@@ -2145,7 +2145,7 @@ sub _list_store_object ($$$) {
             my ($kw,$opt)=@_;
             my $text='';
             if($kw eq 'RANDOM') {
-                $text=XAO::Utils::generate_key();
+                $text=XAO::Utils::generate_key($opt || 8);
             }
             elsif($kw eq 'AUTOINC') {
                 $uid || throw $self "_list_store_object - no key_unique_id known, internal bug";
@@ -2169,8 +2169,8 @@ sub _list_store_object ($$$) {
         };
         $key_value=sub {
             my $key=$format;
-            $key=~s{<\$(\w+)(/(\w+))?\$>}
-                   {&$translate($1,$3)}ge;
+            $key=~s{<\$(\w+)(?:/(\w+))?\$>}
+                   {&$translate($1,$2)}ge;
             return $key;
         };
     }
@@ -2321,7 +2321,7 @@ sub _add_list_placeholder ($%) {
     }
 
     my $key_format=$args->{'key_format'} || '<$RANDOM$>';
-    if($key_format !~ /<\$RANDOM\$>/ && $key_format !~ /<\$AUTOINC(\/\d+)?\$>/) {
+    if($key_format !~ /<\$RANDOM(?:\/\d+)?\$>/ && $key_format !~ /<\$AUTOINC(?:\/\d+)?\$>/) {
         throw $self "_add_list_placeholder - key_format must include either <\$RANDOM\$> or <\$AUTOINC\$> ($key_format)";
     }
 
