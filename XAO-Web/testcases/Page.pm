@@ -577,7 +577,28 @@ EOT
             },
             expect      => 'FOO-OLD-DEFAULT/FOO-OLD-PASS/FOO-V1-PASS/BAR-OLD-DEFAULT/BAR-OLD-PASS/BAR-V1-DEFAULT',
         },
-
+        t29 => {
+            args        => {
+                template    => <<'EOT',
+<%Page
+  template={'<%SetArg name='RV_A' value='A-DEFAULT'
+             %><%SetArg name='RV_BC' value='BC-DEFAULT'
+             %><%SetArg name='RV_D' value='D-DEFAULT'
+             %><$RV_A$>/<$RV_BC$>/<$RV_D$>'}
+  pass="<$PASS$>"
+%><%End%>
+EOT
+                'PASS'      => 'RV_*=RV_*_X',
+                'RV_A_X'    => 'A-X',
+                'RV_A_Y'    => 'A-Y',
+                'RV_A_XX'   => 'A-XX',
+                'RV_A_YY'   => 'A-YY',
+                'RV_BC_X'   => 'BC-X',
+                'RV_BC_Y'   => 'BC-Y',
+                'RV_D_XX'   => 'D-XX',
+            },
+            expect      => 'A-X/BC-X/D-DEFAULT',
+        },
     );
 
     foreach my $tname (keys %tests) {

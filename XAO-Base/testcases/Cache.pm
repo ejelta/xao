@@ -38,7 +38,7 @@ sub test_backends {
     }
 
     if($have_memcached) {
-        my $toolout=`memcached-tool 127.0.0.1:11211 display 2>&1`;
+        my $toolout=`memcached-tool 127.0.0.1:11211 display 2>&1` // '';
         if($toolout !~ /Count/) {
             dprint "Memcached is not running, disabled testing";
             $have_memcached=0;

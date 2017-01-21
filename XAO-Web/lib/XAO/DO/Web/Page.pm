@@ -1712,7 +1712,7 @@ sub _do_pass_args ($$$) {
         }
         elsif($rule =~ /^([\w\.]*)\*([\w\.]*)\s*=\s*([\w\.]*)\*([\w\.]*)$/) {# VAR*=FOO* or *VAR=*FOO or V*R=T*Z or *=X*Z
             my ($prnew,$sufnew,$prold,$sufold)=($1,$2,$3,$4);
-            my $re=qr/^\Q$prold\E(.*)\Q$sufold\E/;
+            my $re=qr/^\Q$prold\E(.*)\Q$sufold\E$/;
             foreach my $k (keys %$pargs) {
                 next unless $k =~ $re;
                 $hash->{$prnew.$1.$sufnew}=$pargs->{$k};
@@ -1723,7 +1723,7 @@ sub _do_pass_args ($$$) {
         }
         elsif($rule =~ /^([\w\.]*)\*([\w\.]*)$/) {          # VAR* or *VAR or VAR*FOO
             my ($pr,$suf)=($1,$2);
-            my $re=qr/^\Q$pr\E(.*)\Q$suf\E/;
+            my $re=qr/^\Q$pr\E(.*)\Q$suf\E$/;
             foreach my $k (keys %$pargs) {
                 next unless $k =~ $re;
                 $hash->{$k}=$pargs->{$k};
@@ -1734,7 +1734,7 @@ sub _do_pass_args ($$$) {
         }
         elsif($rule =~ /^!([\w\.]*)\*([\w\.]*)$/) {                  # !VAR* or !*VAR or !VAR*FOO
             my ($pr,$suf)=($1,$2);
-            my $re=qr/^\Q$pr\E(.*)\Q$suf\E/;
+            my $re=qr/^\Q$pr\E(.*)\Q$suf\E$/;
             my @todel;
             foreach my $k (keys %$hash) {
                 next unless $k =~ $re;
