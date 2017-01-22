@@ -95,13 +95,11 @@ sub new ($%) {
     my $args=get_args(\@_);
     my $self=$proto->SUPER::new($args);
 
-    ##
     # Setting up fields if required
     #
     $self->setup_fields(fields => $args->{'fields'},
                         values => $args->{'values'}) if $args->{'fields'};
 
-    ##
     # Done
     #
     $self;
@@ -120,7 +118,7 @@ sub new ($%) {
 #  extra_data =>     reference to any data, subroutines will then be
 #                    able to access it.
 #  form_ok =>        form_ok subroutine reference (mandatory)
-#  pre_check_form => pre_check_form subroutine reference 
+#  pre_check_form => pre_check_form subroutine reference
 #  check_form =>     check_form subroutine reference
 #  submit_name =>    name of the submit button
 #  keep_form =>      display form template even when the form is complete
@@ -210,7 +208,6 @@ sub display ($;%) {
     my $phase=$self->{'phase'}=$args->{'phase'};
     $self->{'submit_name'}=$args->{'submit_name'} if $args->{'submit_name'};
 
-    ##
     # Checking the type of fields argument we have - hash or
     # array? Converting to array if it is a hash.
     #
@@ -438,7 +435,7 @@ sub display ($;%) {
             if(length($value) && !$match) {
                 $newerr=$self->Tx("Unknown credit card type");
             }
-        }  
+        }
         elsif($style eq 'ccnum') {
             if(length($value)) {
                 my $type=$fdata->{'pair'} ? $cgi->param($fdata->{'pair'}) : '';
@@ -478,7 +475,6 @@ sub display ($;%) {
         }
         elsif($style eq 'checkbox') {
 
-            ##
             # If checkbox is not checked we don't get any info about it
             # in the cgi parameters. So we have to take a guess if the
             # form was generally filled in, but we have an unchecked
@@ -525,121 +521,63 @@ sub display ($;%) {
         # Generating HTML for some field styles.
         #
         my $param=$fdata->{'param'} || uc($name);
+        my $seloptions;
+        my $selcompare;
         if($style eq 'country') {
             my @cl=$self->countries_list();
-            my $html='';
-            foreach my $c (@cl) {
-                my $sel=(lc($c) eq lc($value)) ? " SELECTED" : "";
-                $html.="<OPTION$sel>".t2ht($c)."</OPTION>\n";
-            }
-            $fdata->{'html'}=qq(<SELECT NAME="$name"><OPTION VALUE="">Select Country</OPTION>$html</SELECT>);
+            $seloptions=[
+                ''  => 'Select Country',
+                (map { $_ => $_ } @cl),
+            ];
+            $selcompare=sub { return uc($_[0]) eq uc($_[1]) };
         }
         elsif($style eq 'usstate' || $style eq 'uscontst') {
             my @cl=$style eq 'usstate' ? $self->us_states_list()
                                        : $self->us_continental_states_list();
-            my $html='';
-            my $stv=uc(substr($value,0,2));
-            foreach my $c (@cl) {
-                my $stc=uc(substr($c,0,2));
-                my $sel=($stc eq $stv) ? " SELECTED" : "";
-                $html.="<OPTION$sel VALUE=\"" . t2hf($stc) . "\">" .
-                       t2ht($c) .
-                       "</OPTION>\n";
-            }
-            $formparams{"$param.HTML_OPTIONS"}=$html;
-            $fdata->{'html'}=qq(<SELECT NAME="$name"><OPTION VALUE="">Select State</OPTION>$html</SELECT>);
+            $seloptions=[
+                ''  => 'Select State',
+                (map { uc(substr($_,0,2)) => $_ } @cl),
+            ];
+            $selcompare=sub { return uc($_[0]) eq uc($_[1]) };
         }
         elsif($style eq 'cctype') {
             my @cl=$self->cc_list();
-            my $html='';
-            foreach my $c (@cl) {
-                my $sel=(lc($c) eq lc($value)) ? " SELECTED" : "";
-                $html.="<OPTION$sel>".t2ht($c)."</OPTION>\n";
-            }
-            $fdata->{'html'}=qq(<SELECT NAME="$name"><OPTION VALUE="">Select Card Type</OPTION>$html</SELECT>);
-        }  
+            $seloptions=[
+                ''  => 'Select Card Type',
+                (map { $_ => $_ } @cl),
+            ];
+            $selcompare=sub { return uc($_[0]) eq uc($_[1]) };
+        }
         elsif($style eq 'month') {
             my @cl=qw(January February March April May June July
                       August September October November December);
-            my $html='';
-            for(my $i=0; $i!=12; $i++) {
-                my $sel=($value && $value == $i+1) ? " SELECTED" : "";
-                $html.=sprintf("<OPTION VALUE=\"%02u\"$sel>%02u - %s</OPTION>\n",$i+1,$i+1,$cl[$i]);
-            }
-            $fdata->{'html'}=qq(<SELECT NAME="$name"><OPTION VALUE="">Select Month</OPTION>$html</SELECT>);
+            $seloptions=[
+                ''  => 'Select Month',
+                (map { sprintf('%02u',$_) => sprintf('%02u - %s',$_,$cl[$_-1]) } (1..12)),
+            ];
+            $selcompare=sub { return $_[0] == $_[1] };
         }
         elsif($style eq 'year' && !$fdata->{'maxlength'} && $fdata->{'minyear'} && $fdata->{'maxyear'}) {
             my $minyear=$self->calculate_year($fdata->{'minyear'});
             my $maxyear=$self->calculate_year($fdata->{'maxyear'});
-            my $html='';
-            for(my $i=$minyear; $i<=$maxyear; $i++) {
-                my $sel=($value && $value == $i) ? " SELECTED" : "";
-                $html.=sprintf("<OPTION VALUE=\"%04u\"$sel>%04u</OPTION>\n",$i,$i);
-            }
-            $html=qq(<SELECT NAME="$name"><OPTION VALUE="">Select Year</OPTION>$html</SELECT>);
-            $fdata->{'html'}=$html;
+            $seloptions=[
+                ''  => 'Select Year',
+                (map { sprintf('%04u',$_) => sprintf('%04u',$_) } ($minyear..$maxyear)),
+            ];
+            $selcompare=sub { return $_[0] == $_[1] };
         }
         elsif($style eq 'checkbox') {
             $fdata->{'html'}=$obj->expand(
                 path    => '/bits/fillout-form/html-checkbox',
                 NAME    => $name,
                 VALUE   => $fdata->{'value'} || '',
-                CHECKED => $value ? ' CHECKED' : '',
+                CHECKED => $value ? ' checked' : '',
                 HTMLID  => $fdata->{'htmlid'} || $name,
             );
         }
         elsif($style eq 'selection') {
-            my $opt=$fdata->{'options'} ||
+            $seloptions=$fdata->{'options'} ||
                 $self->throw("display - no 'options' for '$name' selection");
-
-            my $has_empty;
-            my $used_selected;
-            my $html='';
-            my $html_sub=sub {
-                my ($v,$t)=@_;
-                $has_empty=1 if !length($v);
-                return unless defined($t);
-                my $sel='';
-                if(!$used_selected && $value eq $v) {
-                    $sel=' SELECTED';
-                    $used_selected=1;
-                }
-                my $vh=t2hf($v);
-                $html.=qq(<OPTION VALUE="$vh"$sel>) .
-                       t2ht($t) .
-                       '</OPTION>';
-                $formparams{"$param.RV_CURRENT_$vh"}=$sel ? 1 : 0;
-                $formparams{"$param.RV_VALUE_$vh"}=$v;
-                $formparams{"$param.RV_TEXT_$vh"}=$t;
-            };
-
-            if(ref($opt) eq 'HASH') {
-                foreach my $v (sort { $opt->{$a} cmp $opt->{$b} } keys %$opt) {
-                    &{$html_sub}($v,$opt->{$v});
-                }
-            }
-            elsif(ref($opt) eq 'ARRAY') {
-                for(my $i=0; $i<@$opt; $i+=2) {
-                    &{$html_sub}($opt->[$i],$opt->[$i+1]);
-                }
-            }
-            else {
-                throw $self "Unknown data type in 'options' name=$name";
-            };
-
-            ##
-            # We do not display 'Please select' if there is an empty
-            # value in the list, we assume that that empty value is a
-            # prompt of some sort.
-            #
-            # If there is no need for empty value and no need for a
-            # prompt -- use ('' => undef) as an indicator of that.
-            #
-            $formparams{"$param.HTML_OPTIONS"}=$html;
-            $fdata->{'html'}='<SELECT NAME="' . t2hf($name) . '">' .
-                           ($has_empty ? '' : '<OPTION VALUE="">Please select</OPTION>') .
-                           $html .
-                           '</SELECT>';
         }
         elsif($style eq 'text' || $style eq 'phone' || $style eq 'usphone' ||
               $style eq 'ccnum' || $style eq 'email' || $style eq 'year' ||
@@ -679,7 +617,76 @@ sub display ($;%) {
             );
         }
 
-        ##
+        # Various selection fields above just set seloptions for uniform build.
+        #
+        if($seloptions) {
+            my $has_empty;
+            my $used_selected;
+            my $html='';
+            my $html_sub=sub {
+                my ($v,$t)=@_;
+                $has_empty=1 if !defined($v) || !length($v);
+                return unless defined($t);
+                my $sel='';
+                if(!$used_selected) {
+                    my $equal=$selcompare ? $selcompare->($v,$value) : ($v eq $value);
+                    if($equal) {
+                        $sel=' selected';
+                        $used_selected=1;
+                    }
+                }
+                $html.=$obj->expand(
+                    path    => '/bits/fillout-form/html-select-option',
+                    NAME    => $name,
+                    VALUE   => $v,
+                    TEXT    => $t,
+                    SELECTED=> $sel,
+                );
+                $formparams{"$param.RV_CURRENT_$v"}=$sel ? 1 : 0;
+                $formparams{"$param.RV_VALUE_$v"}=$v;
+                $formparams{"$param.RV_TEXT_$v"}=$t;
+            };
+
+            if(ref($seloptions) eq 'HASH') {
+                foreach my $v (sort { $seloptions->{$a} cmp $seloptions->{$b} } keys %$seloptions) {
+                    &{$html_sub}($v,$seloptions->{$v});
+                }
+            }
+            elsif(ref($seloptions) eq 'ARRAY') {
+                for(my $i=0; $i<@$seloptions; $i+=2) {
+                    &{$html_sub}($seloptions->[$i],$seloptions->[$i+1]);
+                }
+            }
+            else {
+                throw $self "Unknown data type in 'options' name=$name";
+            };
+
+            # We do not display 'Please select' if there is an empty
+            # value in the list, we assume that that empty value is a
+            # prompt of some sort.
+            #
+            # If there is no need for empty value and no need for a
+            # prompt -- use ('' => undef) as an indicator of that.
+            #
+            $formparams{"$param.HTML_OPTIONS"}=$html;
+
+            # For compatibility with older code this is not included in
+            # HTML_OPTIONS
+            #
+            if(!$has_empty) {
+                $html='<option value="">Please select</option>'.$html;
+            }
+
+            # Final <select>...</select> code
+            #
+            $fdata->{'html'}=$obj->expand(
+                path    => '/bits/fillout-form/html-select',
+                NAME    => $name,
+                VALUE   => defined $value ? $value : '',
+                OPTIONS => $html,
+            );
+        }
+
         # Adding error description to the list if there was an
         # error. Storing value otherwise.
         #
@@ -691,7 +698,6 @@ sub display ($;%) {
             $fdata->{'value'}=$value;
         }
 
-        ##
         # Filling formparams hash
         #
         $formparams{"$param.VALUE"}=defined($value) ? $value : "";
@@ -759,7 +765,6 @@ sub display ($;%) {
         }
     }
 
-    ##
     # If there were errors then displaying the form. We also display
     # the form here if it is not yet filled out and if it is, but we we
     # asked to keep displaying it using 'keep_form' setup parameter.
@@ -786,7 +791,6 @@ sub display ($;%) {
         return unless $keep_form && !$errstr && $have_cgivalues && $have_submit;
     }
 
-    ##
     # Our form is correct!
     #
     $self->form_ok(merge_refs($args,\%formparams));
@@ -1304,7 +1308,6 @@ sub cc_validate ($%) {
     my $number=$args->{'number'};
     my $type=$args->{'type'};
 
-    ##
     # General corrections and checks first.
     #
     $number=~s/\D//g;
@@ -1312,7 +1315,6 @@ sub cc_validate ($%) {
         return $self->Tx('Number is too short!');
     }
 
-    ##
     # Checksum first
     #
     my $sum=0;
@@ -1325,7 +1327,6 @@ sub cc_validate ($%) {
         return $self->Tx('Invalid number!');
     }
 
-    ##
     # Guessing card type.
     #
     my $typecode;
@@ -1359,14 +1360,12 @@ sub cc_validate ($%) {
             return $self->Tx('Invalid number length!');
     }
 
-    ##
     # Checking guessed type against the given type.
     #
     if($type && lc($type) !~ $realtype) {
         return $self->Tx('Number does not match card type!');
     }
 
-    ##
     # Storing values if we were given these references.
     #
     ${$args->{'validated'}}=$number if $args->{'validated'};

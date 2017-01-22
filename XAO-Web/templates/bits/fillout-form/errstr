@@ -1,1 +1,1 @@
-<CENTER><DIV CLASS="form_err"><$ERRSTR$></DIV></CENTER><%End%>
+<center><div class="form_err"><$ERRSTR$></div></center><%End%>

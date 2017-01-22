@@ -53,10 +53,12 @@ handlers/xao-apache.pl
 templates/bits/errors/file-not-found
 templates/bits/fillout-form/errstr
 templates/bits/fillout-form/html-checkbox
+templates/bits/fillout-form/html-file
 templates/bits/fillout-form/html-password
+templates/bits/fillout-form/html-select
+templates/bits/fillout-form/html-select-option
 templates/bits/fillout-form/html-text
 templates/bits/fillout-form/html-textarea
-templates/bits/fillout-form/html-file
 templates/bits/multipagenav/base
 templates/bits/multipagenav/current
 templates/bits/multipagenav/next

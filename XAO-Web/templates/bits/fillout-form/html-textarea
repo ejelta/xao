@@ -1,1 +1,1 @@
-<TEXTAREA NAME="<$NAME/f$>" COLS="<$SIZE/f$>" ROWS="<$ROWS/f$>"><$VALUE/h$></TEXTAREA><%End%>
+<textarea name="<$NAME/f$>" cols="<$SIZE/f$>" rows="<$ROWS/f$>"><$VALUE/h$></textarea><%End%>
