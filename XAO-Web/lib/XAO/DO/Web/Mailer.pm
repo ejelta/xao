@@ -168,6 +168,9 @@ sub display ($;%) {
     if(my $override_from=$config->{'override_from'}) {
         if($override_from ne $from) {
             dprint ref($self)."::display - overriding from='$from' with '$override_from'";
+
+            push(@ovhdr,('X-XAO-Web-Mailer-From' => $from));
+
             $from=$override_from;
         }
     }

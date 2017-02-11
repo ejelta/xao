@@ -641,7 +641,7 @@ sub _do_display ($@) {
 
         if($self->debug_check('render-cache-add')) {
             my ($args_digest,$args_json)=$self->params_digest($args);
-            dprint "RENDER_CACHE_ADD: $args_json";
+            dprint "RENDER_CACHE_ADD: $args_digest / $args_json";
         }
     }
 
@@ -1002,7 +1002,7 @@ sub display ($%) {
             my ($cache_key,$params_json)=$self->params_digest($args);
 
             if($self->debug_check('render-cache-get')) {
-                dprint "RENDER_CACHE_GET: $params_json";
+                dprint "RENDER_CACHE_GET: $cache_key / $params_json";
             }
 
             # Building the content. Real arguments for displaying are in
