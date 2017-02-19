@@ -104,7 +104,7 @@ setting 'displaymode' to 'data'.
 
 If there is a data_* method, but there is no display_* method, then the
 default is to call display_data() -- which outputs the data in a format
-given by 'format' argument (only JSON is supported currently).
+given by 'format' argument (only JSON and XML is supported currently).
 
 If there are both data_* and display_* methods then the output depends
 on its content.
@@ -311,6 +311,21 @@ sub display_data ($@) {
     }
     elsif($format eq 'js' || $format eq 'json-embed') {
         $self->textout($self->json->encode($data));
+    }
+    elsif($format eq 'xml' || $format eq 'xml-embed') {
+        my $xml_sub=$self->get_mode_sub('xml',$args->{'xmlmode'} || $args->{'mode'},$args->{'mode'});
+
+        my $xml=$xml_sub->($self,$args,{
+            data    => $data,
+        });
+
+        if($format eq 'xml') {
+            $self->object(objname => 'Web::Header')->expand(
+                type        => 'text/xml',
+            );
+        }
+
+        $self->finaltextout($xml);
     }
     else {
         throw $self "- unknown format '$format'";

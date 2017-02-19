@@ -1,5 +1,6 @@
 package XAO::DO::Web::MyAction;
 use strict;
+use warnings;
 use base XAO::Objects->load(objname => 'Web::Action');
 use Error qw(:try);
 use XAO::Objects;
@@ -65,6 +66,30 @@ sub data_test_four ($@) {
         'foo'   => 'scalar',
         'bar'   => { 'hash' => 'ref' },
     };
+}
+
+# XML converter for 'test-four'
+
+sub xml_test_four ($@) {
+    my $self=shift;
+    my $args=get_args(\@_);
+
+    my $data=$args->{'data'};
+
+    return
+        '<test-four>' .
+            '<foo>' . $data->{'foo'} . '</foo>' .
+            '<bar><hash>' . $data->{'bar'}->{'hash'} . '</hash></bar>' .
+        '</test-four>';
+}
+
+sub xml_generic ($@) {
+    my $self=shift;
+    my $args=get_args(\@_);
+
+    my $data=$args->{'data'};
+
+    return '<data-keys>' . join(',',sort keys %$data) . '</data-keys>';
 }
 
 # data_* and display_* for alternate display and data tests

@@ -37,6 +37,11 @@ sub test_all {
         #
         '<%MyAction2 mode="foo"%>'                                      => 'MyAction2: Got FOO',
         '<%MyAction2 mode="test-one" arg="one"%>'                       => 'MyAction2: test-one-ok',
+        #
+        # XML output
+        #
+        '<%MyAction mode="test-four" format="xml"%>'                    => '<test-four><foo>scalar</foo><bar><hash>ref</hash></bar></test-four>',
+        '<%MyAction mode="test-four" xmlmode="generic" format="xml"%>'  => '<data-keys>bar,foo,status</data-keys>',
     );
 
     foreach my $template (keys %tests) {

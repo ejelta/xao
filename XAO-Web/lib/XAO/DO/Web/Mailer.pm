@@ -353,7 +353,7 @@ sub display ($;%) {
         }
     }
     else {
-        throw $self "display - no text for either html or text part";
+        throw $self "- no text for either html or text part";
     }
 
     $mailer->add(Date => $args->{'date'}) if $args->{'date'};
