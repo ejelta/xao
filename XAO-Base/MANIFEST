@@ -19,11 +19,11 @@ lib/XAO/testcases/base.pm
  ------------------------------------------- Dynamic Objects
 lib/XAO/DO/Atom.pm
 lib/XAO/DO/Config.pm
+lib/XAO/DO/Cache/Memcached.pm
 lib/XAO/DO/Cache/Memory.pm
 lib/XAO/DO/Embeddable.pm
  ------------------------------------------- testcases
 testcases/base.pm
-testcases/Base.pm
 testcases/Cache.pm
 testcases/DOConfig.pm
 testcases/Errors.pm
@@ -31,6 +31,7 @@ testcases/Objects.pm
 testcases/Projects.pm
 testcases/SimpleHash.pm
 testcases/Utils.pm
+testcases/XAOBase.pm
  ------------------------------------------- test installation root
 testcases/testroot/projects/test/objects/Config.pm
 testcases/testroot/projects/test/objects/EmbeddableTest.pm
