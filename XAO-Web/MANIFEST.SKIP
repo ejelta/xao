@@ -1,7 +1,11 @@
 ^.gitignore$
 ^.config$
 ^Makefile$
+^MYMETA.json$
+^MYMETA.yml$
 ^PageSupport/Makefile$
+^PageSupport/MYMETA.json$
+^PageSupport/MYMETA.yml$
 .*\.old$
 blib/
 blibdirs

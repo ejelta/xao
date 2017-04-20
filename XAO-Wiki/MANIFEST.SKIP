@@ -1,8 +1,8 @@
 \.gitignore$
 ^\.config$
-^Makefile$
-^WikiParser/Makefile$
-^WikiParser/wparser/Makefile$
+Makefile
+MYMETA.json
+MYMETA.yml
 ^WikiParser/wparser/testparser$
 ^WikiParser/wparser/.*\.a
 ^WikiParser/wparser/.*\.o

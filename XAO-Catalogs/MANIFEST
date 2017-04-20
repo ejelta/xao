@@ -1,25 +1,21 @@
 CHANGES
+Catalogs.pm
 LICENSE
-README
-TODO
 MANIFEST
 MANIFEST.SKIP
 META.yml
 Makefile.PL
-test.pl
- --------------------------------------------------------
-Catalogs.pm
- --------------------------------------------------------
-lib/XAO/DO/ImportMap/Base.pm
-lib/XAO/DO/ImportMap/Sample.pm
+README
+TODO
 lib/XAO/DO/Data/Catalog.pm
 lib/XAO/DO/Data/CatalogCategoryMap.pm
 lib/XAO/DO/Data/CatalogData.pm
- --------------------------------------------------------
+lib/XAO/DO/ImportMap/Base.pm
+lib/XAO/DO/ImportMap/Sample.pm
 sample.xml
 scripts/xao-ifilter-sample
 scripts/xao-import-map
- --------------------------------------------------------
-testcases/Catalogs.pm
-testcases/base.pm
+test.pl
+testcases/Catalogs/Catalogs.pm
+testcases/Catalogs/base.pm
 testcases/testroot/projects/test/objects/Config.pm

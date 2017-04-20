@@ -234,7 +234,7 @@ sub xao_mf_fix_permissions {
             push(@skip,qr/$regex/);
         }
         close(F);
- 
+
     }
 
     my @modes;

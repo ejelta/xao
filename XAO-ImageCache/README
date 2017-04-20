@@ -14,7 +14,7 @@ SYNOPSIS
 
         # Init new empty Cache
         $image_cache->init() || die "Can't init new cache!";
-    
+
         # Start images checking and downloading to cache
         $image_cache->check();
 
@@ -64,7 +64,7 @@ METHODS
              useragent      => {
                  agent   => 'My Lovely Browser/v13.01',
                  timeout => 30,
-             },  
+             },
              force_download => 1,               # to enforce re-downloads
              force_scale    => 1,               # to enforce re-scaling
              clear_on_error => 0,               # don't clear DB properties even on permanent errors
@@ -151,9 +151,9 @@ METHODS
 
         Example.
 
-            Location: 
+            Location:
             http://localhost/icons/medbutton.jpeg
-    
+
             provide file name:
             4aFNA1utpmCNG2wEIF69mg.jpeg
 
@@ -248,7 +248,7 @@ CONFIGURATION PARAMETERS
             %params = (size => {width => 320, height => 200} );
 
             # Fit size into 320x200 with saving image proportions
-            %params = (        
+            %params = (
                 size => {
                     width                   => 320,
                     height                   => 200,

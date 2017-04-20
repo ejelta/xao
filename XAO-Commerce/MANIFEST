@@ -9,8 +9,8 @@ TODO
 Commerce.pm
 test.pl
  -------------------------------------------------------------
-testcases/Commerce.pm
-testcases/base.pm
+testcases/Commerce/Commerce.pm
+testcases/Commerce/base.pm
  -------------------------------------------------------------
 lib/XAO/DO/Data/Admin.pm
 lib/XAO/DO/Data/Category.pm

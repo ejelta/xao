@@ -228,7 +228,7 @@ use XAO::Utils;
 use XAO::Objects;
 
 use vars qw($VERSION);
-$VERSION='1.02';
+$VERSION='1.04';
 
 use base XAO::Objects->load(objname => 'Web::FS');
 
@@ -272,7 +272,7 @@ sub check_mode ($%) {
     }
     else {
         my $config=$self->siteconfig('/content');
-    
+
         $self->SUPER::check_mode(merge_refs({
             'base.database'     => $config->{list_uri} || '/Content',
             'uri'               => $args->{name},
@@ -301,7 +301,7 @@ sub content_add ($%) {
     my $config=$self->siteconfig('/content');
     my $list_uri=$config->{list_uri} || '/Content';
     my $content_list=$self->odb->fetch($list_uri);
-    
+
     my @fields=(
         {   name        => 'name',
             style       => 'text',
@@ -1108,7 +1108,7 @@ sub get_content ($%) {
     my $config=$self->siteconfig('/content');
     my $list_uri=$config->{list_uri} || '/Content';
     my $flag_cb_uri=$config->{flag_cb_uri} || '/content/preview_flag';
-    
+
     my $name=$args->{name};
     my $data_id=$args->{data_id} || '';
     my $preview=$args->{preview} ||

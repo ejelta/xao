@@ -7,5 +7,5 @@ if(@ARGV) {
     XAO::TestUtils::xao_test(@ARGV);
 }
 else {
-    XAO::TestUtils::xao_test_all('testcases');
+    XAO::TestUtils::xao_test_all('testcases::Indexer');
 }

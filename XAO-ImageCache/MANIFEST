@@ -10,5 +10,5 @@ test.pl
 ImageCache.pm
 img_cache.pl
  ------------------------- tests
-testcases/base.pm
-testcases/imagecache.pm
+testcases/ImageCache/base.pm
+testcases/ImageCache/ImageCache.pm

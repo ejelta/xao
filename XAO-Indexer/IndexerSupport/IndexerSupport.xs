@@ -54,7 +54,7 @@ tree_print(union tree_node *branch, U8 level) {
                 U32 pos=d[j];
                 if(pos!=0xffffffff) {
                     fprintf(stderr,"%*s:::pos=%5lu value=%04x\n",
-                                   spnum,".",pos,j);
+                                   spnum,".",(unsigned long)pos,j);
                 }
             }
         }
@@ -204,7 +204,7 @@ printset(char const *str, U8 list_num, U32 **lists, U32 *sizes) {
         U8 j;
         fprintf(stderr,"lists[%u]={",i);
         for(j=0; j<sizes[i]; ++j) {
-            fprintf(stderr,"%lu,",lists[i][j]);
+            fprintf(stderr,"%lu,",(unsigned long)lists[i][j]);
         }
         fprintf(stderr,"}\n");
     }
@@ -315,9 +315,9 @@ printset_pos(char const *str, U8 list_num, U8 *wnums, U32 **lists, U32 *sizes) {
     fprintf(stderr,"%s:\n",str);
     for(i=0; i<list_num; ++i) {
         U32 j;
-        fprintf(stderr,"wnums[%u]=%u sizes[%u]=%lu lists[%u]={",i,wnums[i],i,sizes[i],i);
+        fprintf(stderr,"wnums[%u]=%u sizes[%u]=%lu lists[%u]={",i,wnums[i],i,(unsigned long)sizes[i],i);
         for(j=0; j<sizes[i]; ++j) {
-            fprintf(stderr,"%lu,",lists[i][j]);
+            fprintf(stderr,"%lu,",(unsigned long)lists[i][j]);
         }
         fprintf(stderr,"}\n");
     }
@@ -463,11 +463,9 @@ sorted_intersection_pos_go(U8 list_num, U8 *wnums, U32 **lists, U32 *sizes) {
                     }
 
                     // We end up here only if we found a match in this list.
-                    // The if(0) is here to silence gcc complaining
-                    // about the label being in the end of a block.
                     //
-                    FOUND:
-                    if(0) printf("..found: j=%u, k=%lu, list[k]=%lu\n",j,k,list[k]);
+                    FOUND:;
+                    /// printf("..found: j=%u, k=%lu, list[k]=%lu\n",j,k,(unsigned long)list[k]);
                 }
 
                 ////

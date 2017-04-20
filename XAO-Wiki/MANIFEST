@@ -20,8 +20,8 @@ templates/bits/wiki/html/header
 templates/bits/wiki/html/link-http
 templates/bits/wiki/html/link-unsupported
 test.pl
-testcases/WikiBase.pm
-testcases/WikiParser.pm
+testcases/Wiki/WikiBase.pm
+testcases/Wiki/WikiParser.pm
 testcases/testroot/projects/test/objects/Config.pm
 testcases/testroot/projects/test/objects/Wiki/Foo.pm
 testcases/testroot/projects/test/objects/Wiki/Render1.pm

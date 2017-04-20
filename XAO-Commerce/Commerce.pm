@@ -148,20 +148,20 @@ Configure a virtual server in your Apache config:
 
    CustomLog /usr/local/xao/projects/SITENAME/logs/access_log combined
    ErrorLog /usr/local/xao/projects/SITENAME/logs/error_log
-   
+
    DocumentRoot /usr/local/xao/projects/SITENAME/images
-   
+
    <Directory /usr/local/xao/handlers>
      Options ExecCGI
-   
+
      # to use cgi's
      SetHandler cgi-script
-   
+
      # to use mod_perl:
      #SetHandler perl-script
      #PerlHandler Apache::Registry
    </Directory>
-   
+
    RewriteEngine on
    RewriteRule   ^/images/(.*)$ \
                  /usr/local/xao/projects/SITENAME/images/$1 \
@@ -206,7 +206,7 @@ package XAO::Commerce;
 use strict;
 
 use vars qw($VERSION);
-$VERSION='1.02';
+$VERSION='1.03';
 
 ###############################################################################
 1;

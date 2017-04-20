@@ -112,20 +112,20 @@ INSTALLATION NOTES
 
            CustomLog /usr/local/xao/projects/SITENAME/logs/access_log combined
            ErrorLog /usr/local/xao/projects/SITENAME/logs/error_log
-   
+
            DocumentRoot /usr/local/xao/projects/SITENAME/images
-   
+
            <Directory /usr/local/xao/handlers>
              Options ExecCGI
-   
+
              # to use cgi's
              SetHandler cgi-script
-   
+
              # to use mod_perl:
              #SetHandler perl-script
              #PerlHandler Apache::Registry
            </Directory>
-   
+
            RewriteEngine on
            RewriteRule   ^/images/(.*)$ \
                          /usr/local/xao/projects/SITENAME/images/$1 \

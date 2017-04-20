@@ -12,8 +12,8 @@ Content.pm
 lib/XAO/DO/Data/Content.pm
 lib/XAO/DO/Data/ContentData.pm
  -----------------------------------------
-testcases/WebContent.pm
-testcases/base.pm
+testcases/Content/WebContent.pm
+testcases/Content/base.pm
 testcases/testroot/projects/test/objects/Config.pm
  -----------------------------------------
 templates/bits/content/add-form

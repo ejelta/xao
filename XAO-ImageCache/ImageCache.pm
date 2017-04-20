@@ -16,17 +16,17 @@ XAO::ImageCache - Images caching by URLs stored in XAO::FS database
 
     # Init new empty Cache
     $image_cache->init() || die "Can't init new cache!";
-    
+
     # Start images checking and downloading to cache
     $image_cache->check();
-    
+
 =head1 DESCRIPTION
 
 When we store images links on own database we have no real
 images on own site. Some time it may be a problem cause images may
 have no right dimension or may be deleted from source site.
 
-XAO::ImageCache made for cache locally images his URL stored 
+XAO::ImageCache made for cache locally images his URL stored
 in XAO Founsation Server. Also, images may be resized automaticaly.
 
 This module provide easy methods to scan XAO Foundation Server data
@@ -57,7 +57,7 @@ use File::Path;
 use File::Copy;
 
 use vars qw($VERSION);
-$VERSION=1.2;
+$VERSION='1.21';
 
 ###############################################################################
 
@@ -90,8 +90,8 @@ sub DESTROY {
 
 =item new($%)
 
-The constructor returns a new C<XAO::ImageCache> object. 
-You can use it to make new images cache or check images 
+The constructor returns a new C<XAO::ImageCache> object.
+You can use it to make new images cache or check images
 of already existent cache.
 
  my $image_cache = XAO::ImageCache->new(
@@ -120,14 +120,14 @@ of already existent cache.
      useragent      => {
          agent   => 'My Lovely Browser/v13.01',
          timeout => 30,
-     },  
+     },
      force_download => 1,               # to enforce re-downloads
      force_scale    => 1,               # to enforce re-scaling
      clear_on_error => 0,               # don't clear DB properties even on permanent errors
  ) || die "Image cache creation failure!";
 
-A number of configuration parameters can be passed to 
-XAO::ImageCache to tune functionality. 
+A number of configuration parameters can be passed to
+XAO::ImageCache to tune functionality.
 
 =over
 
@@ -157,12 +157,12 @@ XAO::ImageCache to tune functionality.
 
 =back
 
-Follow to L<CONFIGURATION PARAMETERS|/"CONFIGURATION PARAMETERS"> 
+Follow to L<CONFIGURATION PARAMETERS|/"CONFIGURATION PARAMETERS">
 section to see what each parameter does.
 
 If any required parameter is not present an error will be thrown.
 
-=cut 
+=cut
 
 #
 # Creating new instance of Image Cache object.
@@ -181,7 +181,7 @@ If any required parameter is not present an error will be thrown.
 # Optional parameters:
 #
 # dest_url_key   => key name containing destination url name
-# size => { 
+# size => {
 #          width  =>
 #          height =>
 # }
@@ -199,9 +199,9 @@ sub new ($%) {
     # Passed parameters
     if (@_) {
         my %extra = @_;
-        @$self{keys %extra} = values %extra;    
+        @$self{keys %extra} = values %extra;
     }
-    
+
     #
     # Check required parameters
     #
@@ -269,7 +269,7 @@ sub new ($%) {
     $self->{'thumbnails'}->{'quality'}||=88;
 
     # Make LWP::UserAgent instance
-    my $hash_ref = $self->{'useragent'}; 
+    my $hash_ref = $self->{'useragent'};
     $self->{ua}  = LWP::UserAgent->new( %$hash_ref)
                 || $self->throw("- LWP::UserAgent creation failure!");
 
@@ -831,7 +831,7 @@ Removing the ENTIRE cache directory from disk.
 Be carefully to use this method!!!
 
 Cache structure will be removed from disk completely!
-Set C<force_download> parameter to True value to download 
+Set C<force_download> parameter to True value to download
 images to cache without any conditions.
 
 =cut
@@ -866,15 +866,15 @@ characters are converted to C<_>.
 
 Example.
 
-    Location: 
+    Location:
     http://localhost/icons/medbutton.jpeg
-    
+
     provide file name:
     4aFNA1utpmCNG2wEIF69mg.jpeg
 
 =cut
 
-# Return MD5 digest of given URL converted to Base64 
+# Return MD5 digest of given URL converted to Base64
 # string with extension and
 sub get_filename($) {
     my $source = shift;
@@ -956,9 +956,9 @@ sub convert_time($) {
 
 =head1 CONFIGURATION PARAMETERS
 
-The set of configuration parameters contain required and optional parameters. 
+The set of configuration parameters contain required and optional parameters.
 
-Required parameters should be defined. Execution will be stoped if required 
+Required parameters should be defined. Execution will be stoped if required
 parameter not present.
 
 Optional parameters just configure aditional functionality and may not present.
@@ -973,29 +973,29 @@ Optional parameters just configure aditional functionality and may not present.
 
 May be absolute or relative from current execution directory path.
 
-For example. Set it to C<./cache> if you whant to place cache in 
+For example. Set it to C<./cache> if you whant to place cache in
 C<cache> subdirectory of your script working directory.
 
 =item cache_url
 
 - complet URL (or relative location) to cached images.
 
-Place here your URL reflection of cache directory in condition with 
+Place here your URL reflection of cache directory in condition with
 your HTTP server configuration.
 
-For example. Set it to C<http://my.host.com/images/> if your HTTP 
-server configured for provide access to your cache directory by 
-hostname C<my.host.com> and location C<images/>. Cached images names 
+For example. Set it to C<http://my.host.com/images/> if your HTTP
+server configured for provide access to your cache directory by
+hostname C<my.host.com> and location C<images/>. Cached images names
 will be added to image URL automaticaly.
 
 =item list
 
-- reference to C<XAO::DO::FS::List> object containing the data objects 
+- reference to C<XAO::DO::FS::List> object containing the data objects
 with Image source URL
 
-Meaning, your data look like a XAO Foundation Server list of objects 
-with references to images. This parameter should contain reference to 
-to XAO::DO::FS::List object. This reference may be result of 
+Meaning, your data look like a XAO Foundation Server list of objects
+with references to images. This parameter should contain reference to
+to XAO::DO::FS::List object. This reference may be result of
 XAO::Objects->fetch() methode.
 
 XAO::ImageCache will process each record of this list.
@@ -1014,9 +1014,9 @@ Contain the name of key of data object containing the source image reference.
 
 =item dest_url_key
 
-- data key for storing URL of image in cache. 
+- data key for storing URL of image in cache.
 
-Optional parameter cause image name in cache will be a MD5 Base64 
+Optional parameter cause image name in cache will be a MD5 Base64
 digest of source image path where C<=> character removed, C<\> and C<+>
 translated to C<_> and C<-> simultaniosely.
 
@@ -1024,25 +1024,25 @@ To get cached image name
 
 =item size
 
-- Prefered image size may set as C<geometry> equal to C<geometry> parameter 
-of Image::Magick module to pass it dirrectly to Image::Magick Scale function. 
+- Prefered image size may set as C<geometry> equal to C<geometry> parameter
+of Image::Magick module to pass it dirrectly to Image::Magick Scale function.
 
-Other way to set the image size is set a width and height keys to preffered 
-values. 
+Other way to set the image size is set a width and height keys to preffered
+values.
 
-If one of image dimension is not defined then corresponding parameter of 
+If one of image dimension is not defined then corresponding parameter of
 original image will be used.
 
-This way, image will be resized with same aspect ratio (same proportions) to 
-the original image if C<save_aspect_ratio> parameter present. 
+This way, image will be resized with same aspect ratio (same proportions) to
+the original image if C<save_aspect_ratio> parameter present.
 
-Image width and height will be resized exactly to given size if 
+Image width and height will be resized exactly to given size if
 C<save_aspect_ratio> parameter not present.
 
-Parameter C<geometry> has higher priority and other parameters has no effects 
+Parameter C<geometry> has higher priority and other parameters has no effects
 if C<geometry> peresent.
 
-For example. 
+For example.
 
     # Size 320x200 as geometry settings
     %params = (size => {geometry => "320x200!"} );
@@ -1051,7 +1051,7 @@ For example.
     %params = (size => {width => 320, height => 200} );
 
     # Fit size into 320x200 with saving image proportions
-    %params = (        
+    %params = (
         size => {
             width                   => 320,
             height                   => 200,
@@ -1063,28 +1063,28 @@ For example.
 
 - create or check cache content automaticaly.
 
-If non zero value present, cache directory will be created 
-and images checking will be runned. Otherwithe you should run 
+If non zero value present, cache directory will be created
+and images checking will be runned. Otherwithe you should run
 init() and check() methodes manualy.
 
-Existent cache directory will not be removed. You may do it 
+Existent cache directory will not be removed. You may do it
 manualy using remove_cache() methode.
 
 =item force_download
 
-- each image should be reloaded to cache and processed without 
-dependance of source image modification time. Any conditions 
+- each image should be reloaded to cache and processed without
+dependance of source image modification time. Any conditions
 ignored.
 
 =item thumbnail
 
 - thumbnails creator configuration
 
-Some thubnails configuration parameters may be set for 
-automatic thumbnails creation. This parameter should contain 
+Some thubnails configuration parameters may be set for
+automatic thumbnails creation. This parameter should contain
 the reference to hash with thumbnails configuration parameters.
 
-Only C<path> parameter is required. Other parameters are 
+Only C<path> parameter is required. Other parameters are
 optional.
 
 =over
@@ -1103,8 +1103,8 @@ Data object key name where thumbnail URL should be stored.
 
 =item geometry
 
-Geometry string to set thumbnail images size in Image Magick geometry 
-format. May be set as dimension ("320x200!") or as persent of actual 
+Geometry string to set thumbnail images size in Image Magick geometry
+format. May be set as dimension ("320x200!") or as persent of actual
 size of cached image ("25%").
 
 Default value is "50%" the half of actual image size.
@@ -1153,10 +1153,10 @@ L<XAO::DO::FS::Global>,
 
 L<XAO::DO::FS::Glue::MySQL_DBI>,
 
-Refer to L<Image::Magick> documentation for additional 
+Refer to L<Image::Magick> documentation for additional
 information about setting of image scaling parameters.
 
-Refer to L<LWP::UserAgent> documentation for additional 
+Refer to L<LWP::UserAgent> documentation for additional
 information about user agent parameters.
 
 =head1 BUGS

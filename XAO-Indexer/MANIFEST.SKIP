@@ -1,4 +1,6 @@
 Makefile(\.old)?$
+MYMETA.json
+MYMETA.yml
 CVS/
 \.gitignore
 \.config
