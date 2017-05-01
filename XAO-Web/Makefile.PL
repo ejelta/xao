@@ -106,6 +106,9 @@ WriteMakefile(
     'AUTHOR'        => 'Andrew Maltsev, http://ejelta.com/xao/',
     'NAME'          => 'XAO::Web',
     'VERSION_FROM'  => 'Web.pm',
+    'CONFIGURE_REQUIRES' => {
+        'XAO::Base'                 => 1.13,
+    },
     'PREREQ_PM'     => {
         'CGI'                       => 4.14,
         'CGI::Cookie'               => 4.14,
