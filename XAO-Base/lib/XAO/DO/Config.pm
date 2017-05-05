@@ -52,9 +52,6 @@ use XAO::Cache;
 
 use base XAO::Objects->load(objname => 'Atom');
 
-use vars qw($VERSION);
-$VERSION=(0+sprintf('%u.%03u',(q$Id: Config.pm,v 2.2 2008/07/06 23:02:15 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
-
 ###############################################################################
 # Prototypes
 #

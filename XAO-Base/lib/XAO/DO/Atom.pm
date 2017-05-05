@@ -32,9 +32,6 @@ use strict;
 use XAO::Utils;
 use XAO::Errors;
 
-use vars qw($VERSION);
-$VERSION=(0+sprintf('%u.%03u',(q$Id: Atom.pm,v 2.4 2008/07/21 03:25:10 am Exp $ =~ /\s(\d+)\.(\d+)\s/))) || die "Bad VERSION";
-
 ###############################################################################
 
 =item new (%)
@@ -49,6 +46,20 @@ sub new ($%) {
     my $proto=shift;
     my $self=merge_refs(get_args(\@_));
     bless $self,ref($proto) || $proto;
+}
+
+###############################################################################
+
+=item objname
+
+Returns the shorthand objname that was passed to XAO::Objects->new()
+when creating this object. It is not the same as the fully qualified
+class name.
+
+=cut
+
+sub objname ($) {
+    return $_[0]->{'objname'};
 }
 
 ###############################################################################
@@ -109,6 +120,8 @@ sub throw ($@) {
 ###############################################################################
 1;
 __END__
+
+=back
 
 =head1 EXPORTS
 

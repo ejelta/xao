@@ -11,8 +11,11 @@ sub test_reset {
 
     my $odb=$self->{'odb'};
 
+    $self->assert($odb->objname eq 'FS::Glue',
+        "Expected odb objname to be FS::Glue, got ".$odb->objname);
+
     my $g=$odb->fetch('/');
-    
+
     $g->put(project => 'test');
 
     $self->assert($g->_driver->connector->sql_connected,
@@ -66,14 +69,17 @@ sub test_xaofs {
         t4 => {
             path    => 'xaofs://collection/class/Data::Customer',
             result  => 'XAO::DO::FS::Collection',
+            objname => 'FS::Collection',
         },
         t5 => {
             path    => 'xaofs://collection/class/Data::Customer/',
             result  => 'XAO::DO::FS::Collection',
+            objname => 'FS::Collection',
         },
         t6 => {
             path    => 'xaofs://uri/Customers',
             result  => 'XAO::DO::FS::List',
+            objname => 'FS::List',
         },
     );
 
@@ -84,6 +90,12 @@ sub test_xaofs {
         my $expect=$test->{result};
         $self->assert((ref($got) || $got) eq $expect,
                       "Expected '$expect', got '$got'");
+
+        if($test->{'objname'}) {
+            my $objname=$got->objname;
+            $self->assert($objname eq $test->{'objname'},
+                "Expected objname() to return '$test->{'objname'}', got '$objname'");
+        }
     }
 }
 

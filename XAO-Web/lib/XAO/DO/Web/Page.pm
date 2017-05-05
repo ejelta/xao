@@ -1294,7 +1294,7 @@ sub parse_retrieve ($@) {
     #
     if($path && !defined $template) {
         if($self->debug_check('show-read')) {
-            dprint $self->{'objname'}."::parse - read path='$path'";
+            dprint $self->objname."::parse - read path='$path'";
         }
 
         $template=XAO::Templates::get(path => $path);
@@ -1315,7 +1315,7 @@ sub parse_retrieve ($@) {
         #
         if($self->debug_check('show-parse')) {
             if($path) {
-                dprint $self->{'objname'}."::parse - parsing path='$path'"
+                dprint $self->objname."::parse - parsing path='$path'"
             }
             else {
                 my $te=substr($template,0,20);
@@ -1323,7 +1323,7 @@ sub parse_retrieve ($@) {
                 $te=~s/\n/\\n/sg;
                 $te=~s/\t/\\t/sg;
                 $te.='...' if length($template)>20;
-                dprint $self->{'objname'}."::parse - parsing template='$te'";
+                dprint $self->objname."::parse - parsing template='$te'";
             }
         }
 
