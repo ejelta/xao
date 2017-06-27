@@ -83,8 +83,16 @@ sub sql_connected ($) {
 
     return undef unless $self->{'sql'};
 
-    # MySQL seems to send error messages directly to stderr. Hiding them
+    # MySQL seems to send error messages directly to stderr. Hiding
+    # them, taking care of leaving the same output stream layers as
+    # there were.
     #
+    my $layers;
+    eval {
+        require PerlIO;
+        $layers=[ PerlIO::get_layers(*STDERR) ];
+    };
+
     use vars qw(*SE);
     open(SE,">&STDERR");
     open(STDERR,">/dev/null");
@@ -93,6 +101,14 @@ sub sql_connected ($) {
 
     open(STDERR,">&SE");
     close(SE);
+
+    if($layers) {
+        my @nl=PerlIO::get_layers(*STDERR);
+        foreach my $layer (@$layers) {
+            next if (grep { $_ eq $layer } @nl) && $layer!~/encoding/ && $layer!~/utf/;
+            binmode(STDERR,$layer);
+        }
+    }
 
     return $rc ? 1 : 0;
 }
