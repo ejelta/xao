@@ -24,10 +24,15 @@ sub test_reset {
     # This is not normally used!
     $g->_driver->disconnect;
 
-    $self->assert(! $g->_driver->connector->sql_connected,
+    $self->stderr_stop();
+    my $rc=$g->_driver->connector->sql_connected;
+    $self->stderr_restore();
+    $self->assert(!$rc,
         "Database is still connected after the disconnect");
 
+    $self->stderr_stop();
     $g->reset;
+    $self->stderr_restore();
 
     $self->assert($g->_driver->connector->sql_connected,
         "Database is NOT connected after reset()");
