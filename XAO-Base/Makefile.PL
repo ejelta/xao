@@ -132,6 +132,7 @@ WriteMakefile(
         'BaseConfig.PL' => '$(INST_LIB)/XAO/BaseConfig.pm',
     },
     'MAN3PODS'      => \%man3pods,
+    'MIN_PERL_VERSION'  => '5.10.0',
 );
 
 sub MY::postamble
