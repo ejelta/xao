@@ -704,7 +704,7 @@ sub test_unicode_transparency {
             charmode    => 1,
             template    => qq(<%Page pass template={'<%UniHex a={<%Page pass template='<\$CHAR\$>'%>} b={<%Page X="<\$CHAR\$>" template='<\$X\$>'%>}%>'}%>),
             args        => {
-                CHAR        => "\xe9",#"\x{263a}",
+                CHAR        => "\xe9",
             },
             expect      => "(a|c3a9|1)(b|c3a9|1)",
         },

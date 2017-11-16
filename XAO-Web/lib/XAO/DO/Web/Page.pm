@@ -525,7 +525,9 @@ from Page unless overwritten) are:
 
 ###############################################################################
 package XAO::DO::Web::Page;
+use warnings;
 use strict;
+use utf8;
 use Digest::SHA qw(sha1_hex);
 use Encode;
 use Time::HiRes qw(gettimeofday tv_interval);
@@ -539,8 +541,6 @@ use XAO::Utils;
 use Error qw(:try);
 
 use base XAO::Objects->load(objname => 'Atom');
-
-use feature 'unicode_strings';
 
 # Prototypes
 #
@@ -1385,10 +1385,42 @@ sub parse_retrieve ($@) {
         }
     }
 
-    # Parsing. If a scalar is returned it is an indicator of an error.
+    # Parsing.
     #
-    my $parsed=XAO::PageSupport::parse($template,$self->_character_mode);
+    my $parsed;
+    if($self->_character_mode) {
 
+        # We might get a latin1 string like \xe9 that is meant to
+        # be a Unicode, but is not. Unless all code is switched to
+        # use 'unicode_strings' feature this can easily happen.
+        #
+        # BUT! We can also get an already UTF-8 encoded byte string,
+        # in which case upgrade would break it.
+        #
+        # Using shameful black magic :(
+        #
+        if(!Encode::is_utf8($template)) {
+            Encode::_utf8_on($template);
+
+            # UTF-8 encoded bytes or plain ASCII
+            #
+            if(Encode::is_utf8($template,1)) {
+                # No-op
+            }
+            else {
+                Encode::_utf8_off($template);
+                utf8::upgrade($template);
+            }
+        }
+
+        $parsed=XAO::PageSupport::parse($template,1);
+    }
+    else {
+        $parsed=XAO::PageSupport::parse($template,0);
+    }
+
+    # If a scalar is returned it is an indicator of an error.
+    #
     ref $parsed ||
         throw $self "- $parsed";
 
