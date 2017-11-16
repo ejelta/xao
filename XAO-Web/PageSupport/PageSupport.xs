@@ -48,7 +48,7 @@ isalnum_dot(int c) {
 /* Parsing template into an array suitable for Web::Page
 */
 static SV*
-parse_text(pTHX_ char * template, STRLEN length) {
+parse_text(pTHX_ char * template, STRLEN length, short is_unicode) {
     AV* parsed=newAV();
 
     char *str=template;
@@ -62,6 +62,7 @@ parse_text(pTHX_ char * template, STRLEN length) {
     while(str<end) {
         char var_flag;
         HV* hv;
+        SV* sv;
 
         /* Simple parser with basically just two states -- text and
          * object, instead of tracking states we just have two separate
@@ -74,8 +75,9 @@ parse_text(pTHX_ char * template, STRLEN length) {
                 if(str+3<end && str[2]==str[1] && str[3]=='>') {
                     /* A way to embed '<%' or '<$' -- <%%> or <$$> */
                     hv=newHV();
-                    hv_store(hv,"text",4,
-                                newSVpvn(text_ptr,str+2-text_ptr),0);
+                    sv=newSVpvn(text_ptr,str+2-text_ptr);
+                    if(is_unicode) SvUTF8_on(sv);
+                    hv_store(hv,"text",4,sv,0);
                     av_push(parsed,newRV_noinc((SV*)hv));
 
                     str+=4;
@@ -84,8 +86,9 @@ parse_text(pTHX_ char * template, STRLEN length) {
                 else {
                     if(text_ptr!=str) {
                         hv=newHV();
-                        hv_store(hv,"text",4,
-                                    newSVpvn(text_ptr,str-text_ptr),0);
+                        sv=newSVpvn(text_ptr,str-text_ptr);
+                        if(is_unicode) SvUTF8_on(sv);
+                        hv_store(hv,"text",4,sv,0);
                         av_push(parsed,newRV_noinc((SV*)hv));
                     }
                     break;
@@ -94,8 +97,9 @@ parse_text(pTHX_ char * template, STRLEN length) {
             else if(*str=='<' && str+4<end && str[1]=='!' && str[2]=='-' && str[3]=='-' && str[4]!='/' && str[4]!='[' && str[4]!='>' && str[4]!='<') {
                 if(text_ptr!=str) {
                     hv=newHV();
-                    hv_store(hv,"text",4,
-                                newSVpvn(text_ptr,str-text_ptr),0);
+                    sv=newSVpvn(text_ptr,str-text_ptr);
+                    if(is_unicode) SvUTF8_on(sv);
+                    hv_store(hv,"text",4,sv,0);
                     av_push(parsed,newRV_noinc((SV*)hv));
                 }
 
@@ -116,8 +120,9 @@ parse_text(pTHX_ char * template, STRLEN length) {
                 if(str>=end) {
                     if(text_ptr!=str) {
                         hv=newHV();
-                        hv_store(hv,"text",4,
-                                    newSVpvn(text_ptr,str-text_ptr),0);
+                        sv=newSVpvn(text_ptr,str-text_ptr);
+                        if(is_unicode) SvUTF8_on(sv);
+                        hv_store(hv,"text",4,sv,0);
                         av_push(parsed,newRV_noinc((SV*)hv));
                         str+=2;
                     }
@@ -339,13 +344,15 @@ parse_text(pTHX_ char * template, STRLEN length) {
                     }
 
                     if(literal) {
+                        sv=newSVpvn(val_start,val_end-val_start);
+                        if(is_unicode) SvUTF8_on(sv);
                         hv_store(args,
                                  text_ptr,name_end-text_ptr,
-                                 newSVpvn(val_start,val_end-val_start),
+                                 sv,
                                  0);
                     }
                     else {
-                        SV* val=parse_text(aTHX_ val_start,val_end-val_start);
+                        SV* val=parse_text(aTHX_ val_start,val_end-val_start,is_unicode);
                         if(SvROK(val)) {
                             hv_store(args,text_ptr,name_end-text_ptr,
                                           val,0);
@@ -399,14 +406,17 @@ push()
 
 
 SV *
-pop()
+pop(is_unicode)
+        short is_unicode;
 	CODE:
 		char *text;
 		STRLEN len;
+
 		if(!buffer) {
 		    text="";
 		    len=0;
-        } else {
+        }
+        else {
             len=bufpos;
             if(stacktop) {
                 bufpos=pstack[--stacktop];
@@ -417,6 +427,8 @@ pop()
             text=buffer+bufpos;
         }
 		RETVAL=newSVpvn(text,len);
+        if(is_unicode)
+            SvUTF8_on(RETVAL);
 	OUTPUT:
 	    RETVAL
 
@@ -430,8 +442,9 @@ bookmark()
 
 
 SV *
-peek(len)
+peek(len, is_unicode)
         unsigned long len;
+        short is_unicode;
     CODE:
         if(!buffer || len>bufpos) {
             RETVAL=newSVpvn("",0);
@@ -439,6 +452,8 @@ peek(len)
         else {
 		    RETVAL=newSVpvn(buffer+len,bufpos-len);
         }
+        if(is_unicode)
+            SvUTF8_on(RETVAL);
 	OUTPUT:
 	    RETVAL
 
@@ -464,10 +479,11 @@ addtext(text)
 
 
 SV *
-parse(text)
+parse(template,is_unicode)
         STRLEN length=0;
         char *template=SvPV(ST(0),length);
+        short is_unicode;
     CODE:
-        RETVAL=parse_text(aTHX_ template, length);
+        RETVAL=parse_text(aTHX_ template, length, is_unicode);
     OUTPUT:
         RETVAL

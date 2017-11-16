@@ -1,4 +1,5 @@
 package testcases::Web::WebSetArg;
+use warnings;
 use strict;
 use XAO::Projects;
 

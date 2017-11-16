@@ -1,4 +1,5 @@
 package testcases::Web::Page;
+use warnings;
 use strict;
 use Encode;
 use XAO::Objects;
@@ -617,53 +618,224 @@ EOT
 sub test_unicode_transparency {
     my $self=shift;
 
-    my $page=XAO::Objects->new(objname => 'Web::Page');
-    $self->assert(ref($page),
-                  "Can't load Page object");
+    use utf8;
+    STDERR->binmode(':utf8');
 
-    ##
-    # Explanation: This is probably going to change in the future, but
-    # for right now we assume that the template engine operates on
-    # bytes, not characters. Thus we expect bytes back even when we
-    # supply unicode.
+    # By default, mainly for backwards compatibility, the template
+    # engine operates on bytes, not characters. Thus we expect bytes
+    # back even when we supply unicode.
     #
-    # TODO: The better way is probably to define an encoding for input/output
-    # text somewhere and always convert from that encoding to UTF and
-    # back whenever we cross the border between templates and perl code.
+    # When character mode is set in /xao/page/character_mode configuration parameter
+    # the templates are assumed to be UTF-8 encoded, expansion results
+    # and object arguments are perl characters.
     #
     my %tests=(
-        t1  => {
+        b1  => {
             template    => "unicode - \x{263a} - ttt",
             expect      => Encode::encode('utf8',"unicode - \x{263a} - ttt"),
         },
-        t2  => {
+        b2  => {
             template    => Encode::encode('utf8',"unicode - \x{263a} - ttt"),
             expect      => Encode::encode('utf8',"unicode - \x{263a} - ttt"),
         },
-        t3  => {
+        b3  => {
             template    => Encode::encode('ucs2',"unicode - \x{263a} - ttt"),
             expect      => Encode::encode('ucs2',"unicode - \x{263a} - ttt"),
         },
-        t4 => {
+        b4 => {
             template    => "8bit - \x90\x91\x92",
             expect      => "8bit - \x90\x91\x92",
         },
-        t5 => {
+        b5 => {
             template    => '<%SetArg name="A" value="<$BAR/f$>"%>foo<$A$>',
-            BAR         => "<\x{263a}>",
+            args        => {
+                BAR         => "<\x{263a}>",
+            },
             expect      => Encode::encode('utf8',"foo<\x{263a}>"),
+        },
+        #
+        c1 => {
+            charmode    => 1,
+            template    => "unicode - \x{263a} - ttt",
+            expect      => "unicode - \x{263a} - ttt",
+        },
+        c2 => {
+            charmode    => 1,
+            template    => "unicode - \x{263a} - ttt",
+            expect      => "unicode - \x{263a} - ttt",
+        },
+        c3 => {
+            charmode    => 1,
+            template    => Encode::encode('utf8',"unicode - \x{263a} - ttt"),
+            expect      => "unicode - \x{263a} - ttt",
+        },
+        c4 => {
+            charmode    => 1,
+            template    => "Español a inglés",
+            expect      => "Español a inglés",
+        },
+        c5 => {
+            charmode    => 1,
+            template    => '<%SetArg name="A" value="<$BAR/f$>"%>foo<$A$>',
+            args        => {
+                BAR         => "<\x{263a}>",
+            },
+            expect      => "foo<\x{263a}>",
+        },
+        c6 => {
+            charmode    => 1,
+            template    => qq(<%UniHex a="\x{263a}" b="\xe9" c="<\$CHAR\$>" d="<\$BYTE\$>" e="<%BYTE/f%>" f="<\$LCH\$>"%>),
+            args        => {
+                CHAR        => "\x{263a}",
+                BYTE        => "\xe9",
+                LCH         => "\N{U+e9}",
+            },
+            expect      => "(a|e298ba|1)(b|c3a9|1)(c|e298ba|1)(d|c3a9|1)(e|c3a9|1)(f|c3a9|1)",
+        },
+        c7 => {
+            charmode    => 1,
+            template    => qq(<%UniHex a={<%Page pass template='<\$CHAR\$>'%>} b={<%Page X="<\$CHAR\$>" template='<\$X\$>'%>}%>),
+            args        => {
+                CHAR        => "\xe9",
+            },
+            expect      => "(a|c3a9|1)(b|c3a9|1)",
+        },
+        c8 => {
+            charmode    => 1,
+            template    => qq(<%Page pass template={'<%UniHex a={<%Page pass template='<\$CHAR\$>'%>} b={<%Page X="<\$CHAR\$>" template='<\$X\$>'%>}%>'}%>),
+            args        => {
+                CHAR        => "\xe9",#"\x{263a}",
+            },
+            expect      => "(a|c3a9|1)(b|c3a9|1)",
+        },
+        c9 => {
+            charmode    => 1,
+            template    => qq(<%Page pass template={'<%UniHex a={<%Page pass template='<\$CHAR\$>'%>} b={<%Page X="<\$CHAR\$>" template='<\$X\$>'%>}%>'}%>),
+            args        => {
+                CHAR        => 'Q',
+            },
+            expect      => '(a|51|1)(b|51|1)',
+        },
+        c10 => {
+            charmode    => 1,
+            template    => Encode::encode_utf8(qq(<%UniHex c={<%Page template='\N{U+e9}'%>}%>)),
+            expect      => "(c|c3a9|1)",
+        },
+        c11 => {
+            charmode    => 1,
+            template    => qq(<%UniHex c={<%Page template='\N{U+e9}'%>}%>),
+            expect      => "(c|c3a9|1)",
+        },
+        c12 => {
+            charmode    => 1,
+            template    => Encode::encode_utf8(qq(<%UniHex c={<%Page template='\N{U+e9}\N{U+2122}'%>}%>)),
+            expect      => '(c|c3a9e284a2|1)'
+        },
+        c13 => {
+            charmode    => 1,
+            template    => qq(<%UniHex c={<%Page template='é™'%>}%>),
+            expect      => '(c|c3a9e284a2|1)'
+        },
+        c14 => {
+            charmode    => 1,
+            template    => qq(<%UniHex a={a<%Page template={b<%Page template='\N{U+2122}'%>}%>}%>),
+            expect      => '(a|6162e284a2|1)',
+        },
+        c15a => {
+            charmode    => 1,
+            template    => qq(<%Page template='&#8482;'%>),
+            expect      => '™',
+        },
+        c15b => {
+            template    => qq(<%Page template='&#8482;'%>),
+            expect      => Encode::encode_utf8('™'),
+        },
+        c15c => {
+            template    => qq(<%Page template='&#8482;'%>),
+            expect      => Encode::encode_utf8('™'),
+        },
+        #
+        d1a => {
+            template    => qq(<script><%MyAction datamode='test-alt' arg='Foo\x{2122}' format='json-embed'%></script>),
+            expect      => qr/Foo\x{2122}/,
+        },
+        d1b => {
+            charmode    => 1,
+            template    => qq(<script><%MyAction datamode='test-alt' arg='Foo\x{2122}' format='json-embed'%></script>),
+            expect      => qr/Foo\x{2122}/,
+        },
+        #
+        e1 => {
+            template    => "<\$FOO\$>\x00\x01\x02",
+            args        => {
+                unparsed    => 1,
+            },
+            expect      => "<\$FOO\$>\x00\x01\x02",
+        },
+        e2 => {
+            charmode    => 1,
+            template    => "<\$FOO\$>\x00\x01\x02",
+            args        => {
+                unparsed    => 1,
+            },
+            expect      => "<\$FOO\$>\x00\x01\x02",
+        },
+        e3 => {
+            template    => qq(<%UniHex a="<%Page/f path='/clear.gif' unparsed%>"%>),
+            expect      => '(a|47494638376101000100800000ffffff0000002c00000000010001000002024401003b|)',
+        },
+        #
+        # This is a test for a known limitation. When an unparsed
+        # content is included in another template the resulting string
+        # is UTF-8 upgraded. The reason for that is because the
+        # argument is expanded as another template and could in theory
+        # include additional characters. With that concatenation it is
+        # impossible to preserve the byte-ness of the unparsed result.
+        #
+        e4a => {
+            charmode    => 1,
+            template    => qq(<%UniHex a="<%Page path='/clear.gif' unparsed%>"%>),
+            expect      => '(a|47494638376101000100800000ffffff0000002c00000000010001000002024401003b|1)',
+        },
+        e4b => {
+            charmode    => 1,
+            template    => qq(<%UniHex a="FOO<%Page path='/clear.gif' unparsed%>"%>),
+            expect      => '(a|464f4f47494638376101000100800000ffffff0000002c00000000010001000002024401003b|1)',
         },
     );
 
-    foreach my $test (keys %tests) {
-        my $template=$tests{$test}->{'template'};
-        my $got=$page->expand($tests{$test});
-        my $expect=$tests{$test}->{'expect'};
-        ### dprint "length(template=$template)=".length($template);
-        ### dprint "length(got=$got)=".length($got);
-        ### dprint "length(expect=$expect)=".length($expect);
-        $self->assert($got eq $expect,
-                      "Test $test - expected '$expect', got '$got'");
+    while(my ($tname,$test)=each %tests) {
+        $self->siteconfig->put('/xao/page/character_mode' => $test->{'charmode'});
+
+        my $page=XAO::Objects->new(objname => 'Web::Page');
+
+        my $template=$test->{'template'};
+        my $got=$page->expand({template => $template},$test->{'args'});
+        my $expect=$test->{'expect'};
+
+        ### if(defined $template) {
+        ###     dprint "$tname: template=$template length=".length($template)." utf8=".Encode::is_utf8($template);
+        ### }
+        ### dprint "$tname:      got=$got length=".length($got)." utf8=".Encode::is_utf8($got);
+        ### dprint "$tname:   expect=$expect length=".length($expect)." utf8=".Encode::is_utf8($expect);
+
+        if(!$test->{'charmode'} || $test->{'args'}->{'unparsed'}) {
+            $self->assert(!Encode::is_utf8($got),
+                "Test $tname - expected bytes, got characters");
+        }
+        else {
+            $self->assert(Encode::is_utf8($got),                    # will fail if tests include plain ascii
+                "Test $tname - expected characters, got bytes");
+        }
+
+        if(ref $expect eq 'Regexp') {
+            $self->assert($got =~ $expect,
+                "Test $tname - expected to match '$expect', got '$got'");
+        }
+        else {
+            $self->assert($got eq $expect,
+                "Test $tname - expected '$expect', got '$got'");
+        }
     }
 }
 

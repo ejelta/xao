@@ -263,7 +263,7 @@ sub test_parse {
     );
 
     foreach my $template (keys %matrix) {
-        my $parsed=XAO::PageSupport::parse($template);
+        my $parsed=XAO::PageSupport::parse($template,0);
         my $expect=$matrix{$template};
         my $rc=ref($expect) ? Compare($expect,$parsed) : !ref($parsed);
         $rc ||
@@ -290,10 +290,10 @@ sub test_peek {
         XAO::PageSupport::addtext('bar');
         XAO::PageSupport::push();
         XAO::PageSupport::addtext('baz');
-        my $got=XAO::PageSupport::pop();
+        my $got=XAO::PageSupport::pop(0);
         $self->assert($got eq 'baz',
             "Expected 'baz', got '$got' ($name-1)");
-        $got=XAO::PageSupport::pop();
+        $got=XAO::PageSupport::pop(0);
         $self->assert($got eq 'foobar',
             "Expected 'foobar', got '$got' ($name-2)");
     };
@@ -305,14 +305,14 @@ sub test_peek {
 
     XAO::PageSupport::addtext($text1);
 
-    my $got1=XAO::PageSupport::peek($bm1);
+    my $got1=XAO::PageSupport::peek($bm1,0);
 
     $self->assert($got1 eq $text1,
         "Expected '$text1', got '$got1' (t1)");
 
     $tpsub->('t2');
 
-    $got1=XAO::PageSupport::peek($bm1);
+    $got1=XAO::PageSupport::peek($bm1,0);
 
     $self->assert($got1 eq $text1,
         "Expected '$text1', got '$got1' (t3)");
@@ -322,29 +322,29 @@ sub test_peek {
 
     XAO::PageSupport::addtext($text2);
 
-    my $got2=XAO::PageSupport::peek($bm2);
+    my $got2=XAO::PageSupport::peek($bm2,0);
 
     $self->assert($got2 eq $text2,
         "Expected '$text2', got '$got2' (t4)");
 
-    $got1=XAO::PageSupport::peek($bm1);
+    $got1=XAO::PageSupport::peek($bm1,0);
 
     $self->assert($got1 eq $text1.$text2,
         "Expected '$text1$text2', got '$got1' (t5)");
 
     $tpsub->('t6');
 
-    $got2=XAO::PageSupport::peek($bm2);
+    $got2=XAO::PageSupport::peek($bm2,0);
 
     $self->assert($got2 eq $text2,
         "Expected '$text2', got '$got2' (t7)");
 
-    $got1=XAO::PageSupport::peek($bm1);
+    $got1=XAO::PageSupport::peek($bm1,0);
 
     $self->assert($got1 eq $text1.$text2,
         "Expected '$text1$text2', got '$got1' (t8)");
 }
- 
+
 sub test_textadd {
     my $self=shift;
 
@@ -354,8 +354,8 @@ sub test_textadd {
     XAO::PageSupport::push();
     XAO::PageSupport::addtext("INNER");
 
-    my $inner=XAO::PageSupport::pop();
-    my $outer=XAO::PageSupport::pop();
+    my $inner=XAO::PageSupport::pop(0);
+    my $outer=XAO::PageSupport::pop(0);
 
     $self->assert($inner eq 'INNER',
                   "Inner block is not correct (expected 'INNER', got '$inner')");
@@ -373,11 +373,11 @@ sub test_textadd {
             for(1..10) {
                 XAO::PageSupport::addtext("ABCdef\200\270\300\370");
                 XAO::PageSupport::addtext("\3\2\1\0AFTER");
-            } 
-            $inner.=XAO::PageSupport::pop();
+            }
+            $inner.=XAO::PageSupport::pop(0);
         }
     }
-    $outer=XAO::PageSupport::pop();
+    $outer=XAO::PageSupport::pop(0);
     $self->assert(length($inner) == 19000,
                   "Got wrong inner block length");
 
