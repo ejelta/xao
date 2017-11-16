@@ -1,5 +1,7 @@
 package XAO::Web;
+use warnings;
 use strict;
+use Encode;
 use Error qw(:try);
 use XAO::Utils;
 use XAO::Projects;
@@ -13,7 +15,7 @@ use XAO::Errors qw(XAO::Web);
 # XAO::Web version number. Hand changed with every release!
 #
 use vars qw($VERSION);
-$VERSION='1.48';
+$VERSION='1.49';
 
 ###############################################################################
 
@@ -648,7 +650,8 @@ sub process ($%) {
     # Checking if a charset is known for the site. If it is, setting
     # it up for CGI-params decoding and for output.
     #
-    if(my $charset=$siteconfig->get('charset')) {
+    my $charset=$siteconfig->get('charset');
+    if($charset) {
         if($cgi->can('set_param_charset')) {
             $cgi->set_param_charset($charset);
         }
@@ -756,7 +759,12 @@ sub process ($%) {
 
     # Done!
     #
-    return $pagetext;
+    if(Encode::is_utf8($pagetext)) {
+        return Encode::encode($charset || 'utf8',$pagetext);
+    }
+    else {
+        return $pagetext;
+    }
 }
 
 ###############################################################################
