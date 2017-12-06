@@ -277,7 +277,15 @@ sub display ($;%) {
     #
     my $charset=$config->{'charset'} || $self->siteconfig->get('charset') || undef;
 
-    # Preparing mailer and storing content in
+    # Encoding by default in MIME::Lite is "binary", which means no
+    # processing at all. That might break on some gateway and MIME
+    # validator at https://tools.ietf.org/tools/msglint/ balks
+    # at it. Keeping "binary" here for compatibility with older
+    # deployments, but allowing to override it.
+    #
+    my $transfer_encoding=$config->{'transfer_encoding'} || 'binary';
+
+    # Preparing mailer and storing content in.
     #
     my $mailer;
     my @stdhdr=(
@@ -285,6 +293,7 @@ sub display ($;%) {
         FromSender  => $from,
         To          => $to,
         Subject     => $subject,
+        Encoding    => $transfer_encoding,
     );
 
     push(@stdhdr,@ovhdr);
@@ -317,6 +326,7 @@ sub display ($;%) {
         my $text_part=MIME::Lite->new(
             Type        => 'text/plain',
             Data        => $text,
+            Encoding    => $transfer_encoding,
         );
 
         $text_part->delete('X-Mailer');
@@ -327,6 +337,7 @@ sub display ($;%) {
         my $html_part=MIME::Lite->new(
             Type        => 'text/html',
             Data        => $html,
+            Encoding    => $transfer_encoding,
         );
 
         $html_part->delete('X-Mailer');
