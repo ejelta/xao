@@ -1,6 +1,5 @@
 package testcases::Web::WebMailer;
 use strict;
-use Email::MIME;
 use IO::File;
 use XAO::Projects;
 use XAO::Utils;
@@ -42,6 +41,15 @@ sub tear_down {
 
 sub test_mailer {
     my $self=shift;
+
+    my $have_email_mime;
+    eval {
+        require Email::MIME;
+        $have_email_mime=1;
+    };
+    if($@) {
+        dprint "Email::MIME is not available, skipping some checks";
+    }
 
     my %tests=(
         t01 => {
@@ -403,15 +411,17 @@ sub test_mailer {
             }
         }
 
-        my $parsed=Email::MIME->new($content);
-        $self->assert(ref $parsed,
-            "Expected to get a parsed MIME message");
+        if($have_email_mime) {
+            my $parsed=Email::MIME->new($content);
+            $self->assert(ref $parsed,
+                "Expected to get a parsed MIME message");
 
-        my $parts_count_expect=$tdata->{'parts_count'} || 0;
-        my $parts_count_got=$parsed->subparts;
+            my $parts_count_expect=$tdata->{'parts_count'} || 0;
+            my $parts_count_got=$parsed->subparts;
 
-        $self->assert($parts_count_got == $parts_count_expect,
-            "Expected $parts_count_expect sub-parts, got $parts_count_got");
+            $self->assert($parts_count_got == $parts_count_expect,
+                "Expected $parts_count_expect sub-parts, got $parts_count_got");
+        }
     }
 }
 
