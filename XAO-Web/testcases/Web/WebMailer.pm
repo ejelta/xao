@@ -349,7 +349,24 @@ sub test_mailer {
                 qr/Content-Type:\s+text\/plain/,
             ],
             parts_count => 0,
-        }
+        },
+        t10 => {
+            config  => {
+                '/mailer/subject_prefix'    => 'FOO',
+                '/mailer/from'              => 'config-from@testing.org',
+            },
+            args    => {
+                'template'              => 'TEMPLATE',
+                'to'                    => 'to@test.org',
+                'subject'               => 'BAR',
+            },
+            decode  => 'utf8',
+            regex   => [
+                qr/Subject:\s*FOO BAR/,
+                qr/TEMPLATE/,
+            ],
+            parts_count => 0,
+        },
     );
 
     my $outfile=$self->{'outfile'};
