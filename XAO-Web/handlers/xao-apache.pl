@@ -43,8 +43,10 @@ try {
 
     # Loading or creating site object.
     #
-    my $web=XAO::Web->new(sitename => $sitename);
-  
+    my $web=XAO::Web->new(sitename => $sitename, init_args => {
+        environment => 'web',
+    });
+
     # Checking access control rules (path_deny_table in the config)
     #
     my $path=join('/','',@path);

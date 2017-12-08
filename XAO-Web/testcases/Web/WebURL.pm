@@ -330,7 +330,7 @@ sub test_all {
         # environment expecting the default to switch to https.
         #
         if($matrix{$test}->{'https'}) {
-            $ENV{'HTTPS'}='ON';
+            $ENV{'HTTPS'}='on';
         }
         else {
             delete $ENV{'HTTPS'};

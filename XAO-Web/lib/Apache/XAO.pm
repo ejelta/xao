@@ -176,7 +176,9 @@ Please use 'PerlSetVar sitename yoursitename' directive in the
 configuration.
 EOT
     }
-    my $web=XAO::Web->new(sitename => $sitename);
+    my $web=XAO::Web->new(sitename => $sitename, init_args => {
+        environment => 'web',
+    });
 
     # Checking access rules
     #

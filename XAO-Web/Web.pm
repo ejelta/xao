@@ -15,7 +15,7 @@ use XAO::Errors qw(XAO::Web);
 # XAO::Web version number. Hand changed with every release!
 #
 use vars qw($VERSION);
-$VERSION='1.54';
+$VERSION='1.55';
 
 ###############################################################################
 
@@ -773,10 +773,6 @@ sub process ($%) {
 
 Creates or loads a context for the named site. The only required
 argument is 'sitename' which provides the name of the site.
-
-Additionally `cgi' argument can point to a CGI object -- this is useful
-mostly in test cases when one does not want to use execute(), but new()
-comes handy.
 
 =cut
 
