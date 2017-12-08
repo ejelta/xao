@@ -320,6 +320,28 @@ sub test_mailer {
             ],
             parts_count => 3,
         },
+        t09 => {           # TEXT, HTML, and attachments, overrides
+            config  => {
+                '/charset'                  => 'UTF-8',
+                '/mailer/transfer_encoding' => 'quoted-printable',
+                '/mailer/override_to'       => 'override-to@testing.org',
+                '/mailer/from'              => 'config-from@testing.org',
+            },
+            args    => {
+                'html.path'             => '/bits/rawobj-template',
+                'to'                    => 'to@test.org',
+                'subject'               => 'SUBJECT-CONTENT',
+            },
+            decode  => 'utf8',
+            regex   => [
+                qr/Content-Type:\s+text\/html/,
+                qr|RAWOBJ - for tests in testcases/Web\.pm|,
+            ],
+            negregex=> [
+                qr/Content-Type:\s+text\/plain/,
+            ],
+            parts_count => 0,
+        }
     );
 
     my $outfile=$self->{'outfile'};
