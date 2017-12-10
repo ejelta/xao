@@ -1,9 +1,9 @@
-# Copyright (c) 1997-2002 XAO Inc.
-###############################################################################
+#!/usr/bin/env perl
+use warnings;
+use strict;
 use ExtUtils::MakeMaker;
 use ExtUtils::Manifest;
 
-##
 # Reading configuration
 #
 my %d;
@@ -38,7 +38,7 @@ EOT
         }
     }
     my $user='';
-    my $pass='';
+    my $password='';
     my $confirm='n';
 
     if($dsn eq 'none') {
@@ -56,10 +56,10 @@ EOT
         if($str && $str=~/^\s*(.*?)\s*$/) {
             $user=$1;
         }
-        print "Password: [$pass] ";
+        print "Password: [$password] ";
         chomp($str=<STDIN>);
         if($str && $str=~/^\s*(.*?)\s*$/) {
-            $pass=$1;
+            $password=$1;
         }
 
         print <<EOT;
@@ -83,7 +83,7 @@ EOT
 ## Makefile.PL' if removed.
 \$d{test_dsn}='$dsn';
 \$d{test_user}='$user';
-\$d{test_password}='$pass';
+\$d{test_password}='$password';
 EOT
         last;
     }

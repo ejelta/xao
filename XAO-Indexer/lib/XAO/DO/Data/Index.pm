@@ -131,30 +131,30 @@ sub data_structure ($;$$) {
                 # This is due to the fact that collation in MySQL uses
                 # "level 1" differences, as this script shows:
                 #
-                # #!/usr/bin/perl -w
+                # #!/usr/bin/env perl
                 # use strict;
                 # use warnings;
                 # use utf8;
                 # use Unicode::Collate;
                 # use Encode;
-                # 
+                #
                 # binmode(STDOUT,":utf8");
-                # 
+                #
                 # my $c;
-                # 
+                #
                 # my $u1='Muller';
                 # my $u2='Müller';
                 # my $u3='MULLER';
                 # my $u4='MÜLLER';
                 # my $u5='Buller';
-                # 
+                #
                 # foreach my $lev (4,3,2,1) {
                 #     print "---level=$lev\n";
-                # 
+                #
                 #     $c=Unicode::Collate->new(
                 #         level => $lev,
                 #     );
-                #     
+                #
                 #     sss($u1,$u1);
                 #     sss($u2,$u2);
                 #     sss($u1,$u2);
@@ -164,7 +164,7 @@ sub data_structure ($;$$) {
                 #     sss($u1,$u5);
                 #     sss($u2,$u5);
                 # }
-                # 
+                #
                 # sub sss {
                 #     my ($a,$b)=@_;
                 #     my $r=$c->eq($a,$b);

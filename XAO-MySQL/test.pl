@@ -1,4 +1,6 @@
-#!/usr/bin/perl
+#!/usr/bin/env perl
+use warnings;
+use strict;
 use XAO::TestUtils;
 
 if(@ARGV) {

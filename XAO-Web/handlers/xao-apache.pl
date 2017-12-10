@@ -1,4 +1,4 @@
-#!/usr/bin/perl -w
+#!/usr/bin/env perl
 #
 # Finds out what project it was called for. Switches operational
 # parameters to this projects and then loads and displays requested
@@ -7,6 +7,7 @@
 # Site name must be the first name in path. Rewrite module should put it
 # there if it's not set as part of path already.
 #
+use warnings;
 use strict;
 use Error qw(:try);
 use CGI;

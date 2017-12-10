@@ -1,4 +1,5 @@
-#!/usr/bin/perl -w
+#!/usr/bin/env perl
+use warnings;
 use strict;
 use XAO::Utils;
 use XAO::Web;
@@ -46,7 +47,7 @@ Usage: $0 [--debug] \\
     [--complete] \\
     [--dictionary] \\
     --update [ --all | index1 index2 ... ]
-   
+
 Updates given indexes in the database. Adding a --dictionary option
 makes it rebuild the spellchecker dictionary if spellchecker is
 configured for the index. Using --all makes it update all available

@@ -1,7 +1,9 @@
+#!/usr/bin/env perl
+use warnings;
+use strict;
 use ExtUtils::MakeMaker;
 use ExtUtils::Manifest;
 
-##
 # Reading configuration
 #
 my %d;
@@ -34,17 +36,19 @@ EOT
             die "Incorrect DSN entered!\n";
         }
     }
+
     chomp(my $user=`whoami`);
     print "User name: [$user] ";
     chomp($str=<STDIN>);
     if($str && $str=~/^\s*(.*?)\s*$/) {
         $user=$1;
     }
-    my $pass='';
-    print "Password: [$pass] ";
+
+    my $password='';
+    print "Password: [$password] ";
     chomp($str=<STDIN>);
     if($str && $str=~/^\s*(.*?)\s*$/) {
-        $pass=$1;
+        $password=$1;
     }
 
     print <<EOT;
@@ -66,7 +70,7 @@ EOT
 ## Makefile.PL' if removed.
 \$d{test_dsn}='$dsn';
 \$d{test_user}='$user';
-\$d{test_password}='$pass';
+\$d{test_password}='$password';
 EOT
         last;
     }
