@@ -674,7 +674,9 @@ sub display ($;%) {
             # HTML_OPTIONS
             #
             if(!$has_empty) {
-                $html='<option value="">Please select</option>'.$html;
+                $html='<option value="">' .
+                    t2ht($self->Tx('Please select')) .
+                    '</option>'.$html;
             }
 
             # Final <select>...</select> code
