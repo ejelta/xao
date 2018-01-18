@@ -15,7 +15,7 @@ use XAO::Errors qw(XAO::Web);
 # XAO::Web version number. Hand changed with every release!
 #
 use vars qw($VERSION);
-$VERSION='1.56';
+$VERSION='1.57';
 
 ###############################################################################
 
@@ -608,20 +608,18 @@ sub process ($%) {
         $active_url_secure=$active_url;
     }
 
-    ##
     # Storing active URLs
     #
     $siteconfig->clipboard->put(active_url => $active_url);
     $siteconfig->clipboard->put(active_url_secure => $active_url_secure);
 
-    ##
     # Checking if we have base_url, assuming active_url if not.
     # Ensuring that URL does not end with '/'.
     #
     if($siteconfig->defined('base_url')) {
         my $url=$siteconfig->get('base_url');
         $url=~/^http:/i ||
-            throw XAO::E::Web "process - bad base_url ($url) for sitename=$sitename";
+            throw XAO::E::Web "- bad base_url ($url) for sitename=$sitename";
         my $nu=$url;
         chop($nu) while $nu =~ /\/$/;
         $siteconfig->put(base_url => $nu) if $nu ne $url;
@@ -672,7 +670,6 @@ sub process ($%) {
     $siteconfig->cgi($cgi);
     $siteconfig->embedded('web')->disable_special_access;
 
-    ##
     # Traditionally URLs that do not end with .foo are considered
     # directories and get an internal redirect to path/index.html
     # Sometimes it is desirable to be able to pass down any URLs without
@@ -702,7 +699,6 @@ sub process ($%) {
         eprint "Unknown urlstyle '$urlstyle' for $path";
     }
 
-    ##
     # Separator for the error_log :)
     #
     if(XAO::Utils::get_debug() && !$args->{'quieter'}) {
@@ -713,14 +709,9 @@ sub process ($%) {
                "path='$path', translated='$pd->{path}'";
     }
 
-    ##
     # Putting path decription into the site clipboard
     #
     $siteconfig->clipboard->put(pagedesc => $pd);
-
-    # We accumulate page content here
-    #
-    my $pagetext='';
 
     # Setting expiration time in the page header to immediate
     # expiration. If that's not what the page wants -- it can override
@@ -734,7 +725,7 @@ sub process ($%) {
     # Do we need to run any objects before executing? A good place to
     # turn on debug mode if required using Debug object.
     #
-    $pagetext.=$self->_expand_list($siteconfig->get('auto_before'));
+    my $pageheader=$self->_expand_list($siteconfig->get('auto_before'));
 
     # Preparing object arguments out of standard ones, object specific
     # once from template paths and supplied hash (in that order of
@@ -750,21 +741,40 @@ sub process ($%) {
     # Loading page displaying object and executing it.
     #
     my $obj=XAO::Objects->new(objname => 'Web::' . $pd->{'objname'});
-    $pagetext.=$obj->expand($objargs);
+    my $pagebody=$obj->expand($objargs);
 
     # Do we need to run any objects after executing? A good place to
     # dump benchmark statistics for example.
     #
-    $pagetext.=$self->_expand_list($siteconfig->get('auto_after'));
+    my $pagefooter=$self->_expand_list($siteconfig->get('auto_after'));
 
-    # Done!
+    # Done! Somewhat convoluted way of joining strings is here because
+    # the page header would be a unicode character string (even if
+    # it is really an empty string) and that would contaminate the
+    # concatenation and convert the resulting page text into a character
+    # string. That is not desirable if the output is a binary document.
     #
-    if(Encode::is_utf8($pagetext)) {
-        return Encode::encode($charset || 'utf8',$pagetext);
+    my $pagetext;
+    if(1) {
+        $pagetext=join('',map {
+            Encode::is_utf8($_) ?  Encode::encode($charset || 'utf8',$_) : $_;
+        } ($pageheader,$pagebody,$pagefooter));
     }
     else {
-        return $pagetext;
+        $pagetext=$pageheader.$pagebody.$pagefooter;
+        $pagetext=Encode::encode($charset || 'utf8',$pagetext) if Encode::is_utf8($pagetext);
     }
+
+    ### dprint "---length(pageheader)=".length($pageheader).", utf8=".Encode::is_utf8($pageheader);
+    ### dprint "---length(pagebody)=  ".length($pagebody).", utf8=".Encode::is_utf8($pagebody);
+    ### dprint "---length(pagefooter)=".length($pagefooter).", utf8=".Encode::is_utf8($pagefooter);
+    ### dprint "---length(pagetext)=  ".length($pagetext).", utf8=".Encode::is_utf8($pagetext);
+
+    $siteconfig->header_args(
+         -content_length    => length($pagetext),
+    );
+
+    return $pagetext;
 }
 
 ###############################################################################

@@ -1,6 +1,7 @@
 package testcases::Web::Page;
 use warnings;
 use strict;
+use utf8;
 use Encode;
 use XAO::Objects;
 use XAO::Utils;
@@ -331,7 +332,7 @@ sub test_cgi_param_charsets {
 
     foreach my $tname (keys %tests) {
         my $test=$tests{$tname};
-        my $template="<\%Unicode name='$test->{name}'%>";
+        my $template="<\%Unicode mode='check-cgi' name='$test->{name}'%>";
 
         my $got;
         if($test->{'no_charset'}) {
@@ -802,9 +803,28 @@ sub test_unicode_transparency {
             template    => qq(<%UniHex a="FOO<%Page path='/clear.gif' unparsed%>"%>),
             expect      => '(a|464f4f47494638376101000100800000ffffff0000002c00000000010001000002024401003b|1)',
         },
+        #
+        # Sometimes it is useful to be able to indicate from within an
+        # object that the data contains bytes, even in character mode
+        # (for example for building dynamic images & spreadsheets).
+        #
+        f1 => {
+            charmode    => 1,
+            template    => qq(<%Header type='application/octet-stream'%>Foo\x{2122}),
+            expect      => Encode::encode('utf8',"Foo\x{2122}"),
+            expect_bytes=> 1,
+        },
+        f2 => {
+            charmode    => 1,
+            template    => qq(<%Unicode mode='force-byte-output'%>Foo\x{2122}),
+            expect      => Encode::encode('utf8',"Foo\x{2122}"),
+            expect_bytes=> 1,
+        },
     );
 
     while(my ($tname,$test)=each %tests) {
+        $self->siteconfig->cleanup();
+
         $self->siteconfig->put('/xao/page/character_mode' => $test->{'charmode'});
 
         my $page=XAO::Objects->new(objname => 'Web::Page');
@@ -819,7 +839,7 @@ sub test_unicode_transparency {
         ### dprint "$tname:      got=$got length=".length($got)." utf8=".Encode::is_utf8($got);
         ### dprint "$tname:   expect=$expect length=".length($expect)." utf8=".Encode::is_utf8($expect);
 
-        if(!$test->{'charmode'} || $test->{'args'}->{'unparsed'}) {
+        if($test->{'expect_bytes'} || !$test->{'charmode'} || $test->{'args'}->{'unparsed'}) {
             $self->assert(!Encode::is_utf8($got),
                 "Test $tname - expected bytes, got characters");
         }
@@ -838,6 +858,8 @@ sub test_unicode_transparency {
         }
     }
 }
+
+###############################################################################
 
 sub test_expand {
     my $self=shift;
@@ -894,6 +916,8 @@ sub test_expand {
     }
 }
 
+###############################################################################
+
 sub test_fs {
     my $self=shift;
 
@@ -905,6 +929,8 @@ sub test_fs {
     $self->assert(ref($odb),
                   "Can't get database reference from Page");
 }
+
+###############################################################################
 
 sub test_web {
     my $self=shift;
@@ -918,6 +944,8 @@ sub test_web {
                   "Can't get CGI reference from Page");
 }
 
+###############################################################################
+
 sub test_end {
     my $self=shift;
 
@@ -930,6 +958,8 @@ sub test_end {
     $self->assert($got eq $expect,
                   "<%End%> does not work, got '$got' instead of '$expect'");
 }
+
+###############################################################################
 
 sub test_throw {
     my $self=shift;

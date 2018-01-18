@@ -1094,6 +1094,7 @@ the same arguments as display(). Here is an example:
 
 sub expand ($%) {
     my $self=shift;
+    my $args=get_args(\@_);
 
     # First it prepares a place in stack for new text (push) and after
     # display it calls pop to get back whatever was written. The sole
@@ -1124,7 +1125,7 @@ sub expand ($%) {
     # benchmark results.
     #
     eval {
-        $self->display(@_);
+        $self->display($args);
     };
 
     if($@) {
@@ -1138,7 +1139,14 @@ sub expand ($%) {
         }
     }
 
-    return XAO::PageSupport::pop($self->_character_mode && !get_args(\@_)->{'unparsed'});
+    # Text pages are converted into perl characters, otherwise returning
+    # bytes.
+    #
+    my $chmode=$self->_character_mode &&
+        !$args->{'unparsed'} &&
+        !$self->siteconfig->force_byte_output;
+
+    return XAO::PageSupport::pop($chmode ? 1 : 0);
 }
 
 ###############################################################################

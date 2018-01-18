@@ -27,8 +27,8 @@
 
 /************************************************************************/
 
-#define	MAX_STACK	200
-#define	CHUNK_SIZE	1000
+#define MAX_STACK   200
+#define CHUNK_SIZE  1000
 
 static char *buffer=NULL;
 static STRLEN bufsize=0;
@@ -377,44 +377,44 @@ parse_text(pTHX_ char * template, STRLEN length, short is_unicode) {
 
 /************************************************************************/
 
-MODULE = XAO::PageSupport		PACKAGE = XAO::PageSupport		
+MODULE = XAO::PageSupport       PACKAGE = XAO::PageSupport
 
 ###############################################################################
 
 unsigned
 level()
-	CODE:
-		RETVAL=stacktop;
-	OUTPUT:
-		RETVAL
+    CODE:
+        RETVAL=stacktop;
+    OUTPUT:
+        RETVAL
 
 
 void
 reset()
-	CODE:
-		bufpos=pstack[stacktop=0]=0;
+    CODE:
+        bufpos=pstack[stacktop=0]=0;
 
 
 void
 push()
-	CODE:
-		if(stacktop+1>=MAX_STACK) {
-		    fprintf(stderr,"XAO::PageSupport - maximum stack deep reached!\n");
-		    return;
+    CODE:
+        if(stacktop+1>=MAX_STACK) {
+            fprintf(stderr,"XAO::PageSupport - maximum stack deep reached!\n");
+            return;
         }
-		pstack[stacktop++]=bufpos;
+        pstack[stacktop++]=bufpos;
 
 
 SV *
 pop(is_unicode)
         short is_unicode;
-	CODE:
-		char *text;
-		STRLEN len;
+    CODE:
+        char *text;
+        STRLEN len;
 
-		if(!buffer) {
-		    text="";
-		    len=0;
+        if(!buffer) {
+            text="";
+            len=0;
         }
         else {
             len=bufpos;
@@ -426,11 +426,11 @@ pop(is_unicode)
             }
             text=buffer+bufpos;
         }
-		RETVAL=newSVpvn(text,len);
+        RETVAL=newSVpvn(text,len);
         if(is_unicode)
             SvUTF8_on(RETVAL);
-	OUTPUT:
-	    RETVAL
+    OUTPUT:
+        RETVAL
 
 
 unsigned long
@@ -450,32 +450,32 @@ peek(len, is_unicode)
             RETVAL=newSVpvn("",0);
         }
         else {
-		    RETVAL=newSVpvn(buffer+len,bufpos-len);
+            RETVAL=newSVpvn(buffer+len,bufpos-len);
         }
         if(is_unicode)
             SvUTF8_on(RETVAL);
-	OUTPUT:
-	    RETVAL
+    OUTPUT:
+        RETVAL
 
 
 void
 addtext(text)
         STRLEN len=0;
-		char * text=SvPV(ST(0),len);
-	CODE:
-		if(text && len) {
-	        if(bufpos+len >= bufsize) {
-	            buffer=realloc(buffer,sizeof(*buffer)*(bufsize+=len+CHUNK_SIZE));
-		        if(! buffer) {
-		            fprintf(stderr,
+        char * text=SvPV(ST(0),len);
+    CODE:
+        if(text && len) {
+            if(bufpos+len >= bufsize) {
+                buffer=realloc(buffer,sizeof(*buffer)*(bufsize+=len+CHUNK_SIZE));
+                if(! buffer) {
+                    fprintf(stderr,
                             "XAO::PageSupport - out of memory, length=%lu, bufsize=%lu, bufpos=%lu\n",
                             (unsigned long)len,(unsigned long)bufsize,(unsigned long)bufpos);
                     return;
-		        }
-		    }
-	        memcpy(buffer+bufpos,text,len);
-	        bufpos+=len;
-		}
+                }
+            }
+            memcpy(buffer+bufpos,text,len);
+            bufpos+=len;
+        }
 
 
 SV *
