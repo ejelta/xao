@@ -202,6 +202,11 @@ sub display ($;%) {
     my $charset=$config->{'charset'} || $self->siteconfig->get('charset') || undef;
     ### dprint "...mailer charset=",$charset;
 
+    # Subject might contain 8-bit characters, but being a header it
+    # needs to be 7-bit. MIME::Lite does not do that.
+    #
+    $subject=Encode::encode('MIME-Q',$subject) if Encode::is_utf8($subject);
+
     # Encoding by default in MIME::Lite is "binary", which means no
     # processing at all. That might break on some gateway and MIME
     # validator at https://tools.ietf.org/tools/msglint/ balks

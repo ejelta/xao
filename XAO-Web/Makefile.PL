@@ -120,6 +120,7 @@ WriteMakefile(
         'Digest::SHA'               => 5.63,
         ### 'Email::MIME'               => 1.946,
         ### 'Email::Sender'             => 1.300031,
+        'Encode'                    => 2.93,
         'Error'                     => 0.15,
         'HTML::Entities'            => 3.69,
         'HTTP::Response'            => 6.04,

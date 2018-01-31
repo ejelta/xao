@@ -87,7 +87,7 @@ sub test_mailer {
             decode  => 'utf8',
             regex   => [
                 qr/foobarbaz/s,
-                qr/Subject:\s+Subject \x{2122}/s,
+                qr/Subject:\s+=\?(?i:utf-8)\?Q\?Subject_=E2=84=A2\?=/s,
                 qr/MIME-Version:/s,
                 qr/Content-Type:\s+text\/plain;\s+charset="?UTF-8"?/s,
                 qr/Content-Transfer-Encoding:\s+8bit/s,
@@ -131,7 +131,7 @@ sub test_mailer {
             decode  => 'utf8',
             regex   => [
                 qr/3M\x{2122}/s,
-                qr/Subject:\s+Hello \x{263a}/s,
+                qr/Subject:\s+=\?(?i:utf-8)\?Q\?Hello_=E2=98=BA\?=/s,
                 qr/MIME-Version:/s,
                 qr/Content-Type:\s+text\/html;\s+charset="?UTF-8"?/s,
                 qr/Content-Transfer-Encoding:\s+8bit/s,
@@ -367,6 +367,21 @@ sub test_mailer {
             ],
             parts_count => 0,
         },
+        t11 => {
+            config  => {
+                '/charset'                  => 'UTF-8',
+            },
+            args    => {
+                'template'              => 'TEMPLATE',
+                'from'                  => 'from@test.org',
+                'to'                    => 'to@test.org',
+                'subject'               => "Unicode\x{2122}",
+            },
+            regex   => [
+                qr/Subject:\s*=\?(?i:utf-8)\?Q\?Unicode=E2=84=A2\?=/s,
+            ],
+        },
+
     );
 
     my $outfile=$self->{'outfile'};
