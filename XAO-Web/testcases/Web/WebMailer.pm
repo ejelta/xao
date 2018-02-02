@@ -370,15 +370,19 @@ sub test_mailer {
         t11 => {
             config  => {
                 '/charset'                  => 'UTF-8',
+                '/mailer/override_to'       => 'override-to@testing.org',
             },
             args    => {
                 'template'              => 'TEMPLATE',
                 'from'                  => 'from@test.org',
                 'to'                    => 'to@test.org',
-                'subject'               => "Unicode\x{2122}",
+                'subject'               => "Unicode\x{2122} long subject to test splitting into two or more header continuation lines",
             },
             regex   => [
-                qr/Subject:\s*=\?(?i:utf-8)\?Q\?Unicode=E2=84=A2\?=/s,
+                qr/Subject:\s*=\?(?i:utf-8)\?Q\?Unicode=E2=84=A2_long_subject_to_test_splitting_into_two_or/s,
+            ],
+            negregex => [
+                qr/\r/s,
             ],
         },
 

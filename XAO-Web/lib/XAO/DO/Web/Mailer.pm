@@ -205,7 +205,16 @@ sub display ($;%) {
     # Subject might contain 8-bit characters, but being a header it
     # needs to be 7-bit. MIME::Lite does not do that.
     #
-    $subject=Encode::encode('MIME-Q',$subject) if Encode::is_utf8($subject);
+    if(Encode::is_utf8($subject)) {
+        $subject=Encode::encode('MIME-Q',$subject);
+
+        # The output from MIME-Q is a multi-line string separated by \r\n
+        # and that \r appears to be duplicated by some MTA implementations.
+        # The rest of MIME::Lite headers are output with \n, so sticking to
+        # that.
+        #
+        $subject=~s/\r//sg;
+    }
 
     # Encoding by default in MIME::Lite is "binary", which means no
     # processing at all. That might break on some gateway and MIME
