@@ -380,6 +380,7 @@ use Data::Entropy::Algorithms qw(rand_bits);
 use Digest::Bcrypt qw();
 use Digest::MD5 qw(md5_base64);
 use Digest::SHA qw(sha1_base64 sha256_base64);
+use Authen::SASL::SASLprep;
 use Error qw(:try);
 use MIME::Base64 qw(encode_base64 decode_base64);
 use XAO::Utils;
@@ -1897,7 +1898,7 @@ sub data_password_encrypt ($@) {
     # Encrypting (which is actually a misnomer, hashing would be a
     # better word, but it's already called "encrypt" everywhere else).
     #
-    my $password=$args->{'password'};
+    my $password=saslprep($args->{'password'});
 
     defined $password ||
         throw $self "- {{INTERNAL: No password argument}}";

@@ -6,6 +6,7 @@ use POSIX qw(mktime);
 use Digest::SHA qw(sha1_base64 sha256_base64);
 use Digest::MD5 qw(md5_base64);
 use Error qw(:try);
+use utf8;
 
 use Data::Dumper;
 
@@ -3639,6 +3640,25 @@ sub test_crypto {
                 pass_encrypt_cost => 10,
                 pass_pepper => 'barbaz',
                 password    => $password,
+            },
+            expect  => {
+                encrypted   => {
+                    regex       => qr/^\$bcrypt\$10-/,
+                    notsimple   => 1,
+                    length      => [ 65,65 ],
+                },
+                salt        => {
+                    length      => [ 25,25 ],
+                },
+            },
+        },
+        t02_bcrypt4 => {
+            repeat  => 9,
+            args    => {
+                pass_encrypt=> 'bcrypt',
+                pass_encrypt_cost => 10,
+                pass_pepper => 'óñutf8salt',
+                password    => 'óñstartutf8password',
             },
             expect  => {
                 encrypted   => {
