@@ -110,6 +110,7 @@ WriteMakefile(
         'XAO::Base'                 => 1.13,
     },
     'PREREQ_PM'     => {
+        'Authen::SASL::SASLprep'    => 1.1,
         'CGI'                       => 4.14,
         'CGI::Cookie'               => 4.14,
         'Crypt::Rijndael'           => 1.13,
@@ -130,6 +131,7 @@ WriteMakefile(
         'POSIX'                     => 1.16,
         'Text::FormatTable'         => 0.01,
         'Time::HiRes'               => 1.9719,
+        'Unicode::Normalize'        => 1.18,
         'XAO::Base'                 => 1.13,
         'XAO::FS'                   => 1.06,
     },

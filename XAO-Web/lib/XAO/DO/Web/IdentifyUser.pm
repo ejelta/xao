@@ -226,6 +226,23 @@ explanation in L<Digest::Bcrypt::cost()> method. On an Intel i5-4670K
 CPU @ 3.40GHz the default cost 8 results in about 15ms per password
 encryption.
 
+=item pass_normalize
+
+Normalize password before encrypting it. The default is not to do any
+pre-processing, but for new development where Unicode passwords are a
+possibility it is a good idea to use a normalization.
+
+There are two supported values currently: 'saslprep' (using
+L<Authen::SASL::SASLprep> implementation of RFC-4013) and 'nfkc' (using
+L<Unicode::Normalize> NFKC normalization). For most unicode strings
+these are interchangable and using saslprep is recommended.
+
+Unicode characters that are left after normalization (or lack thereof)
+are encoded into UTF-8 bytes before being encrypted.
+
+B<Note:> Unicode normalization only works on passwords containing perl
+characters, not byte encoded strings.
+
 =item pass_pepper
 
 An optional string that is added to passwords when they are encrypted.
@@ -376,20 +393,19 @@ Now, let us look at some examples that show how each mode works.
 ###############################################################################
 package XAO::DO::Web::IdentifyUser;
 use strict;
+use Authen::SASL::SASLprep qw(saslprep);
 use Data::Entropy::Algorithms qw(rand_bits);
 use Digest::Bcrypt qw();
 use Digest::MD5 qw(md5_base64);
 use Digest::SHA qw(sha1_base64 sha256_base64);
-use Authen::SASL::SASLprep;
+use Encode;
 use Error qw(:try);
 use MIME::Base64 qw(encode_base64 decode_base64);
-use XAO::Utils;
+use Unicode::Normalize qw(NFKC);
 use XAO::Errors qw(XAO::DO::Web::IdentifyUser);
 use XAO::Objects;
+use XAO::Utils;
 use base XAO::Objects->load(objname => 'Web::Action');
-
-use vars qw($VERSION);
-$VERSION=2.16;
 
 ###############################################################################
 
@@ -1726,11 +1742,13 @@ sub data_password_check ($@) {
 
     my $pass_encrypt=$args->{'pass_encrypt'};
     my $pass_pepper=$args->{'pass_pepper'};
+    my $pass_normalize=$args->{'pass_normalize'};
 
-    if(!$pass_encrypt || !$pass_pepper) {
+    if(!defined $pass_encrypt || !defined $pass_pepper || !defined $pass_normalize) {
         my $config=$self->_get_config($args);
-        $pass_encrypt||=$config->{'pass_encrypt'};
-        $pass_pepper||=$config->{'pass_pepper'};
+        $pass_encrypt//=$config->{'pass_encrypt'};
+        $pass_pepper//=$config->{'pass_pepper'};
+        $pass_normalize//=$config->{'pass_normalize'};
     }
 
     my $password_stored=$args->{'password_stored'} ||
@@ -1743,8 +1761,9 @@ sub data_password_check ($@) {
     # It overrides whatever specs were given as that is what we need to
     # compare to.
     #
-    if((!$pass_encrypt || $pass_encrypt ne 'plaintext') && $password_stored=~/^\$([\w-]+)\$(.*?)\$.+/) {
+    if((!$pass_encrypt || $pass_encrypt ne 'plaintext') && $password_stored=~/^\$(\w+)(?:-(\w+))?\$(.*?)\$.+/) {
         $pass_encrypt=lc($1);
+        $pass_normalize=lc($2 // '');
     }
 
     # The legacy compatibility default.
@@ -1787,6 +1806,7 @@ sub data_password_check ($@) {
             $pwdata=$self->data_password_encrypt($args,{
                 pass_encrypt    => $pass_encrypt_v,
                 pass_pepper     => $pass_pepper_v,
+                pass_normalize  => $pass_normalize,
             });
 
             if($pwdata->{'encrypted'} eq $password_stored) {
@@ -1823,19 +1843,27 @@ sub data_password_encrypt ($@) {
 
     my $pass_encrypt=$args->{'pass_encrypt'};
     my $pass_pepper=$args->{'pass_pepper'};
+    my $pass_normalize=$args->{'pass_normalize'};
 
-    if((!defined($pass_encrypt) || !defined($pass_pepper)) && ($args->{'config'} || $args->{'type'})) {
+    if((!defined($pass_encrypt) || !defined($pass_pepper) || !defined($pass_normalize)) && ($args->{'config'} || $args->{'type'})) {
         my $config=$self->_get_config($args);
         $pass_encrypt=$config->{'pass_encrypt'} unless defined $pass_encrypt;
         $pass_pepper=$config->{'pass_pepper'} unless defined $pass_pepper;
+        $pass_normalize=$config->{'pass_normalize'} unless defined $pass_normalize;
     }
 
+    my $password=$args->{'password'};
+
+    defined $password ||
+        throw $self "- {{INTERNAL: No password argument}}";
+
     # When called to create a password we won't have a stored
-    # password. But when encrypting internally to check the password we
-    # do get a stored password and that password might have an algorithm
-    # and salt embedded in it. That overrides the configuration to make
-    # it possible to change the config later to a different hashing
-    # function without changing all database stored passwords.
+    # password. But when encrypting internally to check the password
+    # we do get a stored password and that password might have an
+    # algorithm, normalization, and salt embedded in it. That overrides
+    # the configuration to make it possible to change the config later
+    # to a different hashing function without changing all database
+    # stored passwords.
     #
     # In plaintext we don't analyze the stored password, to avoid
     # clashing with what might have been entered by the user.
@@ -1849,9 +1877,10 @@ sub data_password_encrypt ($@) {
         #
         #  $ALG$SALT$DIGEST
         #
-        if($password_stored=~/^\$([\w-]+)\$(.*?)\$.+/) {
+        if($password_stored=~/^\$(\w+)(?:-(\w+))?\$(.*?)\$.+/) {
             $pass_encrypt=lc($1);
-            $salt=$2;
+            $pass_normalize=lc($2 // '');
+            $salt=$3;
         }
 
         # Old MD5 based passwords were bare, not including salt. We
@@ -1883,7 +1912,7 @@ sub data_password_encrypt ($@) {
 
     # Pepper is empty by default
     #
-    $pass_pepper||='';
+    $pass_pepper//='';
 
     # The same story is with pepper -- we encrypt using the first value
     # if there is a list.
@@ -1895,14 +1924,33 @@ sub data_password_encrypt ($@) {
         $pass_pepper=$1;
     }
 
+    # Normalizing the password if required. Saslprep is follows RFC-4013
+    # and for the most part is equivalent to NFKC Unicode normalization.
+    #
+    if(Encode::is_utf8($password)) {
+        if(!$pass_normalize) {
+            # no-op
+        }
+        elsif($pass_normalize eq 'saslprep' || $pass_normalize eq 'sp') {
+            $password=saslprep($password);
+            $pass_normalize='sp';
+        }
+        elsif($pass_normalize eq 'nfkc' || $pass_normalize eq 'kc') {
+            $password=NFKC($password);
+            $pass_normalize='kc';
+        }
+        else {
+            throw $self "- {{INTERNAL:Unknown password normalization}} ($pass_normalize)";
+        }
+
+        # Password hashing expects bytes, not characters.
+        #
+        $password=Encode::encode('utf8',$password);
+    }
+
     # Encrypting (which is actually a misnomer, hashing would be a
     # better word, but it's already called "encrypt" everywhere else).
     #
-    my $password=saslprep($args->{'password'});
-
-    defined $password ||
-        throw $self "- {{INTERNAL: No password argument}}";
-
     my $encrypted;
 
     if($pass_encrypt eq 'plaintext') {
@@ -1918,8 +1966,8 @@ sub data_password_encrypt ($@) {
         $salt=substr($salt,0,2);
         $encrypted=crypt($password.$pass_pepper,$salt);
         $pass_wrap=0;
-        if(length($password)>8) {
-            eprint "Only first 8 characters of ".length($password)."-character password are used in 'crypt' mode";
+        if(length($password.$pass_pepper)>8 && !$args->{'no_length_warning'}) {
+            eprint "Only first 8 characters of ".length($password)."-character password ".(length $pass_pepper ? "and ".length($pass_pepper)."-character pepper " : '')."are used in 'crypt' mode";
         }
     }
     elsif($pass_encrypt eq 'md5') {
@@ -2002,7 +2050,7 @@ sub data_password_encrypt ($@) {
     # Wrapping to include salt and algorithm
     #
     if($pass_wrap) {
-        $encrypted='$'.$pass_encrypt.'$'.$salt.'$'.$encrypted;
+        $encrypted='$'.$pass_encrypt.($pass_normalize ? '-'.$pass_normalize : '').'$'.$salt.'$'.$encrypted;
     }
 
     return {
