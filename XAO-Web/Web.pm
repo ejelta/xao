@@ -15,7 +15,7 @@ use XAO::Errors qw(XAO::Web);
 # XAO::Web version number. Hand changed with every release!
 #
 use vars qw($VERSION);
-$VERSION='1.59';
+$VERSION='1.60';
 
 ###############################################################################
 
@@ -482,13 +482,20 @@ sub _expand_list ($$) {
         return '';
     }
     elsif(ref($autolist) eq 'ARRAY') {
+        my $clipboard=$self->config->clipboard;
+
         for(my $i=0; $i<@$autolist; $i+=2) {
             my ($objname,$objargs)=@{$autolist}[$i,$i+1];
             my $obj=XAO::Objects->new(objname => $objname);
             $content.=$obj->expand($objargs);
+
+            # Not processing any more if there was a final output.
+            #
+            last if $clipboard->get('_no_more_output');
         }
     }
     elsif(ref($autolist) eq 'HASH') {
+        eprint "Using HASH auto-list is deprecated, use an ordered array";
         foreach my $objname (keys %{$autolist}) {
             my $obj=XAO::Objects->new(objname => $objname);
             $content.=$obj->expand($autolist->{$objname});
@@ -518,6 +525,7 @@ sub process ($%) {
     my $args=get_args(\@_);
 
     my $siteconfig=$self->config;
+    my $clipboard=$siteconfig->clipboard;
     my $sitename=$self->sitename;
 
     # Making sure path starts from a slash
@@ -610,8 +618,8 @@ sub process ($%) {
 
     # Storing active URLs
     #
-    $siteconfig->clipboard->put(active_url => $active_url);
-    $siteconfig->clipboard->put(active_url_secure => $active_url_secure);
+    $clipboard->put(active_url => $active_url);
+    $clipboard->put(active_url_secure => $active_url_secure);
 
     # Checking if we have base_url, assuming active_url if not.
     # Ensuring that URL does not end with '/'.
@@ -642,8 +650,8 @@ sub process ($%) {
     # Checking if we're running under mod_perl
     #
     my $mod_perl=($apache || $ENV{'MOD_PERL'}) ? 1 : 0;
-    $siteconfig->clipboard->put(mod_perl => $mod_perl);
-    $siteconfig->clipboard->put(mod_perl_request => $apache);
+    $clipboard->put(mod_perl => $mod_perl);
+    $clipboard->put(mod_perl_request => $apache);
 
     # Checking if a charset is known for the site. If it is, setting
     # it up for CGI-params decoding and for output.
@@ -711,7 +719,7 @@ sub process ($%) {
 
     # Putting path decription into the site clipboard
     #
-    $siteconfig->clipboard->put(pagedesc => $pd);
+    $clipboard->put(pagedesc => $pd);
 
     # Setting expiration time in the page header to immediate
     # expiration. If that's not what the page wants -- it can override
@@ -727,26 +735,35 @@ sub process ($%) {
     #
     my $pageheader=$self->_expand_list($siteconfig->get('auto_before'));
 
-    # Preparing object arguments out of standard ones, object specific
-    # once from template paths and supplied hash (in that order of
-    # preference).
+    # If the header issued a final output (commonly a redirect), then
+    # nothing else needs to be done.
     #
-    my $objargs={
-        path        => $pd->{'path'},
-        fullpath    => $pd->{'fullpath'},
-        prefix      => $pd->{'prefix'},
-    };
-    $objargs=merge_refs($objargs,$pd->{'objargs'},$args->{'objargs'});
+    my $pagebody='';
+    my $pagefooter='';
+    if(!$clipboard->get('_no_more_output')) {
 
-    # Loading page displaying object and executing it.
-    #
-    my $obj=XAO::Objects->new(objname => 'Web::' . $pd->{'objname'});
-    my $pagebody=$obj->expand($objargs);
+        # Preparing object arguments out of standard ones, object specific
+        # once from template paths and supplied hash (in that order of
+        # preference).
+        #
+        my $objargs={
+            path        => $pd->{'path'},
+            fullpath    => $pd->{'fullpath'},
+            prefix      => $pd->{'prefix'},
+        };
 
-    # Do we need to run any objects after executing? A good place to
-    # dump benchmark statistics for example.
-    #
-    my $pagefooter=$self->_expand_list($siteconfig->get('auto_after'));
+        $objargs=merge_refs($objargs,$pd->{'objargs'},$args->{'objargs'});
+
+        # Loading page displaying object and executing it.
+        #
+        my $obj=XAO::Objects->new(objname => 'Web::' . $pd->{'objname'});
+        $pagebody=$obj->expand($objargs);
+
+        # Do we need to run any objects after executing? A good place to
+        # dump benchmark statistics for example.
+        #
+        $pagefooter=$self->_expand_list($siteconfig->get('auto_after'));
+    }
 
     # Done! Somewhat convoluted way of joining strings is here because
     # the page header would be a unicode character string (even if
@@ -754,16 +771,9 @@ sub process ($%) {
     # concatenation and convert the resulting page text into a character
     # string. That is not desirable if the output is a binary document.
     #
-    my $pagetext;
-    if(1) {
-        $pagetext=join('',map {
-            Encode::is_utf8($_) ?  Encode::encode($charset || 'utf8',$_) : $_;
-        } ($pageheader,$pagebody,$pagefooter));
-    }
-    else {
-        $pagetext=$pageheader.$pagebody.$pagefooter;
-        $pagetext=Encode::encode($charset || 'utf8',$pagetext) if Encode::is_utf8($pagetext);
-    }
+    my $pagetext=join('',map {
+        Encode::is_utf8($_) ?  Encode::encode($charset || 'utf8',$_) : $_;
+    } ($pageheader,$pagebody,$pagefooter));
 
     ### dprint "---length(pageheader)=".length($pageheader).", utf8=".Encode::is_utf8($pageheader);
     ### dprint "---length(pagebody)=  ".length($pagebody).", utf8=".Encode::is_utf8($pagebody);

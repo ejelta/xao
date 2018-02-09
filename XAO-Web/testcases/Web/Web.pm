@@ -136,47 +136,47 @@ sub test_auto_lists {
     my $self=shift;
 
     my %tests=(
-        #t01 => {
-        #    path        => '/test-auto-lists.html',
-        #    expect      => '',
-        #},
-        #t02 => {
-        #    path        => '/test-auto-lists.html',
-        #    auto_before => [
-        #        'Web::Page' => {
-        #            template    => '123',
-        #        },
-        #        'Web::Page' => {
-        #            template    => '45',
-        #        },
-        #    ],
-        #    expect      => '12345',
-        #},
-        #t03 => {
-        #    path        => '/test-auto-lists.html',
-        #    auto_before => [
-        #        'Web::Page' => {
-        #            template    => '123',
-        #        },
-        #        'Web::Clipboard' => {
-        #            mode        => 'set',
-        #            name        => 'ttt',
-        #            value       => 'cbvalue',
-        #        },
-        #    ],
-        #    expect      => '123cbvalue',
-        #},
-        #t04 => {
-        #    path        => '/test-auto-lists.html',
-        #    auto_before => [
-        #        'Web::Clipboard' => {
-        #            mode        => 'set',
-        #            name        => 'ttt',
-        #            value       => 'Encyclopædia Britannica',
-        #        },
-        #    ],
-        #    expect      => Encode::encode('utf8','Encyclopædia Britannica'),
-        #},
+        t01 => {
+            path        => '/test-auto-lists.html',
+            expect      => '',
+        },
+        t02 => {
+            path        => '/test-auto-lists.html',
+            auto_before => [
+                'Web::Page' => {
+                    template    => '123',
+                },
+                'Web::Page' => {
+                    template    => '45',
+                },
+            ],
+            expect      => '12345',
+        },
+        t03 => {
+            path        => '/test-auto-lists.html',
+            auto_before => [
+                'Web::Page' => {
+                    template    => '123',
+                },
+                'Web::Clipboard' => {
+                    mode        => 'set',
+                    name        => 'ttt',
+                    value       => 'cbvalue',
+                },
+            ],
+            expect      => '123cbvalue',
+        },
+        t04 => {
+            path        => '/test-auto-lists.html',
+            auto_before => [
+                'Web::Clipboard' => {
+                    mode        => 'set',
+                    name        => 'ttt',
+                    value       => 'Encyclopædia Britannica',
+                },
+            ],
+            expect      => Encode::encode('utf8','Encyclopædia Britannica'),
+        },
         t05 => {
             path        => '/test-auto-lists.html',
             auto_before => [
@@ -213,6 +213,29 @@ sub test_auto_lists {
             ],
             expect      => '123456',
         },
+        #
+        # If there was a redirect in auto_before section then nothing else
+        # is to be processed. Doing so might break the redirect and might be
+        # a security risk.
+        #
+        t07 => {
+            path        => '/test-auto-lists.html',
+            auto_before => [
+                'Web::Redirect' => {
+                    url     => 'https://www.google.com/',
+                },
+                'Web::Page' => {
+                    template    => 'BEFORE',
+                },
+            ],
+            auto_after  => [
+                'Web::Page' => {
+                    template    => 'AFTER',
+                },
+            ],
+            expect      => qr/www\.google\.com/,
+            not_expect  => qr/(?:BEFORE|AFTER)/,
+        },
     );
 
     foreach my $tname (sort keys %tests) {
@@ -233,10 +256,18 @@ sub test_auto_lists {
 
         my $path=$tdata->{'path'};
         my $got=$web->expand(path => $path);
-        my $expect=$tdata->{'expect'};
 
-        $self->assert($got eq $expect,
-            "Expected '$expect', got '$got' (test '$tname', path '$path', charmode '$charmode')");
+        if(my $expect=$tdata->{'expect'}) {
+            dprint "expect: ".(ref($expect) eq 'Regexp' ? $got =~ $expect : $got eq $expect);
+            $self->assert((ref($expect) eq 'Regexp' ? $got =~ $expect : $got eq $expect),
+                "Expected '$expect', got '$got' (test '$tname', path '$path', charmode '$charmode')");
+        }
+
+        if(my $not_expect=$tdata->{'not_expect'}) {
+            dprint "not-expect: ".(ref($not_expect) eq 'Regexp' ? $got !~ $not_expect : $got ne $not_expect);
+            $self->assert(ref($not_expect) eq 'Regexp' ? $got !~ $not_expect : $got ne $not_expect,
+                "Expected to NOT match '$not_expect', got '$got' (test '$tname', path '$path', charmode '$charmode')");
+        }
     }
 }
 
