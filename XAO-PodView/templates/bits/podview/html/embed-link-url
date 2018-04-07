@@ -1,1 +1,1 @@
-<A HREF="<%URL%>"><$TEXT/h$></A><%End%>
+<a href="<$URL$>"><$TEXT/h$></a><%End%>

@@ -1,1 +1,1 @@
-<A HREF="<%URL%>?module=<%MODULE/q%>"><$TEXT/h$></A><%End%>
+<a href="?module=<$MODULE/q$>"><$TEXT/h$></a><%End%>

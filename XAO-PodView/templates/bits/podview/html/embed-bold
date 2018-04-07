@@ -1,1 +1,1 @@
-<B><%TEXT%></B><%End%>
+<strong><$TEXT$></strong><%End%>
