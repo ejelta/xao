@@ -19,6 +19,7 @@ bench/results-20160427-v1.35.txt
 handlers/xao-apache.pl
 lib/Apache/XAO.pm
 lib/XAO/DO/CGI.pm
+lib/XAO/DO/Context.pm
 lib/XAO/DO/Web/Action.pm
 lib/XAO/DO/Web/Benchmark.pm
 lib/XAO/DO/Web/CgiParam.pm
@@ -122,10 +123,12 @@ testcases/testroot/projects/test/objects/Web/IdentifyUserC1.pm
 testcases/testroot/projects/test/objects/Web/MyAction.pm
 testcases/testroot/projects/test/objects/Web/MyAction2.pm
 testcases/testroot/projects/test/objects/Web/MyPage.pm
+testcases/testroot/projects/test/objects/Web/UniHex.pm
 testcases/testroot/projects/test/objects/Web/Unicode.pm
 testcases/testroot/projects/test/templates/WebURL.html
 testcases/testroot/projects/test/templates/bits/local-test
 testcases/testroot/projects/test/templates/bits/rawobj-template
+testcases/testroot/projects/test/templates/clear.gif
 testcases/testroot/projects/test/templates/cookie1.html
 testcases/testroot/projects/test/templates/cookie2.html
 testcases/testroot/projects/test/templates/index.html

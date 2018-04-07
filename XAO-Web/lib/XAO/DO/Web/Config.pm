@@ -38,12 +38,12 @@ sub cookies ($);
 sub disable_special_access ($);
 sub embeddable_methods ($);
 sub enable_special_access ($);
+sub force_byte_output ($;$);
 sub header ($@);
 sub header_args ($@);
 sub get_cookie ($$;$);
 sub new ($@);
 
-##
 # Package version for checks and reference
 #
 use vars qw($VERSION);
@@ -235,6 +235,7 @@ sub cleanup ($) {
     delete $self->{'clipboard'};
     delete $self->{'cookies'};
     delete $self->{'header_args'};
+    delete $self->{'force_byte_output'};
     delete $self->{'header_printed'};
     delete $self->{'special_access'};
 }
@@ -250,8 +251,8 @@ between different XAO::Web objects. Cleaned up for every session.
 
 sub clipboard ($) {
    my $self=shift;
-   $self->{clipboard}=XAO::SimpleHash->new() unless $self->{clipboard};
-   $self->{clipboard};
+   $self->{'clipboard'}=XAO::SimpleHash->new() unless $self->{'clipboard'};
+   return $self->{'clipboard'};
 }
 
 ###############################################################################
@@ -297,12 +298,15 @@ sub disable_special_access ($) {
 
 Used internally by global Config object, returns an array with all
 embeddable method names -- add_cookie(), cgi(), clipboard(), cookies(),
-header(), header_args().
+force_byte_output(), header(), header_args().
 
 =cut
 
 sub embeddable_methods ($) {
-    qw(add_cookie cgi clipboard cookies header header_args get_cookie);
+    qw(
+        add_cookie cgi clipboard cookies force_byte_output header
+        header_args get_cookie
+    );
 }
 
 ###############################################################################
@@ -323,6 +327,27 @@ Example:
 sub enable_special_access ($) {
     my $self=shift;
     $self->{special_access}=1;
+}
+
+###############################################################################
+
+=item force_byte_output ()
+
+If the site is configured to run in character mode it might still be
+necessary to output some content as is, without character processing
+(e.g. for generated images or spreadsheets).
+
+This method is called automatically when content type is set to a
+non-text value, so normally there is no need to call it directly.
+
+=cut
+
+sub force_byte_output ($;$) {
+    my ($self,$value)=@_;
+    if(defined $value) {
+        $self->{'force_byte_output'}=$value;
+    }
+    return $self->{'force_byte_output'};
 }
 
 ###############################################################################

@@ -1,7 +1,9 @@
-#!/usr/bin/perl -w
+#!/usr/bin/env perl
+#
 # Reads data from flat text file dumped from database
 # and builds universal catalog .XML file.
 #
+use warnings;
 use strict;
 use XAO::Utils;
 use XAO::Web;

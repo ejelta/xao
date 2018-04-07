@@ -1,5 +1,5 @@
-# Copyright (c) 2002 XAO Inc.
-###############################################################################
+#!/usr/bin/env perl
+use warnings;
 use strict;
 use ExtUtils::MakeMaker;
 use ExtUtils::Manifest;
@@ -86,7 +86,7 @@ WriteMakefile(
     'NAME'          => 'XAO::DO::FS::Glue::MySQL',
     'DISTNAME'      => 'XAO-MySQL',
     'VERSION_FROM'	=> 'MySQL.pm',
-    'PREREQ_PM'     => { 
+    'PREREQ_PM'     => {
         'Error'         => '0.15',
         'Test::Unit'    => '0.15',
         'XAO::Base'     => '1.06',

@@ -1,5 +1,5 @@
-# Copyright (c) 2003 XAO Inc.; Andrew Maltsev <am@xao.com>
-###############################################################################
+#!/usr/bin/env perl
+use warnings;
 use strict;
 use ExtUtils::MakeMaker;
 use ExtUtils::Manifest;
@@ -109,7 +109,7 @@ WriteMakefile(
     'ABSTRACT'      => 'Fast full text search indexer for XAO::FS',
     'NAME'          => 'XAO::Indexer',
     'VERSION_FROM'	=> 'Indexer.pm',
-    'PREREQ_PM'     => { 
+    'PREREQ_PM'     => {
         'Error'         => '0.14',
         'Pod::Usage'    => '1.12',
         'Test::Unit'    => '0.14',

@@ -1,4 +1,5 @@
-#!/usr/bin/perl -w
+#!/usr/bin/env perl
+use warnings;
 use strict;
 use ExtUtils::MakeMaker;
 use ExtUtils::Manifest;
@@ -124,7 +125,7 @@ WriteMakefile(
     'VERSION_FROM'  => 'Base.pm',
     'PREREQ_PM'     => {
         'Error'         => '0.13',
-        'Test::Unit'    => '0.14',
+        'Test::Unit'    => '0.26',
         'Clone'         => '0.34',
         'Storable'      => '2.39',
     },

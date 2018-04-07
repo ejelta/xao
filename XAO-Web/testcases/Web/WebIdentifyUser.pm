@@ -6,6 +6,7 @@ use POSIX qw(mktime);
 use Digest::SHA qw(sha1_base64 sha256_base64);
 use Digest::MD5 qw(md5_base64);
 use Error qw(:try);
+use utf8;
 
 use Data::Dumper;
 
@@ -3477,7 +3478,7 @@ sub test_crypto {
                 user_prop       => 'email',
                 id_cookie       => 'member_id',
                 pass_prop       => 'password',
-                pass_encrypt    => 'bcrypt,sha256,sha1,md5,crypt,plaintext',
+                pass_encrypt    => 'bcrypt,sha256,sha1,md5,plaintext',
                 pass_pepper     => 'fubar,',
                 vf_time_prop    => 'verify_time',
                 vf_expire_time  => 120,
@@ -3491,6 +3492,15 @@ sub test_crypto {
                   "Can't get configuration parameter");
 
     my $password='qwerty12';
+
+    # Unicode passwords non-normalized and normalized. Both have unicode
+    # characters. Code 42F is Cyrillic "YA", which is not altered by
+    # normalization.
+    #
+    my $unipassword1="\x{fb06}-\x{fb03}-\x{42f}";
+    my $unipassword2="st-ffi-\x{42f}";
+
+    my $tseq=0;
 
     my %etests=(
         #
@@ -3648,6 +3658,65 @@ sub test_crypto {
                 },
                 salt        => {
                     length      => [ 25,25 ],
+                },
+            },
+        },
+        t02_bcrypt4a => {
+            repeat  => 9,
+            args    => {
+                pass_encrypt=> 'bcrypt',
+                pass_encrypt_cost => 6,
+                pass_pepper => 'pepper',
+                password    => $unipassword1,
+            },
+            expect  => {
+                encrypted   => {
+                    regex       => qr/^\$bcrypt\$6-/,
+                    notsimple   => 1,
+                    length      => [ 64,64 ],
+                },
+                salt        => {
+                    length      => [ 24,24 ],
+                },
+            },
+        },
+        t02_bcrypt4b => {
+            repeat  => 9,
+            args    => {
+                pass_encrypt    => 'bcrypt',
+                pass_encrypt_cost => 6,
+                pass_pepper     => 'pepper',
+                pass_normalize  => 'saslprep',
+                password        => $unipassword1,
+            },
+            expect  => {
+                encrypted   => {
+                    regex       => qr/^\$bcrypt-sp\$6-/,
+                    notsimple   => 1,
+                    length      => [ 67,67 ],
+                },
+                salt        => {
+                    length      => [ 24,24 ],
+                },
+            },
+        },
+        t02_bcrypt4c => {
+            repeat  => 9,
+            args    => {
+                pass_encrypt    => 'bcrypt',
+                pass_encrypt_cost => 6,
+                pass_pepper     => 'pepper',
+                pass_normalize  => 'nfkc',
+                password        => $unipassword1,
+            },
+            expect  => {
+                encrypted   => {
+                    regex       => qr/^\$bcrypt-kc\$6-/,
+                    notsimple   => 1,
+                    length      => [ 67,67 ],
+                },
+                salt        => {
+                    length      => [ 24,24 ],
                 },
             },
         },
@@ -3917,6 +3986,74 @@ sub test_crypto {
                 gKFPxe5eEtYx6
                 iL3a0WOArmN1.
         )),
+        #
+        # Unicode normalization
+        #
+        (map { my ($alg,$nz,$pw,$stored,$expect)=@$_; $expect||=$stored;
+            (
+                't07-'.sprintf('%03u',++$tseq) => {
+                    args    => {
+                        pass_encrypt    => $alg,
+                        pass_normalize  => $nz,
+                        password        => $pw,
+                        password_stored => $stored,
+                    },
+                    expect  => {
+                        encrypted   => {
+                            equal       => $expect,
+                        },
+                    },
+                },
+            )
+        } (
+            [ 'bcrypt', undef,      $password,      '$md5$HJKFSK3E$haMRczf96D/mDN8yK6fTGQ' ],
+            [ undef,    undef,      $password,      '$md5$HJKFSK3E$aaaaaaaaaaaaaaaaaaaaaa', '$md5$HJKFSK3E$haMRczf96D/mDN8yK6fTGQ' ],
+            [ undef,    'saslprep', $password,      '$md5$HJKFSK3E$aaaaaaaaaaaaaaaaaaaaaa', '$md5$HJKFSK3E$haMRczf96D/mDN8yK6fTGQ' ],
+            [ undef,    'nfkc',     $password,      '$md5$HJKFSK3E$aaaaaaaaaaaaaaaaaaaaaa', '$md5$HJKFSK3E$haMRczf96D/mDN8yK6fTGQ' ],
+            [ 'md5',    'saslprep', $password,      '$md5-sp$UO8LENYJ$kJR0AVN0zstfGhr+uZ4O+A' ],
+            [ undef,    'nfkc',     $password,      '$md5-sp$UO8LENYJ$kJR0AVN0zstfGhr+uZ4O+A' ],
+            [ undef,    undef,      $password,      '$md5-sp$UO8LENYJ$kJR0AVN0zstfGhr+uZ4O+A' ],
+            [ undef,    undef,      $unipassword1,  '$md5-sp$UO8LENYJ$Js4ufPt4YyRfGGseP/VSuQ' ],    # Same digest for different passwords
+            [ undef,    undef,      $unipassword2,  '$md5-sp$UO8LENYJ$Js4ufPt4YyRfGGseP/VSuQ' ],
+            [ undef,    undef,      $unipassword1,  '$md5-kc$OU8LENYJ$KH+5OB1qHm2DfTmOzg03nA' ],    # Same digest for different passwords
+            [ undef,    undef,      $unipassword2,  '$md5-kc$OU8LENYJ$KH+5OB1qHm2DfTmOzg03nA' ],
+            [ undef,    undef,      $unipassword1,  '$md5$FUBARBAZ$Rm0h5/a1xbbZJQbYDf2j4Q' ],       # Different digests
+            [ undef,    undef,      $unipassword2,  '$md5$FUBARBAZ$2XKh66B8epgKsYnX2/x3Sg' ],
+            #
+            [ 'crypt',  '',         $password,      'nAlzI0nptw5g2' ],
+            [ 'crypt',  'nfkc',     $password,      'nAlzI0nptw5g2' ],
+            [ 'crypt',  'saslprep', $password,      'nAlzI0nptw5g2' ],
+            [ 'crypt',  '',         substr($unipassword1,0,3), 'EgeLZIR1IMx2o' ],   # Substr is here to avoid a length warning.
+            [ 'crypt',  'nfkc',     substr($unipassword1,0,3), 'aHyTO.yCUc94c' ],   # 'Crypt' mode is especially useless for
+            [ 'crypt',  'saslprep', substr($unipassword1,0,3), 'aHyTO.yCUc94c' ],   # unicode passwords.
+            #
+            [ undef,    undef,      $password,      '$sha1$ABCDEFGH$XLZUY81bOSQO7KgthZPC4m9NusA' ],
+            [ undef,    undef,      $password,      '$sha256$ABCDEFGH$3jxeO8N3NNcNON4y5FZ9K0EGZnF7nE1X8IEtNFPYNLw' ],
+            [ undef,    undef,      $password,      '$bcrypt$8-bWSWNEEftaTKQXzOJVcAbQ$tozGD064lDuSZueaUp6Sa0C57p1ouRk' ],
+            [ undef,    undef,      $unipassword1,  '$sha1$ABCDEFGH$C3pTNrZ144R4OBXQ9AsZ851O+2w' ],
+            [ undef,    undef,      $unipassword1,  '$sha256$ABCDEFGH$A8zsAkXFXRXIrPTiYHL0o4zRzjXvTyMfh5HzhtuAak4' ],
+            [ undef,    undef,      $unipassword1,  '$bcrypt$8-bWSWNEEftaTKQXzOJVcAbQ$Bvq++F+NpMO3Agdg2YydTHEoyK9cgSI' ],
+            [ undef,    undef,      $unipassword2,  '$sha1$ABCDEFGH$Zs71V7fVS3PrXD7T305VYF32kzc' ],
+            [ undef,    undef,      $unipassword2,  '$sha256$ABCDEFGH$7761S3qqFD4VmWMoodCh4/RkUdXgn6GyqsRuiYmCTI8' ],
+            [ undef,    undef,      $unipassword2,  '$bcrypt$8-bWSWNEEftaTKQXzOJVcAbQ$9LZZ4mYoZngTGNTweLbrYZ8t7lEC7qw' ],
+            #
+            [ undef,    undef,      $password,      '$sha1-sp$ABCDEFGH$XLZUY81bOSQO7KgthZPC4m9NusA' ],
+            [ undef,    undef,      $password,      '$sha256-sp$ABCDEFGH$3jxeO8N3NNcNON4y5FZ9K0EGZnF7nE1X8IEtNFPYNLw' ],
+            [ undef,    undef,      $password,      '$bcrypt-sp$8-bWSWNEEftaTKQXzOJVcAbQ$tozGD064lDuSZueaUp6Sa0C57p1ouRk' ],
+            [ undef,    undef,      $unipassword1,  '$sha1-sp$ABCDEFGH$Zs71V7fVS3PrXD7T305VYF32kzc' ],
+            [ undef,    undef,      $unipassword2,  '$sha1-sp$ABCDEFGH$Zs71V7fVS3PrXD7T305VYF32kzc' ],
+            [ undef,    undef,      $unipassword1,  '$sha256-sp$ABCDEFGH$7761S3qqFD4VmWMoodCh4/RkUdXgn6GyqsRuiYmCTI8' ],
+            [ undef,    undef,      $unipassword2,  '$sha256-sp$ABCDEFGH$7761S3qqFD4VmWMoodCh4/RkUdXgn6GyqsRuiYmCTI8' ],
+            [ undef,    undef,      $unipassword1,  '$bcrypt-sp$8-bWSWNEEftaTKQXzOJVcAbQ$9LZZ4mYoZngTGNTweLbrYZ8t7lEC7qw' ],
+            [ undef,    undef,      $unipassword2,  '$bcrypt-sp$8-bWSWNEEftaTKQXzOJVcAbQ$9LZZ4mYoZngTGNTweLbrYZ8t7lEC7qw' ],
+            #
+            [ undef,    undef,      Encode::encode('utf8',$unipassword1), '$bcrypt$8-bWSWNEEftaTKQXzOJVcAbQ$Bvq++F+NpMO3Agdg2YydTHEoyK9cgSI' ],
+            [ undef,    undef,      Encode::encode('utf8',$unipassword1), '$bcrypt-sp$8-bWSWNEEftaTKQXzOJVcAbQ$Bvq++F+NpMO3Agdg2YydTHEoyK9cgSI' ],
+            [ undef,    undef,      Encode::encode('utf8',$unipassword1), '$bcrypt-kc$8-bWSWNEEftaTKQXzOJVcAbQ$Bvq++F+NpMO3Agdg2YydTHEoyK9cgSI' ],
+            [ undef,    undef,      Encode::encode('utf8',$unipassword2), '$bcrypt$8-bWSWNEEftaTKQXzOJVcAbQ$9LZZ4mYoZngTGNTweLbrYZ8t7lEC7qw' ],
+            [ undef,    undef,      Encode::encode('utf8',$unipassword2), '$bcrypt-sp$8-bWSWNEEftaTKQXzOJVcAbQ$9LZZ4mYoZngTGNTweLbrYZ8t7lEC7qw' ],
+            [ undef,    undef,      Encode::encode('utf8',$unipassword2), '$bcrypt-kc$8-bWSWNEEftaTKQXzOJVcAbQ$9LZZ4mYoZngTGNTweLbrYZ8t7lEC7qw' ],
+        )),
     );
 
     foreach my $tname (sort keys %etests) {
@@ -3992,7 +4129,7 @@ sub test_crypto {
                     }
 
                     elsif($ckcode eq 'notsimple') {
-                        my $pw=$args->{'password'} || '';
+                        my $pw=Encode::encode('utf8',$args->{'password'} || '');
 
                         my @simple=(
                             $pw,
@@ -4002,7 +4139,7 @@ sub test_crypto {
                         );
 
                         # Yes, there is a probability that this will
-                        # match for a salted hash. But is minscule.
+                        # match for a salted hash. But is miniscule.
                         #
                         foreach my $sv (@simple) {
                             $self->assert(index($value,$sv)<0,
@@ -4033,12 +4170,14 @@ sub test_crypto {
     my $md5_salted=$iu->data_password_encrypt(
         pass_encrypt    => 'md5',
         password        => $password,
+        salt            => '123456',
     )->{'encrypted'};
 
     my $md5_peppered=$iu->data_password_encrypt(
         type            => 'member_pepper',
         pass_encrypt    => 'md5',
         password        => $password,
+        salt            => '123456',
     )->{'encrypted'};
 
     $self->assert($md5_salted ne $md5_peppered,
@@ -4051,12 +4190,14 @@ sub test_crypto {
     my $sha1_salted=$iu->data_password_encrypt(
         pass_encrypt    => 'sha1',
         password        => $password,
+        salt            => '123456',
     )->{'encrypted'};
 
     my $sha1_peppered=$iu->data_password_encrypt(
         type            => 'member_pepper',
         pass_encrypt    => 'sha1',
         password        => $password,
+        salt            => '123456',
     )->{'encrypted'};
 
     $self->assert($sha1_salted ne $sha1_peppered,
@@ -4069,12 +4210,14 @@ sub test_crypto {
     my $sha256_salted=$iu->data_password_encrypt(
         pass_encrypt    => 'sha256',
         password        => $password,
+        salt            => '123456',
     )->{'encrypted'};
 
     my $sha256_peppered=$iu->data_password_encrypt(
         type            => 'member_pepper',
         pass_encrypt    => 'sha256',
         password        => $password,
+        salt            => '123456',
     )->{'encrypted'};
 
     $self->assert($sha256_salted ne $sha256_peppered,
@@ -4082,15 +4225,20 @@ sub test_crypto {
 
     dprint "...sha256: bare='$sha256_bare' salted='$sha256_salted' peppered='$sha256_peppered'";
 
+    my $pwshort="Qwert1";
     my $crypt_salted=$iu->data_password_encrypt(
         pass_encrypt    => 'crypt',
-        password        => $password,
+        password        => $pwshort,
+        salt            => 'AB',
+        no_length_warning => 1,
     )->{'encrypted'};
 
     my $crypt_peppered=$iu->data_password_encrypt(
         type            => 'member_pepper',
         pass_encrypt    => 'crypt',
-        password        => $password,
+        password        => $pwshort,
+        salt            => 'AB',
+        no_length_warning => 1,
     )->{'encrypted'};
 
     $self->assert($crypt_salted ne $crypt_peppered,
@@ -4101,6 +4249,7 @@ sub test_crypto {
     my $bcrypt_salted_1=$iu->data_password_encrypt(
         pass_encrypt    => 'bcrypt',
         password        => $password,
+        salt            => '8-bWSWNEEftaTKQXzOJVcAbQ',
     )->{'encrypted'};
 
     my $bcrypt_salted_2=$iu->data_password_encrypt(
@@ -4112,6 +4261,7 @@ sub test_crypto {
         type            => 'member_pepper',
         pass_encrypt    => 'bcrypt',
         password        => $password,
+        salt            => '8-bWSWNEEftaTKQXzOJVcAbQ',
     )->{'encrypted'};
 
     $self->assert($bcrypt_salted_1 ne $bcrypt_peppered,
@@ -4160,7 +4310,7 @@ sub test_crypto {
     my $tnum=0;
     my %cjar;
     my %matrix=map {
-        my ($code,$pwcrypt,$types)=@$_;
+        my ($code,$pwplain,$pwcrypt,$types)=@$_;
 
         my $email=$code.'@bar.org';
 
@@ -4179,7 +4329,7 @@ sub test_crypto {
                     mode        => 'login',
                     type        => $type,
                     username    => $email,
-                    password    => $password,
+                    password    => $pwplain,
                 },
                 results => {
                     cookies     => {
@@ -4241,21 +4391,20 @@ sub test_crypto {
             },
         ) } @$types;
     } (
-        [ 'md5_bare',       $md5_bare,          [qw(member member_md5_sha1 member_pepper)] ],
-        [ 'md5_salted',     $md5_salted,        [qw(member member_md5_sha1 member_custom member_pepper)] ],
-        [ 'md5_peppered',   $md5_peppered,      [qw(member_pepper)] ],
-        [ 'sha1_bare',      $sha1_bare,         [qw(member_md5_sha1 member_sha1_crypt member_pepper)] ],
-        [ 'sha1_salted',    $sha1_salted,       [qw(member_md5_sha1 member_sha1_crypt member_custom member member_pepper)] ],
-        [ 'sha1_peppered',  $sha1_peppered,     [qw(member_pepper)] ],
-        [ 'sha256_bare',    $sha256_bare,       [qw(member member_pepper)] ],
-        [ 'sha256_salted',  $sha256_salted,     [qw(member member_md5_sha1 member_crypt member_pepper)] ],
-        [ 'sha256_peppered',$sha256_peppered,   [qw(member_pepper)] ],
-        [ 'crypt_salted',   $crypt_salted,      [qw(member_crypt member_sha1_crypt member_pepper)] ],
-        [ 'crypt_peppered', $crypt_peppered,    [qw(member_pepper)] ],
-        [ 'bcrypt_salted_1',$bcrypt_salted_1,   [qw(member member_bcrypt)] ],
-        [ 'bcrypt_salted_2',$bcrypt_salted_2,   [qw(member member_bcrypt)] ],
-        [ 'bcrypt_peppered',$bcrypt_peppered,   [qw(member_pepper)] ],
-        [ 'plaintext',      $password,          [qw(member member_plaintext member_pepper)] ],
+        [ 'md5_bare',       $password,  $md5_bare,          [qw(member member_md5_sha1 member_pepper)] ],
+        [ 'md5_salted',     $password,  $md5_salted,        [qw(member member_md5_sha1 member_custom member_pepper)] ],
+        [ 'md5_peppered',   $password,  $md5_peppered,      [qw(member_pepper)] ],
+        [ 'sha1_bare',      $password,  $sha1_bare,         [qw(member_md5_sha1 member_sha1_crypt member_pepper)] ],
+        [ 'sha1_salted',    $password,  $sha1_salted,       [qw(member_md5_sha1 member_sha1_crypt member_custom member member_pepper)] ],
+        [ 'sha1_peppered',  $password,  $sha1_peppered,     [qw(member_pepper)] ],
+        [ 'sha256_bare',    $password,  $sha256_bare,       [qw(member member_pepper)] ],
+        [ 'sha256_salted',  $password,  $sha256_salted,     [qw(member member_md5_sha1 member_crypt member_pepper)] ],
+        [ 'sha256_peppered',$password,  $sha256_peppered,   [qw(member_pepper)] ],
+        [ 'crypt_salted',   $pwshort,   $crypt_salted,      [qw(member_crypt member_sha1_crypt)] ],
+        [ 'bcrypt_salted_1',$password,  $bcrypt_salted_1,   [qw(member member_bcrypt)] ],
+        [ 'bcrypt_salted_2',$password,  $bcrypt_salted_2,   [qw(member member_bcrypt)] ],
+        [ 'bcrypt_peppered',$password,  $bcrypt_peppered,   [qw(member_pepper)] ],
+        [ 'plaintext',      $password,  $password,          [qw(member member_plaintext member_pepper)] ],
     );
 
     ### dprint Dumper(\%matrix);

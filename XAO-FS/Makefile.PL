@@ -1,5 +1,5 @@
-# Copyright (c) 1997-2001 XAO Inc.
-###############################################################################
+#!/usr/bin/env perl
+use warnings;
 use strict;
 use ExtUtils::MakeMaker;
 use ExtUtils::Manifest;
@@ -104,7 +104,7 @@ WriteMakefile(
     'ABSTRACT'      => 'XAO Foundation Server (OO database layer)',
     'NAME'          => 'XAO::FS',
     'VERSION_FROM'  => 'FS.pm',
-    'PREREQ_PM'     => { 
+    'PREREQ_PM'     => {
         'DBD::mysql'    => '2.0414',
         'DBI'           => '1.13',
         'Error'         => '0.15',

@@ -113,7 +113,7 @@ sub test_all {
         my $rundata=$tagdata->{'runs'};
         $self->assert(ref $rundata,
             "Expected to have 'runs' ref on '$tag'");
-            
+
         $self->assert(scalar(keys %$rundata) == $counts{$tag}->[1],
             "Expected to have $counts{$tag}->[1] unique runs on '$tag', got ".scalar(keys %$rundata));
 

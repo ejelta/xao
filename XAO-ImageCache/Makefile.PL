@@ -1,5 +1,5 @@
-# Copyright (c) 1997-2001 XAO Inc.
-###############################################################################
+#!/usr/bin/env perl
+use warnings;
 use strict;
 use ExtUtils::MakeMaker;
 use ExtUtils::Manifest;
@@ -79,7 +79,7 @@ EOT
 #
 my %man3pods;
 foreach my $n (keys %{ExtUtils::Manifest::maniread()}) {
-    next unless $n =~ '^doc/(.*)\.(pm|pod)$' || 
+    next unless $n =~ '^doc/(.*)\.(pm|pod)$' ||
 		$n =~ '^(ImageCache).pm$';
     my $man=$1;
     $man=~s/\/+/::/g;
@@ -103,7 +103,7 @@ WriteMakefile(
     'ABSTRACT'      => 'Images caching module for XAO::Commerce',
     'NAME'          => 'XAO::ImageCache',
     'VERSION_FROM'	=> 'ImageCache.pm',
-    'PREREQ_PM'     => { 
+    'PREREQ_PM'     => {
         'Date::Manip'   => '6.22',
 	    'XAO::FS'	    => '1.01',
         'Test::Unit'    => '0.14',

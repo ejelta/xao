@@ -1,4 +1,5 @@
-#!/usr/bin/perl
+#!/usr/bin/env perl
+use warnings;
 use strict;
 use blib;
 use XAO::Objects;
@@ -9,7 +10,7 @@ use XAO::ImageCache;
 my $odb=init_data();
 
 ###############################################################################
-# XAO ImageCache class creation with cache structure 
+# XAO ImageCache class creation with cache structure
 # autocreate and images downloading into cache.
 #
 my $img_cache = XAO::ImageCache->new(
@@ -48,7 +49,7 @@ my $img_cache = XAO::ImageCache->new(
 sub init_data {
 
     my %d;
-    
+
     if (open(F,'.config')) {
         local($/);
         my $t=<F>;
@@ -66,7 +67,7 @@ sub init_data {
         password       => $d{test_password},
         empty_database => 'confirm',
     ) || die "Foundation Server initialization failure!";
-    
+
     my $global = $odb->fetch('/');
 
     my %global_structure=(
@@ -74,7 +75,7 @@ sub init_data {
             type      => 'list',
             class     => 'Data::Product',
             key       => 'id',
-            structure => { 
+            structure => {
                 name             => {
                         type        => 'text',
                         maxlength   => 50,
@@ -101,27 +102,27 @@ sub init_data {
     $product->put(source_image_url => "http://localhost/icons/apache_pb.gif");
     $product->put(dest_image_url => "");
     $plist->put(p0 => $product);
-        
+
     $product->put(name => "Test product 1");
     $product->put(source_image_url => "http://localhost/icons/medbutton.png");
     $product->put(dest_image_url => "");
     $plist->put(p1 => $product);
-    
+
     $product->put(name => "Test product 2");
     $product->put(source_image_url => "http://localhost/icons/sgi_performance.gif");
     $product->put(dest_image_url => "");
     $plist->put(p2 => $product);
-    
+
     $product->put(name => "Test product 3");
     $product->put(source_image_url => "http://localhost/icons/logo.gif");
     $product->put(dest_image_url => "");
     $plist->put(p3 => $product);
-    
+
     $product->put(name => "Test product 4");
     $product->put(source_image_url => "http://localhost/icons/netmin.gif");
     $product->put(dest_image_url => "");
     $plist->put(p4 => $product);
-    
+
     return $odb;
 }
 ###############################################################################
