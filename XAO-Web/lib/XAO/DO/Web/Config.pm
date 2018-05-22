@@ -479,7 +479,7 @@ sub get_cookie ($$;$) {
     my $value;
 
     if(!$original) {
-        foreach my $c (reverse @{$self->{'cookies'}}) {
+        foreach my $c (reverse @{$self->{'cookies'} || []}) {
             my $cookie=CGI::Cookie->new($c);
 
             if($cookie->name() eq $name) {
