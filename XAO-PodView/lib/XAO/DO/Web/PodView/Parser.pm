@@ -240,7 +240,8 @@ sub command ($$$$) {
     elsif($command eq 'back') {
         $self->{-over_level}--;
         $self->{-had_item}--;
-        my $style=pop(@{$self->{-over_type}});
+        my $style=pop(@{$self->{-over_type}}) || 'text';
+        $style='text' unless $style=~/^(number|bullet|text)$/;
         $command.="-$style";
     }
     elsif($command eq 'item') {

@@ -11,74 +11,76 @@ sub test_all {
     $self->{web}->execute(path => '/test.html', cgi => CGI->new(''));
     my $text=$self->get_stdout();
 
+    ### dprint "=====================\n$text\n=================";
+
     my $ok=<<'EOT';
 <DIV><FONT SIZE="+2" FACE="Verdana,Arial,Helvetica">TEST</FONT><P>
 <FONT SIZE="+1" FACE="Verdana,Arial,Helvetica">MISC TEST</FONT><P>
-some paragraph
-on <B>multiple</B> lines
-that includes <I>italic text</I> and a link: <A HREF="http://localhost/test.html?module=IO::File">IO::File</A>.
+<p>some paragraph
+on <strong>multiple</strong> lines
+that includes <em>italic text</em> and a link: <a href="?module=IO::File">IO::File</a>.
 
-<P>
-Code sample:<P>
-<PRE>
+</p>
+<p>Code sample:</p>
+<pre>
  # Like that
  #
  my $test=1;
 
  # Line after break
-</PRE>
+</pre>
 <FONT SIZE="+1" FACE="Verdana,Arial,Helvetica">LIST TEST</FONT><P>
-Paragraph of text on the top.<P>
+<p>Paragraph of text on the top.</p>
 <DL>
 <DT>aaaa
 <DD>
-Item a is very strange.<P>
+<p>Item a is very strange.</p>
 <UL>
 <LI>
-fubar<P>
+<p>fubar</p>
 <OL>
 <LI>
-one-one-one<P>
+<p>one-one-one</p>
 <LI>
-two-two-two<P>
+<p>two-two-two</p>
 </OL>
-That was enumerated list in bullet list in definitions list.<P>
-Another paragraph here with a <A HREF="http://xao.com/">link</A>.<P>
-And yet another one.<P>
+<p>That was enumerated list in bullet list in definitions list.</p>
+<p>Another paragraph here with a <a href="http://xao.com/">link</a>.</p>
+<p>And yet another one.</p>
 <LI>
-buraf<P>
+<p>buraf</p>
 </UL>
 <DT>bbbb
 <DD>
-Item b is kind of weird.<P>
+<p>Item b is kind of weird.</p>
 <OL>
 <LI>
-one<P>
+<p>one</p>
 <LI>
-two<P>
+<p>two</p>
 </OL>
-That's an enumerated list.<P>
+<p>That's an enumerated list.</p>
 <DT>cccc
 <DD>
-Item c is from the moon.<P>
+<p>Item c is from the moon.</p>
 <DL>
 <DT>first item of inner list
 <DD>
-some text<P>
+<p>some text</p>
 <DT>second item with no text
 <DD>
 <DT>third item with a lot of text
 <DD>
-aaaaaaaaaaaaaa bbbbbbbbbbbbbbbb ccccccccccc ddddddddddddddd eeeeeee
+<p>aaaaaaaaaaaaaa bbbbbbbbbbbbbbbb ccccccccccc ddddddddddddddd eeeeeee
 fffffffff ggggggggggg hhhhhhhhhhhhhhhh iiiiiiiiiiiiiiiiii jjjjjjjjjj
 kkkkkkkkkkkkk llllllllllllll mmmmmmmmmmmmmmm nnnnnnnnnnnnn oooooooo
 ppppppppppppp.
 
-<P>
+</p>
 </DL>
 </DL>
 <FONT SIZE="+2" FACE="Verdana,Arial,Helvetica">STOP</FONT><P>
-Last '<CODE>code</CODE>' paragraph &copy; 2001 &reg;.<P>
+<p>Last '<code>code</code>' paragraph &copy; 2001 &reg;.</p>
 </DIV>
 EOT
 
