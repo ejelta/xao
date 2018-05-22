@@ -87,7 +87,7 @@ sub test_mailer {
             decode  => 'utf8',
             regex   => [
                 qr/foobarbaz/s,
-                qr/Subject:\s+=\?(?i:utf-8)\?Q\?Subject_=E2=84=A2\?=/s,
+                qr/Subject:\s+=\?(?i:utf-8)\?Q\?Subject(?:_|=20)=E2=84=A2\?=/s,
                 qr/MIME-Version:/s,
                 qr/Content-Type:\s+text\/plain;\s+charset="?UTF-8"?/s,
                 qr/Content-Transfer-Encoding:\s+8bit/s,
@@ -131,7 +131,7 @@ sub test_mailer {
             decode  => 'utf8',
             regex   => [
                 qr/3M\x{2122}/s,
-                qr/Subject:\s+=\?(?i:utf-8)\?Q\?Hello_=E2=98=BA\?=/s,
+                qr/Subject:\s+=\?(?i:utf-8)\?Q\?Hello(?:_|=20)=E2=98=BA\?=/s,
                 qr/MIME-Version:/s,
                 qr/Content-Type:\s+text\/html;\s+charset="?UTF-8"?/s,
                 qr/Content-Transfer-Encoding:\s+8bit/s,
@@ -379,7 +379,7 @@ sub test_mailer {
                 'subject'               => "Unicode\x{2122} long subject to test splitting into two or more header continuation lines",
             },
             regex   => [
-                qr/Subject:\s*=\?(?i:utf-8)\?Q\?Unicode=E2=84=A2_long_subject_to_test_splitting_into_two_or/s,
+                qr/Subject:\s*=\?(?i:utf-8)\?Q\?Unicode=E2=84=A2(?:_|=20)long(?:_|=20)subject(?:_|=20)to(?:_|=20)test(?:_|=20)splitting(?:_|=20)into(?:_|=20)two(?:_|=20)or/s,
             ],
             negregex => [
                 qr/\r/s,
