@@ -236,6 +236,29 @@ sub test_cookie {
             },
             ignore_stderr   => 1,           # Hiding expected deprecation warning
         },
+        t12 => {                            # Expecting to get last stored!
+            path    => '/cookie1.html',
+            run     => sub {
+                $self->siteconfig->add_cookie({
+                    -name       => $cookie_name.'-t12',
+                    -value      => $cookie_value.'-t12-1',
+                    -path       => '/',
+                    -expires    => '+6000s',
+                });
+                $self->siteconfig->add_cookie({
+                    -name       => $cookie_name.'-t12',
+                    -value      => $cookie_value.'-t12-2',
+                    -path       => '/',
+                    -expires    => '+120s',
+                    -domain     => 'localhost',
+                });
+            },
+            expect  => {
+                config => {
+                    $cookie_name.'-t12'     => $cookie_value.'-t12-2',
+                },
+            },
+        },
     );
 
     my $config=$self->siteconfig;

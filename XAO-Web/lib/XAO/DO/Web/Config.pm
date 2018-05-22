@@ -460,7 +460,8 @@ it would return the value as set, not the value as it was originally
 received.
 
 B<NOTE:> The path and domain of cookies is ignored when checking for
-earlier set cookies!
+earlier set cookies and the last cookie stored with that name is
+returned!
 
 =cut
 
@@ -478,7 +479,7 @@ sub get_cookie ($$;$) {
     my $value;
 
     if(!$original) {
-        foreach my $c (@{$self->{'cookies'}}) {
+        foreach my $c (reverse @{$self->{'cookies'}}) {
             my $cookie=CGI::Cookie->new($c);
 
             if($cookie->name() eq $name) {
