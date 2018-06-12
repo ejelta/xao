@@ -264,6 +264,13 @@ these parameters are present in the configuration on login success
 profile, and creates a cookie named according to 'vf_key_cookie' with
 the value of the generated key.
 
+=item vf_key_length
+
+By default keys are 8 characters long. Use this option to set a custom
+key length. This only works for vf_key_prop single login keys. For
+key_list_uri based keys they are auto-generated based on the storage
+settings.
+
 =item vf_key_cookie
 
 Temporary verifiction key cookie.
@@ -494,6 +501,8 @@ sub check ($@) {
 
     my $cookie_domain=$config->{'domain'};
 
+    my $without_cookies=$args->{'without_cookies'};
+
     # These are useful for both verification and identification cookies.
     #
     my $vf_time_prop=$config->{'vf_time_prop'} ||
@@ -519,7 +528,9 @@ sub check ($@) {
         my $id_cookie=$config->{'id_cookie'} ||
             throw $self "- no 'id_cookie' in the configuration";
 
-        my $cookie_value=$self->siteconfig->get_cookie($id_cookie);
+        my $cookie_value=$without_cookies
+                ? $args->{'id_cookie_value'}
+                : $self->siteconfig->get_cookie($id_cookie);
 
         if(!$cookie_value) {
             return $self->display_results($args,'anonymous');
@@ -561,6 +572,7 @@ sub check ($@) {
                 id              => $user_id,
                 name            => $cookie_value,
                 key_object      => $key_object,
+                key             => $cookie_value,
             };
         }
 
@@ -642,14 +654,17 @@ sub check ($@) {
 
         # Updating cookie
         #
-        my $id_cookie_expire=$config->{'id_cookie_expire'} || 4*365*24*60*60;
-        $self->siteconfig->add_cookie(
-            -name    => $id_cookie,
-            -value   => $cookie_value,
-            -path    => '/',
-            -expires => '+' . $id_cookie_expire . 's',
-            -domain  => $cookie_domain,
-        );
+        unless($without_cookies) {
+            my $id_cookie_expire=$config->{'id_cookie_expire'} || 4*365*24*60*60;
+
+            $self->siteconfig->add_cookie(
+                -name    => $id_cookie,
+                -value   => $cookie_value,
+                -path    => '/',
+                -expires => '+' . $id_cookie_expire . 's',
+                -domain  => $cookie_domain,
+            );
+        }
     }
 
     # Checking clipboard to determine if 'verified' flag is set and
@@ -659,11 +674,18 @@ sub check ($@) {
     if(!$verified) {
         my $vcookie;
 
+        my $vf_key_cookie=$config->{'vf_key_cookie'};
+        my $key_cookie_value;
+        if($vf_key_cookie) {
+            $key_cookie_value=$without_cookies
+                                ? $args->{'key_cookie_value'}
+                                : $self->siteconfig->get_cookie($vf_key_cookie);
+        }
+
         # If we have a list of keys find the key that belongs to this
         # browser. If there is not one, assume at most 'identified'
         # status.
         #
-        my $vf_key_cookie=$config->{'vf_key_cookie'};
         my $key_expire_ext_prop=$config->{'key_expire_ext_prop'};
         my $extended;
         if(!$key_list_uri) {
@@ -676,11 +698,9 @@ sub check ($@) {
 
                 my $key_list=$self->odb->fetch($key_list_uri);
 
-                my $key_id=$self->siteconfig->get_cookie($vf_key_cookie);
-
-                if($key_id && $key_list->check_name($key_id)) {
+                if($key_cookie_value && $key_list->check_name($key_cookie_value)) {
                     try {
-                        $key_object=$key_list->get($key_id);
+                        $key_object=$key_list->get($key_cookie_value);
                     }
                     otherwise {
                         my $e=shift;
@@ -733,14 +753,12 @@ sub check ($@) {
             # appropriate field in the user profile
             #
             if(!$key_list_uri && $config->{'vf_key_prop'} && $vf_key_cookie) {
-                my $web_key=$self->siteconfig->get_cookie($vf_key_cookie) || '';
-                my $db_key=$user->get($config->{'vf_key_prop'}) || '';
-                if($web_key && $db_key eq $web_key) {
+                if($key_cookie_value && $key_cookie_value eq ($user->get($config->{'vf_key_prop'}) || '')) {
                     $verified=1;
 
                     $vcookie={
                         -name    => $config->{'vf_key_cookie'},
-                        -value   => $web_key,
+                        -value   => $key_cookie_value,
                         -path    => '/',
                         -expires => '+4y',
                         -domain  => $cookie_domain,
@@ -761,8 +779,11 @@ sub check ($@) {
                 object  => $user,
                 type    => $type,
             );
+
             if(!$errstr) {
                 $clipboard->put("$cb_uri/verified" => 1);
+
+                $clipboard->put("$cb_uri/key" => $key_cookie_value);
 
                 if($key_object) {
                     my $key_expire_prop=$config->{'key_expire_prop'} ||
@@ -780,7 +801,8 @@ sub check ($@) {
                 else {
                     $user->put($vf_time_prop => $current_time);
                 }
-                if($vcookie) {
+
+                if($vcookie && !$without_cookies) {
                     $self->siteconfig->add_cookie($vcookie);
                 }
             }
@@ -794,25 +816,27 @@ sub check ($@) {
     # That might help better track verification from browser side
     # applications and should not hurt anything else.
     #
-    my $expire_mode=$config->{'expire_mode'} || 'keep';
-    if(!$verified && $expire_mode eq 'clean') {
-        if($id_cookie_type eq 'key') {
-            $self->siteconfig->add_cookie(
-                -name    => $config->{'id_cookie'},
-                -value   => 0,
-                -path    => '/',
-                -expires => '-1d',
-                -domain  => $cookie_domain,
-            );
-        }
-        elsif($config->{'vf_key_cookie'}) {
-            $self->siteconfig->add_cookie(
-                -name    => $config->{'vf_key_cookie'},
-                -value   => 0,
-                -path    => '/',
-                -expires => '-1d',
-                -domain  => $cookie_domain,
-            );
+    unless($without_cookies) {
+        my $expire_mode=$config->{'expire_mode'} || 'keep';
+        if(!$verified && $expire_mode eq 'clean') {
+            if($id_cookie_type eq 'key') {
+                $self->siteconfig->add_cookie(
+                    -name    => $config->{'id_cookie'},
+                    -value   => 0,
+                    -path    => '/',
+                    -expires => '-1d',
+                    -domain  => $cookie_domain,
+                );
+            }
+            elsif($config->{'vf_key_cookie'}) {
+                $self->siteconfig->add_cookie(
+                    -name    => $config->{'vf_key_cookie'},
+                    -value   => 0,
+                    -path    => '/',
+                    -expires => '-1d',
+                    -domain  => $cookie_domain,
+                );
+            }
         }
     }
 
@@ -1148,6 +1172,8 @@ sub login ($;%) {
 
     my $data=$self->find_user($config,$username,$args->{'skip_user_condition'});
 
+    my $without_cookies=$args->{'without_cookies'};
+
     # Since MySQL is not case sensitive by default on text fields, there
     # was a glitch allowing people to log in with names like 'JOHN'
     # where the database entry would be keyed 'john'. Later on, if site
@@ -1338,23 +1364,25 @@ sub login ($;%) {
 
         # A failure to login resets existing key cookies
         #
-        if($id_cookie_type eq 'key') {
-            $self->siteconfig->add_cookie(
-                -name    => $id_cookie,
-                -value   => '0',
-                -path    => '/',
-                -expires => '-1d',
-                -domain  => $cookie_domain,
-            );
-        }
-        elsif($config->{'vf_key_cookie'}) {
-            $self->siteconfig->add_cookie(
-                -name    => $config->{'vf_key_cookie'},
-                -value   => '0',
-                -path    => '/',
-                -expires => '-1d',
-                -domain  => $cookie_domain,
-            );
+        unless($without_cookies) {
+            if($id_cookie_type eq 'key') {
+                $self->siteconfig->add_cookie(
+                    -name    => $id_cookie,
+                    -value   => '0',
+                    -path    => '/',
+                    -expires => '-1d',
+                    -domain  => $cookie_domain,
+                );
+            }
+            elsif($config->{'vf_key_cookie'}) {
+                $self->siteconfig->add_cookie(
+                    -name    => $config->{'vf_key_cookie'},
+                    -value   => '0',
+                    -path    => '/',
+                    -expires => '-1d',
+                    -domain  => $cookie_domain,
+                );
+            }
         }
 
         # Returning anonymouse, failed login verification
@@ -1396,33 +1424,56 @@ sub login ($;%) {
 
         $vf_expire_time=$vf_expire_ext_time if $extended && $vf_expire_ext_time;
 
-        my $key_id;
-        my $vf_key_cookie=$config->{'vf_key_cookie'};
-        if($id_cookie_type eq 'key') {
-            $key_id=$self->siteconfig->get_cookie($id_cookie);
-        }
-        elsif($vf_key_cookie) {
-            $key_id=$self->siteconfig->get_cookie($vf_key_cookie);
-        }
-        else {
-            throw $self "- id_cookie_type!=key and there is no vf_key_cookie";
-        }
-
         my $key_list=$self->odb->fetch($key_list_uri);
         my $key_obj;
-        if($key_id) {
-            try {
-                $key_obj=$key_list->get($key_id);
-                if($key_obj->get($key_ref_prop) ne $user->container_key) {
-                    $key_obj=undef;
+        my $key_id;
+
+        unless($without_cookies) {
+            my $vf_key_cookie=$config->{'vf_key_cookie'};
+            if($id_cookie_type eq 'key') {
+                $key_id=$self->siteconfig->get_cookie($id_cookie);
+            }
+            elsif($vf_key_cookie) {
+                $key_id=$self->siteconfig->get_cookie($vf_key_cookie);
+            }
+            else {
+                throw $self "- id_cookie_type!=key and there is no vf_key_cookie";
+            }
+
+            if($key_id) {
+                try {
+                    $key_obj=$key_list->get($key_id);
+                    if($key_obj->get($key_ref_prop) ne $user->container_key) {
+                        $key_obj=undef;
+                        $key_id=undef;
+                    }
+                }
+                otherwise {
+                    my $e=shift;
+                    dprint "IGNORED(OK): $e";
+                    $key_id=undef;
+                };
+            }
+
+            # The old default was to renew key expiration time when a
+            # login is issued over an existing key. The new default is
+            # to always issue a new key, and to invalidate the old key
+            # if present.
+            #
+            if($key_obj) {
+                my $key_renew_mode=$config->{'key_renew_mode'} || 'replace';
+                if($key_renew_mode eq 'replace') {
+                    $key_list->delete($key_id);
+                    $key_obj=$key_id=undef;
+                }
+                elsif($key_renew_mode ne 'update') {
+                    throw $self "- invalid key_renew_mode '$key_renew_mode'";
                 }
             }
-            otherwise {
-                my $e=shift;
-                dprint "IGNORED(OK): $e";
-            };
         }
 
+        # Creating or updating the key
+        #
         my $now=time;
         my %key_data=(
             $key_expire_prop    => $now+$vf_expire_time,
@@ -1450,28 +1501,31 @@ sub login ($;%) {
         }
 
         $data->{'key_object'}=$key_obj;
+        $data->{'key'}=$key_id;
 
-        if($id_cookie_type eq 'key') {
-            $self->siteconfig->add_cookie(
-                -name    => $id_cookie,
-                -value   => $key_id,
-                -path    => '/',
-                -expires => '+10y',
-                -domain  => $cookie_domain,
-            );
-            $data->{'cookie_value'}=$key_id;
-        }
-        elsif($config->{'vf_key_cookie'}) {
-            $self->siteconfig->add_cookie(
-                -name    => $config->{'vf_key_cookie'},
-                -value   => $key_id,
-                -path    => '/',
-                -expires => '+10y',
-                -domain  => $cookie_domain,
-            );
-        }
-        else {
-            throw $self "- either id_cookie_type=key or vf_key_cookie is needed with key_list_uri";
+        unless($without_cookies) {
+            if($id_cookie_type eq 'key') {
+                $self->siteconfig->add_cookie(
+                    -name    => $id_cookie,
+                    -value   => $key_id,
+                    -path    => '/',
+                    -expires => '+10y',
+                    -domain  => $cookie_domain,
+                );
+                $data->{'cookie_value'}=$key_id;
+            }
+            elsif($config->{'vf_key_cookie'}) {
+                $self->siteconfig->add_cookie(
+                    -name    => $config->{'vf_key_cookie'},
+                    -value   => $key_id,
+                    -path    => '/',
+                    -expires => '+10y',
+                    -domain  => $cookie_domain,
+                );
+            }
+            else {
+                throw $self "- either id_cookie_type=key or vf_key_cookie is needed with key_list_uri";
+            }
         }
 
         # Auto expiring some keys
@@ -1489,15 +1543,21 @@ sub login ($;%) {
         }
     }
     elsif($config->{'vf_key_prop'} && $config->{'vf_key_cookie'}) {
-        my $random_key=XAO::Utils::generate_key();
+        my $random_key=XAO::Utils::generate_key($config->{'vf_key_length'} || 8);
+
+        $data->{'key'}=$random_key;
+
         $user->put($config->{'vf_key_prop'} => $random_key);
-        $self->siteconfig->add_cookie(
-            -name    => $config->{'vf_key_cookie'},
-            -value   => $random_key,
-            -path    => '/',
-            -expires => '+10y',
-            -domain  => $cookie_domain,
-        );
+
+        unless($without_cookies) {
+            $self->siteconfig->add_cookie(
+                -name    => $config->{'vf_key_cookie'},
+                -value   => $random_key,
+                -path    => '/',
+                -expires => '+10y',
+                -domain  => $cookie_domain,
+            );
+        }
     }
 
     # Setting login time
@@ -1508,40 +1568,43 @@ sub login ($;%) {
 
     # Setting user name cookie depending on id_cookie_type parameter.
     #
-    my $expire=$config->{'id_cookie_expire'} ? "+$config->{'id_cookie_expire'}s"
-                                             : '+10y';
+    unless($without_cookies) {
+        my $expire=$config->{'id_cookie_expire'}
+                            ? "+$config->{'id_cookie_expire'}s"
+                            : '+10y';
 
-    if($id_cookie_type eq 'id') {
-        my $cookie_value=$data->{'id'};
-        my $r=$data;
-        while($r->{'list_prop'}) {
-            $r=$r->{$r->{'list_prop'}};
-            $cookie_value.="/$r->{'id'}";
-        };
-        $self->siteconfig->add_cookie(
-            -name    => $id_cookie,
-            -value   => $cookie_value,
-            -path    => '/',
-            -expires => $expire,
-            -domain  => $cookie_domain,
-        );
-        $data->{'cookie_value'}=$cookie_value;
-    }
-    elsif($id_cookie_type eq 'name') {
-        $self->siteconfig->add_cookie(
-            -name    => $id_cookie,
-            -value   => $username,
-            -path    => '/',
-            -expires => $expire,
-            -domain  => $cookie_domain,
-        );
-        $data->{'cookie_value'}=$username;
-    }
-    elsif($id_cookie_type eq 'key') {
-        # already set above
-    }
-    else {
-        throw $self "- unsupported id_cookie_type ($id_cookie_type)";
+        if($id_cookie_type eq 'id') {
+            my $cookie_value=$data->{'id'};
+            my $r=$data;
+            while($r->{'list_prop'}) {
+                $r=$r->{$r->{'list_prop'}};
+                $cookie_value.="/$r->{'id'}";
+            };
+            $self->siteconfig->add_cookie(
+                -name    => $id_cookie,
+                -value   => $cookie_value,
+                -path    => '/',
+                -expires => $expire,
+                -domain  => $cookie_domain,
+            );
+            $data->{'cookie_value'}=$cookie_value;
+        }
+        elsif($id_cookie_type eq 'name') {
+            $self->siteconfig->add_cookie(
+                -name    => $id_cookie,
+                -value   => $username,
+                -path    => '/',
+                -expires => $expire,
+                -domain  => $cookie_domain,
+            );
+            $data->{'cookie_value'}=$username;
+        }
+        elsif($id_cookie_type eq 'key') {
+            # already set above
+        }
+        else {
+            throw $self "- unsupported id_cookie_type ($id_cookie_type)";
+        }
     }
 
     # Yay! Verified.
@@ -1619,13 +1682,28 @@ sub logout ($@) {
 
     my ($config,$type)=$self->_get_config($args);
 
+    my $without_cookies=$args->{'without_cookies'};
     my $cookie_domain=$config->{'domain'};
 
     # Logging in the user first. Skipping if 'logged_in' to avoid
     # recursion when we need to log the user out after some failed
     # checks.
     #
-    $self->check(type => $type) unless $args->{'logged_in'};
+    unless($args->{'logged_in'}) {
+
+        # Need to reset templates to avoid contaminating the output from
+        # logout.
+        #
+        $self->check($args,{
+            'mode'                  => 'check',
+            'anonymous.path'        => undef,
+            'anonymous.template'    => undef,
+            'identified.path'       => undef,
+            'identified.template'   => undef,
+            'verified.path'         => undef,
+            'verified.template'     => undef,
+        });
+    }
 
     # Checking if we're currently logged in at all -- either verified or
     # identified.
@@ -1683,6 +1761,7 @@ sub logout ($@) {
     # Deleting verification status from the clipboard
     #
     $clipboard->delete("$cb_uri/verified");
+    $clipboard->delete("$cb_uri/key");
 
     # Not sure, but setting value to an empty string triggered a bug
     # somewhere, setting it to '0' instead and expiring it immediately.
@@ -1691,7 +1770,7 @@ sub logout ($@) {
     # to keep this cookie the user won't be in verified status any more
     # because last verification time was dropped to zero.
     #
-    if($vf_key_cookie) {
+    if(!$without_cookies && $vf_key_cookie) {
         $self->siteconfig->add_cookie(
             -name    => $vf_key_cookie,
             -value   => '0',
@@ -1711,16 +1790,18 @@ sub logout ($@) {
             $clipboard->delete("$cb_uri/key_object");
         }
 
-        my $id_cookie=$config->{'id_cookie'} ||
-            throw $self "- no 'id_cookie' in the configuration";
+        unless($without_cookies) {
+            my $id_cookie=$config->{'id_cookie'} ||
+                throw $self "- no 'id_cookie' in the configuration";
 
-        $self->siteconfig->add_cookie(
-            -name    => $id_cookie,
-            -value   => '0',
-            -path    => '/',
-            -expires => '-1d',
-            -domain  => $cookie_domain,
-        );
+            $self->siteconfig->add_cookie(
+                -name    => $id_cookie,
+                -value   => '0',
+                -path    => '/',
+                -expires => '-1d',
+                -domain  => $cookie_domain,
+            );
+        }
 
         return $self->display_results($args,'anonymous');
     }

@@ -750,6 +750,7 @@ sub test_vf_key_simple {
                     '/IdentifyUser/member/name'     => 'm001',
                     '/IdentifyUser/member/object'   => { },
                     '/IdentifyUser/member/verified' => undef,
+                    '/IdentifyUser/member/key'      => $cjar{'member_key_1'},
                 },
             },
         },
@@ -1771,6 +1772,7 @@ sub test_key_list {
                 key_ref_prop        => 'member_id',
                 key_expire_prop     => 'expire_time',
                 key_expire_mode     => 'auto',
+                key_renew_mode      => 'update',    # compatibility, not default!
                 #
                 pass_prop           => 'password',
                 #
@@ -3382,6 +3384,310 @@ sub test_key_list {
                 },
             },
         },
+        #
+        # key_renew_mode replace/update
+        #
+        t50a     => {
+            sub_pre => sub {
+                $config->put('/identify_user/member/id_cookie_type' => 'id');
+            },
+            cookies => {
+                mkey        => undef,
+            },
+            args => {
+                mode        => 'login',
+                type        => 'member',
+                username    => 'm002',
+                password    => '23456',
+            },
+            results => {
+                cookies     => {
+                    mid         => 'm002',
+                    mkey        => '15',
+                },
+                text        => 'V',
+            },
+        },
+        t50b     => {
+            sub_pre => sub {
+                $config->put('/identify_user/member/key_renew_mode' => 'replace');
+            },
+            args => {
+                mode        => 'login',
+                type        => 'member',
+                username    => 'm002',
+                password    => '23456',
+            },
+            results => {
+                cookies     => {
+                    mid         => 'm002',
+                    mkey        => '16',
+                },
+                text        => 'V',
+            },
+        },
+        t50c     => {
+            sub_pre => sub {
+                $config->put('/identify_user/member/key_renew_mode' => 'update');
+            },
+            args => {
+                mode        => 'login',
+                type        => 'member',
+                username    => 'm002',
+                password    => '23456',
+            },
+            results => {
+                cookies     => {
+                    mid         => 'm002',
+                    mkey        => '16',
+                },
+                text        => 'V',
+            },
+        },
+        #
+        # Authorization without cookies
+        #
+        t51a     => {
+            sub_pre => sub {
+                $config->put('/identify_user/member/id_cookie_type' => 'id');
+            },
+            args => {
+                mode        => 'login',
+                type        => 'member',
+                username    => 'm002',
+                password    => '23456',
+                without_cookies => 1,
+            },
+            results => {
+                text        => 'V',
+                cookies     => {
+                    mid         => 'm002',
+                    mkey        => '16',
+                },
+                clipboard   => {
+                    '/IdentifyUser/member/verified'     => 1,
+                    '/IdentifyUser/member/name'         => 'm002',
+                    '/IdentifyUser/member/id'           => 'm002',
+                    '/IdentifyUser/member/key'          => '17',
+                },
+            },
+        },
+        t51b     => {
+            sub_pre => sub {
+                $config->put('/identify_user/member/id_cookie_type' => 'id');
+            },
+            args => {
+                mode        => 'login',
+                type        => 'member',
+                username    => 'm001',
+                password    => '12345',
+                without_cookies => 1,
+            },
+            results => {
+                text        => 'V',
+                cookies     => {
+                    mid         => 'm002',
+                    mkey        => '16',
+                },
+                clipboard   => {
+                    '/IdentifyUser/member/verified'     => 1,
+                    '/IdentifyUser/member/name'         => 'm001',
+                    '/IdentifyUser/member/id'           => 'm001',
+                    '/IdentifyUser/member/key'          => '18',
+                },
+            },
+        },
+        t51c     => {
+            args => {
+                mode        => 'check',
+                type        => 'member',
+                without_cookies => 1,
+            },
+            results => {
+                text        => 'A',
+                cookies     => {
+                    mid         => 'm002',
+                    mkey        => '16',
+                },
+                clipboard   => {
+                    '/IdentifyUser/member/name'         => undef,
+                    '/IdentifyUser/member/id'           => undef,
+                    '/IdentifyUser/member/key'          => undef,
+                },
+            },
+        },
+        t51d     => {
+            args => {
+                mode        => 'check',
+                type        => 'member',
+                without_cookies => 1,
+                id_cookie_value => 'm001',
+            },
+            results => {
+                text        => 'I',
+                cookies     => {
+                    mid         => 'm002',
+                    mkey        => '16',
+                },
+                clipboard   => {
+                    '/IdentifyUser/member/name'         => 'm001',
+                    '/IdentifyUser/member/id'           => 'm001',
+                    '/IdentifyUser/member/key'          => undef,
+                },
+            },
+        },
+        t51e     => {
+            args => {
+                mode        => 'check',
+                type        => 'member',
+                without_cookies => 1,
+                id_cookie_value => 'm001',
+                key_cookie_value=> 18,
+            },
+            results => {
+                text        => 'V',
+                cookies     => {
+                    mid         => 'm002',
+                    mkey        => '16',
+                },
+                clipboard   => {
+                    '/IdentifyUser/member/verified'     => 1,
+                    '/IdentifyUser/member/name'         => 'm001',
+                    '/IdentifyUser/member/id'           => 'm001',
+                    '/IdentifyUser/member/key'          => '18',
+                },
+            },
+        },
+        t51f     => {
+            args => {
+                mode        => 'check',
+                type        => 'member',
+            },
+            results => {
+                text        => 'V',
+                cookies     => {
+                    mid         => 'm002',
+                    mkey        => '16',
+                },
+                clipboard   => {
+                    '/IdentifyUser/member/verified'     => 1,
+                    '/IdentifyUser/member/name'         => 'm002',
+                    '/IdentifyUser/member/id'           => 'm002',
+                    '/IdentifyUser/member/key'          => '16',
+                },
+            },
+        },
+        t51g     => {
+            args => {
+                mode        => 'logout',
+                type        => 'member',
+                without_cookies => 1,
+            },
+            results => {
+                text        => 'A',
+                cookies     => {
+                    mid         => 'm002',
+                    mkey        => '16',
+                },
+                clipboard   => {
+                    '/IdentifyUser/member/name'         => undef,
+                    '/IdentifyUser/member/id'           => undef,
+                    '/IdentifyUser/member/key'          => undef,
+                },
+            },
+        },
+        t51h     => {
+            args => {
+                mode            => 'logout',
+                type            => 'member',
+                without_cookies => 1,
+                id_cookie_value => 'm001',
+                key_cookie_value=> 18,
+            },
+            results => {
+                text        => 'I',
+                cookies     => {
+                    mid         => 'm002',
+                    mkey        => '16',
+                },
+                clipboard   => {
+                    '/IdentifyUser/member/object'       => { },
+                    #'/IdentifyUser/member/key_object'   => { },
+                    '/IdentifyUser/member/name'         => 'm001',
+                    '/IdentifyUser/member/id'           => 'm001',
+                    '/IdentifyUser/member/key'          => undef,
+                },
+            },
+        },
+        t51i     => {
+            args => {
+                mode            => 'logout',
+                type            => 'member',
+                without_cookies => 1,
+                id_cookie_value => 'm001',
+                key_cookie_value=> 18,
+                hard_logout     => 1,
+            },
+            results => {
+                text            => 'A',
+                cookies         => {
+                    mid             => 'm002',
+                    mkey            => '16',
+                },
+                clipboard   => {
+                    '/IdentifyUser/member/object'       => undef,
+                    '/IdentifyUser/member/key_object'   => undef,
+                    '/IdentifyUser/member/name'         => undef,
+                    '/IdentifyUser/member/id'           => undef,
+                    '/IdentifyUser/member/key'          => undef,
+                },
+            },
+        },
+        t51j     => {
+            args => {
+                mode            => 'logout',
+                type            => 'member',
+                id_cookie_value => 'm001',
+                key_cookie_value=> 18,
+            },
+            results => {
+                text            => 'I',
+                cookies         => {
+                    mid             => 'm002',
+                    mkey            => undef,
+                },
+                clipboard   => {
+                    '/IdentifyUser/member/object'       => { },
+                    '/IdentifyUser/member/key_object'   => undef,
+                    '/IdentifyUser/member/name'         => 'm002',
+                    '/IdentifyUser/member/id'           => 'm002',
+                    '/IdentifyUser/member/key'          => undef,
+                },
+            },
+        },
+        t51k     => {
+            args => {
+                mode        => 'check',
+                type        => 'member',
+                without_cookies => 1,
+                id_cookie_value => 'm001',
+                key_cookie_value=> 18,
+            },
+            results => {
+                text        => 'I',
+                cookies     => {
+                    mid         => 'm002',
+                    mkey        => undef,
+                },
+                clipboard   => {
+                    '/IdentifyUser/member/object'       => { },
+                    '/IdentifyUser/member/name'         => 'm001',
+                    '/IdentifyUser/member/id'           => 'm001',
+                    '/IdentifyUser/member/key'          => undef,
+                },
+            },
+        },
+
     );
 
     $self->run_matrix(\%matrix,\%cjar);
