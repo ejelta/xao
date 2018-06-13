@@ -1,6 +1,0 @@
-<%Order
-  mode="delete-object"
-  uri="/Orders"
-  id="<%ORDER_ID/f%>"
-%>
-<%Redirect url={/admin/order/index.html}%>

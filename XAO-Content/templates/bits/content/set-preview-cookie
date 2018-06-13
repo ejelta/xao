@@ -1,6 +1,0 @@
-<%Cookie
-  name="preview_mode"
-  value="1"
-  expires="+20m"
-  path="/"
-%>

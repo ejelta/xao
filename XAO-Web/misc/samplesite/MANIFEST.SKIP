@@ -1,8 +1,0 @@
-^\.config-cache$
-(^|/)\.cvsignore
-CVS(/|$)
-^ta(/|$)
-^tmp(/|$)
-.*\.old$
-^objects/Config\.pm$
-^bin/build-structure$

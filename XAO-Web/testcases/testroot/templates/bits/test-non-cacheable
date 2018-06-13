@@ -1,2 +1,0 @@
-<!-- This won't get cached because of external clipboard dependence
--->[<%Clipboard name='test_clipboard'%>]<%End%>

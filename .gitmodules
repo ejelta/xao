@@ -1,0 +1,33 @@
+[submodule "XAO-Base"]
+	path = XAO-Base
+	url = https://github.com/amaltsev/XAO-Base.git
+[submodule "XAO-FS"]
+	path = XAO-FS
+	url = https://github.com/amaltsev/XAO-FS.git
+[submodule "XAO-Catalogs"]
+	path = XAO-Catalogs
+	url = https://github.com/amaltsev/XAO-Catalogs.git
+[submodule "XAO-Commerce"]
+	path = XAO-Commerce
+	url = https://github.com/amaltsev/XAO-Commerce.git
+[submodule "XAO-Content"]
+	path = XAO-Content
+	url = https://github.com/amaltsev/XAO-Content.git
+[submodule "XAO-ImageCache"]
+	path = XAO-ImageCache
+	url = https://github.com/amaltsev/XAO-ImageCache.git
+[submodule "XAO-Indexer"]
+	path = XAO-Indexer
+	url = https://github.com/amaltsev/XAO-Indexer.git
+[submodule "XAO-MySQL"]
+	path = XAO-MySQL
+	url = https://github.com/amaltsev/XAO-MySQL.git
+[submodule "XAO-PodView"]
+	path = XAO-PodView
+	url = https://github.com/amaltsev/XAO-PodView.git
+[submodule "XAO-Web"]
+	path = XAO-Web
+	url = https://github.com/amaltsev/XAO-Web.git
+[submodule "XAO-Wiki"]
+	path = XAO-Wiki
+	url = https://github.com/amaltsev/XAO-Wiki.git

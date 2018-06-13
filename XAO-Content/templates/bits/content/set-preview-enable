@@ -1,8 +1,0 @@
-<%Content
-  mode="content-set-preview"
-  value="1"
-%>
-<%Condition
-  a.arg="COOKIE"
-  a.path="/bits/content/set-preview-cookie"
-%>

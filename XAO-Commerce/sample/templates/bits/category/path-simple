@@ -1,4 +1,0 @@
-<%Condition
-  cond.arg="LEVEL"
-  cond.template="::"
-%><%NAME/h%><%End%>

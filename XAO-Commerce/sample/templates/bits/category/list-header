@@ -1,4 +1,0 @@
-<%Condition
-  present.arg="NUMBER"
-  present.template={<STRONG>Sub-Categories</STRONG><P><UL>}
-%>

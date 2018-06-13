@@ -1,5 +1,0 @@
-<%Content
-  mode="content-publish"
-  name={<%CgiParam/f name="name" default="NONEXISTENT"%>}
-  path="/bits/content/publish-success"
-%>

@@ -1,6 +1,0 @@
-Makefile
-.config
-ta
-blib
-blibdirs
-pm_to_blib
